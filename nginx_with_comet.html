@@ -67,16 +67,16 @@
 </div>
 
 <div id="outline-container-2" class="outline-2">
-<h2 id="sec-2"><a href="https://github.com/slact/nginx_http_push_module">nginx<sub>http</sub><sub>push</sub><sub>module</sub></a> （不建议使用）</h2>
+<h2 id="sec-2"><a href="https://github.com/slact/nginx_http_push_module">nginx_http_push_module</a> （不建议使用）</h2>
 <div class="outline-text-2" id="text-2">
 
-<p>  这个模块功能上没有问题，网上介绍的文章相对比较多，但是存在严重的内存泄露问题，而且发现使用kill -HUP的方式优雅重启nginx虽会释放一部分内存，但nginx错误日志显示有共享内存锁相关的冲突，我们不得不每小时彻底重启一次nginx。简单说一下就是它使用一个全局的内存池来分配订阅者及响应需要的内存空间，但是从nginx内存池分配的小内存块（&lt; pagesize，4096）是不会释放的也不会归还到池中进行重用，具体可查看nginx源码的ngx<sub>palloc和ngx</sub><sub>pfree函数进行验证。</sub>
+<p>  这个模块功能上没有问题，网上介绍的文章相对比较多，但是存在严重的内存泄露问题，而且发现使用kill -HUP的方式优雅重启nginx虽会释放一部分内存，但nginx错误日志显示有共享内存锁相关的冲突，我们不得不每小时彻底重启一次nginx。简单说一下就是它使用一个全局的内存池来分配订阅者及响应需要的内存空间，但是从nginx内存池分配的小内存块（&lt; pagesize，4096）是不会释放的也不会归还到池中进行重用，具体可查看nginx源码的ngx_palloc和ngx_pfree函数进行验证。
 </p>
 <p>
-  可google "nginx中mod<sub>push模块内存分配改造</sub>"，在作者的<a href="http://http://blog.lifeibo.com/">网站</a>正在改版暂时找不到该文章。
+  可google "nginx中mod_push模块内存分配改造"，在作者的<a href="http://http://blog.lifeibo.com/">网站</a>正在改版暂时找不到该文章。
 </p>
 <p>  
-  <a href="http://bsd.ee/~hadara/blog/?p=215=1">这里</a>也有人<a href="https://github.com/slact/nginx_http_push_module/pull/60">指出</a>该问题，同时该文作者也fork了一个分枝，但是我试了一下，除了不支持push<sub>channel</sub><sub>timeout特性外，还是一样有内存泄露。</sub>
+  <a href="http://bsd.ee/~hadara/blog/?p=215=1">这里</a>也有人<a href="https://github.com/slact/nginx_http_push_module/pull/60">指出</a>该问题，同时该文作者也fork了一个分枝，但是我试了一下，除了不支持push_channel_timeout特性外，还是一样有内存泄露。
 </p>
 <dl>
 <dt>参考配置</dt><dd>
@@ -86,7 +86,7 @@
 
 
 
-<pre class="example">    location ~ ^/publish$ {
+<pre class="example">location ~ ^/publish$ {
     allow 127.0.0.1;
     deny all;
     set $push_channel_id $arg_id;
@@ -97,7 +97,7 @@
     push_store_messages off;
 }
 
-    location ~ ^/activity$ {
+location ~ ^/activity$ {
     if ($args ~ "callback=(.+)" ) {
         rewrite ^/activity "/activity_jsonp" last;
     }
@@ -109,7 +109,7 @@
     default_type application/json;
 }
 
-    location ~ ^/activity_jsonp$ {
+location ~ ^/activity_jsonp$ {
     push_subscriber;
     push_subscriber_timeout 60s;
     push_subscriber_concurrency first;
@@ -130,7 +130,7 @@
 <h2 id="sec-3"><a href="https://github.com/wandenberg/nginx-push-stream-module">nginx-push-stream-module</a> （建议使用）</h2>
 <div class="outline-text-2" id="text-3">
 
-<p>  由于 <a href="https://github.com/slact/nginx_http_push_module">nginx<sub>http</sub><sub>push</sub><sub>module</sub></a> 存在内存泄露问题，同时没有人进行正式的修复，我们决定尝试一下<a href="https://github.com/wandenberg/nginx-push-stream-module">nginx-push-stream-module</a>，这个模块功能更强大同时文档更完整，看起来也更活跃。
+<p>  由于 <a href="https://github.com/slact/nginx_http_push_module">nginx_http_push_module</a> 存在内存泄露问题，同时没有人进行正式的修复，我们决定尝试一下<a href="https://github.com/wandenberg/nginx-push-stream-module">nginx-push-stream-module</a>，这个模块功能更强大同时文档更完整，看起来也更活跃。
 </p>
 <dl>
 <dt>优点</dt><dd>
@@ -143,7 +143,7 @@
 <li>测试中未发现内存泄露
 </li>
 <li>方便实现jsonp
-      使用 <a href="https://github.com/slact/nginx_http_push_module">nginx<sub>http</sub><sub>push</sub><sub>module</sub></a> 时，发现它与echo-nginx-module的配置有冲突，我们不得不采用rewrite的方式进行配置：
+      使用 <a href="https://github.com/slact/nginx_http_push_module">nginx_http_push_module</a> 时，发现它与echo-nginx-module的配置有冲突，我们不得不采用rewrite的方式进行配置：
 
 </li>
 </ul>
@@ -162,19 +162,19 @@ push_stream_subscriber_connection_ttl 60s;
 push_stream_longpolling_connection_ttl 60s;
 
 server {
-        listen 80;
-        server_name localhost 127.0.0.1;
+    listen 80;
+    server_name localhost 127.0.0.1;
     
     ...
 
-        location ~ ^/publish$ {
+    location ~ ^/publish$ {
         allow 127.0.0.1;
         deny all;
         push_stream_publisher admin;
         set $push_stream_channel_id $arg_id;
     }
     
-        location ~ ^/activity$ {
+    location ~ ^/activity$ {
         if ( $arg_callback ) {
             echo_before_body '$arg_callback(';
             echo_after_body ');';
