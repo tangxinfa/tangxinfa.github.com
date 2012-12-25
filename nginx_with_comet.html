@@ -140,10 +140,10 @@ location ~ ^/activity_jsonp$ {
       有统计功能。
       可对响应内容可以再处理。
 </li>
-<li>测试中未发现内存泄露
+<li>测试中未发现明显的内存泄露
 </li>
-<li>方便实现jsonp
-      使用 <a href="https://github.com/slact/nginx_http_push_module">nginx_http_push_module</a> 时，发现它与echo-nginx-module的配置有冲突，我们不得不采用rewrite的方式进行配置：
+<li>内置支持jsonp
+      返回的jsonp是这样的格式callback([text])，可以通过修改ngx<sub>http</sub><sub>push</sub><sub>stream</sub><sub>module</sub><sub>utils</sub>.h中定义的NGX<sub>HTTP</sub><sub>PUSH</sub><sub>STREAM</sub><sub>CALLBACK</sub><sub>INIT</sub><sub>CHUNK和NGX</sub><sub>HTTP</sub><sub>PUSH</sub><sub>STREAM</sub><sub>CALLBACK</sub><sub>END</sub><sub>CHUNK去除多余的中括号。</sub>
 
 </li>
 </ul>
@@ -175,10 +175,6 @@ server {
     }
     
     location ~ ^/activity$ {
-        if ( $arg_callback ) {
-            echo_before_body '$arg_callback(';
-            echo_after_body ');';
-        }
         push_stream_subscriber long-polling;
         set $push_stream_channels_path $arg_id;
         push_stream_content_type "application/json";
