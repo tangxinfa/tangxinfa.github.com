@@ -3,11 +3,11 @@
                "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN" xml:lang="zh-CN">
 <head>
-<title>在emacs模式行上显示图片的尺寸</title>
+<title>Web模型</title>
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
-<meta name="title" content="在emacs模式行上显示图片的尺寸"/>
+<meta name="title" content="Web模型"/>
 <meta name="generator" content="Org-mode"/>
-<meta name="generated" content="&lt;2012-08-03 五&gt;"/>
+<meta name="generated" content="&lt;2013-02-28 四&gt;"/>
 <meta name="author" content="tangxinfa"/>
 <meta name="description" content=""/>
 <meta name="keywords" content=""/>
@@ -43,30 +43,67 @@
 </div>
 
 <div id="content">
-<h1 class="title">在emacs模式行上显示图片的尺寸</h1>
+<h1 class="title">Web模型</h1>
 
 
 <div class="tag-bar">
 </div>
 
-<p>
-下面的lisp代码用于在emacs模式行上显示图片的尺寸：
+
+<div id="outline-container-1" class="outline-2">
+<h2 id="sec-1">CGI</h2>
+<div class="outline-text-2" id="text-1">
+
+<p>  全称为Common Gateway Interface，即公共网关接口。
+  当Web服务器收到一个请求时，运行相应的处理程序，相关参数通过标准输入传递给处理程序，处理程序的标准输出做为响应内容，处理程序运行结束后将响应发送给客户端。
 </p>
+<ul>
+<li>性能 *
+    进程级，每请求一进程。进程创建有很大的开销，并发数与系统资源消耗呈线性增长，有限的系统资源成为瓶颈。
+</li>
+</ul>
 
 
-<pre class="example">(add-hook 'image-mode-hook (lambda ()
-                             "display image size on mode line."
-                             (setq mode-name (format "Image[%s](%s*%s)" 
-                                                     image-type 
-                                                     (car (image-size (image-get-display-property) t)) 
-                                                     (cdr (image-size (image-get-display-property) t))))))
-</pre>
+</div>
 
+</div>
 
-<p>
-效果如下：
-[(Image[png](181*415))]
+<div id="outline-container-2" class="outline-2">
+<h2 id="sec-2">FastCGI</h2>
+<div class="outline-text-2" id="text-2">
+
+<p>  为CGI的改良，CGI程序做为独立的网络后台程序运行，当Web服务器收到一个请求时，发起一个tcp请求到处理程序，通过该tcp连接传入相关参数，处理程序的响应也通过该tcp连接发回给Web服务器，处理程序关闭该连接表示处理完毕，Web服务器最终将响应发送给客户端。
 </p>
+<ul>
+<li>性能 **
+    网络级，每请求一连接。CGI的改良，重用进程，进程处理完一个请求后再处理下一请求，对于多个请求，只需要付出一次进程创建的开销，可以在后继请求重用资源（从文件载入的配置项、查询到的数据、打开的文件、数据库连接等）。因为处理程序是串行处理请求，往往需要同时运行多个处理程序以提升并发处理能力，这些处理程序无法共享资源以进一步提升性能。
+
+</li>
+<li>附录
+    Web服务器可重用到服务程序的连接进一步提升性能（如：nginx的<a href="http://nginx.org/en/docs/http/ngx_http_upstream_module.html#keepalive">upstream<sub>keepalive</sub></a>）。
+</li>
+</ul>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-3" class="outline-2">
+<h2 id="sec-3">WSGI</h2>
+<div class="outline-text-2" id="text-3">
+
+
+</div>
+
+</div>
+
+<div id="outline-container-4" class="outline-2">
+<h2 id="sec-4">uWSGI</h2>
+<div class="outline-text-2" id="text-4">
+
+
+
 
 
         <div class="comment_header">评论</div>
@@ -88,9 +125,11 @@ document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3
         </script>
         </div>
 </div>
+</div>
+</div>
 
 <div id="postamble">
-<p class="date">Date: &lt;2012-08-03 五&gt;</p>
+<p class="date">Date: &lt;2013-02-28 四&gt;</p>
 <p class="author">Author: tangxinfa</p>
 <p class="creator">Org version 7.8.02 with Emacs version 23</p>
 <a href="http://validator.w3.org/check?uri=referer">Validate XHTML 1.0</a>

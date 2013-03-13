@@ -3,11 +3,11 @@
                "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN" xml:lang="zh-CN">
 <head>
-<title>在emacs模式行上显示图片的尺寸</title>
+<title>下载库平台宏定义</title>
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
-<meta name="title" content="在emacs模式行上显示图片的尺寸"/>
+<meta name="title" content="下载库平台宏定义"/>
 <meta name="generator" content="Org-mode"/>
-<meta name="generated" content="&lt;2012-08-03 五&gt;"/>
+<meta name="generated" content="&lt;2013-01-07 一&gt;"/>
 <meta name="author" content="tangxinfa"/>
 <meta name="description" content=""/>
 <meta name="keywords" content=""/>
@@ -43,29 +43,120 @@
 </div>
 
 <div id="content">
-<h1 class="title">在emacs模式行上显示图片的尺寸</h1>
+<h1 class="title">下载库平台宏定义</h1>
 
 
 <div class="tag-bar">
 </div>
 
+
+<div id="outline-container-1" class="outline-2">
+<h2 id="sec-1">用途</h2>
+<div class="outline-text-2" id="text-1">
+
+<p>  规范平台宏定义避免各平台开发小组互相影响、加强协作。
+</p><dl>
+<dt>注意</dt><dd>
 <p>
-下面的lisp代码用于在emacs模式行上显示图片的尺寸：
+    与系统平台无关的可选应用特性请自行定义单独的宏开关（如：ENABLE<sub>FUNCTION1），由项目工程配置文件来决定是否启用该特性。</sub>
+</p></dd>
+</dl>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-2" class="outline-2">
+<h2 id="sec-2">组织方式</h2>
+<div class="outline-text-2" id="text-2">
+
+<p>  根据系统的继承关系，平台宏以树的方式组织，下级的宏被定义表明其上级的宏也被定义，如：
 </p>
 
 
-<pre class="example">(add-hook 'image-mode-hook (lambda ()
-                             "display image size on mode line."
-                             (setq mode-name (format "Image[%s](%s*%s)" 
-                                                     image-type 
-                                                     (car (image-size (image-get-display-property) t)) 
-                                                     (cdr (image-size (image-get-display-property) t))))))
+<pre class="example">#if defined(IOS)
+    APPLE、LINUX肯定已定义，不需要再进行判断
+#endif //IOS
 </pre>
 
 
+</div>
+
+</div>
+
+<div id="outline-container-3" class="outline-2">
+<h2 id="sec-3">开发流程</h2>
+<div class="outline-text-2" id="text-3">
+
+<p>  a. MACOS开发功能1
+</p>
+
+
+<pre class="example">#if defined(ENABLE_FUNCTION1)
+#if defined(MACOS)
+    功能１代码
+#endif //MACOS
+#endif //FUNCTION1
+</pre>
+
 <p>
-效果如下：
-[(Image[png](181*415))]
+  b. IOS发现功能1代码也可用于IOS
+  提升平台宏
+</p>
+
+
+<pre class="example">#if defined(ENABLE_FUNCTION1)
+#if defined(APPLE)
+    功能１代码
+#endif //APPLE
+#endif //FUNCTION1
+</pre>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-4" class="outline-2">
+<h2 id="sec-4">LINUX</h2>
+<div class="outline-text-2" id="text-4">
+
+<p>  类linux系统
+</p>
+</div>
+
+<div id="outline-container-4-1" class="outline-3">
+<h3 id="sec-4-1">ANDROID</h3>
+<div class="outline-text-3" id="text-4-1">
+
+<p>   安卓系统
+</p></div>
+
+</div>
+
+<div id="outline-container-4-2" class="outline-3">
+<h3 id="sec-4-2">APPLE</h3>
+<div class="outline-text-3" id="text-4-2">
+
+<p>   苹果系统
+</p>
+</div>
+
+<div id="outline-container-4-2-1" class="outline-4">
+<h4 id="sec-4-2-1">MACOS</h4>
+<div class="outline-text-4" id="text-4-2-1">
+
+<p>    苹果pc系统
+</p></div>
+
+</div>
+
+<div id="outline-container-4-2-2" class="outline-4">
+<h4 id="sec-4-2-2">IOS</h4>
+<div class="outline-text-4" id="text-4-2-2">
+
+<p>    苹果mobile系统
 </p>
 
 
@@ -88,9 +179,13 @@ document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3
         </script>
         </div>
 </div>
+</div>
+</div>
+</div>
+</div>
 
 <div id="postamble">
-<p class="date">Date: &lt;2012-08-03 五&gt;</p>
+<p class="date">Date: &lt;2013-01-07 一&gt;</p>
 <p class="author">Author: tangxinfa</p>
 <p class="creator">Org version 7.8.02 with Emacs version 23</p>
 <a href="http://validator.w3.org/check?uri=referer">Validate XHTML 1.0</a>
