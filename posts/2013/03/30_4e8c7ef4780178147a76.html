@@ -158,486 +158,485 @@
 
 <p>   nginx_http_image_filter加上<a href="http://forum.nginx.org/read.php?21,235958">水印补丁</a>即可。
 </p>
-<dl>
-<dt>patched ngx_http_image_filter_module.c</dt><dd>
-</dd>
-</dl>
+<p>
+   下面的是经过修改后的 <code>nginx image filter</code> 模块代码，加入居中的水印效果:
+</p>
 
 
+<div class="o-blog-source"><a class="btn btn-info" data-toggle="modal" data-target="#ngx5fhttp5fimage5ffilter5fmodule2ec" ><i class="icon-file icon-white"></i>&nbsp;ngx_http_image_filter_module.c</a></div><div class="modal fade hide" id="ngx5fhttp5fimage5ffilter5fmodule2ec"><div class="modal-header"><a class="close" data-dismiss="modal">×</a><h3>ngx_http_image_filter_module.c</h3></div><div class="modal-body"><pre>
+
+/*
+ * Copyright (C) Igor Sysoev
+ * Copyright (C) Nginx, Inc.
+ */
 
 
-<pre class="src src-c"><span style="color: #586e75; font-style: italic;">/*</span>
-<span style="color: #586e75; font-style: italic;"> * Copyright (C) Igor Sysoev</span>
-<span style="color: #586e75; font-style: italic;"> * Copyright (C) Nginx, Inc.</span>
-<span style="color: #586e75; font-style: italic;"> </span><span style="color: #586e75; font-style: italic;">*/</span>
+#include &lt;ngx_config.h&gt;
+#include &lt;ngx_core.h&gt;
+#include &lt;ngx_http.h&gt;
+
+#include &lt;gd.h&gt;
 
 
-<span style="color: #cb4b16;">#include</span> <span style="color: #2aa198;">&lt;ngx_config.h&gt;</span>
-<span style="color: #cb4b16;">#include</span> <span style="color: #2aa198;">&lt;ngx_core.h&gt;</span>
-<span style="color: #cb4b16;">#include</span> <span style="color: #2aa198;">&lt;ngx_http.h&gt;</span>
-
-<span style="color: #cb4b16;">#include</span> <span style="color: #2aa198;">&lt;gd.h&gt;</span>
-
-
-<span style="color: #cb4b16;">#define</span> <span style="color: #268bd2;">NGX_HTTP_IMAGE_OFF</span>       0
-<span style="color: #cb4b16;">#define</span> <span style="color: #268bd2;">NGX_HTTP_IMAGE_TEST</span>      1
-<span style="color: #cb4b16;">#define</span> <span style="color: #268bd2;">NGX_HTTP_IMAGE_SIZE</span>      2
-<span style="color: #cb4b16;">#define</span> <span style="color: #268bd2;">NGX_HTTP_IMAGE_RESIZE</span>    3
-<span style="color: #cb4b16;">#define</span> <span style="color: #268bd2;">NGX_HTTP_IMAGE_CROP</span>      4
-<span style="color: #cb4b16;">#define</span> <span style="color: #268bd2;">NGX_HTTP_IMAGE_ROTATE</span>    5
-<span style="color: #cb4b16;">#define</span> <span style="color: #268bd2;">NGX_HTTP_IMAGE_WATERMARK</span> 6
+#define NGX_HTTP_IMAGE_OFF       0
+#define NGX_HTTP_IMAGE_TEST      1
+#define NGX_HTTP_IMAGE_SIZE      2
+#define NGX_HTTP_IMAGE_RESIZE    3
+#define NGX_HTTP_IMAGE_CROP      4
+#define NGX_HTTP_IMAGE_ROTATE    5
+#define NGX_HTTP_IMAGE_WATERMARK 6
 
 
-<span style="color: #cb4b16;">#define</span> <span style="color: #268bd2;">NGX_HTTP_IMAGE_START</span>     0
-<span style="color: #cb4b16;">#define</span> <span style="color: #268bd2;">NGX_HTTP_IMAGE_READ</span>      1
-<span style="color: #cb4b16;">#define</span> <span style="color: #268bd2;">NGX_HTTP_IMAGE_PROCESS</span>   2
-<span style="color: #cb4b16;">#define</span> <span style="color: #268bd2;">NGX_HTTP_IMAGE_PASS</span>      3
-<span style="color: #cb4b16;">#define</span> <span style="color: #268bd2;">NGX_HTTP_IMAGE_DONE</span>      4
+#define NGX_HTTP_IMAGE_START     0
+#define NGX_HTTP_IMAGE_READ      1
+#define NGX_HTTP_IMAGE_PROCESS   2
+#define NGX_HTTP_IMAGE_PASS      3
+#define NGX_HTTP_IMAGE_DONE      4
 
 
-<span style="color: #cb4b16;">#define</span> <span style="color: #268bd2;">NGX_HTTP_IMAGE_NONE</span>      0
-<span style="color: #cb4b16;">#define</span> <span style="color: #268bd2;">NGX_HTTP_IMAGE_JPEG</span>      1
-<span style="color: #cb4b16;">#define</span> <span style="color: #268bd2;">NGX_HTTP_IMAGE_GIF</span>       2
-<span style="color: #cb4b16;">#define</span> <span style="color: #268bd2;">NGX_HTTP_IMAGE_PNG</span>       3
+#define NGX_HTTP_IMAGE_NONE      0
+#define NGX_HTTP_IMAGE_JPEG      1
+#define NGX_HTTP_IMAGE_GIF       2
+#define NGX_HTTP_IMAGE_PNG       3
 
 
-<span style="color: #cb4b16;">#define</span> <span style="color: #268bd2;">NGX_HTTP_IMAGE_BUFFERED</span>  0x08
+#define NGX_HTTP_IMAGE_BUFFERED  0x08
 
 
-<span style="color: #859900;">typedef</span> <span style="color: #859900;">struct</span> {
-    <span style="color: #b58900;">ngx_uint_t</span>                   <span style="color: #268bd2;">filter</span>;
-    <span style="color: #b58900;">ngx_uint_t</span>                   <span style="color: #268bd2;">width</span>;
-    <span style="color: #b58900;">ngx_uint_t</span>                   <span style="color: #268bd2;">height</span>;
-    <span style="color: #b58900;">ngx_uint_t</span>                   <span style="color: #268bd2;">angle</span>;
-    <span style="color: #b58900;">ngx_uint_t</span>                   <span style="color: #268bd2;">jpeg_quality</span>;
-    <span style="color: #b58900;">ngx_uint_t</span>                   <span style="color: #268bd2;">sharpen</span>;
+typedef struct {
+    ngx_uint_t                   filter;
+    ngx_uint_t                   width;
+    ngx_uint_t                   height;
+    ngx_uint_t                   angle;
+    ngx_uint_t                   jpeg_quality;
+    ngx_uint_t                   sharpen;
 
-    <span style="color: #b58900;">ngx_flag_t</span>                   <span style="color: #268bd2;">transparency</span>;
-    <span style="color: #b58900;">ngx_str_t</span>                    <span style="color: #268bd2;">watermark</span>;
-    <span style="color: #b58900;">ngx_str_t</span>                    <span style="color: #268bd2;">watermark_position</span>;
+    ngx_flag_t                   transparency;
+    ngx_str_t                    watermark;
+    ngx_uint_t                   watermark_transparency;
+    
+    ngx_http_complex_value_t    *wcv;
+    ngx_http_complex_value_t    *hcv;
+    ngx_http_complex_value_t    *acv;
+    ngx_http_complex_value_t    *jqcv;
+    ngx_http_complex_value_t    *shcv;
 
-    <span style="color: #b58900;">ngx_http_complex_value_t</span>    *<span style="color: #268bd2;">wcv</span>;
-    <span style="color: #b58900;">ngx_http_complex_value_t</span>    *<span style="color: #268bd2;">hcv</span>;
-    <span style="color: #b58900;">ngx_http_complex_value_t</span>    *<span style="color: #268bd2;">acv</span>;
-    <span style="color: #b58900;">ngx_http_complex_value_t</span>    *<span style="color: #268bd2;">jqcv</span>;
-    <span style="color: #b58900;">ngx_http_complex_value_t</span>    *<span style="color: #268bd2;">shcv</span>;
-
-    <span style="color: #b58900;">size_t</span>                       <span style="color: #268bd2;">buffer_size</span>;
-} <span style="color: #b58900;">ngx_http_image_filter_conf_t</span>;
-
-
-<span style="color: #859900;">typedef</span> <span style="color: #859900;">struct</span> {
-    <span style="color: #b58900;">u_char</span>                      *<span style="color: #268bd2;">image</span>;
-    <span style="color: #b58900;">u_char</span>                      *<span style="color: #268bd2;">last</span>;
-
-    <span style="color: #b58900;">size_t</span>                       <span style="color: #268bd2;">length</span>;
-
-    <span style="color: #b58900;">ngx_uint_t</span>                   <span style="color: #268bd2;">width</span>;
-    <span style="color: #b58900;">ngx_uint_t</span>                   <span style="color: #268bd2;">height</span>;
-    <span style="color: #b58900;">ngx_uint_t</span>                   <span style="color: #268bd2;">max_width</span>;
-    <span style="color: #b58900;">ngx_uint_t</span>                   <span style="color: #268bd2;">max_height</span>;
-    <span style="color: #b58900;">ngx_uint_t</span>                   <span style="color: #268bd2;">angle</span>;
-
-    <span style="color: #b58900;">ngx_uint_t</span>                   <span style="color: #268bd2;">phase</span>;
-    <span style="color: #b58900;">ngx_uint_t</span>                   <span style="color: #268bd2;">type</span>;
-    <span style="color: #b58900;">ngx_uint_t</span>                   <span style="color: #268bd2;">force</span>;
-} <span style="color: #b58900;">ngx_http_image_filter_ctx_t</span>;
+    size_t                       buffer_size;
+} ngx_http_image_filter_conf_t;
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_int_t</span> <span style="color: #268bd2;">ngx_http_image_send</span>(<span style="color: #b58900;">ngx_http_request_t</span> *<span style="color: #268bd2;">r</span>,
-    <span style="color: #b58900;">ngx_http_image_filter_ctx_t</span> *<span style="color: #268bd2;">ctx</span>, <span style="color: #b58900;">ngx_chain_t</span> *<span style="color: #268bd2;">in</span>);
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_uint_t</span> <span style="color: #268bd2;">ngx_http_image_test</span>(<span style="color: #b58900;">ngx_http_request_t</span> *<span style="color: #268bd2;">r</span>, <span style="color: #b58900;">ngx_chain_t</span> *<span style="color: #268bd2;">in</span>);
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_int_t</span> <span style="color: #268bd2;">ngx_http_image_read</span>(<span style="color: #b58900;">ngx_http_request_t</span> *<span style="color: #268bd2;">r</span>, <span style="color: #b58900;">ngx_chain_t</span> *<span style="color: #268bd2;">in</span>);
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_buf_t</span> *<span style="color: #268bd2;">ngx_http_image_process</span>(<span style="color: #b58900;">ngx_http_request_t</span> *<span style="color: #268bd2;">r</span>);
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_buf_t</span> *<span style="color: #268bd2;">ngx_http_image_json</span>(<span style="color: #b58900;">ngx_http_request_t</span> *<span style="color: #268bd2;">r</span>,
-    <span style="color: #b58900;">ngx_http_image_filter_ctx_t</span> *<span style="color: #268bd2;">ctx</span>);
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_buf_t</span> *<span style="color: #268bd2;">ngx_http_image_asis</span>(<span style="color: #b58900;">ngx_http_request_t</span> *<span style="color: #268bd2;">r</span>,
-    <span style="color: #b58900;">ngx_http_image_filter_ctx_t</span> *<span style="color: #268bd2;">ctx</span>);
-<span style="color: #859900;">static</span> <span style="color: #b58900;">void</span> <span style="color: #268bd2;">ngx_http_image_length</span>(<span style="color: #b58900;">ngx_http_request_t</span> *<span style="color: #268bd2;">r</span>, <span style="color: #b58900;">ngx_buf_t</span> *<span style="color: #268bd2;">b</span>);
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_int_t</span> <span style="color: #268bd2;">ngx_http_image_size</span>(<span style="color: #b58900;">ngx_http_request_t</span> *<span style="color: #268bd2;">r</span>,
-    <span style="color: #b58900;">ngx_http_image_filter_ctx_t</span> *<span style="color: #268bd2;">ctx</span>);
+typedef struct {
+    u_char                      *image;
+    u_char                      *last;
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_buf_t</span> *<span style="color: #268bd2;">ngx_http_image_resize</span>(<span style="color: #b58900;">ngx_http_request_t</span> *<span style="color: #268bd2;">r</span>,
-    <span style="color: #b58900;">ngx_http_image_filter_ctx_t</span> *<span style="color: #268bd2;">ctx</span>);
-<span style="color: #859900;">static</span> <span style="color: #b58900;">gdImagePtr</span> <span style="color: #268bd2;">ngx_http_image_source</span>(<span style="color: #b58900;">ngx_http_request_t</span> *<span style="color: #268bd2;">r</span>,
-    <span style="color: #b58900;">ngx_http_image_filter_ctx_t</span> *<span style="color: #268bd2;">ctx</span>);
-<span style="color: #859900;">static</span> <span style="color: #b58900;">gdImagePtr</span> <span style="color: #268bd2;">ngx_http_image_new</span>(<span style="color: #b58900;">ngx_http_request_t</span> *<span style="color: #268bd2;">r</span>, <span style="color: #b58900;">int</span> <span style="color: #268bd2;">w</span>, <span style="color: #b58900;">int</span> <span style="color: #268bd2;">h</span>,
-    <span style="color: #b58900;">int</span> <span style="color: #268bd2;">colors</span>);
-<span style="color: #859900;">static</span> <span style="color: #b58900;">u_char</span> *<span style="color: #268bd2;">ngx_http_image_out</span>(<span style="color: #b58900;">ngx_http_request_t</span> *<span style="color: #268bd2;">r</span>, <span style="color: #b58900;">ngx_uint_t</span> <span style="color: #268bd2;">type</span>,
-    <span style="color: #b58900;">gdImagePtr</span> <span style="color: #268bd2;">img</span>, <span style="color: #b58900;">int</span> *<span style="color: #268bd2;">size</span>);
-<span style="color: #859900;">static</span> <span style="color: #b58900;">void</span> <span style="color: #268bd2;">ngx_http_image_cleanup</span>(<span style="color: #b58900;">void</span> *<span style="color: #268bd2;">data</span>);
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_uint_t</span> <span style="color: #268bd2;">ngx_http_image_filter_get_value</span>(<span style="color: #b58900;">ngx_http_request_t</span> *<span style="color: #268bd2;">r</span>,
-    <span style="color: #b58900;">ngx_http_complex_value_t</span> *<span style="color: #268bd2;">cv</span>, <span style="color: #b58900;">ngx_uint_t</span> <span style="color: #268bd2;">v</span>);
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_uint_t</span> <span style="color: #268bd2;">ngx_http_image_filter_value</span>(<span style="color: #b58900;">ngx_str_t</span> *<span style="color: #268bd2;">value</span>);
+    size_t                       length;
+
+    ngx_uint_t                   width;
+    ngx_uint_t                   height;
+    ngx_uint_t                   max_width;
+    ngx_uint_t                   max_height;
+    ngx_uint_t                   angle;
+
+    ngx_uint_t                   phase;
+    ngx_uint_t                   type;
+    ngx_uint_t                   force;
+} ngx_http_image_filter_ctx_t;
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">void</span> *<span style="color: #268bd2;">ngx_http_image_filter_create_conf</span>(<span style="color: #b58900;">ngx_conf_t</span> *<span style="color: #268bd2;">cf</span>);
-<span style="color: #859900;">static</span> <span style="color: #b58900;">char</span> *<span style="color: #268bd2;">ngx_http_image_filter_merge_conf</span>(<span style="color: #b58900;">ngx_conf_t</span> *<span style="color: #268bd2;">cf</span>, <span style="color: #b58900;">void</span> *<span style="color: #268bd2;">parent</span>,
-    <span style="color: #b58900;">void</span> *<span style="color: #268bd2;">child</span>);
-<span style="color: #859900;">static</span> <span style="color: #b58900;">char</span> *<span style="color: #268bd2;">ngx_http_image_filter</span>(<span style="color: #b58900;">ngx_conf_t</span> *<span style="color: #268bd2;">cf</span>, <span style="color: #b58900;">ngx_command_t</span> *<span style="color: #268bd2;">cmd</span>,
-    <span style="color: #b58900;">void</span> *<span style="color: #268bd2;">conf</span>);
-<span style="color: #859900;">static</span> <span style="color: #b58900;">char</span> *<span style="color: #268bd2;">ngx_http_image_filter_jpeg_quality</span>(<span style="color: #b58900;">ngx_conf_t</span> *<span style="color: #268bd2;">cf</span>,
-    <span style="color: #b58900;">ngx_command_t</span> *<span style="color: #268bd2;">cmd</span>, <span style="color: #b58900;">void</span> *<span style="color: #268bd2;">conf</span>);
-<span style="color: #859900;">static</span> <span style="color: #b58900;">char</span> *<span style="color: #268bd2;">ngx_http_image_filter_sharpen</span>(<span style="color: #b58900;">ngx_conf_t</span> *<span style="color: #268bd2;">cf</span>, <span style="color: #b58900;">ngx_command_t</span> *<span style="color: #268bd2;">cmd</span>,
-    <span style="color: #b58900;">void</span> *<span style="color: #268bd2;">conf</span>);
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_int_t</span> <span style="color: #268bd2;">ngx_http_image_filter_init</span>(<span style="color: #b58900;">ngx_conf_t</span> *<span style="color: #268bd2;">cf</span>);
+static ngx_int_t ngx_http_image_send(ngx_http_request_t *r,
+    ngx_http_image_filter_ctx_t *ctx, ngx_chain_t *in);
+static ngx_uint_t ngx_http_image_test(ngx_http_request_t *r, ngx_chain_t *in);
+static ngx_int_t ngx_http_image_read(ngx_http_request_t *r, ngx_chain_t *in);
+static ngx_buf_t *ngx_http_image_process(ngx_http_request_t *r);
+static ngx_buf_t *ngx_http_image_json(ngx_http_request_t *r,
+    ngx_http_image_filter_ctx_t *ctx);
+static ngx_buf_t *ngx_http_image_asis(ngx_http_request_t *r,
+    ngx_http_image_filter_ctx_t *ctx);
+static void ngx_http_image_length(ngx_http_request_t *r, ngx_buf_t *b);
+static ngx_int_t ngx_http_image_size(ngx_http_request_t *r,
+    ngx_http_image_filter_ctx_t *ctx);
+
+static ngx_buf_t *ngx_http_image_resize(ngx_http_request_t *r,
+    ngx_http_image_filter_ctx_t *ctx);
+static gdImagePtr ngx_http_image_source(ngx_http_request_t *r,
+    ngx_http_image_filter_ctx_t *ctx);
+static gdImagePtr ngx_http_image_new(ngx_http_request_t *r, int w, int h,
+    int colors);
+static u_char *ngx_http_image_out(ngx_http_request_t *r, ngx_uint_t type,
+    gdImagePtr img, int *size);
+static void ngx_http_image_cleanup(void *data);
+static ngx_uint_t ngx_http_image_filter_get_value(ngx_http_request_t *r,
+    ngx_http_complex_value_t *cv, ngx_uint_t v);
+static ngx_uint_t ngx_http_image_filter_value(ngx_str_t *value);
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_command_t</span>  <span style="color: #268bd2;">ngx_http_image_filter_commands</span>[] = {
+static void *ngx_http_image_filter_create_conf(ngx_conf_t *cf);
+static char *ngx_http_image_filter_merge_conf(ngx_conf_t *cf, void *parent,
+    void *child);
+static char *ngx_http_image_filter(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf);
+static char *ngx_http_image_filter_jpeg_quality(ngx_conf_t *cf,
+    ngx_command_t *cmd, void *conf);
+static char *ngx_http_image_filter_sharpen(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf);
+static ngx_int_t ngx_http_image_filter_init(ngx_conf_t *cf);
+
+
+static ngx_command_t  ngx_http_image_filter_commands[] = {
 
     { ngx_string(<span style="color: #2aa198;">"image_filter"</span>),
       NGX_HTTP_LOC_CONF|NGX_CONF_TAKE123,
       ngx_http_image_filter,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
-      <span style="color: #2aa198;">NULL</span> },
+      NULL },
 
     { ngx_string(<span style="color: #2aa198;">"image_filter_jpeg_quality"</span>),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_http_image_filter_jpeg_quality,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
-      <span style="color: #2aa198;">NULL</span> },
+      NULL },
 
     { ngx_string(<span style="color: #2aa198;">"image_filter_sharpen"</span>),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_http_image_filter_sharpen,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
-      <span style="color: #2aa198;">NULL</span> },
+      NULL },
 
     { ngx_string(<span style="color: #2aa198;">"image_filter_transparency"</span>),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
       ngx_conf_set_flag_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_image_filter_conf_t, transparency),
-      <span style="color: #2aa198;">NULL</span> },
+      NULL },
 
     { ngx_string(<span style="color: #2aa198;">"image_filter_buffer"</span>),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_size_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_image_filter_conf_t, buffer_size),
-      <span style="color: #2aa198;">NULL</span> },
+      NULL },
 
     { ngx_string(<span style="color: #2aa198;">"image_filter_watermark"</span>),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_str_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_image_filter_conf_t, watermark),
-      <span style="color: #2aa198;">NULL</span> },
+      NULL },
 
-    { ngx_string(<span style="color: #2aa198;">"image_filter_watermark_position"</span>),
+    { ngx_string(<span style="color: #2aa198;">"image_filter_watermark_transparency"</span>),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_str_slot,
+      ngx_conf_set_num_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_image_filter_conf_t, watermark_position),
-      <span style="color: #2aa198;">NULL</span> },
-
+      offsetof(ngx_http_image_filter_conf_t, watermark_transparency),
+      NULL },
+    
       ngx_null_command
 };
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_http_module_t</span>  <span style="color: #268bd2;">ngx_http_image_filter_module_ctx</span> = {
-    <span style="color: #2aa198;">NULL</span>,                                  <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">preconfiguration </span><span style="color: #586e75; font-style: italic;">*/</span>
-    ngx_http_image_filter_init,            <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">postconfiguration </span><span style="color: #586e75; font-style: italic;">*/</span>
+static ngx_http_module_t  ngx_http_image_filter_module_ctx = {
+    NULL,                                  /* preconfiguration */
+    ngx_http_image_filter_init,            /* postconfiguration */
 
-    <span style="color: #2aa198;">NULL</span>,                                  <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">create main configuration </span><span style="color: #586e75; font-style: italic;">*/</span>
-    <span style="color: #2aa198;">NULL</span>,                                  <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">init main configuration </span><span style="color: #586e75; font-style: italic;">*/</span>
+    NULL,                                  /* create main configuration */
+    NULL,                                  /* init main configuration */
 
-    <span style="color: #2aa198;">NULL</span>,                                  <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">create server configuration </span><span style="color: #586e75; font-style: italic;">*/</span>
-    <span style="color: #2aa198;">NULL</span>,                                  <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">merge server configuration </span><span style="color: #586e75; font-style: italic;">*/</span>
+    NULL,                                  /* create server configuration */
+    NULL,                                  /* merge server configuration */
 
-    ngx_http_image_filter_create_conf,     <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">create location configuration </span><span style="color: #586e75; font-style: italic;">*/</span>
-    ngx_http_image_filter_merge_conf       <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">merge location configuration </span><span style="color: #586e75; font-style: italic;">*/</span>
+    ngx_http_image_filter_create_conf,     /* create location configuration */
+    ngx_http_image_filter_merge_conf       /* merge location configuration */
 };
 
 
-<span style="color: #b58900;">ngx_module_t</span>  <span style="color: #268bd2;">ngx_http_image_filter_module</span> = {
+ngx_module_t  ngx_http_image_filter_module = {
     NGX_MODULE_V1,
-    &amp;ngx_http_image_filter_module_ctx,     <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">module context </span><span style="color: #586e75; font-style: italic;">*/</span>
-    ngx_http_image_filter_commands,        <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">module directives </span><span style="color: #586e75; font-style: italic;">*/</span>
-    NGX_HTTP_MODULE,                       <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">module type </span><span style="color: #586e75; font-style: italic;">*/</span>
-    <span style="color: #2aa198;">NULL</span>,                                  <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">init master </span><span style="color: #586e75; font-style: italic;">*/</span>
-    <span style="color: #2aa198;">NULL</span>,                                  <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">init module </span><span style="color: #586e75; font-style: italic;">*/</span>
-    <span style="color: #2aa198;">NULL</span>,                                  <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">init process </span><span style="color: #586e75; font-style: italic;">*/</span>
-    <span style="color: #2aa198;">NULL</span>,                                  <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">init thread </span><span style="color: #586e75; font-style: italic;">*/</span>
-    <span style="color: #2aa198;">NULL</span>,                                  <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">exit thread </span><span style="color: #586e75; font-style: italic;">*/</span>
-    <span style="color: #2aa198;">NULL</span>,                                  <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">exit process </span><span style="color: #586e75; font-style: italic;">*/</span>
-    <span style="color: #2aa198;">NULL</span>,                                  <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">exit master </span><span style="color: #586e75; font-style: italic;">*/</span>
+    &amp;ngx_http_image_filter_module_ctx,     /* module context */
+    ngx_http_image_filter_commands,        /* module directives */
+    NGX_HTTP_MODULE,                       /* module type */
+    NULL,                                  /* init master */
+    NULL,                                  /* init module */
+    NULL,                                  /* init process */
+    NULL,                                  /* init thread */
+    NULL,                                  /* exit thread */
+    NULL,                                  /* exit process */
+    NULL,                                  /* exit master */
     NGX_MODULE_V1_PADDING
 };
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_http_output_header_filter_pt</span>  <span style="color: #268bd2;">ngx_http_next_header_filter</span>;
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_http_output_body_filter_pt</span>    <span style="color: #268bd2;">ngx_http_next_body_filter</span>;
+static ngx_http_output_header_filter_pt  ngx_http_next_header_filter;
+static ngx_http_output_body_filter_pt    ngx_http_next_body_filter;
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_str_t</span>  <span style="color: #268bd2;">ngx_http_image_types</span>[] = {
+static ngx_str_t  ngx_http_image_types[] = {
     ngx_string(<span style="color: #2aa198;">"image/jpeg"</span>),
     ngx_string(<span style="color: #2aa198;">"image/gif"</span>),
     ngx_string(<span style="color: #2aa198;">"image/png"</span>)
 };
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_int_t</span>
-<span style="color: #268bd2;">ngx_http_image_header_filter</span>(<span style="color: #b58900;">ngx_http_request_t</span> *<span style="color: #268bd2;">r</span>)
+static ngx_int_t
+ngx_http_image_header_filter(ngx_http_request_t *r)
 {
-    <span style="color: #b58900;">off_t</span>                          <span style="color: #268bd2;">len</span>;
-    <span style="color: #b58900;">ngx_http_image_filter_ctx_t</span>   *<span style="color: #268bd2;">ctx</span>;
-    <span style="color: #b58900;">ngx_http_image_filter_conf_t</span>  *<span style="color: #268bd2;">conf</span>;
+    off_t                          len;
+    ngx_http_image_filter_ctx_t   *ctx;
+    ngx_http_image_filter_conf_t  *conf;
 
-    <span style="color: #859900;">if</span> (r-&gt;headers_out.status == NGX_HTTP_NOT_MODIFIED) {
-        <span style="color: #859900;">return</span> ngx_http_next_header_filter(r);
+    if (r-&gt;headers_out.status == NGX_HTTP_NOT_MODIFIED) {
+        return ngx_http_next_header_filter(r);
     }
 
     ctx = ngx_http_get_module_ctx(r, ngx_http_image_filter_module);
 
-    <span style="color: #859900;">if</span> (ctx) {
-        ngx_http_set_ctx(r, <span style="color: #2aa198;">NULL</span>, ngx_http_image_filter_module);
-        <span style="color: #859900;">return</span> ngx_http_next_header_filter(r);
+    if (ctx) {
+        ngx_http_set_ctx(r, NULL, ngx_http_image_filter_module);
+        return ngx_http_next_header_filter(r);
     }
 
     conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);
 
-    <span style="color: #859900;">if</span> (conf-&gt;filter == NGX_HTTP_IMAGE_OFF) {
-        <span style="color: #859900;">return</span> ngx_http_next_header_filter(r);
+    if (conf-&gt;filter == NGX_HTTP_IMAGE_OFF) {
+        return ngx_http_next_header_filter(r);
     }
 
-    <span style="color: #859900;">if</span> (r-&gt;headers_out.content_type.len
-            &gt;= <span style="color: #859900;">sizeof</span>(<span style="color: #2aa198;">"multipart/x-mixed-replace"</span>) - 1
+    if (r-&gt;headers_out.content_type.len
+            &gt;= sizeof(<span style="color: #2aa198;">"multipart/x-mixed-replace"</span>) - 1
         &amp;&amp; ngx_strncasecmp(r-&gt;headers_out.content_type.data,
-                           (<span style="color: #b58900;">u_char</span> *) <span style="color: #2aa198;">"multipart/x-mixed-replace"</span>,
-                           <span style="color: #859900;">sizeof</span>(<span style="color: #2aa198;">"multipart/x-mixed-replace"</span>) - 1)
+                           (u_char *) <span style="color: #2aa198;">"multipart/x-mixed-replace"</span>,
+                           sizeof(<span style="color: #2aa198;">"multipart/x-mixed-replace"</span>) - 1)
            == 0)
     {
         ngx_log_error(NGX_LOG_ERR, r-&gt;connection-&gt;log, 0,
                       <span style="color: #2aa198;">"image filter: multipart/x-mixed-replace response"</span>);
 
-        <span style="color: #859900;">return</span> NGX_ERROR;
+        return NGX_ERROR;
     }
 
-    ctx = ngx_pcalloc(r-&gt;pool, <span style="color: #859900;">sizeof</span>(ngx_http_image_filter_ctx_t));
-    <span style="color: #859900;">if</span> (ctx == <span style="color: #2aa198;">NULL</span>) {
-        <span style="color: #859900;">return</span> NGX_ERROR;
+    ctx = ngx_pcalloc(r-&gt;pool, sizeof(ngx_http_image_filter_ctx_t));
+    if (ctx == NULL) {
+        return NGX_ERROR;
     }
 
     ngx_http_set_ctx(r, ctx, ngx_http_image_filter_module);
 
     len = r-&gt;headers_out.content_length_n;
 
-    <span style="color: #859900;">if</span> (len != -1 &amp;&amp; len &gt; (<span style="color: #b58900;">off_t</span>) conf-&gt;buffer_size) {
+    if (len != -1 &amp;&amp; len &gt; (off_t) conf-&gt;buffer_size) {
         ngx_log_error(NGX_LOG_ERR, r-&gt;connection-&gt;log, 0,
                       <span style="color: #2aa198;">"image filter: too big response: %O"</span>, len);
 
-        <span style="color: #859900;">return</span> NGX_HTTP_UNSUPPORTED_MEDIA_TYPE;
+        return NGX_HTTP_UNSUPPORTED_MEDIA_TYPE;
     }
 
-    <span style="color: #859900;">if</span> (len == -1) {
+    if (len == -1) {
         ctx-&gt;length = conf-&gt;buffer_size;
 
-    } <span style="color: #859900;">else</span> {
-        ctx-&gt;length = (<span style="color: #b58900;">size_t</span>) len;
+    } else {
+        ctx-&gt;length = (size_t) len;
     }
 
-    <span style="color: #859900;">if</span> (r-&gt;headers_out.refresh) {
+    if (r-&gt;headers_out.refresh) {
         r-&gt;headers_out.refresh-&gt;hash = 0;
     }
 
     r-&gt;main_filter_need_in_memory = 1;
     r-&gt;allow_ranges = 0;
 
-    <span style="color: #859900;">return</span> NGX_OK;
+    return NGX_OK;
 }
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_int_t</span>
-<span style="color: #268bd2;">ngx_http_image_body_filter</span>(<span style="color: #b58900;">ngx_http_request_t</span> *<span style="color: #268bd2;">r</span>, <span style="color: #b58900;">ngx_chain_t</span> *<span style="color: #268bd2;">in</span>)
+static ngx_int_t
+ngx_http_image_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 {
-    <span style="color: #b58900;">ngx_int_t</span>                      <span style="color: #268bd2;">rc</span>;
-    <span style="color: #b58900;">ngx_str_t</span>                     *<span style="color: #268bd2;">ct</span>;
-    <span style="color: #b58900;">ngx_chain_t</span>                    <span style="color: #268bd2;">out</span>;
-    <span style="color: #b58900;">ngx_http_image_filter_ctx_t</span>   *<span style="color: #268bd2;">ctx</span>;
-    <span style="color: #b58900;">ngx_http_image_filter_conf_t</span>  *<span style="color: #268bd2;">conf</span>;
+    ngx_int_t                      rc;
+    ngx_str_t                     *ct;
+    ngx_chain_t                    out;
+    ngx_http_image_filter_ctx_t   *ctx;
+    ngx_http_image_filter_conf_t  *conf;
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r-&gt;connection-&gt;log, 0, <span style="color: #2aa198;">"image filter"</span>);
 
-    <span style="color: #859900;">if</span> (in == <span style="color: #2aa198;">NULL</span>) {
-        <span style="color: #859900;">return</span> ngx_http_next_body_filter(r, in);
+    if (in == NULL) {
+        return ngx_http_next_body_filter(r, in);
     }
 
     ctx = ngx_http_get_module_ctx(r, ngx_http_image_filter_module);
 
-    <span style="color: #859900;">if</span> (ctx == <span style="color: #2aa198;">NULL</span>) {
-        <span style="color: #859900;">return</span> ngx_http_next_body_filter(r, in);
+    if (ctx == NULL) {
+        return ngx_http_next_body_filter(r, in);
     }
 
-    <span style="color: #859900;">switch</span> (ctx-&gt;phase) {
+    switch (ctx-&gt;phase) {
 
-    <span style="color: #859900;">case</span> NGX_HTTP_IMAGE_START:
+    case NGX_HTTP_IMAGE_START:
 
         ctx-&gt;type = ngx_http_image_test(r, in);
 
         conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);
 
-        <span style="color: #859900;">if</span> (ctx-&gt;type == NGX_HTTP_IMAGE_NONE) {
+        if (ctx-&gt;type == NGX_HTTP_IMAGE_NONE) {
 
-            <span style="color: #859900;">if</span> (conf-&gt;filter == NGX_HTTP_IMAGE_SIZE) {
-                out.buf = ngx_http_image_json(r, <span style="color: #2aa198;">NULL</span>);
+            if (conf-&gt;filter == NGX_HTTP_IMAGE_SIZE) {
+                out.buf = ngx_http_image_json(r, NULL);
 
-                <span style="color: #859900;">if</span> (out.buf) {
-                    out.next = <span style="color: #2aa198;">NULL</span>;
+                if (out.buf) {
+                    out.next = NULL;
                     ctx-&gt;phase = NGX_HTTP_IMAGE_DONE;
 
-                    <span style="color: #859900;">return</span> ngx_http_image_send(r, ctx, &amp;out);
+                    return ngx_http_image_send(r, ctx, &amp;out);
                 }
             }
 
-            <span style="color: #859900;">return</span> ngx_http_filter_finalize_request(r,
+            return ngx_http_filter_finalize_request(r,
                                               &amp;ngx_http_image_filter_module,
                                               NGX_HTTP_UNSUPPORTED_MEDIA_TYPE);
         }
 
-        <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">override content type </span><span style="color: #586e75; font-style: italic;">*/</span>
+        /* override content type */
 
         ct = &amp;ngx_http_image_types[ctx-&gt;type - 1];
         r-&gt;headers_out.content_type_len = ct-&gt;len;
         r-&gt;headers_out.content_type = *ct;
-        r-&gt;headers_out.content_type_lowcase = <span style="color: #2aa198;">NULL</span>;
+        r-&gt;headers_out.content_type_lowcase = NULL;
 
-        <span style="color: #859900;">if</span> (conf-&gt;filter == NGX_HTTP_IMAGE_TEST) {
+        if (conf-&gt;filter == NGX_HTTP_IMAGE_TEST) {
             ctx-&gt;phase = NGX_HTTP_IMAGE_PASS;
 
-            <span style="color: #859900;">return</span> ngx_http_image_send(r, ctx, in);
+            return ngx_http_image_send(r, ctx, in);
         }
 
         ctx-&gt;phase = NGX_HTTP_IMAGE_READ;
 
-        <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">fall through </span><span style="color: #586e75; font-style: italic;">*/</span>
+        /* fall through */
 
-    <span style="color: #859900;">case</span> NGX_HTTP_IMAGE_READ:
+    case NGX_HTTP_IMAGE_READ:
 
         rc = ngx_http_image_read(r, in);
 
-        <span style="color: #859900;">if</span> (rc == NGX_AGAIN) {
-            <span style="color: #859900;">return</span> NGX_OK;
+        if (rc == NGX_AGAIN) {
+            return NGX_OK;
         }
 
-        <span style="color: #859900;">if</span> (rc == NGX_ERROR) {
-            <span style="color: #859900;">return</span> ngx_http_filter_finalize_request(r,
+        if (rc == NGX_ERROR) {
+            return ngx_http_filter_finalize_request(r,
                                               &amp;ngx_http_image_filter_module,
                                               NGX_HTTP_UNSUPPORTED_MEDIA_TYPE);
         }
 
-        <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">fall through </span><span style="color: #586e75; font-style: italic;">*/</span>
+        /* fall through */
 
-    <span style="color: #859900;">case</span> NGX_HTTP_IMAGE_PROCESS:
+    case NGX_HTTP_IMAGE_PROCESS:
 
         out.buf = ngx_http_image_process(r);
 
-        <span style="color: #859900;">if</span> (out.buf == <span style="color: #2aa198;">NULL</span>) {
-            <span style="color: #859900;">return</span> ngx_http_filter_finalize_request(r,
+        if (out.buf == NULL) {
+            return ngx_http_filter_finalize_request(r,
                                               &amp;ngx_http_image_filter_module,
                                               NGX_HTTP_UNSUPPORTED_MEDIA_TYPE);
         }
 
-        out.next = <span style="color: #2aa198;">NULL</span>;
+        out.next = NULL;
         ctx-&gt;phase = NGX_HTTP_IMAGE_PASS;
 
-        <span style="color: #859900;">return</span> ngx_http_image_send(r, ctx, &amp;out);
+        return ngx_http_image_send(r, ctx, &amp;out);
 
-    <span style="color: #859900;">case</span> NGX_HTTP_IMAGE_PASS:
+    case NGX_HTTP_IMAGE_PASS:
 
-        <span style="color: #859900;">return</span> ngx_http_next_body_filter(r, in);
+        return ngx_http_next_body_filter(r, in);
 
-    <span style="color: #859900;">default</span>: <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">NGX_HTTP_IMAGE_DONE </span><span style="color: #586e75; font-style: italic;">*/</span>
+    default: /* NGX_HTTP_IMAGE_DONE */
 
-        rc = ngx_http_next_body_filter(r, <span style="color: #2aa198;">NULL</span>);
+        rc = ngx_http_next_body_filter(r, NULL);
 
-        <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">NGX_ERROR resets any pending data </span><span style="color: #586e75; font-style: italic;">*/</span>
-        <span style="color: #859900;">return</span> (rc == NGX_OK) ? NGX_ERROR : rc;
+        /* NGX_ERROR resets any pending data */
+        return (rc == NGX_OK) ? NGX_ERROR : rc;
     }
 }
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_int_t</span>
-<span style="color: #268bd2;">ngx_http_image_send</span>(<span style="color: #b58900;">ngx_http_request_t</span> *<span style="color: #268bd2;">r</span>, <span style="color: #b58900;">ngx_http_image_filter_ctx_t</span> *<span style="color: #268bd2;">ctx</span>,
-    <span style="color: #b58900;">ngx_chain_t</span> *<span style="color: #268bd2;">in</span>)
+static ngx_int_t
+ngx_http_image_send(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx,
+    ngx_chain_t *in)
 {
-    <span style="color: #b58900;">ngx_int_t</span>  <span style="color: #268bd2;">rc</span>;
+    ngx_int_t  rc;
 
     rc = ngx_http_next_header_filter(r);
 
-    <span style="color: #859900;">if</span> (rc == NGX_ERROR || rc &gt; NGX_OK || r-&gt;header_only) {
-        <span style="color: #859900;">return</span> NGX_ERROR;
+    if (rc == NGX_ERROR || rc &gt; NGX_OK || r-&gt;header_only) {
+        return NGX_ERROR;
     }
 
     rc = ngx_http_next_body_filter(r, in);
 
-    <span style="color: #859900;">if</span> (ctx-&gt;phase == NGX_HTTP_IMAGE_DONE) {
-        <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">NGX_ERROR resets any pending data </span><span style="color: #586e75; font-style: italic;">*/</span>
-        <span style="color: #859900;">return</span> (rc == NGX_OK) ? NGX_ERROR : rc;
+    if (ctx-&gt;phase == NGX_HTTP_IMAGE_DONE) {
+        /* NGX_ERROR resets any pending data */
+        return (rc == NGX_OK) ? NGX_ERROR : rc;
     }
 
-    <span style="color: #859900;">return</span> rc;
+    return rc;
 }
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_uint_t</span>
-<span style="color: #268bd2;">ngx_http_image_test</span>(<span style="color: #b58900;">ngx_http_request_t</span> *<span style="color: #268bd2;">r</span>, <span style="color: #b58900;">ngx_chain_t</span> *<span style="color: #268bd2;">in</span>)
+static ngx_uint_t
+ngx_http_image_test(ngx_http_request_t *r, ngx_chain_t *in)
 {
-    <span style="color: #b58900;">u_char</span>  *<span style="color: #268bd2;">p</span>;
+    u_char  *p;
 
     p = in-&gt;buf-&gt;pos;
 
-    <span style="color: #859900;">if</span> (in-&gt;buf-&gt;last - p &lt; 16) {
-        <span style="color: #859900;">return</span> NGX_HTTP_IMAGE_NONE;
+    if (in-&gt;buf-&gt;last - p &lt; 16) {
+        return NGX_HTTP_IMAGE_NONE;
     }
 
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r-&gt;connection-&gt;log, 0,
                    <span style="color: #2aa198;">"image filter: \"%c%c\""</span>, p[0], p[1]);
 
-    <span style="color: #859900;">if</span> (p[0] == 0xff &amp;&amp; p[1] == 0xd8) {
+    if (p[0] == 0xff &amp;&amp; p[1] == 0xd8) {
 
-        <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">JPEG </span><span style="color: #586e75; font-style: italic;">*/</span>
+        /* JPEG */
 
-        <span style="color: #859900;">return</span> NGX_HTTP_IMAGE_JPEG;
+        return NGX_HTTP_IMAGE_JPEG;
 
-    } <span style="color: #859900;">else</span> <span style="color: #859900;">if</span> (p[0] == <span style="color: #2aa198;">'G'</span> &amp;&amp; p[1] == <span style="color: #2aa198;">'I'</span> &amp;&amp; p[2] == <span style="color: #2aa198;">'F'</span> &amp;&amp; p[3] == <span style="color: #2aa198;">'8'</span>
-               &amp;&amp; p[5] == <span style="color: #2aa198;">'a'</span>)
+    } else if (p[0] == 'G' &amp;&amp; p[1] == 'I' &amp;&amp; p[2] == 'F' &amp;&amp; p[3] == '8'
+               &amp;&amp; p[5] == 'a')
     {
-        <span style="color: #859900;">if</span> (p[4] == <span style="color: #2aa198;">'9'</span> || p[4] == <span style="color: #2aa198;">'7'</span>) {
-            <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">GIF </span><span style="color: #586e75; font-style: italic;">*/</span>
-            <span style="color: #859900;">return</span> NGX_HTTP_IMAGE_GIF;
+        if (p[4] == '9' || p[4] == '7') {
+            /* GIF */
+            return NGX_HTTP_IMAGE_GIF;
         }
 
-    } <span style="color: #859900;">else</span> <span style="color: #859900;">if</span> (p[0] == 0x89 &amp;&amp; p[1] == <span style="color: #2aa198;">'P'</span> &amp;&amp; p[2] == <span style="color: #2aa198;">'N'</span> &amp;&amp; p[3] == <span style="color: #2aa198;">'G'</span>
+    } else if (p[0] == 0x89 &amp;&amp; p[1] == 'P' &amp;&amp; p[2] == 'N' &amp;&amp; p[3] == 'G'
                &amp;&amp; p[4] == 0x0d &amp;&amp; p[5] == 0x0a &amp;&amp; p[6] == 0x1a &amp;&amp; p[7] == 0x0a)
     {
-        <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">PNG </span><span style="color: #586e75; font-style: italic;">*/</span>
+        /* PNG */
 
-        <span style="color: #859900;">return</span> NGX_HTTP_IMAGE_PNG;
+        return NGX_HTTP_IMAGE_PNG;
     }
 
-    <span style="color: #859900;">return</span> NGX_HTTP_IMAGE_NONE;
+    return NGX_HTTP_IMAGE_NONE;
 }
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_int_t</span>
-<span style="color: #268bd2;">ngx_http_image_read</span>(<span style="color: #b58900;">ngx_http_request_t</span> *<span style="color: #268bd2;">r</span>, <span style="color: #b58900;">ngx_chain_t</span> *<span style="color: #268bd2;">in</span>)
+static ngx_int_t
+ngx_http_image_read(ngx_http_request_t *r, ngx_chain_t *in)
 {
-    <span style="color: #b58900;">u_char</span>                       *<span style="color: #268bd2;">p</span>;
-    <span style="color: #b58900;">size_t</span>                        <span style="color: #268bd2;">size</span>, <span style="color: #268bd2;">rest</span>;
-    <span style="color: #b58900;">ngx_buf_t</span>                    *<span style="color: #268bd2;">b</span>;
-    <span style="color: #b58900;">ngx_chain_t</span>                  *<span style="color: #268bd2;">cl</span>;
-    <span style="color: #b58900;">ngx_http_image_filter_ctx_t</span>  *<span style="color: #268bd2;">ctx</span>;
+    u_char                       *p;
+    size_t                        size, rest;
+    ngx_buf_t                    *b;
+    ngx_chain_t                  *cl;
+    ngx_http_image_filter_ctx_t  *ctx;
 
     ctx = ngx_http_get_module_ctx(r, ngx_http_image_filter_module);
 
-    <span style="color: #859900;">if</span> (ctx-&gt;image == <span style="color: #2aa198;">NULL</span>) {
+    if (ctx-&gt;image == NULL) {
         ctx-&gt;image = ngx_palloc(r-&gt;pool, ctx-&gt;length);
-        <span style="color: #859900;">if</span> (ctx-&gt;image == <span style="color: #2aa198;">NULL</span>) {
-            <span style="color: #859900;">return</span> NGX_ERROR;
+        if (ctx-&gt;image == NULL) {
+            return NGX_ERROR;
         }
 
         ctx-&gt;last = ctx-&gt;image;
@@ -645,7 +644,7 @@
 
     p = ctx-&gt;last;
 
-    <span style="color: #859900;">for</span> (cl = in; cl; cl = cl-&gt;next) {
+    for (cl = in; cl; cl = cl-&gt;next) {
 
         b = cl-&gt;buf;
         size = b-&gt;last - b-&gt;pos;
@@ -659,25 +658,25 @@
         p = ngx_cpymem(p, b-&gt;pos, size);
         b-&gt;pos += size;
 
-        <span style="color: #859900;">if</span> (b-&gt;last_buf) {
+        if (b-&gt;last_buf) {
             ctx-&gt;last = p;
-            <span style="color: #859900;">return</span> NGX_OK;
+            return NGX_OK;
         }
     }
 
     ctx-&gt;last = p;
     r-&gt;connection-&gt;buffered |= NGX_HTTP_IMAGE_BUFFERED;
 
-    <span style="color: #859900;">return</span> NGX_AGAIN;
+    return NGX_AGAIN;
 }
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_buf_t</span> *
-<span style="color: #268bd2;">ngx_http_image_process</span>(<span style="color: #b58900;">ngx_http_request_t</span> *<span style="color: #268bd2;">r</span>)
+static ngx_buf_t *
+ngx_http_image_process(ngx_http_request_t *r)
 {
-    <span style="color: #b58900;">ngx_int_t</span>                      <span style="color: #268bd2;">rc</span>;
-    <span style="color: #b58900;">ngx_http_image_filter_ctx_t</span>   *<span style="color: #268bd2;">ctx</span>;
-    <span style="color: #b58900;">ngx_http_image_filter_conf_t</span>  *<span style="color: #268bd2;">conf</span>;
+    ngx_int_t                      rc;
+    ngx_http_image_filter_ctx_t   *ctx;
+    ngx_http_image_filter_conf_t  *conf;
 
     r-&gt;connection-&gt;buffered &amp;= ~NGX_HTTP_IMAGE_BUFFERED;
 
@@ -687,63 +686,63 @@
 
     conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);
 
-    <span style="color: #859900;">if</span> (conf-&gt;filter == NGX_HTTP_IMAGE_SIZE) {
-        <span style="color: #859900;">return</span> ngx_http_image_json(r, rc == NGX_OK ? ctx : <span style="color: #2aa198;">NULL</span>);
+    if (conf-&gt;filter == NGX_HTTP_IMAGE_SIZE) {
+        return ngx_http_image_json(r, rc == NGX_OK ? ctx : NULL);
     }
 
     ctx-&gt;angle = ngx_http_image_filter_get_value(r, conf-&gt;acv, conf-&gt;angle);
 
-    <span style="color: #859900;">if</span> (conf-&gt;filter == NGX_HTTP_IMAGE_ROTATE) {
+    if (conf-&gt;filter == NGX_HTTP_IMAGE_ROTATE) {
 
-        <span style="color: #859900;">if</span> (ctx-&gt;angle != 90 &amp;&amp; ctx-&gt;angle != 180 &amp;&amp; ctx-&gt;angle != 270) {
-            <span style="color: #859900;">return</span> <span style="color: #2aa198;">NULL</span>;
+        if (ctx-&gt;angle != 90 &amp;&amp; ctx-&gt;angle != 180 &amp;&amp; ctx-&gt;angle != 270) {
+            return NULL;
         }
 
-        <span style="color: #859900;">return</span> ngx_http_image_resize(r, ctx);
+        return ngx_http_image_resize(r, ctx);
     }
 
-    <span style="color: #859900;">if</span> (conf-&gt;filter == NGX_HTTP_IMAGE_WATERMARK) {
+    if (conf-&gt;filter == NGX_HTTP_IMAGE_WATERMARK) {
 
-        <span style="color: #859900;">if</span> (<span style="color: #dc322f;">!</span>conf-&gt;watermark.data) {
-            <span style="color: #859900;">return</span> <span style="color: #2aa198;">NULL</span>;
+        if (!conf-&gt;watermark.data) {
+            return NULL;
         }
 
-        <span style="color: #859900;">return</span> ngx_http_image_resize(r, ctx);
+        return ngx_http_image_resize(r, ctx);
     }    
 
     ctx-&gt;max_width = ngx_http_image_filter_get_value(r, conf-&gt;wcv, conf-&gt;width);
-    <span style="color: #859900;">if</span> (ctx-&gt;max_width == 0) {
-        <span style="color: #859900;">return</span> <span style="color: #2aa198;">NULL</span>;
+    if (ctx-&gt;max_width == 0) {
+        return NULL;
     }
 
     ctx-&gt;max_height = ngx_http_image_filter_get_value(r, conf-&gt;hcv,
                                                       conf-&gt;height);
-    <span style="color: #859900;">if</span> (ctx-&gt;max_height == 0) {
-        <span style="color: #859900;">return</span> <span style="color: #2aa198;">NULL</span>;
+    if (ctx-&gt;max_height == 0) {
+        return NULL;
     }
 
-    <span style="color: #859900;">if</span> (rc == NGX_OK
+    if (rc == NGX_OK
         &amp;&amp; ctx-&gt;width &lt;= ctx-&gt;max_width
         &amp;&amp; ctx-&gt;height &lt;= ctx-&gt;max_height
         &amp;&amp; ctx-&gt;angle == 0
-        &amp;&amp; <span style="color: #dc322f;">!</span>ctx-&gt;force)
+        &amp;&amp; !ctx-&gt;force)
     {
-        <span style="color: #859900;">return</span> ngx_http_image_asis(r, ctx);
+        return ngx_http_image_asis(r, ctx);
     }
 
-    <span style="color: #859900;">return</span> ngx_http_image_resize(r, ctx);
+    return ngx_http_image_resize(r, ctx);
 }
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_buf_t</span> *
-<span style="color: #268bd2;">ngx_http_image_json</span>(<span style="color: #b58900;">ngx_http_request_t</span> *<span style="color: #268bd2;">r</span>, <span style="color: #b58900;">ngx_http_image_filter_ctx_t</span> *<span style="color: #268bd2;">ctx</span>)
+static ngx_buf_t *
+ngx_http_image_json(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
 {
-    <span style="color: #b58900;">size_t</span>      <span style="color: #268bd2;">len</span>;
-    <span style="color: #b58900;">ngx_buf_t</span>  *<span style="color: #268bd2;">b</span>;
+    size_t      len;
+    ngx_buf_t  *b;
 
-    b = ngx_pcalloc(r-&gt;pool, <span style="color: #859900;">sizeof</span>(ngx_buf_t));
-    <span style="color: #859900;">if</span> (b == <span style="color: #2aa198;">NULL</span>) {
-        <span style="color: #859900;">return</span> <span style="color: #2aa198;">NULL</span>;
+    b = ngx_pcalloc(r-&gt;pool, sizeof(ngx_buf_t));
+    if (b == NULL) {
+        return NULL;
     }
 
     b-&gt;memory = 1;
@@ -753,24 +752,24 @@
 
     r-&gt;headers_out.status = NGX_HTTP_OK;
     ngx_str_set(&amp;r-&gt;headers_out.content_type, <span style="color: #2aa198;">"text/plain"</span>);
-    r-&gt;headers_out.content_type_lowcase = <span style="color: #2aa198;">NULL</span>;
+    r-&gt;headers_out.content_type_lowcase = NULL;
 
-    <span style="color: #859900;">if</span> (ctx == <span style="color: #2aa198;">NULL</span>) {
-        b-&gt;pos = (<span style="color: #b58900;">u_char</span> *) <span style="color: #2aa198;">"{}"</span> CRLF;
-        b-&gt;last = b-&gt;pos + <span style="color: #859900;">sizeof</span>(<span style="color: #2aa198;">"{}"</span> CRLF) - 1;
+    if (ctx == NULL) {
+        b-&gt;pos = (u_char *) <span style="color: #2aa198;">"{}"</span> CRLF;
+        b-&gt;last = b-&gt;pos + sizeof(<span style="color: #2aa198;">"{}"</span> CRLF) - 1;
 
         ngx_http_image_length(r, b);
 
-        <span style="color: #859900;">return</span> b;
+        return b;
     }
 
-    len = <span style="color: #859900;">sizeof</span>(<span style="color: #2aa198;">"{ \"img\" : "</span>
+    len = sizeof(<span style="color: #2aa198;">"{ \"img\" : "</span>
                  <span style="color: #2aa198;">"{ \"width\": , \"height\": , \"type\": \"jpeg\" } }"</span> CRLF) - 1
           + 2 * NGX_SIZE_T_LEN;
 
     b-&gt;pos = ngx_pnalloc(r-&gt;pool, len);
-    <span style="color: #859900;">if</span> (b-&gt;pos == <span style="color: #2aa198;">NULL</span>) {
-        <span style="color: #859900;">return</span> <span style="color: #2aa198;">NULL</span>;
+    if (b-&gt;pos == NULL) {
+        return NULL;
     }
 
     b-&gt;last = ngx_sprintf(b-&gt;pos,
@@ -783,18 +782,18 @@
 
     ngx_http_image_length(r, b);
 
-    <span style="color: #859900;">return</span> b;
+    return b;
 }
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_buf_t</span> *
-<span style="color: #268bd2;">ngx_http_image_asis</span>(<span style="color: #b58900;">ngx_http_request_t</span> *<span style="color: #268bd2;">r</span>, <span style="color: #b58900;">ngx_http_image_filter_ctx_t</span> *<span style="color: #268bd2;">ctx</span>)
+static ngx_buf_t *
+ngx_http_image_asis(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
 {
-    <span style="color: #b58900;">ngx_buf_t</span>  *<span style="color: #268bd2;">b</span>;
+    ngx_buf_t  *b;
 
-    b = ngx_pcalloc(r-&gt;pool, <span style="color: #859900;">sizeof</span>(ngx_buf_t));
-    <span style="color: #859900;">if</span> (b == <span style="color: #2aa198;">NULL</span>) {
-        <span style="color: #859900;">return</span> <span style="color: #2aa198;">NULL</span>;
+    b = ngx_pcalloc(r-&gt;pool, sizeof(ngx_buf_t));
+    if (b == NULL) {
+        return NULL;
     }
 
     b-&gt;pos = ctx-&gt;image;
@@ -804,35 +803,35 @@
 
     ngx_http_image_length(r, b);
 
-    <span style="color: #859900;">return</span> b;
+    return b;
 }
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">void</span>
-<span style="color: #268bd2;">ngx_http_image_length</span>(<span style="color: #b58900;">ngx_http_request_t</span> *<span style="color: #268bd2;">r</span>, <span style="color: #b58900;">ngx_buf_t</span> *<span style="color: #268bd2;">b</span>)
+static void
+ngx_http_image_length(ngx_http_request_t *r, ngx_buf_t *b)
 {
     r-&gt;headers_out.content_length_n = b-&gt;last - b-&gt;pos;
 
-    <span style="color: #859900;">if</span> (r-&gt;headers_out.content_length) {
+    if (r-&gt;headers_out.content_length) {
         r-&gt;headers_out.content_length-&gt;hash = 0;
     }
 
-    r-&gt;headers_out.content_length = <span style="color: #2aa198;">NULL</span>;
+    r-&gt;headers_out.content_length = NULL;
 }
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_int_t</span>
-<span style="color: #268bd2;">ngx_http_image_size</span>(<span style="color: #b58900;">ngx_http_request_t</span> *<span style="color: #268bd2;">r</span>, <span style="color: #b58900;">ngx_http_image_filter_ctx_t</span> *<span style="color: #268bd2;">ctx</span>)
+static ngx_int_t
+ngx_http_image_size(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
 {
-    <span style="color: #b58900;">u_char</span>      *<span style="color: #268bd2;">p</span>, *<span style="color: #268bd2;">last</span>;
-    <span style="color: #b58900;">size_t</span>       <span style="color: #268bd2;">len</span>, <span style="color: #268bd2;">app</span>;
-    <span style="color: #b58900;">ngx_uint_t</span>   <span style="color: #268bd2;">width</span>, <span style="color: #268bd2;">height</span>;
+    u_char      *p, *last;
+    size_t       len, app;
+    ngx_uint_t   width, height;
 
     p = ctx-&gt;image;
 
-    <span style="color: #859900;">switch</span> (ctx-&gt;type) {
+    switch (ctx-&gt;type) {
 
-    <span style="color: #859900;">case</span> NGX_HTTP_IMAGE_JPEG:
+    case NGX_HTTP_IMAGE_JPEG:
 
         p += 2;
         last = ctx-&gt;image + ctx-&gt;length - 10;
@@ -840,16 +839,16 @@
         height = 0;
         app = 0;
 
-        <span style="color: #859900;">while</span> (p &lt; last) {
+        while (p &lt; last) {
 
-            <span style="color: #859900;">if</span> (p[0] == 0xff &amp;&amp; p[1] != 0xff) {
+            if (p[0] == 0xff &amp;&amp; p[1] != 0xff) {
 
                 ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r-&gt;connection-&gt;log, 0,
                                <span style="color: #2aa198;">"JPEG: %02xd %02xd"</span>, p[0], p[1]);
 
                 p++;
 
-                <span style="color: #859900;">if</span> ((*p == 0xc0 || *p == 0xc1 || *p == 0xc2 || *p == 0xc3
+                if ((*p == 0xc0 || *p == 0xc1 || *p == 0xc2 || *p == 0xc3
                      || *p == 0xc9 || *p == 0xca || *p == 0xcb)
                     &amp;&amp; (width == 0 || height == 0))
                 {
@@ -862,57 +861,57 @@
 
                 len = p[1] * 256 + p[2];
 
-                <span style="color: #859900;">if</span> (*p &gt;= 0xe1 &amp;&amp; *p &lt;= 0xef) {
-                    <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">application data, e.g., EXIF, Adobe XMP, etc. </span><span style="color: #586e75; font-style: italic;">*/</span>
+                if (*p &gt;= 0xe1 &amp;&amp; *p &lt;= 0xef) {
+                    /* application data, e.g., EXIF, Adobe XMP, etc. */
                     app += len;
                 }
 
                 p += len;
 
-                <span style="color: #859900;">continue</span>;
+                continue;
             }
 
             p++;
         }
 
-        <span style="color: #859900;">if</span> (width == 0 || height == 0) {
-            <span style="color: #859900;">return</span> NGX_DECLINED;
+        if (width == 0 || height == 0) {
+            return NGX_DECLINED;
         }
 
-        <span style="color: #859900;">if</span> (ctx-&gt;length / 20 &lt; app) {
-            <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">force conversion if application data consume more than 5% </span><span style="color: #586e75; font-style: italic;">*/</span>
+        if (ctx-&gt;length / 20 &lt; app) {
+            /* force conversion if application data consume more than 5% */
             ctx-&gt;force = 1;
             ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r-&gt;connection-&gt;log, 0,
                            <span style="color: #2aa198;">"app data size: %uz"</span>, app);
         }
 
-        <span style="color: #859900;">break</span>;
+        break;
 
-    <span style="color: #859900;">case</span> NGX_HTTP_IMAGE_GIF:
+    case NGX_HTTP_IMAGE_GIF:
 
-        <span style="color: #859900;">if</span> (ctx-&gt;length &lt; 10) {
-            <span style="color: #859900;">return</span> NGX_DECLINED;
+        if (ctx-&gt;length &lt; 10) {
+            return NGX_DECLINED;
         }
 
         width = p[7] * 256 + p[6];
         height = p[9] * 256 + p[8];
 
-        <span style="color: #859900;">break</span>;
+        break;
 
-    <span style="color: #859900;">case</span> NGX_HTTP_IMAGE_PNG:
+    case NGX_HTTP_IMAGE_PNG:
 
-        <span style="color: #859900;">if</span> (ctx-&gt;length &lt; 24) {
-            <span style="color: #859900;">return</span> NGX_DECLINED;
+        if (ctx-&gt;length &lt; 24) {
+            return NGX_DECLINED;
         }
 
         width = p[18] * 256 + p[19];
         height = p[22] * 256 + p[23];
 
-        <span style="color: #859900;">break</span>;
+        break;
 
-    <span style="color: #859900;">default</span>:
+    default:
 
-        <span style="color: #859900;">return</span> NGX_DECLINED;
+        return NGX_DECLINED;
     }
 
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r-&gt;connection-&gt;log, 0,
@@ -921,27 +920,27 @@
     ctx-&gt;width = width;
     ctx-&gt;height = height;
 
-    <span style="color: #859900;">return</span> NGX_OK;
+    return NGX_OK;
 }
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_buf_t</span> *
-<span style="color: #268bd2;">ngx_http_image_resize</span>(<span style="color: #b58900;">ngx_http_request_t</span> *<span style="color: #268bd2;">r</span>, <span style="color: #b58900;">ngx_http_image_filter_ctx_t</span> *<span style="color: #268bd2;">ctx</span>)
+static ngx_buf_t *
+ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
 {
-    <span style="color: #b58900;">int</span>                            <span style="color: #268bd2;">sx</span>, <span style="color: #268bd2;">sy</span>, <span style="color: #268bd2;">dx</span>, <span style="color: #268bd2;">dy</span>, <span style="color: #268bd2;">ox</span>, <span style="color: #268bd2;">oy</span>, <span style="color: #268bd2;">ax</span>, <span style="color: #268bd2;">ay</span>, <span style="color: #268bd2;">size</span>,
-                                   <span style="color: #268bd2;">colors</span>, <span style="color: #268bd2;">palette</span>, <span style="color: #268bd2;">transparent</span>, <span style="color: #268bd2;">sharpen</span>,
-                                   <span style="color: #268bd2;">red</span>, <span style="color: #268bd2;">green</span>, <span style="color: #268bd2;">blue</span>, <span style="color: #268bd2;">t</span>;
-    <span style="color: #b58900;">u_char</span>                        *<span style="color: #268bd2;">out</span>;
-    <span style="color: #b58900;">ngx_buf_t</span>                     *<span style="color: #268bd2;">b</span>;
-    <span style="color: #b58900;">ngx_uint_t</span>                     <span style="color: #268bd2;">resize</span>;
-    <span style="color: #b58900;">gdImagePtr</span>                     <span style="color: #268bd2;">src</span>, <span style="color: #268bd2;">dst</span>;
-    <span style="color: #b58900;">ngx_pool_cleanup_t</span>            *<span style="color: #268bd2;">cln</span>;
-    <span style="color: #b58900;">ngx_http_image_filter_conf_t</span>  *<span style="color: #268bd2;">conf</span>;
+    int                            sx, sy, dx, dy, ox, oy, ax, ay, size,
+                                   colors, palette, transparent, sharpen,
+                                   red, green, blue, t;
+    u_char                        *out;
+    ngx_buf_t                     *b;
+    ngx_uint_t                     resize;
+    gdImagePtr                     src, dst;
+    ngx_pool_cleanup_t            *cln;
+    ngx_http_image_filter_conf_t  *conf;
 
     src = ngx_http_image_source(r, ctx);
 
-    <span style="color: #859900;">if</span> (src == <span style="color: #2aa198;">NULL</span>) {
-        <span style="color: #859900;">return</span> <span style="color: #2aa198;">NULL</span>;
+    if (src == NULL) {
+        return NULL;
     }
 
     sx = gdImageSX(src);
@@ -949,27 +948,27 @@
 
     conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);
 
-    <span style="color: #859900;">if</span> (<span style="color: #dc322f;">!</span>ctx-&gt;force
+    if (!ctx-&gt;force
         &amp;&amp; ctx-&gt;angle == 0
-        &amp;&amp; (<span style="color: #b58900;">ngx_uint_t</span>) sx &lt;= ctx-&gt;max_width
-        &amp;&amp; (<span style="color: #b58900;">ngx_uint_t</span>) sy &lt;= ctx-&gt;max_height)
+        &amp;&amp; (ngx_uint_t) sx &lt;= ctx-&gt;max_width
+        &amp;&amp; (ngx_uint_t) sy &lt;= ctx-&gt;max_height)
     {
         gdImageDestroy(src);
-        <span style="color: #859900;">return</span> ngx_http_image_asis(r, ctx);
+        return ngx_http_image_asis(r, ctx);
     }
 
     colors = gdImageColorsTotal(src);
 
-    <span style="color: #859900;">if</span> (colors &amp;&amp; conf-&gt;transparency) {
+    if (colors &amp;&amp; conf-&gt;transparency) {
         transparent = gdImageGetTransparent(src);
 
-        <span style="color: #859900;">if</span> (transparent != -1) {
+        if (transparent != -1) {
             palette = colors;
             red = gdImageRed(src, transparent);
             green = gdImageGreen(src, transparent);
             blue = gdImageBlue(src, transparent);
 
-            <span style="color: #859900;">goto</span> <span style="color: #2aa198;">transparent</span>;
+            goto transparent;
         }
     }
 
@@ -979,22 +978,22 @@
     green = 0;
     blue = 0;
 
-<span style="color: #2aa198;">transparent</span>:
+transparent:
 
     gdImageColorTransparent(src, -1);
 
     dx = sx;
     dy = sy;
 
-    <span style="color: #859900;">if</span> (conf-&gt;filter == NGX_HTTP_IMAGE_RESIZE) {
+    if (conf-&gt;filter == NGX_HTTP_IMAGE_RESIZE) {
 
-        <span style="color: #859900;">if</span> ((<span style="color: #b58900;">ngx_uint_t</span>) dx &gt; ctx-&gt;max_width) {
+        if ((ngx_uint_t) dx &gt; ctx-&gt;max_width) {
             dy = dy * ctx-&gt;max_width / dx;
             dy = dy ? dy : 1;
             dx = ctx-&gt;max_width;
         }
 
-        <span style="color: #859900;">if</span> ((<span style="color: #b58900;">ngx_uint_t</span>) dy &gt; ctx-&gt;max_height) {
+        if ((ngx_uint_t) dy &gt; ctx-&gt;max_height) {
             dx = dx * ctx-&gt;max_height / dy;
             dx = dx ? dx : 1;
             dy = ctx-&gt;max_height;
@@ -1002,26 +1001,26 @@
 
         resize = 1;
 
-    } <span style="color: #859900;">else</span> <span style="color: #859900;">if</span> (conf-&gt;filter == NGX_HTTP_IMAGE_ROTATE) {
+    } else if (conf-&gt;filter == NGX_HTTP_IMAGE_ROTATE) {
 
         resize = 0;
-    } <span style="color: #859900;">else</span> <span style="color: #859900;">if</span> (conf-&gt;filter == NGX_HTTP_IMAGE_WATERMARK) {
+    } else if (conf-&gt;filter == NGX_HTTP_IMAGE_WATERMARK) {
+        
+        resize = 0;
+    } else { /* NGX_HTTP_IMAGE_CROP */
 
         resize = 0;
-    } <span style="color: #859900;">else</span> { <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">NGX_HTTP_IMAGE_CROP </span><span style="color: #586e75; font-style: italic;">*/</span>
 
-        resize = 0;
-
-        <span style="color: #859900;">if</span> ((<span style="color: #b58900;">double</span>) dx / dy &lt; (<span style="color: #b58900;">double</span>) ctx-&gt;max_width / ctx-&gt;max_height) {
-            <span style="color: #859900;">if</span> ((<span style="color: #b58900;">ngx_uint_t</span>) dx &gt; ctx-&gt;max_width) {
+        if ((double) dx / dy &lt; (double) ctx-&gt;max_width / ctx-&gt;max_height) {
+            if ((ngx_uint_t) dx &gt; ctx-&gt;max_width) {
                 dy = dy * ctx-&gt;max_width / dx;
                 dy = dy ? dy : 1;
                 dx = ctx-&gt;max_width;
                 resize = 1;
             }
 
-        } <span style="color: #859900;">else</span> {
-            <span style="color: #859900;">if</span> ((<span style="color: #b58900;">ngx_uint_t</span>) dy &gt; ctx-&gt;max_height) {
+        } else {
+            if ((ngx_uint_t) dy &gt; ctx-&gt;max_height) {
                 dx = dx * ctx-&gt;max_height / dy;
                 dx = dx ? dx : 1;
                 dy = ctx-&gt;max_height;
@@ -1030,50 +1029,50 @@
         }
     }
 
-    <span style="color: #859900;">if</span> (resize) {
+    if (resize) {
         dst = ngx_http_image_new(r, dx, dy, palette);
-        <span style="color: #859900;">if</span> (dst == <span style="color: #2aa198;">NULL</span>) {
+        if (dst == NULL) {
             gdImageDestroy(src);
-            <span style="color: #859900;">return</span> <span style="color: #2aa198;">NULL</span>;
+            return NULL;
         }
 
-        <span style="color: #859900;">if</span> (colors == 0) {
+        if (colors == 0) {
             gdImageSaveAlpha(dst, 1);
             gdImageAlphaBlending(dst, 0);
         }
 
         gdImageCopyResampled(dst, src, 0, 0, 0, 0, dx, dy, sx, sy);
 
-        <span style="color: #859900;">if</span> (colors) {
+        if (colors) {
             gdImageTrueColorToPalette(dst, 1, 256);
         }
 
         gdImageDestroy(src);
 
-    } <span style="color: #859900;">else</span> {
+    } else {
         dst = src;
     }
 
-    <span style="color: #859900;">if</span> (ctx-&gt;angle) {
+    if (ctx-&gt;angle) {
         src = dst;
 
         ax = (dx % 2 == 0) ? 1 : 0;
         ay = (dy % 2 == 0) ? 1 : 0;
 
-        <span style="color: #859900;">switch</span> (ctx-&gt;angle) {
+        switch (ctx-&gt;angle) {
 
-        <span style="color: #859900;">case</span> 90:
-        <span style="color: #859900;">case</span> 270:
+        case 90:
+        case 270:
             dst = ngx_http_image_new(r, dy, dx, palette);
-            <span style="color: #859900;">if</span> (dst == <span style="color: #2aa198;">NULL</span>) {
+            if (dst == NULL) {
                 gdImageDestroy(src);
-                <span style="color: #859900;">return</span> <span style="color: #2aa198;">NULL</span>;
+                return NULL;
             }
-            <span style="color: #859900;">if</span> (ctx-&gt;angle == 90) {
+            if (ctx-&gt;angle == 90) {
                 ox = dy / 2 + ay;
                 oy = dx / 2 - ax;
 
-            } <span style="color: #859900;">else</span> {
+            } else {
                 ox = dy / 2 - ay;
                 oy = dx / 2 + ax;
             }
@@ -1085,46 +1084,46 @@
             t = dx;
             dx = dy;
             dy = t;
-            <span style="color: #859900;">break</span>;
+            break;
 
-        <span style="color: #859900;">case</span> 180:
+        case 180:
             dst = ngx_http_image_new(r, dx, dy, palette);
-            <span style="color: #859900;">if</span> (dst == <span style="color: #2aa198;">NULL</span>) {
+            if (dst == NULL) {
                 gdImageDestroy(src);
-                <span style="color: #859900;">return</span> <span style="color: #2aa198;">NULL</span>;
+                return NULL;
             }
             gdImageCopyRotated(dst, src, dx / 2 - ax, dy / 2 - ay, 0, 0,
                                dx + ax, dy + ay, ctx-&gt;angle);
             gdImageDestroy(src);
-            <span style="color: #859900;">break</span>;
+            break;
         }
     }
 
-    <span style="color: #859900;">if</span> (conf-&gt;filter == NGX_HTTP_IMAGE_CROP) {
+    if (conf-&gt;filter == NGX_HTTP_IMAGE_CROP) {
 
         src = dst;
 
-        <span style="color: #859900;">if</span> ((<span style="color: #b58900;">ngx_uint_t</span>) dx &gt; ctx-&gt;max_width) {
+        if ((ngx_uint_t) dx &gt; ctx-&gt;max_width) {
             ox = dx - ctx-&gt;max_width;
 
-        } <span style="color: #859900;">else</span> {
+        } else {
             ox = 0;
         }
 
-        <span style="color: #859900;">if</span> ((<span style="color: #b58900;">ngx_uint_t</span>) dy &gt; ctx-&gt;max_height) {
+        if ((ngx_uint_t) dy &gt; ctx-&gt;max_height) {
             oy = dy - ctx-&gt;max_height;
 
-        } <span style="color: #859900;">else</span> {
+        } else {
             oy = 0;
         }
 
-        <span style="color: #859900;">if</span> (ox || oy) {
+        if (ox || oy) {
 
             dst = ngx_http_image_new(r, dx - ox, dy - oy, colors);
 
-            <span style="color: #859900;">if</span> (dst == <span style="color: #2aa198;">NULL</span>) {
+            if (dst == NULL) {
                 gdImageDestroy(src);
-                <span style="color: #859900;">return</span> <span style="color: #2aa198;">NULL</span>;
+                return NULL;
             }
 
             ox /= 2;
@@ -1134,14 +1133,14 @@
                            <span style="color: #2aa198;">"image crop: %d x %d @ %d x %d"</span>,
                            dx, dy, ox, oy);
 
-            <span style="color: #859900;">if</span> (colors == 0) {
+            if (colors == 0) {
                 gdImageSaveAlpha(dst, 1);
                 gdImageAlphaBlending(dst, 0);
             }
 
             gdImageCopy(dst, src, 0, 0, ox, oy, dx - ox, dy - oy);
 
-            <span style="color: #859900;">if</span> (colors) {
+            if (colors) {
                 gdImageTrueColorToPalette(dst, 1, 256);
             }
 
@@ -1149,46 +1148,35 @@
         }
     }
 
-    <span style="color: #859900;">if</span> (transparent != -1 &amp;&amp; colors) {
+    if (transparent != -1 &amp;&amp; colors) {
         gdImageColorTransparent(dst, gdImageColorExact(dst, red, green, blue));
     }
 
-    <span style="color: #859900;">if</span> (conf-&gt;filter == NGX_HTTP_IMAGE_WATERMARK &amp;&amp; conf-&gt;watermark.data) {
-        <span style="color: #b58900;">FILE</span> *<span style="color: #268bd2;">watermark_file</span> = fopen((<span style="color: #859900;">const</span> <span style="color: #b58900;">char</span> *)conf-&gt;watermark.data, <span style="color: #2aa198;">"r"</span>);
-        <span style="color: #859900;">if</span> (watermark_file) {
-            <span style="color: #b58900;">gdImagePtr</span> <span style="color: #268bd2;">watermark</span>, <span style="color: #268bd2;">watermark_mix</span>;
-            <span style="color: #b58900;">ngx_int_t</span> <span style="color: #268bd2;">wdx</span> = 0, <span style="color: #268bd2;">wdy</span> = 0;
-
+    if (conf-&gt;filter == NGX_HTTP_IMAGE_WATERMARK &amp;&amp; conf-&gt;watermark.data) {
+        FILE *watermark_file = fopen((const char *)conf-&gt;watermark.data, <span style="color: #2aa198;">"r"</span>);
+        if (watermark_file) {
+            gdImagePtr watermark, watermark_mix;
+            ngx_int_t wdx = 0, wdy = 0;
+            
             watermark = gdImageCreateFromPng(watermark_file);
-
-            <span style="color: #859900;">if</span>(watermark != <span style="color: #2aa198;">NULL</span>) {
+                
+            if(watermark != NULL) {
                 watermark_mix = gdImageCreateTrueColor(watermark-&gt;sx, watermark-&gt;sy);
-                <span style="color: #859900;">if</span> (ngx_strcmp(conf-&gt;watermark_position.data,
-                               <span style="color: #2aa198;">"bottom-right"</span>) == 0) {
-                    wdx = dx - watermark-&gt;sx - 10;
-                    wdy = dy - watermark-&gt;sy - 10;
-                } <span style="color: #859900;">else</span> <span style="color: #859900;">if</span> (ngx_strcmp(conf-&gt;watermark_position.data, <span style="color: #2aa198;">"top-left"</span>) == 0) {
-                    wdx = wdy = 10;
-                } <span style="color: #859900;">else</span> <span style="color: #859900;">if</span> (ngx_strcmp(conf-&gt;watermark_position.data, <span style="color: #2aa198;">"top-right"</span>) == 0) {
-                    wdx = dx - watermark-&gt;sx - 10;
-                    wdy = 10;
-                } <span style="color: #859900;">else</span> <span style="color: #859900;">if</span> (ngx_strcmp(conf-&gt;watermark_position.data, <span style="color: #2aa198;">"bottom-left"</span>) == 0) {
-                    wdx = 10;
-                    wdy = dy - watermark-&gt;sy - 10;
-                }
+                wdx = dx/2 - watermark-&gt;sx/2;
+                wdy = dy/2 - watermark-&gt;sy/2;
                 gdImageCopy(watermark_mix, dst, 0, 0, wdx, wdy, watermark-&gt;sx, watermark-&gt;sy);
                 gdImageCopy(watermark_mix, watermark, 0, 0, 0, 0, watermark-&gt;sx, watermark-&gt;sy);
-                gdImageCopyMerge(dst, watermark_mix, wdx, wdy, 0, 0, watermark-&gt;sx, watermark-&gt;sy, 75);
+                gdImageCopyMerge(dst, watermark_mix, wdx, wdy, 0, 0, watermark-&gt;sx, watermark-&gt;sy, conf-&gt;watermark_transparency);
                 gdFree(watermark);
                 gdFree(watermark_mix);
-            } <span style="color: #859900;">else</span> { ngx_log_error(NGX_LOG_ERR, r-&gt;connection-&gt;log, 0, <span style="color: #2aa198;">"watermark file '%s' is not PNG"</span>, conf-&gt;watermark.data);}
-        } <span style="color: #859900;">else</span> {
+            } else { ngx_log_error(NGX_LOG_ERR, r-&gt;connection-&gt;log, 0, <span style="color: #2aa198;">"watermark file '%s' is not PNG"</span>, conf-&gt;watermark.data);}
+        } else {
             ngx_log_error(NGX_LOG_ERR, r-&gt;connection-&gt;log, 0, <span style="color: #2aa198;">"watermark file '%s' not found"</span>, conf-&gt;watermark.data);
         }
     }
-
+    
     sharpen = ngx_http_image_filter_get_value(r, conf-&gt;shcv, conf-&gt;sharpen);
-    <span style="color: #859900;">if</span> (sharpen &gt; 0) {
+    if (sharpen &gt; 0) {
         gdImageSharpen(dst, sharpen);
     }
 
@@ -1200,20 +1188,20 @@
     gdImageDestroy(dst);
     ngx_pfree(r-&gt;pool, ctx-&gt;image);
 
-    <span style="color: #859900;">if</span> (out == <span style="color: #2aa198;">NULL</span>) {
-        <span style="color: #859900;">return</span> <span style="color: #2aa198;">NULL</span>;
+    if (out == NULL) {
+        return NULL;
     }
 
     cln = ngx_pool_cleanup_add(r-&gt;pool, 0);
-    <span style="color: #859900;">if</span> (cln == <span style="color: #2aa198;">NULL</span>) {
+    if (cln == NULL) {
         gdFree(out);
-        <span style="color: #859900;">return</span> <span style="color: #2aa198;">NULL</span>;
+        return NULL;
     }
 
-    b = ngx_pcalloc(r-&gt;pool, <span style="color: #859900;">sizeof</span>(ngx_buf_t));
-    <span style="color: #859900;">if</span> (b == <span style="color: #2aa198;">NULL</span>) {
+    b = ngx_pcalloc(r-&gt;pool, sizeof(ngx_buf_t));
+    if (b == NULL) {
         gdFree(out);
-        <span style="color: #859900;">return</span> <span style="color: #2aa198;">NULL</span>;
+        return NULL;
     }
 
     cln-&gt;handler = ngx_http_image_cleanup;
@@ -1226,213 +1214,214 @@
 
     ngx_http_image_length(r, b);
 
-    <span style="color: #859900;">return</span> b;
+    return b;
 }
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">gdImagePtr</span>
-<span style="color: #268bd2;">ngx_http_image_source</span>(<span style="color: #b58900;">ngx_http_request_t</span> *<span style="color: #268bd2;">r</span>, <span style="color: #b58900;">ngx_http_image_filter_ctx_t</span> *<span style="color: #268bd2;">ctx</span>)
+static gdImagePtr
+ngx_http_image_source(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
 {
-    <span style="color: #b58900;">char</span>        *<span style="color: #268bd2;">failed</span>;
-    <span style="color: #b58900;">gdImagePtr</span>   <span style="color: #268bd2;">img</span>;
+    char        *failed;
+    gdImagePtr   img;
 
-    img = <span style="color: #2aa198;">NULL</span>;
+    img = NULL;
 
-    <span style="color: #859900;">switch</span> (ctx-&gt;type) {
+    switch (ctx-&gt;type) {
 
-    <span style="color: #859900;">case</span> NGX_HTTP_IMAGE_JPEG:
+    case NGX_HTTP_IMAGE_JPEG:
         img = gdImageCreateFromJpegPtr(ctx-&gt;length, ctx-&gt;image);
         failed = <span style="color: #2aa198;">"gdImageCreateFromJpegPtr() failed"</span>;
-        <span style="color: #859900;">break</span>;
+        break;
 
-    <span style="color: #859900;">case</span> NGX_HTTP_IMAGE_GIF:
+    case NGX_HTTP_IMAGE_GIF:
         img = gdImageCreateFromGifPtr(ctx-&gt;length, ctx-&gt;image);
         failed = <span style="color: #2aa198;">"gdImageCreateFromGifPtr() failed"</span>;
-        <span style="color: #859900;">break</span>;
+        break;
 
-    <span style="color: #859900;">case</span> NGX_HTTP_IMAGE_PNG:
+    case NGX_HTTP_IMAGE_PNG:
         img = gdImageCreateFromPngPtr(ctx-&gt;length, ctx-&gt;image);
         failed = <span style="color: #2aa198;">"gdImageCreateFromPngPtr() failed"</span>;
-        <span style="color: #859900;">break</span>;
+        break;
 
-    <span style="color: #859900;">default</span>:
+    default:
         failed = <span style="color: #2aa198;">"unknown image type"</span>;
-        <span style="color: #859900;">break</span>;
+        break;
     }
 
-    <span style="color: #859900;">if</span> (img == <span style="color: #2aa198;">NULL</span>) {
+    if (img == NULL) {
         ngx_log_error(NGX_LOG_ERR, r-&gt;connection-&gt;log, 0, failed);
     }
 
-    <span style="color: #859900;">return</span> img;
+    return img;
 }
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">gdImagePtr</span>
-<span style="color: #268bd2;">ngx_http_image_new</span>(<span style="color: #b58900;">ngx_http_request_t</span> *<span style="color: #268bd2;">r</span>, <span style="color: #b58900;">int</span> <span style="color: #268bd2;">w</span>, <span style="color: #b58900;">int</span> <span style="color: #268bd2;">h</span>, <span style="color: #b58900;">int</span> <span style="color: #268bd2;">colors</span>)
+static gdImagePtr
+ngx_http_image_new(ngx_http_request_t *r, int w, int h, int colors)
 {
-    <span style="color: #b58900;">gdImagePtr</span>  <span style="color: #268bd2;">img</span>;
+    gdImagePtr  img;
 
-    <span style="color: #859900;">if</span> (colors == 0) {
+    if (colors == 0) {
         img = gdImageCreateTrueColor(w, h);
 
-        <span style="color: #859900;">if</span> (img == <span style="color: #2aa198;">NULL</span>) {
+        if (img == NULL) {
             ngx_log_error(NGX_LOG_ERR, r-&gt;connection-&gt;log, 0,
                           <span style="color: #2aa198;">"gdImageCreateTrueColor() failed"</span>);
-            <span style="color: #859900;">return</span> <span style="color: #2aa198;">NULL</span>;
+            return NULL;
         }
 
-    } <span style="color: #859900;">else</span> {
+    } else {
         img = gdImageCreate(w, h);
 
-        <span style="color: #859900;">if</span> (img == <span style="color: #2aa198;">NULL</span>) {
+        if (img == NULL) {
             ngx_log_error(NGX_LOG_ERR, r-&gt;connection-&gt;log, 0,
                           <span style="color: #2aa198;">"gdImageCreate() failed"</span>);
-            <span style="color: #859900;">return</span> <span style="color: #2aa198;">NULL</span>;
+            return NULL;
         }
     }
 
-    <span style="color: #859900;">return</span> img;
+    return img;
 }
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">u_char</span> *
-<span style="color: #268bd2;">ngx_http_image_out</span>(<span style="color: #b58900;">ngx_http_request_t</span> *<span style="color: #268bd2;">r</span>, <span style="color: #b58900;">ngx_uint_t</span> <span style="color: #268bd2;">type</span>, <span style="color: #b58900;">gdImagePtr</span> <span style="color: #268bd2;">img</span>,
-    <span style="color: #b58900;">int</span> *<span style="color: #268bd2;">size</span>)
+static u_char *
+ngx_http_image_out(ngx_http_request_t *r, ngx_uint_t type, gdImagePtr img,
+    int *size)
 {
-    <span style="color: #b58900;">char</span>                          *<span style="color: #268bd2;">failed</span>;
-    <span style="color: #b58900;">u_char</span>                        *<span style="color: #268bd2;">out</span>;
-    <span style="color: #b58900;">ngx_int_t</span>                      <span style="color: #268bd2;">jq</span>;
-    <span style="color: #b58900;">ngx_http_image_filter_conf_t</span>  *<span style="color: #268bd2;">conf</span>;
+    char                          *failed;
+    u_char                        *out;
+    ngx_int_t                      jq;
+    ngx_http_image_filter_conf_t  *conf;
 
-    out = <span style="color: #2aa198;">NULL</span>;
+    out = NULL;
 
-    <span style="color: #859900;">switch</span> (type) {
+    switch (type) {
 
-    <span style="color: #859900;">case</span> NGX_HTTP_IMAGE_JPEG:
+    case NGX_HTTP_IMAGE_JPEG:
         conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);
 
         jq = ngx_http_image_filter_get_value(r, conf-&gt;jqcv, conf-&gt;jpeg_quality);
-        <span style="color: #859900;">if</span> (jq &lt;= 0) {
-            <span style="color: #859900;">return</span> <span style="color: #2aa198;">NULL</span>;
+        if (jq &lt;= 0) {
+            return NULL;
         }
 
         out = gdImageJpegPtr(img, size, jq);
         failed = <span style="color: #2aa198;">"gdImageJpegPtr() failed"</span>;
-        <span style="color: #859900;">break</span>;
+        break;
 
-    <span style="color: #859900;">case</span> NGX_HTTP_IMAGE_GIF:
+    case NGX_HTTP_IMAGE_GIF:
         out = gdImageGifPtr(img, size);
         failed = <span style="color: #2aa198;">"gdImageGifPtr() failed"</span>;
-        <span style="color: #859900;">break</span>;
+        break;
 
-    <span style="color: #859900;">case</span> NGX_HTTP_IMAGE_PNG:
+    case NGX_HTTP_IMAGE_PNG:
         out = gdImagePngPtr(img, size);
         failed = <span style="color: #2aa198;">"gdImagePngPtr() failed"</span>;
-        <span style="color: #859900;">break</span>;
+        break;
 
-    <span style="color: #859900;">default</span>:
+    default:
         failed = <span style="color: #2aa198;">"unknown image type"</span>;
-        <span style="color: #859900;">break</span>;
+        break;
     }
 
-    <span style="color: #859900;">if</span> (out == <span style="color: #2aa198;">NULL</span>) {
+    if (out == NULL) {
         ngx_log_error(NGX_LOG_ERR, r-&gt;connection-&gt;log, 0, failed);
     }
 
-    <span style="color: #859900;">return</span> out;
+    return out;
 }
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">void</span>
-<span style="color: #268bd2;">ngx_http_image_cleanup</span>(<span style="color: #b58900;">void</span> *<span style="color: #268bd2;">data</span>)
+static void
+ngx_http_image_cleanup(void *data)
 {
     gdFree(data);
 }
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_uint_t</span>
-<span style="color: #268bd2;">ngx_http_image_filter_get_value</span>(<span style="color: #b58900;">ngx_http_request_t</span> *<span style="color: #268bd2;">r</span>,
-    <span style="color: #b58900;">ngx_http_complex_value_t</span> *<span style="color: #268bd2;">cv</span>, <span style="color: #b58900;">ngx_uint_t</span> <span style="color: #268bd2;">v</span>)
+static ngx_uint_t
+ngx_http_image_filter_get_value(ngx_http_request_t *r,
+    ngx_http_complex_value_t *cv, ngx_uint_t v)
 {
-    <span style="color: #b58900;">ngx_str_t</span>  <span style="color: #268bd2;">val</span>;
+    ngx_str_t  val;
 
-    <span style="color: #859900;">if</span> (cv == <span style="color: #2aa198;">NULL</span>) {
-        <span style="color: #859900;">return</span> v;
+    if (cv == NULL) {
+        return v;
     }
 
-    <span style="color: #859900;">if</span> (ngx_http_complex_value(r, cv, &amp;val) != NGX_OK) {
-        <span style="color: #859900;">return</span> 0;
+    if (ngx_http_complex_value(r, cv, &amp;val) != NGX_OK) {
+        return 0;
     }
 
-    <span style="color: #859900;">return</span> ngx_http_image_filter_value(&amp;val);
+    return ngx_http_image_filter_value(&amp;val);
 }
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_uint_t</span>
-<span style="color: #268bd2;">ngx_http_image_filter_value</span>(<span style="color: #b58900;">ngx_str_t</span> *<span style="color: #268bd2;">value</span>)
+static ngx_uint_t
+ngx_http_image_filter_value(ngx_str_t *value)
 {
-    <span style="color: #b58900;">ngx_int_t</span>  <span style="color: #268bd2;">n</span>;
+    ngx_int_t  n;
 
-    <span style="color: #859900;">if</span> (value-&gt;len == 1 &amp;&amp; value-&gt;data[0] == <span style="color: #2aa198;">'-'</span>) {
-        <span style="color: #859900;">return</span> (<span style="color: #b58900;">ngx_uint_t</span>) -1;
+    if (value-&gt;len == 1 &amp;&amp; value-&gt;data[0] == '-') {
+        return (ngx_uint_t) -1;
     }
 
     n = ngx_atoi(value-&gt;data, value-&gt;len);
 
-    <span style="color: #859900;">if</span> (n &gt; 0) {
-        <span style="color: #859900;">return</span> (<span style="color: #b58900;">ngx_uint_t</span>) n;
+    if (n &gt; 0) {
+        return (ngx_uint_t) n;
     }
 
-    <span style="color: #859900;">return</span> 0;
+    return 0;
 }
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">void</span> *
-<span style="color: #268bd2;">ngx_http_image_filter_create_conf</span>(<span style="color: #b58900;">ngx_conf_t</span> *<span style="color: #268bd2;">cf</span>)
+static void *
+ngx_http_image_filter_create_conf(ngx_conf_t *cf)
 {
-    <span style="color: #b58900;">ngx_http_image_filter_conf_t</span>  *<span style="color: #268bd2;">conf</span>;
+    ngx_http_image_filter_conf_t  *conf;
 
-    conf = ngx_pcalloc(cf-&gt;pool, <span style="color: #859900;">sizeof</span>(ngx_http_image_filter_conf_t));
-    <span style="color: #859900;">if</span> (conf == <span style="color: #2aa198;">NULL</span>) {
-        <span style="color: #859900;">return</span> <span style="color: #2aa198;">NULL</span>;
+    conf = ngx_pcalloc(cf-&gt;pool, sizeof(ngx_http_image_filter_conf_t));
+    if (conf == NULL) {
+        return NULL;
     }
 
-    <span style="color: #586e75; font-style: italic;">/*</span>
-<span style="color: #586e75; font-style: italic;">     * set by ngx_pcalloc():</span>
-<span style="color: #586e75; font-style: italic;">     *</span>
-<span style="color: #586e75; font-style: italic;">     *     conf-&gt;width = 0;</span>
-<span style="color: #586e75; font-style: italic;">     *     conf-&gt;height = 0;</span>
-<span style="color: #586e75; font-style: italic;">     *     conf-&gt;angle = 0;</span>
-<span style="color: #586e75; font-style: italic;">     *     conf-&gt;wcv = NULL;</span>
-<span style="color: #586e75; font-style: italic;">     *     conf-&gt;hcv = NULL;</span>
-<span style="color: #586e75; font-style: italic;">     *     conf-&gt;acv = NULL;</span>
-<span style="color: #586e75; font-style: italic;">     *     conf-&gt;jqcv = NULL;</span>
-<span style="color: #586e75; font-style: italic;">     *     conf-&gt;shcv = NULL;</span>
-<span style="color: #586e75; font-style: italic;">     </span><span style="color: #586e75; font-style: italic;">*/</span>
+    /*
+     * set by ngx_pcalloc():
+     *
+     *     conf-&gt;width = 0;
+     *     conf-&gt;height = 0;
+     *     conf-&gt;angle = 0;
+     *     conf-&gt;wcv = NULL;
+     *     conf-&gt;hcv = NULL;
+     *     conf-&gt;acv = NULL;
+     *     conf-&gt;jqcv = NULL;
+     *     conf-&gt;shcv = NULL;
+     */
 
     conf-&gt;filter = NGX_CONF_UNSET_UINT;
     conf-&gt;jpeg_quality = NGX_CONF_UNSET_UINT;
     conf-&gt;sharpen = NGX_CONF_UNSET_UINT;
     conf-&gt;transparency = NGX_CONF_UNSET;
     conf-&gt;buffer_size = NGX_CONF_UNSET_SIZE;
+    conf-&gt;watermark_transparency = NGX_CONF_UNSET_UINT;
 
-    <span style="color: #859900;">return</span> conf;
+    return conf;
 }
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">char</span> *
-<span style="color: #268bd2;">ngx_http_image_filter_merge_conf</span>(<span style="color: #b58900;">ngx_conf_t</span> *<span style="color: #268bd2;">cf</span>, <span style="color: #b58900;">void</span> *<span style="color: #268bd2;">parent</span>, <span style="color: #b58900;">void</span> *<span style="color: #268bd2;">child</span>)
+static char *
+ngx_http_image_filter_merge_conf(ngx_conf_t *cf, void *parent, void *child)
 {
-    <span style="color: #b58900;">ngx_http_image_filter_conf_t</span> *<span style="color: #268bd2;">prev</span> = parent;
-    <span style="color: #b58900;">ngx_http_image_filter_conf_t</span> *<span style="color: #268bd2;">conf</span> = child;
+    ngx_http_image_filter_conf_t *prev = parent;
+    ngx_http_image_filter_conf_t *conf = child;
 
-    <span style="color: #859900;">if</span> (conf-&gt;filter == NGX_CONF_UNSET_UINT) {
+    if (conf-&gt;filter == NGX_CONF_UNSET_UINT) {
 
-        <span style="color: #859900;">if</span> (prev-&gt;filter == NGX_CONF_UNSET_UINT) {
+        if (prev-&gt;filter == NGX_CONF_UNSET_UINT) {
             conf-&gt;filter = NGX_HTTP_IMAGE_OFF;
 
-        } <span style="color: #859900;">else</span> {
+        } else {
             conf-&gt;filter = prev-&gt;filter;
             conf-&gt;width = prev-&gt;width;
             conf-&gt;height = prev-&gt;height;
@@ -1443,20 +1432,20 @@
         }
     }
 
-    <span style="color: #859900;">if</span> (conf-&gt;jpeg_quality == NGX_CONF_UNSET_UINT) {
+    if (conf-&gt;jpeg_quality == NGX_CONF_UNSET_UINT) {
 
-        <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">75 is libjpeg default quality </span><span style="color: #586e75; font-style: italic;">*/</span>
+        /* 75 is libjpeg default quality */
         ngx_conf_merge_uint_value(conf-&gt;jpeg_quality, prev-&gt;jpeg_quality, 75);
 
-        <span style="color: #859900;">if</span> (conf-&gt;jqcv == <span style="color: #2aa198;">NULL</span>) {
+        if (conf-&gt;jqcv == NULL) {
             conf-&gt;jqcv = prev-&gt;jqcv;
         }
     }
 
-    <span style="color: #859900;">if</span> (conf-&gt;sharpen == NGX_CONF_UNSET_UINT) {
+    if (conf-&gt;sharpen == NGX_CONF_UNSET_UINT) {
         ngx_conf_merge_uint_value(conf-&gt;sharpen, prev-&gt;sharpen, 0);
 
-        <span style="color: #859900;">if</span> (conf-&gt;shcv == <span style="color: #2aa198;">NULL</span>) {
+        if (conf-&gt;shcv == NULL) {
             conf-&gt;shcv = prev-&gt;shcv;
         }
     }
@@ -1468,265 +1457,265 @@
 
     ngx_conf_merge_str_value(conf-&gt;watermark, prev-&gt;watermark, <span style="color: #2aa198;">""</span>);
 
-    ngx_conf_merge_str_value(conf-&gt;watermark_position,
-                             prev-&gt;watermark_position, <span style="color: #2aa198;">"bottom-right"</span>);
-
-    <span style="color: #859900;">return</span> NGX_CONF_OK;
+    ngx_conf_merge_uint_value(conf-&gt;watermark_transparency,
+                              prev-&gt;watermark_transparency, 90);
+    
+    return NGX_CONF_OK;
 }
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">char</span> *
-<span style="color: #268bd2;">ngx_http_image_filter</span>(<span style="color: #b58900;">ngx_conf_t</span> *<span style="color: #268bd2;">cf</span>, <span style="color: #b58900;">ngx_command_t</span> *<span style="color: #268bd2;">cmd</span>, <span style="color: #b58900;">void</span> *<span style="color: #268bd2;">conf</span>)
+static char *
+ngx_http_image_filter(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
-    <span style="color: #b58900;">ngx_http_image_filter_conf_t</span> *<span style="color: #268bd2;">imcf</span> = conf;
+    ngx_http_image_filter_conf_t *imcf = conf;
 
-    <span style="color: #b58900;">ngx_str_t</span>                         *<span style="color: #268bd2;">value</span>;
-    <span style="color: #b58900;">ngx_int_t</span>                          <span style="color: #268bd2;">n</span>;
-    <span style="color: #b58900;">ngx_uint_t</span>                         <span style="color: #268bd2;">i</span>;
-    <span style="color: #b58900;">ngx_http_complex_value_t</span>           <span style="color: #268bd2;">cv</span>;
-    <span style="color: #b58900;">ngx_http_compile_complex_value_t</span>   <span style="color: #268bd2;">ccv</span>;
+    ngx_str_t                         *value;
+    ngx_int_t                          n;
+    ngx_uint_t                         i;
+    ngx_http_complex_value_t           cv;
+    ngx_http_compile_complex_value_t   ccv;
 
     value = cf-&gt;args-&gt;elts;
 
     i = 1;
 
-    <span style="color: #859900;">if</span> (cf-&gt;args-&gt;nelts == 2) {
-        <span style="color: #859900;">if</span> (ngx_strcmp(value[i].data, <span style="color: #2aa198;">"off"</span>) == 0) {
+    if (cf-&gt;args-&gt;nelts == 2) {
+        if (ngx_strcmp(value[i].data, <span style="color: #2aa198;">"off"</span>) == 0) {
             imcf-&gt;filter = NGX_HTTP_IMAGE_OFF;
 
-        } <span style="color: #859900;">else</span> <span style="color: #859900;">if</span> (ngx_strcmp(value[i].data, <span style="color: #2aa198;">"test"</span>) == 0) {
+        } else if (ngx_strcmp(value[i].data, <span style="color: #2aa198;">"test"</span>) == 0) {
             imcf-&gt;filter = NGX_HTTP_IMAGE_TEST;
 
-        } <span style="color: #859900;">else</span> <span style="color: #859900;">if</span> (ngx_strcmp(value[i].data, <span style="color: #2aa198;">"size"</span>) == 0) {
+        } else if (ngx_strcmp(value[i].data, <span style="color: #2aa198;">"size"</span>) == 0) {
             imcf-&gt;filter = NGX_HTTP_IMAGE_SIZE;
 
-        } <span style="color: #859900;">else</span> <span style="color: #859900;">if</span> (ngx_strcmp(value[i].data, <span style="color: #2aa198;">"watermark"</span>) == 0) {
+        } else if (ngx_strcmp(value[i].data, <span style="color: #2aa198;">"watermark"</span>) == 0) {
             imcf-&gt;filter = NGX_HTTP_IMAGE_WATERMARK;
-
-        } <span style="color: #859900;">else</span> {
-            <span style="color: #859900;">goto</span> <span style="color: #2aa198;">failed</span>;
+            
+        } else {
+            goto failed;
         }
 
-        <span style="color: #859900;">return</span> NGX_CONF_OK;
+        return NGX_CONF_OK;
 
-    } <span style="color: #859900;">else</span> <span style="color: #859900;">if</span> (cf-&gt;args-&gt;nelts == 3) {
+    } else if (cf-&gt;args-&gt;nelts == 3) {
 
-        <span style="color: #859900;">if</span> (ngx_strcmp(value[i].data, <span style="color: #2aa198;">"rotate"</span>) == 0) {
-            <span style="color: #859900;">if</span> (imcf-&gt;filter != NGX_HTTP_IMAGE_RESIZE
+        if (ngx_strcmp(value[i].data, <span style="color: #2aa198;">"rotate"</span>) == 0) {
+            if (imcf-&gt;filter != NGX_HTTP_IMAGE_RESIZE
                 &amp;&amp; imcf-&gt;filter != NGX_HTTP_IMAGE_CROP)
             {
                 imcf-&gt;filter = NGX_HTTP_IMAGE_ROTATE;
             }
 
-            ngx_memzero(&amp;ccv, <span style="color: #859900;">sizeof</span>(ngx_http_compile_complex_value_t));
+            ngx_memzero(&amp;ccv, sizeof(ngx_http_compile_complex_value_t));
 
             ccv.cf = cf;
             ccv.value = &amp;value[++i];
             ccv.complex_value = &amp;cv;
 
-            <span style="color: #859900;">if</span> (ngx_http_compile_complex_value(&amp;ccv) != NGX_OK) {
-                <span style="color: #859900;">return</span> NGX_CONF_ERROR;
+            if (ngx_http_compile_complex_value(&amp;ccv) != NGX_OK) {
+                return NGX_CONF_ERROR;
             }
 
-            <span style="color: #859900;">if</span> (cv.lengths == <span style="color: #2aa198;">NULL</span>) {
+            if (cv.lengths == NULL) {
                 n = ngx_http_image_filter_value(&amp;value[i]);
 
-                <span style="color: #859900;">if</span> (n != 90 &amp;&amp; n != 180 &amp;&amp; n != 270) {
-                    <span style="color: #859900;">goto</span> <span style="color: #2aa198;">failed</span>;
+                if (n != 90 &amp;&amp; n != 180 &amp;&amp; n != 270) {
+                    goto failed;
                 }
 
-                imcf-&gt;angle = (<span style="color: #b58900;">ngx_uint_t</span>) n;
+                imcf-&gt;angle = (ngx_uint_t) n;
 
-            } <span style="color: #859900;">else</span> {
+            } else {
                 imcf-&gt;acv = ngx_palloc(cf-&gt;pool,
-                                       <span style="color: #859900;">sizeof</span>(ngx_http_complex_value_t));
-                <span style="color: #859900;">if</span> (imcf-&gt;acv == <span style="color: #2aa198;">NULL</span>) {
-                    <span style="color: #859900;">return</span> NGX_CONF_ERROR;
+                                       sizeof(ngx_http_complex_value_t));
+                if (imcf-&gt;acv == NULL) {
+                    return NGX_CONF_ERROR;
                 }
 
                 *imcf-&gt;acv = cv;
             }
 
-            <span style="color: #859900;">return</span> NGX_CONF_OK;
+            return NGX_CONF_OK;
 
-        } <span style="color: #859900;">else</span> {
-            <span style="color: #859900;">goto</span> <span style="color: #2aa198;">failed</span>;
+        } else {
+            goto failed;
         }
     }
 
-    <span style="color: #859900;">if</span> (ngx_strcmp(value[i].data, <span style="color: #2aa198;">"resize"</span>) == 0) {
+    if (ngx_strcmp(value[i].data, <span style="color: #2aa198;">"resize"</span>) == 0) {
         imcf-&gt;filter = NGX_HTTP_IMAGE_RESIZE;
 
-    } <span style="color: #859900;">else</span> <span style="color: #859900;">if</span> (ngx_strcmp(value[i].data, <span style="color: #2aa198;">"crop"</span>) == 0) {
+    } else if (ngx_strcmp(value[i].data, <span style="color: #2aa198;">"crop"</span>) == 0) {
         imcf-&gt;filter = NGX_HTTP_IMAGE_CROP;
 
-    } <span style="color: #859900;">else</span> {
-        <span style="color: #859900;">goto</span> <span style="color: #2aa198;">failed</span>;
+    } else {
+        goto failed;
     }
 
-    ngx_memzero(&amp;ccv, <span style="color: #859900;">sizeof</span>(ngx_http_compile_complex_value_t));
+    ngx_memzero(&amp;ccv, sizeof(ngx_http_compile_complex_value_t));
 
     ccv.cf = cf;
     ccv.value = &amp;value[++i];
     ccv.complex_value = &amp;cv;
 
-    <span style="color: #859900;">if</span> (ngx_http_compile_complex_value(&amp;ccv) != NGX_OK) {
-        <span style="color: #859900;">return</span> NGX_CONF_ERROR;
+    if (ngx_http_compile_complex_value(&amp;ccv) != NGX_OK) {
+        return NGX_CONF_ERROR;
     }
 
-    <span style="color: #859900;">if</span> (cv.lengths == <span style="color: #2aa198;">NULL</span>) {
+    if (cv.lengths == NULL) {
         n = ngx_http_image_filter_value(&amp;value[i]);
 
-        <span style="color: #859900;">if</span> (n == 0) {
-            <span style="color: #859900;">goto</span> <span style="color: #2aa198;">failed</span>;
+        if (n == 0) {
+            goto failed;
         }
 
-        imcf-&gt;width = (<span style="color: #b58900;">ngx_uint_t</span>) n;
+        imcf-&gt;width = (ngx_uint_t) n;
 
-    } <span style="color: #859900;">else</span> {
-        imcf-&gt;wcv = ngx_palloc(cf-&gt;pool, <span style="color: #859900;">sizeof</span>(ngx_http_complex_value_t));
-        <span style="color: #859900;">if</span> (imcf-&gt;wcv == <span style="color: #2aa198;">NULL</span>) {
-            <span style="color: #859900;">return</span> NGX_CONF_ERROR;
+    } else {
+        imcf-&gt;wcv = ngx_palloc(cf-&gt;pool, sizeof(ngx_http_complex_value_t));
+        if (imcf-&gt;wcv == NULL) {
+            return NGX_CONF_ERROR;
         }
 
         *imcf-&gt;wcv = cv;
     }
 
-    ngx_memzero(&amp;ccv, <span style="color: #859900;">sizeof</span>(ngx_http_compile_complex_value_t));
+    ngx_memzero(&amp;ccv, sizeof(ngx_http_compile_complex_value_t));
 
     ccv.cf = cf;
     ccv.value = &amp;value[++i];
     ccv.complex_value = &amp;cv;
 
-    <span style="color: #859900;">if</span> (ngx_http_compile_complex_value(&amp;ccv) != NGX_OK) {
-        <span style="color: #859900;">return</span> NGX_CONF_ERROR;
+    if (ngx_http_compile_complex_value(&amp;ccv) != NGX_OK) {
+        return NGX_CONF_ERROR;
     }
 
-    <span style="color: #859900;">if</span> (cv.lengths == <span style="color: #2aa198;">NULL</span>) {
+    if (cv.lengths == NULL) {
         n = ngx_http_image_filter_value(&amp;value[i]);
 
-        <span style="color: #859900;">if</span> (n == 0) {
-            <span style="color: #859900;">goto</span> <span style="color: #2aa198;">failed</span>;
+        if (n == 0) {
+            goto failed;
         }
 
-        imcf-&gt;height = (<span style="color: #b58900;">ngx_uint_t</span>) n;
+        imcf-&gt;height = (ngx_uint_t) n;
 
-    } <span style="color: #859900;">else</span> {
-        imcf-&gt;hcv = ngx_palloc(cf-&gt;pool, <span style="color: #859900;">sizeof</span>(ngx_http_complex_value_t));
-        <span style="color: #859900;">if</span> (imcf-&gt;hcv == <span style="color: #2aa198;">NULL</span>) {
-            <span style="color: #859900;">return</span> NGX_CONF_ERROR;
+    } else {
+        imcf-&gt;hcv = ngx_palloc(cf-&gt;pool, sizeof(ngx_http_complex_value_t));
+        if (imcf-&gt;hcv == NULL) {
+            return NGX_CONF_ERROR;
         }
 
         *imcf-&gt;hcv = cv;
     }
 
-    <span style="color: #859900;">return</span> NGX_CONF_OK;
+    return NGX_CONF_OK;
 
-<span style="color: #2aa198;">failed</span>:
+failed:
 
     ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, <span style="color: #2aa198;">"invalid parameter \"%V\""</span>,
                        &amp;value[i]);
 
-    <span style="color: #859900;">return</span> NGX_CONF_ERROR;
+    return NGX_CONF_ERROR;
 }
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">char</span> *
-<span style="color: #268bd2;">ngx_http_image_filter_jpeg_quality</span>(<span style="color: #b58900;">ngx_conf_t</span> *<span style="color: #268bd2;">cf</span>, <span style="color: #b58900;">ngx_command_t</span> *<span style="color: #268bd2;">cmd</span>,
-    <span style="color: #b58900;">void</span> *<span style="color: #268bd2;">conf</span>)
+static char *
+ngx_http_image_filter_jpeg_quality(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf)
 {
-    <span style="color: #b58900;">ngx_http_image_filter_conf_t</span> *<span style="color: #268bd2;">imcf</span> = conf;
+    ngx_http_image_filter_conf_t *imcf = conf;
 
-    <span style="color: #b58900;">ngx_str_t</span>                         *<span style="color: #268bd2;">value</span>;
-    <span style="color: #b58900;">ngx_int_t</span>                          <span style="color: #268bd2;">n</span>;
-    <span style="color: #b58900;">ngx_http_complex_value_t</span>           <span style="color: #268bd2;">cv</span>;
-    <span style="color: #b58900;">ngx_http_compile_complex_value_t</span>   <span style="color: #268bd2;">ccv</span>;
+    ngx_str_t                         *value;
+    ngx_int_t                          n;
+    ngx_http_complex_value_t           cv;
+    ngx_http_compile_complex_value_t   ccv;
 
     value = cf-&gt;args-&gt;elts;
 
-    ngx_memzero(&amp;ccv, <span style="color: #859900;">sizeof</span>(ngx_http_compile_complex_value_t));
+    ngx_memzero(&amp;ccv, sizeof(ngx_http_compile_complex_value_t));
 
     ccv.cf = cf;
     ccv.value = &amp;value[1];
     ccv.complex_value = &amp;cv;
 
-    <span style="color: #859900;">if</span> (ngx_http_compile_complex_value(&amp;ccv) != NGX_OK) {
-        <span style="color: #859900;">return</span> NGX_CONF_ERROR;
+    if (ngx_http_compile_complex_value(&amp;ccv) != NGX_OK) {
+        return NGX_CONF_ERROR;
     }
 
-    <span style="color: #859900;">if</span> (cv.lengths == <span style="color: #2aa198;">NULL</span>) {
+    if (cv.lengths == NULL) {
         n = ngx_http_image_filter_value(&amp;value[1]);
 
-        <span style="color: #859900;">if</span> (n &lt;= 0) {
+        if (n &lt;= 0) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                                <span style="color: #2aa198;">"invalid value \"%V\""</span>, &amp;value[1]);
-            <span style="color: #859900;">return</span> NGX_CONF_ERROR;
+            return NGX_CONF_ERROR;
         }
 
-        imcf-&gt;jpeg_quality = (<span style="color: #b58900;">ngx_uint_t</span>) n;
+        imcf-&gt;jpeg_quality = (ngx_uint_t) n;
 
-    } <span style="color: #859900;">else</span> {
-        imcf-&gt;jqcv = ngx_palloc(cf-&gt;pool, <span style="color: #859900;">sizeof</span>(ngx_http_complex_value_t));
-        <span style="color: #859900;">if</span> (imcf-&gt;jqcv == <span style="color: #2aa198;">NULL</span>) {
-            <span style="color: #859900;">return</span> NGX_CONF_ERROR;
+    } else {
+        imcf-&gt;jqcv = ngx_palloc(cf-&gt;pool, sizeof(ngx_http_complex_value_t));
+        if (imcf-&gt;jqcv == NULL) {
+            return NGX_CONF_ERROR;
         }
 
         *imcf-&gt;jqcv = cv;
     }
 
-    <span style="color: #859900;">return</span> NGX_CONF_OK;
+    return NGX_CONF_OK;
 }
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">char</span> *
-<span style="color: #268bd2;">ngx_http_image_filter_sharpen</span>(<span style="color: #b58900;">ngx_conf_t</span> *<span style="color: #268bd2;">cf</span>, <span style="color: #b58900;">ngx_command_t</span> *<span style="color: #268bd2;">cmd</span>,
-    <span style="color: #b58900;">void</span> *<span style="color: #268bd2;">conf</span>)
+static char *
+ngx_http_image_filter_sharpen(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf)
 {
-    <span style="color: #b58900;">ngx_http_image_filter_conf_t</span> *<span style="color: #268bd2;">imcf</span> = conf;
+    ngx_http_image_filter_conf_t *imcf = conf;
 
-    <span style="color: #b58900;">ngx_str_t</span>                         *<span style="color: #268bd2;">value</span>;
-    <span style="color: #b58900;">ngx_int_t</span>                          <span style="color: #268bd2;">n</span>;
-    <span style="color: #b58900;">ngx_http_complex_value_t</span>           <span style="color: #268bd2;">cv</span>;
-    <span style="color: #b58900;">ngx_http_compile_complex_value_t</span>   <span style="color: #268bd2;">ccv</span>;
+    ngx_str_t                         *value;
+    ngx_int_t                          n;
+    ngx_http_complex_value_t           cv;
+    ngx_http_compile_complex_value_t   ccv;
 
     value = cf-&gt;args-&gt;elts;
 
-    ngx_memzero(&amp;ccv, <span style="color: #859900;">sizeof</span>(ngx_http_compile_complex_value_t));
+    ngx_memzero(&amp;ccv, sizeof(ngx_http_compile_complex_value_t));
 
     ccv.cf = cf;
     ccv.value = &amp;value[1];
     ccv.complex_value = &amp;cv;
 
-    <span style="color: #859900;">if</span> (ngx_http_compile_complex_value(&amp;ccv) != NGX_OK) {
-        <span style="color: #859900;">return</span> NGX_CONF_ERROR;
+    if (ngx_http_compile_complex_value(&amp;ccv) != NGX_OK) {
+        return NGX_CONF_ERROR;
     }
 
-    <span style="color: #859900;">if</span> (cv.lengths == <span style="color: #2aa198;">NULL</span>) {
+    if (cv.lengths == NULL) {
         n = ngx_http_image_filter_value(&amp;value[1]);
 
-        <span style="color: #859900;">if</span> (n &lt; 0) {
+        if (n &lt; 0) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                                <span style="color: #2aa198;">"invalid value \"%V\""</span>, &amp;value[1]);
-            <span style="color: #859900;">return</span> NGX_CONF_ERROR;
+            return NGX_CONF_ERROR;
         }
 
-        imcf-&gt;sharpen = (<span style="color: #b58900;">ngx_uint_t</span>) n;
+        imcf-&gt;sharpen = (ngx_uint_t) n;
 
-    } <span style="color: #859900;">else</span> {
-        imcf-&gt;shcv = ngx_palloc(cf-&gt;pool, <span style="color: #859900;">sizeof</span>(ngx_http_complex_value_t));
-        <span style="color: #859900;">if</span> (imcf-&gt;shcv == <span style="color: #2aa198;">NULL</span>) {
-            <span style="color: #859900;">return</span> NGX_CONF_ERROR;
+    } else {
+        imcf-&gt;shcv = ngx_palloc(cf-&gt;pool, sizeof(ngx_http_complex_value_t));
+        if (imcf-&gt;shcv == NULL) {
+            return NGX_CONF_ERROR;
         }
 
         *imcf-&gt;shcv = cv;
     }
 
-    <span style="color: #859900;">return</span> NGX_CONF_OK;
+    return NGX_CONF_OK;
 }
 
 
-<span style="color: #859900;">static</span> <span style="color: #b58900;">ngx_int_t</span>
-<span style="color: #268bd2;">ngx_http_image_filter_init</span>(<span style="color: #b58900;">ngx_conf_t</span> *<span style="color: #268bd2;">cf</span>)
+static ngx_int_t
+ngx_http_image_filter_init(ngx_conf_t *cf)
 {
     ngx_http_next_header_filter = ngx_http_top_header_filter;
     ngx_http_top_header_filter = ngx_http_image_header_filter;
@@ -1734,9 +1723,9 @@
     ngx_http_next_body_filter = ngx_http_top_body_filter;
     ngx_http_top_body_filter = ngx_http_image_body_filter;
 
-    <span style="color: #859900;">return</span> NGX_OK;
+    return NGX_OK;
 }
-</pre>
+</pre></div></div>
 
 
 </div>
@@ -1750,7 +1739,7 @@
 
 
 
-<pre class="src src-sh">./configure --with-debug --with-http_image_filter_module --add-module=<span style="color: #fa8072;">`pwd`</span>/../ngx_http_qrcode_module/ --add-module=<span style="color: #fa8072;">`pwd`</span>/../ngx_devel_kit/ --add-module=<span style="color: #fa8072;">`pwd`</span>/../set-misc-nginx-module/ --add-module=<span style="color: #fa8072;">`pwd`</span>/../ngx_http_image_water_filiter_module/src &amp;&amp; make
+<pre class="src src-sh">--with-debug --with-http_image_filter_module --add-module=/home/tangxinfa/Opensource/nginx-1.2.7/../ngx_http_qrcode_module/ --add-module=/home/tangxinfa/Opensource/nginx-1.2.7/../ngx_devel_kit/ --add-module=/home/tangxinfa/Opensource/nginx-1.2.7/../set-misc-nginx-module/ --add-module=/home/tangxinfa/Opensource/nginx-1.2.7/../echo-nginx-module/
 </pre>
 
 
@@ -1770,7 +1759,7 @@
     qrcode_bg_color FFFFFF;    
     qrcode_level 2;
     qrcode_hint 2;
-    qrcode_size 90;
+    qrcode_size 120;
     qrcode_margin 2;
     qrcode_version 5;
     set_unescape_uri $txt $arg_txt;
@@ -1778,8 +1767,8 @@
     qrcode_casesensitive 1; 
     qrcode_gen;  
 
-    image_filter_watermark "/tmp/water.png";
-    image_filter_watermark_position top-left;
+    image_filter_watermark "/usr/share/pixmaps/gnome-word.png";
+    image_filter_watermark_transparency 95; #0-100
     image_filter watermark;
 }
 </pre>
@@ -1799,7 +1788,13 @@
 <pre class="example">http://localhost:8080/qr?txt=hello
 </pre>
 
+<ul>
+<li>显示效果：
+</li>
+</ul>
 
+<p>     <img src="../../../posts/2013/03/30_4e8c7ef4780178147a76/hello_qr.png"  alt="../../../posts/2013/03/30_4e8c7ef4780178147a76/hello_qr.png" />
+</p>
 </div>
 </div>
 
