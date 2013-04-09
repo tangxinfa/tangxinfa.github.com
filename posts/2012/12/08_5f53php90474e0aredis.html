@@ -134,11 +134,9 @@
 
 <pre class="src src-php">/// &#20998;&#24067;&#24335;Redis.
 class RedisShard {
+    /// &#26500;&#36896;&#20989;&#25968;.
     public function __construct($shards) {
-        $this-&gt;shards = array();
-        foreach($shards as $shard){
-            $this-&gt;shards[] = explode(':', $shard); //&#26684;&#24335;&#65306;host:port:db
-        }
+        $this-&gt;reinit($shards);
     }
 
     /// &#26512;&#26500;&#20989;&#25968;.
@@ -150,17 +148,50 @@ class RedisShard {
         }
     }
 
+    /// &#37325;&#26032;&#21021;&#22987;&#21270;.
+    public function reinit($shards){
+        $index = 0;
+        $this-&gt;shards = array();
+        foreach($shards as $shard){
+            $this-&gt;shards[$index] = explode(':', $shard); //&#26684;&#24335;&#65306;host:port:db
+            $this-&gt;shards[$index]['index'] = $index;
+            ++$index;
+        }        
+    }
+
     /// &#36716;&#21457;&#26041;&#27861;&#35843;&#29992;&#21040;&#30495;&#27491;&#30340;redis&#23545;&#35937;.
     public function __call($name, $arguments) {
         $result = call_user_func_array(array($this-&gt;redis($arguments[0]), $name), $arguments);
         if($result === false and in_array($name, array('set', 'setex', 'incr'))) {
-            trigger_error(<span style="color: #2aa198;">"redis error: $name "</span> . implode(' ', $arguments), E_USER_NOTICE);
+            trigger_error(<span style="color: #2aa198;">"redis error: "</span> . $this-&gt;shard[0] . ':' . $this-&gt;shard[1] . ':' .$this-&gt;shard[2] . <span style="color: #2aa198;">" $name "</span> . implode(' ', $arguments), E_USER_NOTICE);
         }
         return $result;
     }
 
-    /// &#33719;&#21462;key&#23545;&#24212;&#30340;redis&#23545;&#35937;.
-    private function redis($key){
+    /// &#33719;&#21462;1&#33267;max&#38388;&#30340;&#21807;&#19968;&#24207;&#21495;name&#65292;&#36798;&#21040;max&#21518;&#20250;&#20174;1&#24320;&#22987;.
+    /// redis&#30340;&#36882;&#22686;&#21040;&#26368;&#22823;&#20540;&#21518;&#20250;&#36820;&#22238;&#38169;&#35823;&#65292;&#26412;&#26041;&#27861;&#23454;&#29616;&#23433;&#20840;&#30340;&#36882;&#22686;&#12290;
+    /// &#22833;&#36133;&#36820;&#22238;false&#65292;&#26368;&#35201;&#30830;&#20445;&#24050;&#29992;redis()&#26041;&#27861;&#36830;&#21040;&#29983;&#25104;&#24207;&#21495;&#30340;&#26576;&#20010;redis&#23545;&#35937;.
+    public function id($name, $max) {
+        if(isset($this-&gt;shard)){
+            $id = $this-&gt;shard['redis']-&gt;incr('_id_' . $name);
+            if($id){
+                $max = intval($max/count($this-&gt;shards));
+                if($id % $max == 0){
+                    while($this-&gt;shard['redis']-&gt;decrBy('_id_' . $name, $max) &gt;= $max){
+                    }
+                    $id = $max;
+                }
+                else if($id &gt; $max){
+                    $id %= $max;
+                }
+                return ($id - 1)*count($this-&gt;shards) + ($this-&gt;shard['index'] + 1);
+            }
+        }
+        return false;
+    }
+
+    /// &#36830;&#25509;&#24182;&#36820;&#22238;key&#23545;&#24212;&#30340;redis&#23545;&#35937;.
+    public function redis($key){
         //TODO: crc32&#22312;32&#20301;&#31995;&#32479;&#19979;&#20250;&#36820;&#22238;&#36127;&#25968;&#65292;&#22240;&#25105;&#20204;&#26159;&#37096;&#32626;&#22312;64&#20301;&#31995;&#32479;&#19978;&#65292;&#26242;&#26102;&#24573;&#30053;.
         assert(PHP_INT_SIZE === 8);
         $index = crc32($key) % count($this-&gt;shards);
@@ -170,11 +201,12 @@ class RedisShard {
             if($this-&gt;shard[0] == $shard[0] and $this-&gt;shard[1] == $shard[1]){
                 if($this-&gt;shard[2] != $shard[2]){
                     if(! $this-&gt;shard['redis']-&gt;select($shard[2])){
+                        trigger_error('redis error: select ' . $shard[0] . ':' . $shard[1] . ':' .$shard[2], E_USER_ERROR);
                         return false;
                     }
                     $this-&gt;shard[2] = $shard[2];
-                    return $this-&gt;shard['redis'];
                 }
+                return $this-&gt;shard['redis'];
             }
             $this-&gt;shard['redis']-&gt;close();
             unset($this-&gt;shard);
@@ -182,15 +214,18 @@ class RedisShard {
         //&#26032;&#24314;&#36830;&#25509;.
         $shard['redis'] = new Redis();
         if(! $shard['redis']-&gt;connect($shard[0], $shard[1])){
-            trigger_error('redis error: connect ' . $shard[0] . ':' . $shard[1], E_USER_NOTICE);
+            trigger_error('redis error: connect ' . $shard[0] . ':' . $shard[1], E_USER_ERROR);
             return false;
         }
         $db = intval($shard[2]);
         if($db != 0 and !$shard['redis']-&gt;select($db)){
-            trigger_error('redis error: select ' . $shard[0] . ':' . $shard[1] . ':' .$shard[2], E_USER_NOTICE);
+            trigger_error('redis error: select ' . $shard[0] . ':' . $shard[1] . ':' .$shard[2], E_USER_ERROR);
             $shard['redis']-&gt;close();
             return false;
         }
+        if(ENABLE_DEVELOP){
+            trigger_error('redis connect success. ' . $shard[0] . ':' . $shard[1] . ':' . $shard[2], E_USER_NOTICE);
+        }        
         $this-&gt;shard = $shard;
         return $this-&gt;shard['redis'];
     }
