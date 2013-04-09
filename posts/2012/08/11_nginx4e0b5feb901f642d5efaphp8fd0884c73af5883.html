@@ -2,7 +2,7 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8"/>
-    <title>看看俺 - KanKanAn.com</title>
+    <title>nginx下快速搭建php运行环境 | 看看俺 - KanKanAn.com</title>
     <link rel="stylesheet" type="text/less" href="../../../style/less/o-blog.less"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="generator" content="o-blog version 1.2-143-gb5a9a69"/>
@@ -49,16 +49,190 @@
     </div>
     <div id="page" class="container">
 
-<article>
+  <div class="article">
+  <header class="article-header">
+
+    <div class="page-header">
+      <div class="row">
+	<div class="date span1">
+	  <div class=" date-d">11</div>
+	  <div class=" date-m"><a href="../../../posts/2012/08/index.html"> 8月</a></div>
+	  <div class=" date-y"><a href="../../../posts/2012/index.html">2012</a>
+	  </div>
+	</div>
+	<div class="span1">
+	  <div class="qr-code">
+  <img style="min-width:70px; min-height:70px; max-width:70px; max-height:70px;" src="http://chart.apis.google.com/chart?chs=70x70&cht=qr&chld=|0&chl=http%3a%2f%2fblog.kankanan.com%2f%2fposts%2f2012%2f08%2f11_nginx4e0b5feb901f642d5efaphp8fd0884c73af5883.html"
+       alt="qr-code" />
+</div>
+
+	</div>
+	<h1 class="offset2">nginx下快速搭建php运行环境</h1>
+      </div>
+      <nav>
+	<ul class="pager">
+	  <li class="previous"><a href="../../../posts/2012/08/03_5728emacs6a215f0f884c4e0a663e793a56fe724776845c3a5bf8.html"><i class="icon-chevron-left"></i>&nbsp;在emacs模式行上显示图片的尺寸</a></li><li class="next" style="text-align: right;"><a href="../../../posts/2012/09/05_89e351b3archlinux4e0bati663e53613d786c4ef652a0901f59316548768495ee9898.html">解决Archlinux下ati显卡3D硬件加速失效的问题&nbsp;<i class="icon-chevron-right"></i></a></li>
+	</ul>
+      </nav>
+    </div>
+
+  </header>
   <div class="article-content">
-    <nav class="archives">
-      <ul class="month 2013 4">
-  <li>09 <a href="../../../index.html">使用o-blog搭建个人博客</a></li><li>07 <a href="../../../posts/2013/04/07_59824f555b664e6082f18bed.html">如何学习英语</a></li>
+    <div id="outline-container-1" class="outline-3">
+<h3 id="sec-1">安装</h3>
+<div class="outline-text-3" id="text-1">
+
+
+</div>
+
+<div id="outline-container-1-1" class="outline-4">
+<h4 id="sec-1-1">安装nginx</h4>
+<div class="outline-text-4" id="text-1-1">
+
+<p>    yaourt -S nginx
+</p></div>
+
+</div>
+
+<div id="outline-container-1-2" class="outline-4">
+<h4 id="sec-1-2">安装php</h4>
+<div class="outline-text-4" id="text-1-2">
+
+<p>     yaourt -S php
+</p></div>
+
+</div>
+
+<div id="outline-container-1-3" class="outline-4">
+<h4 id="sec-1-3">安装php-fpm</h4>
+<div class="outline-text-4" id="text-1-3">
+
+<p>     yaourt -S php-fpm
+</p>
+</div>
+</div>
+
+</div>
+
+<div id="outline-container-2" class="outline-3">
+<h3 id="sec-2">配置</h3>
+<div class="outline-text-3" id="text-2">
+
+
+</div>
+
+<div id="outline-container-2-1" class="outline-4">
+<h4 id="sec-2-1">配置nginx</h4>
+<div class="outline-text-4" id="text-2-1">
+
+<ul>
+<li>将nginx.conf中的以下部分：
+
+
+
+<pre class="example">#location ~ \.php$ {
+...
+#}
+</pre>
+
+</li>
+<li>修改为
+
+
+
+<pre class="example">location ~ \.php$ {
+   root           /usr/share/nginx/html;
+   fastcgi_pass   127.0.0.1:9000;
+   fastcgi_index  index.php;
+   fastcgi_param  SCRIPT_FILENAME  /usr/share/nginx/html$fastcgi_script_name;
+   include        fastcgi_params;
+}
+</pre>
+
+</li>
 </ul>
 
-    </nav>
+</div>
+
+</div>
+
+<div id="outline-container-2-2" class="outline-4">
+<h4 id="sec-2-2">配置php</h4>
+<div class="outline-text-4" id="text-2-2">
+
+<p>    在open_basedir中添加：/usr/share/nginx/html
+</p></div>
+
+</div>
+
+<div id="outline-container-2-3" class="outline-4">
+<h4 id="sec-2-3">配置php-fpm.conf</h4>
+<div class="outline-text-4" id="text-2-3">
+
+<p>    启用以下listen配置：
+    listen = 127.0.0.1:9000
+</p>
+</div>
+</div>
+
+</div>
+
+<div id="outline-container-3" class="outline-3">
+<h3 id="sec-3">运行</h3>
+<div class="outline-text-3" id="text-3">
+
+<ul>
+<li>重启nginx
+
+
+
+<pre class="src src-sh">sudo /etc/rc.d/nginx restart
+</pre>
+
+</li>
+<li>启动php-fpm
+
+
+
+<pre class="src src-sh">sudo php-fpm
+</pre>
+
+</li>
+<li>然后在/usr/share/nginx/html目录中写php脚本即可。
+</li>
+</ul>
+
+</div>
+</div>
+
   </div>
-</article>
+  
+  <footer class="article-footer">
+    <nav class="tag-cloud">
+      <ul>
+	<li class="label label-inverse small"><a href="../../../tags/nginx.html">nginx</a></li><li class="label label-inverse small"><a href="../../../tags/php.html">php</a></li>
+      </ul>
+    </nav>
+    <span class="muted">
+      发布于 <time datetime="2012-08-11T21:09:00Z"> 2012-08-11 21:09:00</time>
+    </span>
+  </footer>
+  </div>
+  <div id="disqus_thread"></div>
+<script type="text/javascript">
+  /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+  var disqus_shortname = 'kankananblog'; // required: replace example with your forum shortname
+
+  /* * * DON'T EDIT BELOW THIS LINE * * */
+  (function() {
+  var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+  dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
       </div>
       <div id="footer">
 	<div class="container">

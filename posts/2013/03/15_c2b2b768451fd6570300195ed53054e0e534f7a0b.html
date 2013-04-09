@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8"/>
+    <title>C++的函数、闭包与协程 | 看看俺 - KanKanAn.com</title>
+    <link rel="stylesheet" type="text/less" href="../../../style/less/o-blog.less"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="generator" content="o-blog version 1.2-143-gb5a9a69"/>
+    <script src="../../../style/js/less-1.3.0.min.js" type="text/javascript"></script>
+    <script src="../../../style/js/jquery-1.7.1.min.js" type="text/javascript"></script>
+    <script src="../../../style/bootstrap/js/bootstrap-modal.js" type="text/javascript"></script>
+    <script src="../../../style/bootstrap/js/bootstrap-transition.js" type="text/javascript"></script>
+    <script src="../../../style/bootstrap/js/bootstrap-dropdown.js" type="text/javascript"></script>
+    <script src="../../../style/bootstrap/js/bootstrap-collapse.js" type="text/javascript"></script>
+    <script src="../../../style/js/prettify.js" type="text/javascript"></script>
+    <script src="../../../style/js/o-blog.linenumber.js" type="text/javascript"></script>
+    <script src="../../../style/js/o-blog-fix.js" type="text/javascript"></script>
+    
+    
+  </head>
+  <body>
+
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+	<div class="container">
+	  <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+	  <a class="brand" href="../../../index.html">看看俺 - KanKanAn.com</a>
+	  <div class="nav-collapse collapse">
+	    <ul>
+<li><a href="../../../archives.html"><i>icon-list icon-white</i> 归档</a>
+
+</li>
+<li><a href="../../../tags.html"><i>icon-tags icon-white</i> 标签</a>
+
+</li>
+<li><a href="../../../index.xml"><i>icon-rss icon-white</i> 订阅</a>
+</li>
+</ul>
+
+
+
+	  </div>
+	</div>
+      </div>
+    </div>
+    <div id="page" class="container">
+
+  <div class="article">
+  <header class="article-header">
+
+    <div class="page-header">
+      <div class="row">
+	<div class="date span1">
+	  <div class=" date-d">15</div>
+	  <div class=" date-m"><a href="../../../posts/2013/03/index.html"> 3月</a></div>
+	  <div class=" date-y"><a href="../../../posts/2013/index.html">2013</a>
+	  </div>
+	</div>
+	<div class="span1">
+	  <div class="qr-code">
+  <img style="min-width:70px; min-height:70px; max-width:70px; max-height:70px;" src="http://chart.apis.google.com/chart?chs=70x70&cht=qr&chld=|0&chl=http%3a%2f%2fblog.kankanan.com%2f%2fposts%2f2013%2f03%2f15_c2b2b768451fd6570300195ed53054e0e534f7a0b.html"
+       alt="qr-code" />
+</div>
+
+	</div>
+	<h1 class="offset2">C++的函数、闭包与协程</h1>
+      </div>
+      <nav>
+	<ul class="pager">
+	  <li class="previous"><a href="../../../posts/2013/03/10_7f5198754e2d768481ea52a85b8c621076844e0b62c9521788686846.html"><i class="icon-chevron-left"></i>&nbsp;网页中的自动完成的下拉列表框</a></li><li class="next" style="text-align: right;"><a href="../../../posts/2013/03/20_python4e2d7684utc4e0e672c573065f6533a59047406.html">python中的UTC与本地时区处理&nbsp;<i class="icon-chevron-right"></i></a></li>
+	</ul>
+      </nav>
+    </div>
+
+  </header>
+  <div class="article-content">
+    <div id="outline-container-1" class="outline-3">
+<h3 id="sec-1">实现序号生成器</h3>
+<div class="outline-text-3" id="text-1">
+
+
+</div>
+
+<div id="outline-container-1-1" class="outline-4">
+<h4 id="sec-1-1">函数（Function）</h4>
+<div class="outline-text-4" id="text-1-1">
+
+
+
+
+<pre class="src src-c++"><span style="color: #cb4b16;">#include</span> <span style="color: #2aa198;">&lt;cassert&gt;</span>
+
+<span style="color: #b58900;">int</span> <span style="color: #268bd2;">id_generator</span>(<span style="color: #b58900;">int</span>&amp; <span style="color: #268bd2;">base</span>, <span style="color: #b58900;">int</span> <span style="color: #268bd2;">step</span>)
+{
+    <span style="color: #b58900;">int</span> <span style="color: #268bd2;">result</span> = *base;
+    *base += step;
+    <span style="color: #859900;">return</span> result;
+}
+
+<span style="color: #b58900;">int</span> <span style="color: #268bd2;">main</span>(<span style="color: #b58900;">int</span> <span style="color: #268bd2;">argc</span>, <span style="color: #b58900;">char</span> *<span style="color: #268bd2;">argv</span>[])
+{
+    <span style="color: #b58900;">int</span> <span style="color: #268bd2;">odd_base</span> = 1;
+    <span style="color: #b58900;">int</span> <span style="color: #268bd2;">even_base</span> = 0;    
+    assert(id_generator(odd_base, 2) == 1);
+    assert(id_generator(odd_base, 2) == 3);
+    assert(id_generator(odd_base, 2) == 5);
+    assert(id_generator(even_base, 2) == 0);
+    assert(id_generator(even_base, 2) == 2);
+    assert(id_generator(even_base, 2) == 4);        
+    <span style="color: #859900;">return</span> 0;
+}
+</pre>
+
+
+<dl>
+<dt>编译</dt><dd>
+
+
+
+<pre class="example">g++ -g add.cpp -o add
+</pre>
+
+</dd>
+</dl>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-1-2" class="outline-4">
+<h4 id="sec-1-2">闭包（Closure）</h4>
+<div class="outline-text-4" id="text-1-2">
+
+
+
+
+<pre class="src src-c++"><span style="color: #cb4b16;">#include</span> <span style="color: #2aa198;">&lt;cassert&gt;</span>
+
+<span style="color: #b58900;">int</span> <span style="color: #268bd2;">main</span>(<span style="color: #b58900;">int</span> <span style="color: #268bd2;">argc</span>, <span style="color: #b58900;">char</span> *<span style="color: #268bd2;">argv</span>[])
+{
+    <span style="color: #b58900;">int</span> <span style="color: #268bd2;">base</span> = 1;
+    <span style="color: #859900;">auto</span> <span style="color: #b58900;">id_generator_odd</span> = [=]() <span style="color: #859900;">mutable</span> { <span style="color: #b58900;">int</span> <span style="color: #268bd2;">result</span> = base; base += 2; <span style="color: #859900;">return</span> result; };
+    base = 0;
+    <span style="color: #859900;">auto</span> <span style="color: #b58900;">id_generator_even</span> = [=]() <span style="color: #859900;">mutable</span> { <span style="color: #b58900;">int</span> <span style="color: #268bd2;">result</span> = base; base += 2; <span style="color: #859900;">return</span> result; };
+    assert(id_generator_odd() == 1);
+    assert(id_generator_odd() == 3);
+    assert(id_generator_odd() == 5);
+    assert(id_generator_even() == 0);
+    assert(id_generator_even() == 2);
+    assert(id_generator_even() == 4);
+    assert(base == 0);
+    <span style="color: #859900;">return</span> 0;
+}
+</pre>
+
+
+<dl>
+<dt>编译</dt><dd>
+
+
+
+<pre class="example">g++ -g closure.cpp -o closure -std=c++0x
+</pre>
+
+</dd>
+</dl>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-1-3" class="outline-4">
+<h4 id="sec-1-3">协程（Coroutine）</h4>
+<div class="outline-text-4" id="text-1-3">
+
+
+
+
+<pre class="src src-c++"><span style="color: #cb4b16;">#include</span> <span style="color: #2aa198;">&lt;boost/bind.hpp&gt;</span>
+<span style="color: #cb4b16;">#include</span> <span style="color: #2aa198;">&lt;boost/coroutine/all.hpp&gt;</span>
+
+<span style="color: #859900;">typedef</span> <span style="color: #2aa198;">boost</span>::<span style="color: #2aa198;">coroutines</span>::<span style="color: #b58900;">coroutine</span>&lt; <span style="color: #b58900;">int</span>(<span style="color: #b58900;">void</span>) &gt; <span style="color: #b58900;">IDGenerator</span>;
+
+<span style="color: #b58900;">void</span> <span style="color: #268bd2;">idGenerator</span>(<span style="color: #2aa198;">IDGenerator</span>::<span style="color: #b58900;">caller_type</span>&amp; <span style="color: #268bd2;">ca</span>, <span style="color: #b58900;">int</span> <span style="color: #268bd2;">base</span>, <span style="color: #b58900;">int</span> <span style="color: #268bd2;">step</span>)
+{
+    <span style="color: #859900;">do</span>{
+        ca(base);
+        base += step;
+    }<span style="color: #859900;">while</span>(<span style="color: #2aa198;">true</span>);
+}
+
+<span style="color: #b58900;">int</span> <span style="color: #268bd2;">main</span>(<span style="color: #b58900;">int</span> <span style="color: #268bd2;">argc</span>, <span style="color: #b58900;">char</span> *<span style="color: #268bd2;">argv</span>[])
+{
+    <span style="color: #b58900;">IDGenerator</span> <span style="color: #268bd2;">id_generator_odd</span>(<span style="color: #2aa198;">boost</span>::bind(idGenerator, _1, 1, 2));
+    <span style="color: #b58900;">IDGenerator</span> <span style="color: #268bd2;">id_generator_even</span>(<span style="color: #2aa198;">boost</span>::bind(idGenerator, _1, 0, 2));
+    assert(id_generator_odd.get() == 1);
+    assert(id_generator_odd().get() == 3);
+    assert(id_generator_odd().get() == 5);
+    assert(id_generator_even.get() == 0);
+    assert(id_generator_even().get() == 2);
+    assert(id_generator_even().get() == 4);
+    <span style="color: #859900;">return</span> 0;
+}
+</pre>
+
+
+<dl>
+<dt>编译</dt><dd>
+
+
+
+<pre class="example">g++ -g coroutine.cpp -lboost_context -o coroutine -std=c++0x
+</pre>
+
+</dd>
+</dl>
+
+
+</div>
+</div>
+
+</div>
+
+<div id="outline-container-2" class="outline-3">
+<h3 id="sec-2">特性比较</h3>
+<div class="outline-text-3" id="text-2">
+
+
+</div>
+
+<div id="outline-container-2-1" class="outline-4">
+<h4 id="sec-2-1">函数（Function）</h4>
+<div class="outline-text-4" id="text-2-1">
+
+<ul>
+<li>无状态
+</li>
+<li>需要独立定义执行体
+</li>
+<li>调用过程中从头到尾执行体内所有代码
+</li>
+<li>在输入相同的情况下，能够保证输出也相同
+</li>
+<li>没有副作用，多线程安全
+</li>
+<li>要借助外部变量保存状态
+</li>
+<li>调用比较麻烦，需要传入保存状态的参数
+</li>
+</ul>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-2-2" class="outline-4">
+<h4 id="sec-2-2">闭包（Closure）</h4>
+<div class="outline-text-4" id="text-2-2">
+
+<ul>
+<li>有状态，内部直接保存
+</li>
+<li>直接内联定义执行体
+</li>
+<li>调用过程中从头到尾执行体内所有代码
+</li>
+<li>输入相同的情况下，输出可能不同
+</li>
+<li>有副作用，非多线程安全
+</li>
+<li>定义时可以多种方式安全地引用外部变量
+</li>
+<li>调用简单，不需要传入保存状态的参数
+</li>
+</ul>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-2-3" class="outline-4">
+<h4 id="sec-2-3">协程（Coroutine）</h4>
+<div class="outline-text-4" id="text-2-3">
+
+<ul>
+<li>有状态，内部直接保存
+</li>
+<li>需要独立定义执行体
+</li>
+<li>调用过程中直接从上次的运行状态继续运行
+</li>
+<li>输入相同的情况下，输出可能不同
+</li>
+<li>严禁多线程访问
+</li>
+<li>调用简单，不需要传入保存状态的参数    
+</li>
+</ul>
+
+</div>
+</div>
+</div>
+
+  </div>
+  
+  <footer class="article-footer">
+    <nav class="tag-cloud">
+      <ul>
+	<li class="label label-inverse small"><a href="../../../tags/cpp.html">cpp</a></li>
+      </ul>
+    </nav>
+    <span class="muted">
+      发布于 <time datetime="2013-03-15T10:04:00Z"> 2013-03-15 10:04:00</time>
+    </span>
+  </footer>
+  </div>
+  <div id="disqus_thread"></div>
+<script type="text/javascript">
+  /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+  var disqus_shortname = 'kankananblog'; // required: replace example with your forum shortname
+
+  /* * * DON'T EDIT BELOW THIS LINE * * */
+  (function() {
+  var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+  dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+      </div>
+      <div id="footer">
+	<div class="container">
+	  <div class="row">
+	    <nav class="span3">
+	      <h1>关于</h1>
+	      <p>
+记我所思，忆我所为
+</p>
+	    </nav>
+	    <nav id="links" class="span3">
+	      <h1>链接</h1>
+	      <ul>
+		<ul>
+<li><a href="../../../index.html"><i>icon-home icon-white</i> 首页</a>
+
+</li>
+<li><a href="../../../tags.html"><i>icon-tags icon-white</i> 标签</a>
+
+</li>
+<li><a href="../../../archives.html"><i>icon-list icon-white</i> 归档</a>
+
+</li>
+<li><a href="../../../index.xml"><i>icon-rss icon-white</i> 订阅</a>
+
+</li>
+<li><a href="../../../changelog.html"><i>icon-pencil icon-white</i> 更新日志</a>
+</li>
+</ul>
+
+
+
+	      </ul>
+	    </nav>
+	    <nav id="archives" class="span3">
+	      <h1><a href="../../../archives.html">归档</a></h1>
+	      <ul>
+		<li><a href="../../../index.html">使用o-blog搭建个人博客</a></li> <li><a href="../../../posts/2013/04/07_59824f555b664e6082f18bed.html">如何学习英语</a></li> <li><a href="../../../posts/2013/03/30_5728emacs4e2d59824f554ee5root674396504f7f7528gdb8c038bd57a0b5e8f.html">在emacs中如何以root权限使用gdb调试程序</a></li> <li><a href="../../../posts/2013/03/30_4e8c7ef4780178147a76.html">二维码研究</a></li> <li><a href="../../../posts/2013/03/27_archlinux4e0b5b8988c5cups625353707cfb7edf.html">Archlinux下安装cups打印系统</a></li> <li><a href="../../../posts/2013/03/20_python4e2d7684utc4e0e672c573065f6533a59047406.html">python中的UTC与本地时区处理</a></li> <li><a href="../../../posts/2013/03/15_c2b2b768451fd6570300195ed53054e0e534f7a0b.html">C++的函数、闭包与协程</a></li> <li><a href="../../../posts/2013/03/10_7f5198754e2d768481ea52a85b8c621076844e0b62c9521788686846.html">网页中的自动完成的下拉列表框</a></li> <li><a href="../../../posts/2013/03/09_linux4e0b8de88fdb7a0b4f20901265874ef663cf8ff07b26.html">linux下跨进程传递文件描述符</a></li> <li><a href="../../../posts/2013/02/28_web6a21578b521d63a2.html">Web模型初探</a></li> 
+	      </ul>
+	    </nav>
+	    <nav class="tags span3">
+	      <h1><a href="../../../tags/index.html">标签</a></h1>
+	      <ul>
+  <li style="font-size: 173.33%;"><a href="../../../tags/archlinux.html">archlinux</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/chosen.html">chosen</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/comet.html">comet</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/cpp.html">cpp</a></li> <li style="font-size: 126.67%;"><a href="../../../tags/emacs.html">emacs</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/english.html">english</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/fcitx.html">fcitx</a></li> <li style="font-size: 126.67%;"><a href="../../../tags/hash.html">hash</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/http.html">http</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/jquery.html">jquery</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/linux.html">linux</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/memcached.html">memcached</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/mongodb.html">mongodb</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/mysql.html">mysql</a></li> <li style="font-size: 173.33%;"><a href="../../../tags/nginx.html">nginx</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/o-blog.html">o-blog</a></li> <li style="font-size: 173.33%;"><a href="../../../tags/php.html">php</a></li> <li style="font-size: 126.67%;"><a href="../../../tags/python.html">python</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/qrcode.html">qrcode</a></li> <li style="font-size: 220.00%;"><a href="../../../tags/redis.html">redis</a></li> <li style="font-size: 173.33%;"><a href="../../../tags/web.html">web</a></li> 
+</ul>
+
+	    </nav>
+	  </div>
+	</div>
+	<div class="copyright" style="text-align: center;">
+	  <p>
+版权所有 © 2011-2013 看看俺 – KanKanAn.com
+</p>
+	  <p>功能取自 <a href="https://github.com/renard/o-blog">o-blog</a>.</p>
+	</div>
+      </div>
+</body>
+</html>
+

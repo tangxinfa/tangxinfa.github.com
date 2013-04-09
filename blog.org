@@ -1,0 +1,2559 @@
+#+TITLE: 看看俺 - KanKanAn.com
+#-DESCRIPTION: 记我所思，忆我所为。
+#+DATE: 2013-02-08 19:33:26
+#+LANGUAGE: zh-CN
+#+STARTUP: logdone
+
+#-TEMPLATE_DIR: templates
+#+URL: http://blog.kankanan.com/
+
+#+DEFAULT_CATEGORY: Posts
+#+DISQUS: kankananblog
+#+FILENAME_SANITIZER: ob-sanitize-string
+#+POST_SORTER: ob-sort-posts-by-title
+
+#+POST_BUILD_SHELL: cmd 1
+#+POST_BUILD_SHELL: cmd 2
+#+POST_BUILD_SHELL: cmd 3
+#+POST_BUILD_SHELL: cmd 4
+
+
+* Blog details
+** Copyright
+  :PROPERTIES:
+  :SNIPPET:  t
+  :END:
+
+版权所有 © 2011-2013 看看俺 – KanKanAn.com
+
+** About
+  :PROPERTIES:
+  :SNIPPET:  t
+  :END:
+
+记我所思，忆我所为
+
+** Navigation
+  :PROPERTIES:
+  :SNIPPET:  t
+  :END:
+
+- [[file:{lisp}(ob:path-to-root){/lisp}/archives.html][/icon-list icon-white/ {lisp}(ob:gettext :archives){/lisp}]]
+
+- [[file:{lisp}(ob:path-to-root){/lisp}/tags.html][/icon-tags icon-white/ {lisp}(ob:gettext :tags){/lisp}]]
+
+- [[file:{lisp}(ob:path-to-root){/lisp}/index.xml][/icon-rss icon-white/ {lisp}(ob:gettext :rss){/lisp}]]
+
+
+** Navigation Footer
+  :PROPERTIES:
+  :SNIPPET:  t
+  :END:
+
+  - [[file:{lisp}(ob:path-to-root){/lisp}/index.html][/icon-home icon-white/ {lisp}(ob:gettext :home){/lisp}]]
+
+  - [[file:{lisp}(ob:path-to-root){/lisp}/tags.html][/icon-tags icon-white/ {lisp}(ob:gettext :tags){/lisp}]]
+
+  - [[file:{lisp}(ob:path-to-root){/lisp}/archives.html][/icon-list icon-white/ {lisp}(ob:gettext :archives){/lisp}]]
+
+  - [[file:{lisp}(ob:path-to-root){/lisp}/index.xml][/icon-rss icon-white/ {lisp}(ob:gettext :rss){/lisp}]]
+
+  - [[file:{lisp}(ob:path-to-root){/lisp}/changelog.html][/icon-pencil icon-white/ {lisp}(ob:gettext :changelog){/lisp}]]
+
+
+** {lisp}(ob:gettext :tags){/lisp}
+  :PROPERTIES:
+  :PAGE:     tags.html
+  :TEMPLATE: blog_post-by-tags.html
+  :END:
+
+* Changelog
+  :PROPERTIES:
+  :PAGE:     changelog.html
+  :END:
+
+- 2013-04-09
+  - 使用[[http://renard.github.com/o-blog][o-blog]]搭建个人博客.
+
+* Posts
+** DONE 使用o-blog搭建个人博客                                       :o@blog:
+   CLOSED: [2013-04-09 二 12:30]
+   :PROPERTIES:
+   :PAGE:     index.html
+   :TEMPLATE: blog_static_no_title.html
+   :END:
+
+   新的博客使用[[http://renard.github.com/o-blog][o-blog]]搭建，使用的是自已的分枝[[https://github.com/tangxinfa/o-blog][tangxinfa-o-blog]]，我的分枝主要是对原系统做了一定的简化以便适用于创建个人博客，另修复了一些bug（主要是中文相关），可使用以下配置安装我的分枝：
+   #+begin_src lisp
+   (setq el-get-sources '((:name tangxinfa-o-blog
+                                     :type git 
+                                     :url "https://github.com/tangxinfa/o-blog.git"
+                                     :load "o-blog.el"
+                                     :compile "o-blog.el"
+                                     :features o-blog)))   
+   #+end_src
+   #+begin_src sh
+   M-x el-get-install tangxinfa-o-blog
+   #+end_src
+   对~/.emacs.d/el-get/tangxinfa-o-blog/blog/blog.org稍做定制即可。
+** DONE Archlinux下安装fcitx输入法                          :archlinux:fcitx:
+   CLOSED: [2012-12-15 六 21:56]
+
+  - 安装 ::
+#+BEGIN_SRC sh
+sudo pacman -S fcitx-gtk2 fcitx-gtk3 fcitx-qt
+cp /etc/xdg/autostart/fcitx-autostart.desktop  ~/.config/autostart/
+#+END_SRC  
+
+  - 配置 ::
+    在配置文件~/.xprofile中添加以下内容：
+#+BEGIN_EXAMPLE
+export GTK_IM_MODULE=fcitx
+export QT_IM_MODULE=fcitx
+export XMODIFIERS="@im=fcitx"
+export LC_CTYPE="zh_CN.UTF-8"
+#+END_EXAMPLE           
+
+** DONE Archlinux下安装cups打印系统                          :archlinux:
+   CLOSED: <2013-03-27 三 21:56>
+
+  - 安装 ::
+#+BEGIN_SRC sh
+yaourt -S cups-pdf
+#+END_SRC
+  
+  - 启动 ::
+#+BEGIN_SRC sh
+sudo systemctl start cups
+#+END_SRC
+
+  - 配置 ::
+    参考：https://wiki.archlinux.org/index.php/Cups#PDF_virtual_printer
+    登录的用户名要为root，否则后面还是无法添加打印机，web界面没有退出登录的选项，可以试试重启cups服务浏览器清除缓存的数据。
+
+** DONE 网页中的自动完成的下拉列表框                      :web:jquery:chosen:
+   CLOSED: <2013-03-10 日 21:23>
+
+*** jqueryui的[[http://jqueryui.com/autocomplete/#combobox][组件]]
+    示例效果看起来挻好，不过发现几个问题：
+
+    - 和[[http://twitter.github.com/bootstrap/][bootstrap]]有冲突，导致右边的下拉箭头部分都看不见。
+    - 操作过程中有时候显示的值和实际的值不一致，应该是中文输入法按键事件在firefox下未触发引起的显示的界面部分和隐藏的select输入框值不同步。
+    - 没有提供设置当前选中项、禁用的功能，要自行对生成的界面元素进行处理。
+  
+    这个只是jqueryui自动完成输入框的一个定制示例，不是很完善，而jqueryui自带的正式版看起来只是一个输入框。
+
+*** [[https://github.com/harvesthq/chosen][chosen]]
+    非常完美，配置很简单，而且界面很漂亮，在github上评分很高。
+
+** DONE CityHash算法冲突率测试                                     :hash:
+   CLOSED: <2012-11-24 六 18:21>
+
+*** [[http://code.google.com/p/cityhash/][CityHash]]介绍
+    [[http://www.google.com][Google]] 2010年开始开发并开源的字符串哈希算法，主要包含CityHash32()、CityHash64()和CityHash128()，分别对应32位、64位、128位哈希算法。
+
+*** 测试样本数据
+    16630591行不重复字符串，每一行内容为以制表符分隔的下载地址和引用页。
+
+*** cityhash64测试结果
+    没有冲突
+
+*** cityhash32测试结果
+    共32246次冲突，冲突率约为千分之二。
+    同一哈希值上55次冲突二次，32136次冲突一次。
+
+** DONE C++的函数、闭包与协程                                           :cpp:
+    CLOSED: <2013-03-15 五 10:04>
+    
+*** 实现序号生成器
+**** 函数（Function）
+     #+begin_src c++
+     #include <cassert>
+     
+     int id_generator(int& base, int step)
+     {
+         int result = *base;
+         *base += step;
+         return result;
+     }
+     
+     int main(int argc, char *argv[])
+     {
+         int odd_base = 1;
+         int even_base = 0;    
+         assert(id_generator(odd_base, 2) == 1);
+         assert(id_generator(odd_base, 2) == 3);
+         assert(id_generator(odd_base, 2) == 5);
+         assert(id_generator(even_base, 2) == 0);
+         assert(id_generator(even_base, 2) == 2);
+         assert(id_generator(even_base, 2) == 4);        
+         return 0;
+     }
+     #+end_src
+
+     - 编译 ::
+       #+begin_example
+       g++ -g add.cpp -o add
+       #+end_example
+
+**** 闭包（Closure）
+     #+begin_src c++
+     #include <cassert>
+       
+     int main(int argc, char *argv[])
+     {
+         int base = 1;
+         auto id_generator_odd = [=]() mutable { int result = base; base += 2; return result; };
+         base = 0;
+         auto id_generator_even = [=]() mutable { int result = base; base += 2; return result; };
+         assert(id_generator_odd() == 1);
+         assert(id_generator_odd() == 3);
+         assert(id_generator_odd() == 5);
+         assert(id_generator_even() == 0);
+         assert(id_generator_even() == 2);
+         assert(id_generator_even() == 4);
+         assert(base == 0);
+         return 0;
+     }
+     #+end_src
+
+     - 编译 ::
+       #+begin_example
+       g++ -g closure.cpp -o closure -std=c++0x
+       #+end_example
+
+**** 协程（Coroutine）
+     #+begin_src c++
+     #include <boost/bind.hpp>
+     #include <boost/coroutine/all.hpp>
+       
+     typedef boost::coroutines::coroutine< int(void) > IDGenerator;
+       
+     void idGenerator(IDGenerator::caller_type& ca, int base, int step)
+     {
+         do{
+             ca(base);
+             base += step;
+         }while(true);
+     }
+       
+     int main(int argc, char *argv[])
+     {
+         IDGenerator id_generator_odd(boost::bind(idGenerator, _1, 1, 2));
+         IDGenerator id_generator_even(boost::bind(idGenerator, _1, 0, 2));
+         assert(id_generator_odd.get() == 1);
+         assert(id_generator_odd().get() == 3);
+         assert(id_generator_odd().get() == 5);
+         assert(id_generator_even.get() == 0);
+         assert(id_generator_even().get() == 2);
+         assert(id_generator_even().get() == 4);
+         return 0;
+     }
+     #+end_src
+
+     - 编译 ::
+       #+begin_example
+       g++ -g coroutine.cpp -lboost_context -o coroutine -std=c++0x
+       #+end_example
+
+*** 特性比较
+**** 函数（Function）
+     - 无状态
+     - 需要独立定义执行体
+     - 调用过程中从头到尾执行体内所有代码
+     - 在输入相同的情况下，能够保证输出也相同
+     - 没有副作用，多线程安全
+     - 要借助外部变量保存状态
+     - 调用比较麻烦，需要传入保存状态的参数
+
+**** 闭包（Closure）
+     - 有状态，内部直接保存
+     - 直接内联定义执行体
+     - 调用过程中从头到尾执行体内所有代码
+     - 输入相同的情况下，输出可能不同
+     - 有副作用，非多线程安全
+     - 定义时可以多种方式安全地引用外部变量
+     - 调用简单，不需要传入保存状态的参数
+       
+**** 协程（Coroutine）
+     - 有状态，内部直接保存
+     - 需要独立定义执行体
+     - 调用过程中直接从上次的运行状态继续运行
+     - 输入相同的情况下，输出可能不同
+     - 严禁多线程访问
+     - 调用简单，不需要传入保存状态的参数    
+
+** DONE 在emacs模式行上显示图片的尺寸                                 :emacs:
+   CLOSED: <2012-08-03 五 08:55>
+
+   下面的lisp代码用于在emacs模式行上显示图片的尺寸：
+   #+BEGIN_SRC lisp
+   (add-hook 'image-mode-hook (lambda ()
+                             "display image size on mode line."
+                             (setq mode-name (format "Image[%s](%s*%s)" 
+                                                     image-type 
+                                                     (car (image-size (image-get-display-property) t)) 
+                                                     (cdr (image-size (image-get-display-property) t))))))
+   #+END_SRC
+
+   - 效果如下 ::
+   #+begin_example
+   [(Image[png](181*415))]
+   #+end_example
+   
+** DONE 在emacs中如何以root权限使用gdb调试程序                        :emacs:
+   CLOSED: <2013-03-30 六 14:21>
+
+  - 由于M-x命令中使用sudo输入密码无效，需要配置为允许用户sudo gdb免密码 :: 
+  #+begin_example
+  visudo
+  # Allow user to sudo gdb without password
+  用户 ALL=NOPASSWD: /usr/bin/gdb
+  #+end_example
+
+  - 使用root权限启动gdb
+  #+begin_example
+  M-x gdb
+  sudo gdb <program> <pid> --annotate=3
+  #+end_example
+
+** DONE 解决360杀毒报网页HTML.Rce.Gen3恶意程序的问题                    :web:
+   CLOSED: <2012-08-01 三 08:55>
+
+*** 问题描述
+    测试发现在某些机器上会弹出360杀毒危险警告对话框，导致网页无法打开。
+
+*** 解决方法
+    将嵌入的统计js脚本从</html>标签后移到里面去。
+    - 修改前
+    #+BEGIN_SRC html
+    ...
+    </body>
+    </html>
+    <script type="text/javascript">document.write(unescape("%3Cscript%20...%3C/script%3E"));</script>
+    #+END_SRC
+    - 修改后
+    #+BEGIN_SRC html
+    ...
+    <script type="text/javascript">document.write(unescape("%3Cscript%20...%3C/script%3E"));</script>
+    </body>
+    </html>
+    #+END_SRC
+
+*** 心得
+    以后再遇到这种情况，可以采取排除法，将网页另存为本地文件，一点点的删除内容直到360杀毒不再报警为止。
+
+** DONE 解决Archlinux下ati显卡3D硬件加速失效的问题                :archlinux:
+   CLOSED: <2012-09-05 三 23:52>
+
+*** 问题描述
+    - 症状
+
+      进入gnome3桌面环境后很卡，不动还好，一动gnome-shell进程cpu占用就直奔100%。
+
+    - dmesg异常日志
+      #+BEGIN_EXAMPLE
+      radeon_cp: Failed to load firmware "radeon/R520_cp.bin"
+      radeon 0000:01:00.0: failed initializing CP (-2).
+      radeon 0000:01:00.0: Disabling GPU acceleration
+      #+END_EXAMPLE
+*** 解决办法
+#+BEGIN_SRC sh
+  sudo ln -s /usr/lib/firmware /lib/
+  sudo reboot
+#+END_SRC
+*** 经验总结
+    出现问题时网上不一定能找到你要的答案，像这个问题，网上的论坛里有无数个建议，一个一个试下去其实很浪费时间，
+    试几次之后还没能解决就应该尝试主动分析解决，像这里稍微留意到括号里的-2，就能发现其实它是个错误码，
+    perror一下就知道意思是“找不到文件或目录”，联想到最近几次升级archlinux在把/lib里的东西往/usr/lib下移，
+    其中就包括firemware，这样手工在旧的firmware位置建一个软链接就解决了这个问题。
+
+*** 备注
+    这个问题应该是由于之前glibc升级时未全部完成引起的，archlinux现在把/lib改为/usr/lib的软链接了，可以手工进行设置为软链接这一步骤来修复。
+
+** DONE Fnv算法冲突率测试                                          :hash:
+   CLOSED: <2012-11-24 六 18:31>
+
+*** [[http://www.isthe.com/chongo/tech/comp/fnv/][Fnv]]介绍
+    Fnv是和 [[http://code.google.com/p/cityhash/][CityHash]] 类似的哈希算法。这里重复《[[file:cityhash_conflicting_test.org][CityHash算法冲突率测试]]》，做为一个对比。
+
+*** 测试样本数据
+    16630591行不重复字符串，每一行内容为以制表符分隔的下载地址和引用页。
+
+*** fnv64测试结果
+    没有冲突
+
+*** fnv32测试结果
+    共31948次冲突，冲突率约为千分之二。
+    同一哈希值上33次冲突二次，31879次冲突一次。
+    冲突率比CityHash略低，少了298次。
+
+** DONE 如何做面试
+   CLOSED: <2012-10-24 三 14:23>
+
+*** 语言基础
+*** 相关技术
+*** 性能优化
+*** 架构
+*** 管理
+*** 诉求
+** DONE 理解nginx的keepalive_timeout配置项                       :nginx:http:
+   CLOSED: [2012-11-12 二 17:05]
+   
+   不要误以为它是指tcp连接空闲多少秒后关闭，是指连接建立多少秒后关闭，不会在一次请求后重新计时。
+
+** DONE 在python中安装mysqldb模块                                    :python:
+   CLOSED: <2012-08-01 三 08:55>
+
+*** 正常的安装过程
+#+begin_src sh
+  wget "http://downloads.sourceforge.net/project/mysql-python/mysql-python\
+/1.2.3/MySQL-python-1.2.3.tar.gz?r=http%3A%2F%2Fsourceforge.net%2Fprojects\
+%2Fmysql-python%2Ffiles%2F&ts=1304062611&use_mirror=nchc"
+  tar xzvf MySQL-python-1.2.3.tar.gz
+  cd MySQL-python-1.2.3
+  python setup.py build
+  python setup.py install
+#+end_src
+
+*** 常见错误及其修复
+  - ImportError: No module named setuptools
+#+name: install-setuptools
+#+begin_src sh
+  wget http://pypi.python.org/packages/2.4/s/setuptools/setuptools-0.6c11-py2.4.egg\
+#md5=bd639f9b0eac4c42497034dec2ec0c2b
+  sh setuptools-0.6c11-py2.4.egg
+#+end_src
+
+  - mysql\_config: command not found
+
+#+name: edit-site.cfg 
+#+begin_src sh
+  sed --in-place -e "s/#mysql_config = \/usr\/local\/bin\/mysql_config/\
+mysql_config = \/usr\/local\/mysql\/bin\/mysql_config/g" site.cfg
+#+end_src
+
+  - ImportError: \dots{} \_mysql.so: undefined symbol: compress
+
+#+name: edit-setup\_posix.py
+#+begin_src sh
+  sed --in-place -e "s/libs = mysql_config(\"libs_r\")/libs = mysql_config(\"libs_r\")\n\
+        libs.append('-lz')\n        print libs/g" setup_posix.py
+#+end_src
+
+** DONE 如何学习英语                                               :english:
+   CLOSED: <2013-04-07 日 09:49>
+
+   经过一天的英孚及韦博试听，总结出以下几点：
+   - 语法 ::
+     熟读常用句型，扩展至类似语句，从中提炼语法，另一方面也可以练就一口流利的日用口语。
+   - 听力 ::
+     不会说就不会听，多说才能够快速识别听到的东西。
+   - 阅读 ::
+     多记单词，不断的重复重复再重复，直到看到单词脱口而出。
+   
+** DONE MongoDB基础                                                 :mongodb:
+   CLOSED: <2012-10-21 日 17:06>
+   
+*** MongoDB与Mysql的基本结构对应关系
+**** 一台机器
+     computer
+
+***** 多个MongoDB实例                                          <--对应-->                    mysql服务器进程
+      MongoDB Instance                                        <--对应-->                    Mysqld Instance
+
+      运行着的MongoDB后台服务进程：/etc/rc.d/mongodb start      <--对应-->                     /etc/rc.d/mysqld start
+
+****** 多个数据库                                              <--对应-->                    mysql中的数据库
+       MongoDB Database                                       <--对应-->                     Database
+
+******* 多个集合                                               <--对应-->                    mysql中的表
+        MongoDB Collection                                    <--对应-->                     Table
+
+******** 多个文档                                             <--对应-->                     mysql中的记录行
+         MongoDB Document                                     <--对应-->                    Row
+
+*** CentOS上搭建环境
+    - 添加源/etc/yum.repos.d/10gen.repo ::
+      #+BEGIN_EXAMPLE
+      [10gen]
+      name=10gen Repository
+      baseurl=http://downloads-distro.mongodb.org/repo/redhat/os/x86_64
+      gpgcheck=0
+      #+END_EXAMPLE
+    - 安装服务器客户端程序 ::
+      #+BEGIN_SRC sh
+      yum install mongo-10gen mongo-10gen-server
+      #+END_SRC
+    - 安装php扩展 ::
+      #+BEGIN_SRC sh
+      yum -y install make gcc php-devel
+      yum install php-pear
+      PATH=$PATH:/usr/local/php/bin/ pecl install mongo
+      #+END_SRC
+      php.ini中添加：extension=mongo.so
+    - 启动服务 ::
+      /etc/rc.d/init.d/mongodb start
+     
+** DONE 解决mysql_connect慢的问题                                     :mysql:
+   CLOSED: <2012-12-06 四 10:25>
+
+  压测时发现mysql\_connect耗时超过30秒，登录mysql后执行show processlist，显示超过800个连接状态如下：
+
+  #+BEGIN_EXAMPLE
+   unauthenticated user | XXXX.XXX.XXX.XXX:XXXX  | NULL | Connect     |  NULL | login    
+  #+END_EXAMPLE
+
+  经求教运维，在my.cnf中的“[mysqld]”下添加以下配置行即可：
+
+  #+BEGIN_EXAMPLE
+    skip-name-resolve
+  #+END_EXAMPLE
+
+** DONE Nginx Comet: 基于 HTTP 长连接的“服务器推”技术         :nginx:comet:
+   CLOSED: <2012-12-14 五 21:09>
+
+*** 简介
+    可参考这篇文章：[[http://www.ibm.com/developerworks/cn/web/wa-lo-comet/][Comet：基于 HTTP 长连接的“服务器推”技术]]
+
+*** [[https://github.com/slact/nginx_http_push_module][nginx\_http\_push\_module]] （不建议使用）
+  这个模块功能上没有问题，网上介绍的文章相对比较多，但是存在严重的内存泄露问题，而且发现使用kill -HUP的方式优雅重启nginx虽会释放一部分内存，但nginx错误日志显示有共享内存锁相关的冲突，我们不得不每小时彻底重启一次nginx。简单说一下就是它使用一个全局的内存池来分配订阅者及响应需要的内存空间，但是从nginx内存池分配的小内存块（< pagesize，4096）是不会释放的也不会归还到池中进行重用，具体可查看nginx源码的ngx\_palloc和ngx\_pfree函数进行验证。
+
+  可google "nginx中mod\_push模块内存分配改造"，在作者的[[http://http://blog.lifeibo.com/][网站]]正在改版暂时找不到该文章。
+  
+  [[http://bsd.ee/~hadara/blog/?p=215=1][这里]]也有人[[https://github.com/slact/nginx_http_push_module/pull/60][指出]]该问题，同时该文作者也fork了一个分枝，但是我试了一下，除了不支持push\_channel\_timeout特性外，还是一样有内存泄露。
+
+  - 参考配置 ::
+#+BEGIN_EXAMPLE
+    location ~ ^/publish$ {
+        allow 127.0.0.1;
+        deny all;
+        set $push_channel_id $arg_id;
+        push_publisher;
+        push_delete_oldest_received_message on;
+        push_message_timeout 5s;
+        #push_channel_timeout 60s;
+        push_store_messages off;
+    }
+
+    location ~ ^/activity$ {
+        if ($args ~ "callback=(.+)" ) {
+            rewrite ^/activity "/activity_jsonp" last;
+        }
+        push_subscriber;
+        push_subscriber_timeout 60s;
+        push_subscriber_concurrency first;
+        push_max_channel_subscribers 1;
+        set $push_channel_id $arg_id;
+        default_type application/json;
+    }
+
+    location ~ ^/activity_jsonp$ {
+        push_subscriber;
+        push_subscriber_timeout 60s;
+        push_subscriber_concurrency first;
+        push_max_channel_subscribers 1;
+        set $push_channel_id $arg_id;
+        default_type application/json;
+        echo_before_body $arg_callback "(";
+        echo_after_body ")";
+    }
+#+END_EXAMPLE
+
+*** [[https://github.com/wandenberg/nginx-push-stream-module][nginx-push-stream-module]] （建议使用）
+  由于 [[https://github.com/slact/nginx_http_push_module][nginx\_http\_push\_module]] 存在内存泄露问题，同时没有人进行正式的修复，我们决定尝试一下[[https://github.com/wandenberg/nginx-push-stream-module][nginx-push-stream-module]]，这个模块功能更强大同时文档更完整，看起来也更活跃。
+
+  - 优点 ::
+    + 更成熟
+      有内存消耗说明文档，便于决定共享内存容量配置。
+      有统计功能。
+      可对响应内容进行再处理。
+    + 测试中未发现明显的内存泄露
+    + 内置支持jsonp
+      返回的jsonp是这样的格式callback([text])，可以通过修改ngx\_http\_push\_stream\_module\_utils.h中定义的NGX\_HTTP\_PUSH\_STREAM\_CALLBACK\_INIT\_CHUNK和NGX\_HTTP\_PUSH\_STREAM\_CALLBACK\_END\_CHUNK去除多余的中括号。
+  
+- 参考配置 ::
+#+BEGIN_EXAMPLE
+push_stream_store_messages off;
+push_stream_max_subscribers_per_channel 1;
+push_stream_subscriber_connection_ttl 60s;
+push_stream_longpolling_connection_ttl 60s;
+
+server {
+    listen 80;
+    server_name localhost 127.0.0.1;
+    
+    ...
+
+    location ~ ^/publish$ {
+        allow 127.0.0.1;
+        deny all;
+        push_stream_publisher admin;
+        set $push_stream_channel_id $arg_id;
+    }
+    
+    location ~ ^/activity$ {
+        push_stream_subscriber long-polling;
+        set $push_stream_channels_path $arg_id;
+        push_stream_content_type "application/json";
+        push_stream_message_template "~text~";
+    }
+
+    ...
+}
+
+#+END_EXAMPLE  
+
+** DONE nginx下快速搭建php运行环境                                :nginx:php:
+   CLOSED: <2012-08-11 六 21:09>
+
+*** 安装
+**** 安装nginx
+     yaourt -S nginx
+**** 安装php
+      yaourt -S php
+**** 安装php-fpm
+      yaourt -S php-fpm
+
+*** 配置
+**** 配置nginx
+     - 将nginx.conf中的以下部分：
+       #+BEGIN_EXAMPLE
+         #location ~ \.php$ {
+         ...
+         #}
+       #+END_EXAMPLE
+     - 修改为
+       #+BEGIN_EXAMPLE
+          location ~ \.php$ {
+             root           /usr/share/nginx/html;
+             fastcgi_pass   127.0.0.1:9000;
+             fastcgi_index  index.php;
+             fastcgi_param  SCRIPT_FILENAME  /usr/share/nginx/html$fastcgi_script_name;
+             include        fastcgi_params;
+          }
+       #+END_EXAMPLE
+**** 配置php
+     在open\_basedir中添加：/usr/share/nginx/html
+**** 配置php-fpm.conf
+     启用以下listen配置：
+     listen = 127.0.0.1:9000
+
+*** 运行
+    - 重启nginx
+      #+BEGIN_SRC sh
+      sudo /etc/rc.d/nginx restart
+      #+END_SRC
+    - 启动php-fpm
+      #+BEGIN_SRC sh
+      sudo php-fpm
+      #+END_SRC
+    - 然后在/usr/share/nginx/html目录中写php脚本即可。
+
+** DONE php中DOMDocument类createElement和createTextNode的区别           :php:
+   CLOSED: <2012-09-27 四 19:05>
+
+*** DOMDocument::createElement
+    - 原型：DOMElement DOMDocument::createElement ( string $name [, string $value ] )
+
+      创建一个元素，其中第二个参数是可选的，不会对它进行转义。当value中包含特殊字符（如：&）会出错。
+   
+*** Domdocument::createTextNode
+    - 原型：DOMText DOMDocument::createTextNode ( string $content )
+
+      创建一个文本结点，会对其内容进行转义。
+
+*** 典型示例：创建一个文本元素
+    #+begin_src php
+    $element = $doc->createElement("city");
+    $node = $doc->createTextNode("shenzhen");
+    $element->appendChild($node);
+    $doc->appendChild($element);
+    #+end_src
+    - 对应的xml文档：
+    #+begin_src xml
+    <city>shenzhen</city>
+    #+end_src
+     
+** DONE 当php遇上redis                                            :php:redis:
+   CLOSED: <2012-12-08 六 13:41>
+
+   在最近的项目中，我们需要在php中访问redis，我们选择了使用[[https://github.com/nicolasff/phpredis][phpredis]]库，下面是遇到的一些问题。
+
+*** redis持久连接不靠谱。
+
+    可以说这是php的通病了，不管是mysql、memcache还是redis，指望由php本身（包含php扩展）来实现持久连接都是行不通的。
+
+    - 为什么这么说呢？ ::
+      首先，所谓的持久连接的实现不外乎在进程（php-fpm）内建一个连接池，当php需要连接时，先以ip+port等信息为key在池中查找，找到则直接返回已有连接没有则新建连接。而当一个请求执行结束时，不关闭连接，而是把连接归还到池中。
+      
+      这样当php需要用到多个redis实例时（分库），因为一个php-fpm进程会持有每个redis实例的一个连接，所以需要“php-fpm进程数“*“redis实例数"个redis连接，而对于每个redis服务器则有“php-fpm进程数“个客户端连接。
+
+      举个例子：一个web应用开了1000个php-fpm进程，有10个redis实例，那么保持的redis连接数就为1000*10也就是10000，每个redis实例有1000个客户端连接。如果前端或redis再扩容所需要的连接就会以乘积方式增加。一个redis实例有php-fpm进程数个连接的情况下表现如何呢，这就要好好测一测了，反正是每连接一线程的mysql是直接堵死了。
+
+*** RedisArray不靠谱。
+    RedisArray实现了一致性hash分布式，但是它在初始化的时候就会连接上每个实例，这在web应用中简直是胡闹，它对一致性hash实现得比较完善，结点失效、动态添加结点时重新hash都有处理，在万不得已进行水平扩容时，可能会用得上。
+
+*** 需要自已关闭redis连接。
+  Redis的析构函数没有关闭redis连接，这会导致redis网络负载过高，要确保脚本结束时关闭连接，最好是能够封装一下Redis类再使用。
+
+  - 示例封装 ::
+#+BEGIN_SRC php
+/// 分布式Redis.
+class RedisShard {
+    public function __construct($shards) {
+        $this->shards = array();
+        foreach($shards as $shard){
+            $this->shards[] = explode(':', $shard); //格式：host:port:db
+        }
+    }
+
+    /// 析构函数.
+    /// 脚本结束时，phpredis不会自动关闭redis连接，这里添加自动关闭连接支持.
+    /// 可以通过手动unset本类对象快速释放资源.
+    public function __destruct() {
+        if(isset($this->shard)){
+            $this->shard['redis']->close();
+        }
+    }
+
+    /// 转发方法调用到真正的redis对象.
+    public function __call($name, $arguments) {
+        $result = call_user_func_array(array($this->redis($arguments[0]), $name), $arguments);
+        if($result === false and in_array($name, array('set', 'setex', 'incr'))) {
+            trigger_error("redis error: $name " . implode(' ', $arguments), E_USER_NOTICE);
+        }
+        return $result;
+    }
+
+    /// 获取key对应的redis对象.
+    private function redis($key){
+        //TODO: crc32在32位系统下会返回负数，因我们是部署在64位系统上，暂时忽略.
+        assert(PHP_INT_SIZE === 8);
+        $index = crc32($key) % count($this->shards);
+        $shard = $this->shards[$index];
+        if(isset($this->shard)){
+            //尝试重用已有连接.
+            if($this->shard[0] == $shard[0] and $this->shard[1] == $shard[1]){
+                if($this->shard[2] != $shard[2]){
+                    if(! $this->shard['redis']->select($shard[2])){
+                        return false;
+                    }
+                    $this->shard[2] = $shard[2];
+                    return $this->shard['redis'];
+                }
+            }
+            $this->shard['redis']->close();
+            unset($this->shard);
+        }
+        //新建连接.
+        $shard['redis'] = new Redis();
+        if(! $shard['redis']->connect($shard[0], $shard[1])){
+            trigger_error('redis error: connect ' . $shard[0] . ':' . $shard[1], E_USER_NOTICE);
+            return false;
+        }
+        $db = intval($shard[2]);
+        if($db != 0 and !$shard['redis']->select($db)){
+            trigger_error('redis error: select ' . $shard[0] . ':' . $shard[1] . ':' .$shard[2], E_USER_NOTICE);
+            $shard['redis']->close();
+            return false;
+        }
+        $this->shard = $shard;
+        return $this->shard['redis'];
+    }
+}
+#+END_SRC
+
+** DONE python中的UTC与本地时区处理                                  :python:
+   CLOSED: <2013-03-20 三 17:29>
+
+   在通过sqlalchemy使用sqlite3数据库的过程中，发现日期时间字段默认值为CURRENT\_TIMESTAMP，但是查出的值少了8个小时。很明显是遇到时区问题了。
+
+   mysql的TIMESTAMP字段类型和sqlite3一样使用UTC时间保存，因为在存取时自动进行了本地时间与UTC时间互转，所以不会遇到时区问题。但是sqlite3没有自动进行这一转换，需要在sql中自行转换:
+   #+begin_src sql
+    select datetime(CURRENT_TIMESTAMP, 'localtime')
+   #+end_src
+
+   进一步google后，找到了这篇文章：《[[http://lucumr.pocoo.org/2011/7/15/eppur-si-muove/][Dealing with Timezones in Python]]》，文章大意是python中的datetime库默认不携带时区信息，而加上时区后又与不带时区的datetime对象无法一起工作（如：比较），另外像datetime.datetime.utcnow()返回的utc时间和datetime.datetime.now()返回的本地时间也是不携带时区信息的（tzinfo属性为None），容易引起混淆，因此处理的简单性，内部最好统一使用UTC标准时间，和用户交互时再转换为本地时间。
+
+   下面是互转的算法：
+   #+begin_src python
+      #/usr/bin/env python
+      
+      import datetime
+      import time
+      import sys
+      
+      if sys.version >= '3.2.':
+          localtimezone = datetime.timezone(datetime.timedelta(seconds=-time.timezone), time.tzname[0])
+          utctimezone = datetime.timezone.utc
+      else:
+          from dateutil import tz
+          localtimezone = tz.tzlocal()
+          utctimezone = tz.gettz('UTC')
+      
+      def parsedatetime(dt, fmt="%Y-%m-%d %H:%M:%S"):
+          """parse local datetime string as utc datetime object"""
+          return datetime.datetime.strptime(dt, fmt).replace(tzinfo=localtimezone).astimezone(utctimezone)
+      
+      def formatdatetime(dt, fmt="%Y-%m-%d %H:%M:%S"):
+          """format utc datetime object as local datetime string"""
+          return dt.replace(tzinfo=utctimezone).astimezone(localtimezone).strftime(fmt)
+      
+      if __name__ == '__main__':
+          input_local_datetime = '2012-01-02 03:04:05'
+          parsed_utc_datetime = parsedatetime(input_local_datetime)
+          assert(formatdatetime(parsed_utc_datetime) == input_local_datetime)
+   #+end_src
+
+** DONE 二维码研究                                                   :qrcode:
+   CLOSED: <2013-03-30 六 11:21>
+
+*** 介绍
+    - [[http://www.itsc.org.sg/pdf/synthesis08/Three_QR_Code.pdf][Three\_QR\_Code.pdf]] ::
+      RFC式的文档
+
+    - [[http://suflow.iteye.com/blog/1100678][二维码 编码原理简介]] ::
+      通俗易懂的编码细节介绍
+
+    - [[http://zh.wikipedia.org/wiki/QR%E7%A2%BC][QR碼 - 维基百科，自由的百科全书]] ::
+
+    - [[http://www.qrstuff.com/blog/2011/11/23/qr-code-minimum-size][QR Code Minimum Size]] 与 [[http://www.qrstuff.com/blog/2011/01/18/what-size-should-a-qr-code-be][What Size Should A Printed QR Code Be?]] ::
+      关于可识别性的一些结论，该网站上有大量二维码研究相关的文章
+    
+*** 二维码开发库
+    - [[https://github.com/fukuchi/libqrencode][libqrencode]] ::
+      基础的c语言二维码编码库，很多语言基于它开发扩展，不包含生成png图的功能，如需生成png可参考[[https://github.com/bitly/simplehttp/blob/master/qrencode/qrencode.c][这里]]
+    - [[https://github.com/jeromeetienne/jquery-qrcode][jquery-qrcode]] ::
+      使用javascript直接在客户端生成二维码，中文支持参见[[http://suflow.iteye.com/blog/1687396][JS生成二维码，支持中文字符]]
+    - [[http://people.freebsd.org/~vanilla/qrencode-0.3.tar.bz2][php's qrencode extension]] ::
+      使用nginx的扩展性能会更好一点，参考后面[[nginx的相关扩展]].
+    - [[http://trac.koka-in.org/libdecodeqr][libdecodeqr]] ::
+      二维码解码库
+      
+*** nginx的相关扩展
+**** 基本的二维码
+     [[https://github.com/dcshi/ngx_http_qrcode_module][ngx\_http\_qrcode\_module]]
+    
+**** 二维码个性化水印
+   nginx\_http\_image\_filter加上[[http://forum.nginx.org/read.php?21,235958][水印补丁]]即可。
+
+   - patched ngx\_http\_image\_filter\_module.c ::
+#+begin_src c
+
+/*
+ * Copyright (C) Igor Sysoev
+ * Copyright (C) Nginx, Inc.
+ */
+
+
+#include <ngx_config.h>
+#include <ngx_core.h>
+#include <ngx_http.h>
+
+#include <gd.h>
+
+
+#define NGX_HTTP_IMAGE_OFF       0
+#define NGX_HTTP_IMAGE_TEST      1
+#define NGX_HTTP_IMAGE_SIZE      2
+#define NGX_HTTP_IMAGE_RESIZE    3
+#define NGX_HTTP_IMAGE_CROP      4
+#define NGX_HTTP_IMAGE_ROTATE    5
+#define NGX_HTTP_IMAGE_WATERMARK 6
+
+
+#define NGX_HTTP_IMAGE_START     0
+#define NGX_HTTP_IMAGE_READ      1
+#define NGX_HTTP_IMAGE_PROCESS   2
+#define NGX_HTTP_IMAGE_PASS      3
+#define NGX_HTTP_IMAGE_DONE      4
+
+
+#define NGX_HTTP_IMAGE_NONE      0
+#define NGX_HTTP_IMAGE_JPEG      1
+#define NGX_HTTP_IMAGE_GIF       2
+#define NGX_HTTP_IMAGE_PNG       3
+
+
+#define NGX_HTTP_IMAGE_BUFFERED  0x08
+
+
+typedef struct {
+    ngx_uint_t                   filter;
+    ngx_uint_t                   width;
+    ngx_uint_t                   height;
+    ngx_uint_t                   angle;
+    ngx_uint_t                   jpeg_quality;
+    ngx_uint_t                   sharpen;
+
+    ngx_flag_t                   transparency;
+    ngx_str_t                    watermark;
+    ngx_str_t                    watermark_position;
+    
+    ngx_http_complex_value_t    *wcv;
+    ngx_http_complex_value_t    *hcv;
+    ngx_http_complex_value_t    *acv;
+    ngx_http_complex_value_t    *jqcv;
+    ngx_http_complex_value_t    *shcv;
+
+    size_t                       buffer_size;
+} ngx_http_image_filter_conf_t;
+
+
+typedef struct {
+    u_char                      *image;
+    u_char                      *last;
+
+    size_t                       length;
+
+    ngx_uint_t                   width;
+    ngx_uint_t                   height;
+    ngx_uint_t                   max_width;
+    ngx_uint_t                   max_height;
+    ngx_uint_t                   angle;
+
+    ngx_uint_t                   phase;
+    ngx_uint_t                   type;
+    ngx_uint_t                   force;
+} ngx_http_image_filter_ctx_t;
+
+
+static ngx_int_t ngx_http_image_send(ngx_http_request_t *r,
+    ngx_http_image_filter_ctx_t *ctx, ngx_chain_t *in);
+static ngx_uint_t ngx_http_image_test(ngx_http_request_t *r, ngx_chain_t *in);
+static ngx_int_t ngx_http_image_read(ngx_http_request_t *r, ngx_chain_t *in);
+static ngx_buf_t *ngx_http_image_process(ngx_http_request_t *r);
+static ngx_buf_t *ngx_http_image_json(ngx_http_request_t *r,
+    ngx_http_image_filter_ctx_t *ctx);
+static ngx_buf_t *ngx_http_image_asis(ngx_http_request_t *r,
+    ngx_http_image_filter_ctx_t *ctx);
+static void ngx_http_image_length(ngx_http_request_t *r, ngx_buf_t *b);
+static ngx_int_t ngx_http_image_size(ngx_http_request_t *r,
+    ngx_http_image_filter_ctx_t *ctx);
+
+static ngx_buf_t *ngx_http_image_resize(ngx_http_request_t *r,
+    ngx_http_image_filter_ctx_t *ctx);
+static gdImagePtr ngx_http_image_source(ngx_http_request_t *r,
+    ngx_http_image_filter_ctx_t *ctx);
+static gdImagePtr ngx_http_image_new(ngx_http_request_t *r, int w, int h,
+    int colors);
+static u_char *ngx_http_image_out(ngx_http_request_t *r, ngx_uint_t type,
+    gdImagePtr img, int *size);
+static void ngx_http_image_cleanup(void *data);
+static ngx_uint_t ngx_http_image_filter_get_value(ngx_http_request_t *r,
+    ngx_http_complex_value_t *cv, ngx_uint_t v);
+static ngx_uint_t ngx_http_image_filter_value(ngx_str_t *value);
+
+
+static void *ngx_http_image_filter_create_conf(ngx_conf_t *cf);
+static char *ngx_http_image_filter_merge_conf(ngx_conf_t *cf, void *parent,
+    void *child);
+static char *ngx_http_image_filter(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf);
+static char *ngx_http_image_filter_jpeg_quality(ngx_conf_t *cf,
+    ngx_command_t *cmd, void *conf);
+static char *ngx_http_image_filter_sharpen(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf);
+static ngx_int_t ngx_http_image_filter_init(ngx_conf_t *cf);
+
+
+static ngx_command_t  ngx_http_image_filter_commands[] = {
+
+    { ngx_string("image_filter"),
+      NGX_HTTP_LOC_CONF|NGX_CONF_TAKE123,
+      ngx_http_image_filter,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      0,
+      NULL },
+
+    { ngx_string("image_filter_jpeg_quality"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_http_image_filter_jpeg_quality,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      0,
+      NULL },
+
+    { ngx_string("image_filter_sharpen"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_http_image_filter_sharpen,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      0,
+      NULL },
+
+    { ngx_string("image_filter_transparency"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_image_filter_conf_t, transparency),
+      NULL },
+
+    { ngx_string("image_filter_buffer"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_size_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_image_filter_conf_t, buffer_size),
+      NULL },
+
+    { ngx_string("image_filter_watermark"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_str_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_image_filter_conf_t, watermark),
+      NULL },
+
+    { ngx_string("image_filter_watermark_position"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_str_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_image_filter_conf_t, watermark_position),
+      NULL },
+
+      ngx_null_command
+};
+
+
+static ngx_http_module_t  ngx_http_image_filter_module_ctx = {
+    NULL,                                  /* preconfiguration */
+    ngx_http_image_filter_init,            /* postconfiguration */
+
+    NULL,                                  /* create main configuration */
+    NULL,                                  /* init main configuration */
+
+    NULL,                                  /* create server configuration */
+    NULL,                                  /* merge server configuration */
+
+    ngx_http_image_filter_create_conf,     /* create location configuration */
+    ngx_http_image_filter_merge_conf       /* merge location configuration */
+};
+
+
+ngx_module_t  ngx_http_image_filter_module = {
+    NGX_MODULE_V1,
+    &ngx_http_image_filter_module_ctx,     /* module context */
+    ngx_http_image_filter_commands,        /* module directives */
+    NGX_HTTP_MODULE,                       /* module type */
+    NULL,                                  /* init master */
+    NULL,                                  /* init module */
+    NULL,                                  /* init process */
+    NULL,                                  /* init thread */
+    NULL,                                  /* exit thread */
+    NULL,                                  /* exit process */
+    NULL,                                  /* exit master */
+    NGX_MODULE_V1_PADDING
+};
+
+
+static ngx_http_output_header_filter_pt  ngx_http_next_header_filter;
+static ngx_http_output_body_filter_pt    ngx_http_next_body_filter;
+
+
+static ngx_str_t  ngx_http_image_types[] = {
+    ngx_string("image/jpeg"),
+    ngx_string("image/gif"),
+    ngx_string("image/png")
+};
+
+
+static ngx_int_t
+ngx_http_image_header_filter(ngx_http_request_t *r)
+{
+    off_t                          len;
+    ngx_http_image_filter_ctx_t   *ctx;
+    ngx_http_image_filter_conf_t  *conf;
+
+    if (r->headers_out.status == NGX_HTTP_NOT_MODIFIED) {
+        return ngx_http_next_header_filter(r);
+    }
+
+    ctx = ngx_http_get_module_ctx(r, ngx_http_image_filter_module);
+
+    if (ctx) {
+        ngx_http_set_ctx(r, NULL, ngx_http_image_filter_module);
+        return ngx_http_next_header_filter(r);
+    }
+
+    conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);
+
+    if (conf->filter == NGX_HTTP_IMAGE_OFF) {
+        return ngx_http_next_header_filter(r);
+    }
+
+    if (r->headers_out.content_type.len
+            >= sizeof("multipart/x-mixed-replace") - 1
+        && ngx_strncasecmp(r->headers_out.content_type.data,
+                           (u_char *) "multipart/x-mixed-replace",
+                           sizeof("multipart/x-mixed-replace") - 1)
+           == 0)
+    {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                      "image filter: multipart/x-mixed-replace response");
+
+        return NGX_ERROR;
+    }
+
+    ctx = ngx_pcalloc(r->pool, sizeof(ngx_http_image_filter_ctx_t));
+    if (ctx == NULL) {
+        return NGX_ERROR;
+    }
+
+    ngx_http_set_ctx(r, ctx, ngx_http_image_filter_module);
+
+    len = r->headers_out.content_length_n;
+
+    if (len != -1 && len > (off_t) conf->buffer_size) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                      "image filter: too big response: %O", len);
+
+        return NGX_HTTP_UNSUPPORTED_MEDIA_TYPE;
+    }
+
+    if (len == -1) {
+        ctx->length = conf->buffer_size;
+
+    } else {
+        ctx->length = (size_t) len;
+    }
+
+    if (r->headers_out.refresh) {
+        r->headers_out.refresh->hash = 0;
+    }
+
+    r->main_filter_need_in_memory = 1;
+    r->allow_ranges = 0;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_http_image_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
+{
+    ngx_int_t                      rc;
+    ngx_str_t                     *ct;
+    ngx_chain_t                    out;
+    ngx_http_image_filter_ctx_t   *ctx;
+    ngx_http_image_filter_conf_t  *conf;
+
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "image filter");
+
+    if (in == NULL) {
+        return ngx_http_next_body_filter(r, in);
+    }
+
+    ctx = ngx_http_get_module_ctx(r, ngx_http_image_filter_module);
+
+    if (ctx == NULL) {
+        return ngx_http_next_body_filter(r, in);
+    }
+
+    switch (ctx->phase) {
+
+    case NGX_HTTP_IMAGE_START:
+
+        ctx->type = ngx_http_image_test(r, in);
+
+        conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);
+
+        if (ctx->type == NGX_HTTP_IMAGE_NONE) {
+
+            if (conf->filter == NGX_HTTP_IMAGE_SIZE) {
+                out.buf = ngx_http_image_json(r, NULL);
+
+                if (out.buf) {
+                    out.next = NULL;
+                    ctx->phase = NGX_HTTP_IMAGE_DONE;
+
+                    return ngx_http_image_send(r, ctx, &out);
+                }
+            }
+
+            return ngx_http_filter_finalize_request(r,
+                                              &ngx_http_image_filter_module,
+                                              NGX_HTTP_UNSUPPORTED_MEDIA_TYPE);
+        }
+
+        /* override content type */
+
+        ct = &ngx_http_image_types[ctx->type - 1];
+        r->headers_out.content_type_len = ct->len;
+        r->headers_out.content_type = *ct;
+        r->headers_out.content_type_lowcase = NULL;
+
+        if (conf->filter == NGX_HTTP_IMAGE_TEST) {
+            ctx->phase = NGX_HTTP_IMAGE_PASS;
+
+            return ngx_http_image_send(r, ctx, in);
+        }
+
+        ctx->phase = NGX_HTTP_IMAGE_READ;
+
+        /* fall through */
+
+    case NGX_HTTP_IMAGE_READ:
+
+        rc = ngx_http_image_read(r, in);
+
+        if (rc == NGX_AGAIN) {
+            return NGX_OK;
+        }
+
+        if (rc == NGX_ERROR) {
+            return ngx_http_filter_finalize_request(r,
+                                              &ngx_http_image_filter_module,
+                                              NGX_HTTP_UNSUPPORTED_MEDIA_TYPE);
+        }
+
+        /* fall through */
+
+    case NGX_HTTP_IMAGE_PROCESS:
+
+        out.buf = ngx_http_image_process(r);
+
+        if (out.buf == NULL) {
+            return ngx_http_filter_finalize_request(r,
+                                              &ngx_http_image_filter_module,
+                                              NGX_HTTP_UNSUPPORTED_MEDIA_TYPE);
+        }
+
+        out.next = NULL;
+        ctx->phase = NGX_HTTP_IMAGE_PASS;
+
+        return ngx_http_image_send(r, ctx, &out);
+
+    case NGX_HTTP_IMAGE_PASS:
+
+        return ngx_http_next_body_filter(r, in);
+
+    default: /* NGX_HTTP_IMAGE_DONE */
+
+        rc = ngx_http_next_body_filter(r, NULL);
+
+        /* NGX_ERROR resets any pending data */
+        return (rc == NGX_OK) ? NGX_ERROR : rc;
+    }
+}
+
+
+static ngx_int_t
+ngx_http_image_send(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx,
+    ngx_chain_t *in)
+{
+    ngx_int_t  rc;
+
+    rc = ngx_http_next_header_filter(r);
+
+    if (rc == NGX_ERROR || rc > NGX_OK || r->header_only) {
+        return NGX_ERROR;
+    }
+
+    rc = ngx_http_next_body_filter(r, in);
+
+    if (ctx->phase == NGX_HTTP_IMAGE_DONE) {
+        /* NGX_ERROR resets any pending data */
+        return (rc == NGX_OK) ? NGX_ERROR : rc;
+    }
+
+    return rc;
+}
+
+
+static ngx_uint_t
+ngx_http_image_test(ngx_http_request_t *r, ngx_chain_t *in)
+{
+    u_char  *p;
+
+    p = in->buf->pos;
+
+    if (in->buf->last - p < 16) {
+        return NGX_HTTP_IMAGE_NONE;
+    }
+
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "image filter: \"%c%c\"", p[0], p[1]);
+
+    if (p[0] == 0xff && p[1] == 0xd8) {
+
+        /* JPEG */
+
+        return NGX_HTTP_IMAGE_JPEG;
+
+    } else if (p[0] == 'G' && p[1] == 'I' && p[2] == 'F' && p[3] == '8'
+               && p[5] == 'a')
+    {
+        if (p[4] == '9' || p[4] == '7') {
+            /* GIF */
+            return NGX_HTTP_IMAGE_GIF;
+        }
+
+    } else if (p[0] == 0x89 && p[1] == 'P' && p[2] == 'N' && p[3] == 'G'
+               && p[4] == 0x0d && p[5] == 0x0a && p[6] == 0x1a && p[7] == 0x0a)
+    {
+        /* PNG */
+
+        return NGX_HTTP_IMAGE_PNG;
+    }
+
+    return NGX_HTTP_IMAGE_NONE;
+}
+
+
+static ngx_int_t
+ngx_http_image_read(ngx_http_request_t *r, ngx_chain_t *in)
+{
+    u_char                       *p;
+    size_t                        size, rest;
+    ngx_buf_t                    *b;
+    ngx_chain_t                  *cl;
+    ngx_http_image_filter_ctx_t  *ctx;
+
+    ctx = ngx_http_get_module_ctx(r, ngx_http_image_filter_module);
+
+    if (ctx->image == NULL) {
+        ctx->image = ngx_palloc(r->pool, ctx->length);
+        if (ctx->image == NULL) {
+            return NGX_ERROR;
+        }
+
+        ctx->last = ctx->image;
+    }
+
+    p = ctx->last;
+
+    for (cl = in; cl; cl = cl->next) {
+
+        b = cl->buf;
+        size = b->last - b->pos;
+
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "image buf: %uz", size);
+
+        rest = ctx->image + ctx->length - p;
+        size = (rest < size) ? rest : size;
+
+        p = ngx_cpymem(p, b->pos, size);
+        b->pos += size;
+
+        if (b->last_buf) {
+            ctx->last = p;
+            return NGX_OK;
+        }
+    }
+
+    ctx->last = p;
+    r->connection->buffered |= NGX_HTTP_IMAGE_BUFFERED;
+
+    return NGX_AGAIN;
+}
+
+
+static ngx_buf_t *
+ngx_http_image_process(ngx_http_request_t *r)
+{
+    ngx_int_t                      rc;
+    ngx_http_image_filter_ctx_t   *ctx;
+    ngx_http_image_filter_conf_t  *conf;
+
+    r->connection->buffered &= ~NGX_HTTP_IMAGE_BUFFERED;
+
+    ctx = ngx_http_get_module_ctx(r, ngx_http_image_filter_module);
+
+    rc = ngx_http_image_size(r, ctx);
+
+    conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);
+
+    if (conf->filter == NGX_HTTP_IMAGE_SIZE) {
+        return ngx_http_image_json(r, rc == NGX_OK ? ctx : NULL);
+    }
+
+    ctx->angle = ngx_http_image_filter_get_value(r, conf->acv, conf->angle);
+
+    if (conf->filter == NGX_HTTP_IMAGE_ROTATE) {
+
+        if (ctx->angle != 90 && ctx->angle != 180 && ctx->angle != 270) {
+            return NULL;
+        }
+
+        return ngx_http_image_resize(r, ctx);
+    }
+
+    if (conf->filter == NGX_HTTP_IMAGE_WATERMARK) {
+
+        if (!conf->watermark.data) {
+            return NULL;
+        }
+
+        return ngx_http_image_resize(r, ctx);
+    }    
+
+    ctx->max_width = ngx_http_image_filter_get_value(r, conf->wcv, conf->width);
+    if (ctx->max_width == 0) {
+        return NULL;
+    }
+
+    ctx->max_height = ngx_http_image_filter_get_value(r, conf->hcv,
+                                                      conf->height);
+    if (ctx->max_height == 0) {
+        return NULL;
+    }
+
+    if (rc == NGX_OK
+        && ctx->width <= ctx->max_width
+        && ctx->height <= ctx->max_height
+        && ctx->angle == 0
+        && !ctx->force)
+    {
+        return ngx_http_image_asis(r, ctx);
+    }
+
+    return ngx_http_image_resize(r, ctx);
+}
+
+
+static ngx_buf_t *
+ngx_http_image_json(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
+{
+    size_t      len;
+    ngx_buf_t  *b;
+
+    b = ngx_pcalloc(r->pool, sizeof(ngx_buf_t));
+    if (b == NULL) {
+        return NULL;
+    }
+
+    b->memory = 1;
+    b->last_buf = 1;
+
+    ngx_http_clean_header(r);
+
+    r->headers_out.status = NGX_HTTP_OK;
+    ngx_str_set(&r->headers_out.content_type, "text/plain");
+    r->headers_out.content_type_lowcase = NULL;
+
+    if (ctx == NULL) {
+        b->pos = (u_char *) "{}" CRLF;
+        b->last = b->pos + sizeof("{}" CRLF) - 1;
+
+        ngx_http_image_length(r, b);
+
+        return b;
+    }
+
+    len = sizeof("{ \"img\" : "
+                 "{ \"width\": , \"height\": , \"type\": \"jpeg\" } }" CRLF) - 1
+          + 2 * NGX_SIZE_T_LEN;
+
+    b->pos = ngx_pnalloc(r->pool, len);
+    if (b->pos == NULL) {
+        return NULL;
+    }
+
+    b->last = ngx_sprintf(b->pos,
+                          "{ \"img\" : "
+                                       "{ \"width\": %uz,"
+                                        " \"height\": %uz,"
+                                        " \"type\": \"%s\" } }" CRLF,
+                          ctx->width, ctx->height,
+                          ngx_http_image_types[ctx->type - 1].data + 6);
+
+    ngx_http_image_length(r, b);
+
+    return b;
+}
+
+
+static ngx_buf_t *
+ngx_http_image_asis(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
+{
+    ngx_buf_t  *b;
+
+    b = ngx_pcalloc(r->pool, sizeof(ngx_buf_t));
+    if (b == NULL) {
+        return NULL;
+    }
+
+    b->pos = ctx->image;
+    b->last = ctx->last;
+    b->memory = 1;
+    b->last_buf = 1;
+
+    ngx_http_image_length(r, b);
+
+    return b;
+}
+
+
+static void
+ngx_http_image_length(ngx_http_request_t *r, ngx_buf_t *b)
+{
+    r->headers_out.content_length_n = b->last - b->pos;
+
+    if (r->headers_out.content_length) {
+        r->headers_out.content_length->hash = 0;
+    }
+
+    r->headers_out.content_length = NULL;
+}
+
+
+static ngx_int_t
+ngx_http_image_size(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
+{
+    u_char      *p, *last;
+    size_t       len, app;
+    ngx_uint_t   width, height;
+
+    p = ctx->image;
+
+    switch (ctx->type) {
+
+    case NGX_HTTP_IMAGE_JPEG:
+
+        p += 2;
+        last = ctx->image + ctx->length - 10;
+        width = 0;
+        height = 0;
+        app = 0;
+
+        while (p < last) {
+
+            if (p[0] == 0xff && p[1] != 0xff) {
+
+                ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                               "JPEG: %02xd %02xd", p[0], p[1]);
+
+                p++;
+
+                if ((*p == 0xc0 || *p == 0xc1 || *p == 0xc2 || *p == 0xc3
+                     || *p == 0xc9 || *p == 0xca || *p == 0xcb)
+                    && (width == 0 || height == 0))
+                {
+                    width = p[6] * 256 + p[7];
+                    height = p[4] * 256 + p[5];
+                }
+
+                ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                               "JPEG: %02xd %02xd", p[1], p[2]);
+
+                len = p[1] * 256 + p[2];
+
+                if (*p >= 0xe1 && *p <= 0xef) {
+                    /* application data, e.g., EXIF, Adobe XMP, etc. */
+                    app += len;
+                }
+
+                p += len;
+
+                continue;
+            }
+
+            p++;
+        }
+
+        if (width == 0 || height == 0) {
+            return NGX_DECLINED;
+        }
+
+        if (ctx->length / 20 < app) {
+            /* force conversion if application data consume more than 5% */
+            ctx->force = 1;
+            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                           "app data size: %uz", app);
+        }
+
+        break;
+
+    case NGX_HTTP_IMAGE_GIF:
+
+        if (ctx->length < 10) {
+            return NGX_DECLINED;
+        }
+
+        width = p[7] * 256 + p[6];
+        height = p[9] * 256 + p[8];
+
+        break;
+
+    case NGX_HTTP_IMAGE_PNG:
+
+        if (ctx->length < 24) {
+            return NGX_DECLINED;
+        }
+
+        width = p[18] * 256 + p[19];
+        height = p[22] * 256 + p[23];
+
+        break;
+
+    default:
+
+        return NGX_DECLINED;
+    }
+
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "image size: %d x %d", width, height);
+
+    ctx->width = width;
+    ctx->height = height;
+
+    return NGX_OK;
+}
+
+
+static ngx_buf_t *
+ngx_http_image_resize(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
+{
+    int                            sx, sy, dx, dy, ox, oy, ax, ay, size,
+                                   colors, palette, transparent, sharpen,
+                                   red, green, blue, t;
+    u_char                        *out;
+    ngx_buf_t                     *b;
+    ngx_uint_t                     resize;
+    gdImagePtr                     src, dst;
+    ngx_pool_cleanup_t            *cln;
+    ngx_http_image_filter_conf_t  *conf;
+
+    src = ngx_http_image_source(r, ctx);
+
+    if (src == NULL) {
+        return NULL;
+    }
+
+    sx = gdImageSX(src);
+    sy = gdImageSY(src);
+
+    conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);
+
+    if (!ctx->force
+        && ctx->angle == 0
+        && (ngx_uint_t) sx <= ctx->max_width
+        && (ngx_uint_t) sy <= ctx->max_height)
+    {
+        gdImageDestroy(src);
+        return ngx_http_image_asis(r, ctx);
+    }
+
+    colors = gdImageColorsTotal(src);
+
+    if (colors && conf->transparency) {
+        transparent = gdImageGetTransparent(src);
+
+        if (transparent != -1) {
+            palette = colors;
+            red = gdImageRed(src, transparent);
+            green = gdImageGreen(src, transparent);
+            blue = gdImageBlue(src, transparent);
+
+            goto transparent;
+        }
+    }
+
+    palette = 0;
+    transparent = -1;
+    red = 0;
+    green = 0;
+    blue = 0;
+
+transparent:
+
+    gdImageColorTransparent(src, -1);
+
+    dx = sx;
+    dy = sy;
+
+    if (conf->filter == NGX_HTTP_IMAGE_RESIZE) {
+
+        if ((ngx_uint_t) dx > ctx->max_width) {
+            dy = dy * ctx->max_width / dx;
+            dy = dy ? dy : 1;
+            dx = ctx->max_width;
+        }
+
+        if ((ngx_uint_t) dy > ctx->max_height) {
+            dx = dx * ctx->max_height / dy;
+            dx = dx ? dx : 1;
+            dy = ctx->max_height;
+        }
+
+        resize = 1;
+
+    } else if (conf->filter == NGX_HTTP_IMAGE_ROTATE) {
+
+        resize = 0;
+    } else if (conf->filter == NGX_HTTP_IMAGE_WATERMARK) {
+        
+        resize = 0;
+    } else { /* NGX_HTTP_IMAGE_CROP */
+
+        resize = 0;
+
+        if ((double) dx / dy < (double) ctx->max_width / ctx->max_height) {
+            if ((ngx_uint_t) dx > ctx->max_width) {
+                dy = dy * ctx->max_width / dx;
+                dy = dy ? dy : 1;
+                dx = ctx->max_width;
+                resize = 1;
+            }
+
+        } else {
+            if ((ngx_uint_t) dy > ctx->max_height) {
+                dx = dx * ctx->max_height / dy;
+                dx = dx ? dx : 1;
+                dy = ctx->max_height;
+                resize = 1;
+            }
+        }
+    }
+
+    if (resize) {
+        dst = ngx_http_image_new(r, dx, dy, palette);
+        if (dst == NULL) {
+            gdImageDestroy(src);
+            return NULL;
+        }
+
+        if (colors == 0) {
+            gdImageSaveAlpha(dst, 1);
+            gdImageAlphaBlending(dst, 0);
+        }
+
+        gdImageCopyResampled(dst, src, 0, 0, 0, 0, dx, dy, sx, sy);
+
+        if (colors) {
+            gdImageTrueColorToPalette(dst, 1, 256);
+        }
+
+        gdImageDestroy(src);
+
+    } else {
+        dst = src;
+    }
+
+    if (ctx->angle) {
+        src = dst;
+
+        ax = (dx % 2 == 0) ? 1 : 0;
+        ay = (dy % 2 == 0) ? 1 : 0;
+
+        switch (ctx->angle) {
+
+        case 90:
+        case 270:
+            dst = ngx_http_image_new(r, dy, dx, palette);
+            if (dst == NULL) {
+                gdImageDestroy(src);
+                return NULL;
+            }
+            if (ctx->angle == 90) {
+                ox = dy / 2 + ay;
+                oy = dx / 2 - ax;
+
+            } else {
+                ox = dy / 2 - ay;
+                oy = dx / 2 + ax;
+            }
+
+            gdImageCopyRotated(dst, src, ox, oy, 0, 0,
+                               dx + ax, dy + ay, ctx->angle);
+            gdImageDestroy(src);
+
+            t = dx;
+            dx = dy;
+            dy = t;
+            break;
+
+        case 180:
+            dst = ngx_http_image_new(r, dx, dy, palette);
+            if (dst == NULL) {
+                gdImageDestroy(src);
+                return NULL;
+            }
+            gdImageCopyRotated(dst, src, dx / 2 - ax, dy / 2 - ay, 0, 0,
+                               dx + ax, dy + ay, ctx->angle);
+            gdImageDestroy(src);
+            break;
+        }
+    }
+
+    if (conf->filter == NGX_HTTP_IMAGE_CROP) {
+
+        src = dst;
+
+        if ((ngx_uint_t) dx > ctx->max_width) {
+            ox = dx - ctx->max_width;
+
+        } else {
+            ox = 0;
+        }
+
+        if ((ngx_uint_t) dy > ctx->max_height) {
+            oy = dy - ctx->max_height;
+
+        } else {
+            oy = 0;
+        }
+
+        if (ox || oy) {
+
+            dst = ngx_http_image_new(r, dx - ox, dy - oy, colors);
+
+            if (dst == NULL) {
+                gdImageDestroy(src);
+                return NULL;
+            }
+
+            ox /= 2;
+            oy /= 2;
+
+            ngx_log_debug4(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                           "image crop: %d x %d @ %d x %d",
+                           dx, dy, ox, oy);
+
+            if (colors == 0) {
+                gdImageSaveAlpha(dst, 1);
+                gdImageAlphaBlending(dst, 0);
+            }
+
+            gdImageCopy(dst, src, 0, 0, ox, oy, dx - ox, dy - oy);
+
+            if (colors) {
+                gdImageTrueColorToPalette(dst, 1, 256);
+            }
+
+            gdImageDestroy(src);
+        }
+    }
+
+    if (transparent != -1 && colors) {
+        gdImageColorTransparent(dst, gdImageColorExact(dst, red, green, blue));
+    }
+
+    if (conf->filter == NGX_HTTP_IMAGE_WATERMARK && conf->watermark.data) {
+        FILE *watermark_file = fopen((const char *)conf->watermark.data, "r");
+        if (watermark_file) {
+            gdImagePtr watermark, watermark_mix;
+            ngx_int_t wdx = 0, wdy = 0;
+            
+            watermark = gdImageCreateFromPng(watermark_file);
+                
+            if(watermark != NULL) {
+                watermark_mix = gdImageCreateTrueColor(watermark->sx, watermark->sy);
+                if (ngx_strcmp(conf->watermark_position.data,
+                               "bottom-right") == 0) {
+                    wdx = dx - watermark->sx - 10;
+                    wdy = dy - watermark->sy - 10;
+                } else if (ngx_strcmp(conf->watermark_position.data, "top-left") == 0) {
+                    wdx = wdy = 10;
+                } else if (ngx_strcmp(conf->watermark_position.data, "top-right") == 0) {
+                    wdx = dx - watermark->sx - 10;
+                    wdy = 10;
+                } else if (ngx_strcmp(conf->watermark_position.data, "bottom-left") == 0) {
+                    wdx = 10;
+                    wdy = dy - watermark->sy - 10;
+                }
+                gdImageCopy(watermark_mix, dst, 0, 0, wdx, wdy, watermark->sx, watermark->sy);
+                gdImageCopy(watermark_mix, watermark, 0, 0, 0, 0, watermark->sx, watermark->sy);
+                gdImageCopyMerge(dst, watermark_mix, wdx, wdy, 0, 0, watermark->sx, watermark->sy, 75);
+                gdFree(watermark);
+                gdFree(watermark_mix);
+            } else { ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "watermark file '%s' is not PNG", conf->watermark.data);}
+        } else {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "watermark file '%s' not found", conf->watermark.data);
+        }
+    }
+    
+    sharpen = ngx_http_image_filter_get_value(r, conf->shcv, conf->sharpen);
+    if (sharpen > 0) {
+        gdImageSharpen(dst, sharpen);
+    }
+
+    out = ngx_http_image_out(r, ctx->type, dst, &size);
+
+    ngx_log_debug3(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "image: %d x %d %d", sx, sy, colors);
+
+    gdImageDestroy(dst);
+    ngx_pfree(r->pool, ctx->image);
+
+    if (out == NULL) {
+        return NULL;
+    }
+
+    cln = ngx_pool_cleanup_add(r->pool, 0);
+    if (cln == NULL) {
+        gdFree(out);
+        return NULL;
+    }
+
+    b = ngx_pcalloc(r->pool, sizeof(ngx_buf_t));
+    if (b == NULL) {
+        gdFree(out);
+        return NULL;
+    }
+
+    cln->handler = ngx_http_image_cleanup;
+    cln->data = out;
+
+    b->pos = out;
+    b->last = out + size;
+    b->memory = 1;
+    b->last_buf = 1;
+
+    ngx_http_image_length(r, b);
+
+    return b;
+}
+
+
+static gdImagePtr
+ngx_http_image_source(ngx_http_request_t *r, ngx_http_image_filter_ctx_t *ctx)
+{
+    char        *failed;
+    gdImagePtr   img;
+
+    img = NULL;
+
+    switch (ctx->type) {
+
+    case NGX_HTTP_IMAGE_JPEG:
+        img = gdImageCreateFromJpegPtr(ctx->length, ctx->image);
+        failed = "gdImageCreateFromJpegPtr() failed";
+        break;
+
+    case NGX_HTTP_IMAGE_GIF:
+        img = gdImageCreateFromGifPtr(ctx->length, ctx->image);
+        failed = "gdImageCreateFromGifPtr() failed";
+        break;
+
+    case NGX_HTTP_IMAGE_PNG:
+        img = gdImageCreateFromPngPtr(ctx->length, ctx->image);
+        failed = "gdImageCreateFromPngPtr() failed";
+        break;
+
+    default:
+        failed = "unknown image type";
+        break;
+    }
+
+    if (img == NULL) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, failed);
+    }
+
+    return img;
+}
+
+
+static gdImagePtr
+ngx_http_image_new(ngx_http_request_t *r, int w, int h, int colors)
+{
+    gdImagePtr  img;
+
+    if (colors == 0) {
+        img = gdImageCreateTrueColor(w, h);
+
+        if (img == NULL) {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                          "gdImageCreateTrueColor() failed");
+            return NULL;
+        }
+
+    } else {
+        img = gdImageCreate(w, h);
+
+        if (img == NULL) {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                          "gdImageCreate() failed");
+            return NULL;
+        }
+    }
+
+    return img;
+}
+
+
+static u_char *
+ngx_http_image_out(ngx_http_request_t *r, ngx_uint_t type, gdImagePtr img,
+    int *size)
+{
+    char                          *failed;
+    u_char                        *out;
+    ngx_int_t                      jq;
+    ngx_http_image_filter_conf_t  *conf;
+
+    out = NULL;
+
+    switch (type) {
+
+    case NGX_HTTP_IMAGE_JPEG:
+        conf = ngx_http_get_module_loc_conf(r, ngx_http_image_filter_module);
+
+        jq = ngx_http_image_filter_get_value(r, conf->jqcv, conf->jpeg_quality);
+        if (jq <= 0) {
+            return NULL;
+        }
+
+        out = gdImageJpegPtr(img, size, jq);
+        failed = "gdImageJpegPtr() failed";
+        break;
+
+    case NGX_HTTP_IMAGE_GIF:
+        out = gdImageGifPtr(img, size);
+        failed = "gdImageGifPtr() failed";
+        break;
+
+    case NGX_HTTP_IMAGE_PNG:
+        out = gdImagePngPtr(img, size);
+        failed = "gdImagePngPtr() failed";
+        break;
+
+    default:
+        failed = "unknown image type";
+        break;
+    }
+
+    if (out == NULL) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, failed);
+    }
+
+    return out;
+}
+
+
+static void
+ngx_http_image_cleanup(void *data)
+{
+    gdFree(data);
+}
+
+
+static ngx_uint_t
+ngx_http_image_filter_get_value(ngx_http_request_t *r,
+    ngx_http_complex_value_t *cv, ngx_uint_t v)
+{
+    ngx_str_t  val;
+
+    if (cv == NULL) {
+        return v;
+    }
+
+    if (ngx_http_complex_value(r, cv, &val) != NGX_OK) {
+        return 0;
+    }
+
+    return ngx_http_image_filter_value(&val);
+}
+
+
+static ngx_uint_t
+ngx_http_image_filter_value(ngx_str_t *value)
+{
+    ngx_int_t  n;
+
+    if (value->len == 1 && value->data[0] == '-') {
+        return (ngx_uint_t) -1;
+    }
+
+    n = ngx_atoi(value->data, value->len);
+
+    if (n > 0) {
+        return (ngx_uint_t) n;
+    }
+
+    return 0;
+}
+
+
+static void *
+ngx_http_image_filter_create_conf(ngx_conf_t *cf)
+{
+    ngx_http_image_filter_conf_t  *conf;
+
+    conf = ngx_pcalloc(cf->pool, sizeof(ngx_http_image_filter_conf_t));
+    if (conf == NULL) {
+        return NULL;
+    }
+
+    /*
+     * set by ngx_pcalloc():
+     *
+     *     conf->width = 0;
+     *     conf->height = 0;
+     *     conf->angle = 0;
+     *     conf->wcv = NULL;
+     *     conf->hcv = NULL;
+     *     conf->acv = NULL;
+     *     conf->jqcv = NULL;
+     *     conf->shcv = NULL;
+     */
+
+    conf->filter = NGX_CONF_UNSET_UINT;
+    conf->jpeg_quality = NGX_CONF_UNSET_UINT;
+    conf->sharpen = NGX_CONF_UNSET_UINT;
+    conf->transparency = NGX_CONF_UNSET;
+    conf->buffer_size = NGX_CONF_UNSET_SIZE;
+
+    return conf;
+}
+
+
+static char *
+ngx_http_image_filter_merge_conf(ngx_conf_t *cf, void *parent, void *child)
+{
+    ngx_http_image_filter_conf_t *prev = parent;
+    ngx_http_image_filter_conf_t *conf = child;
+
+    if (conf->filter == NGX_CONF_UNSET_UINT) {
+
+        if (prev->filter == NGX_CONF_UNSET_UINT) {
+            conf->filter = NGX_HTTP_IMAGE_OFF;
+
+        } else {
+            conf->filter = prev->filter;
+            conf->width = prev->width;
+            conf->height = prev->height;
+            conf->angle = prev->angle;
+            conf->wcv = prev->wcv;
+            conf->hcv = prev->hcv;
+            conf->acv = prev->acv;
+        }
+    }
+
+    if (conf->jpeg_quality == NGX_CONF_UNSET_UINT) {
+
+        /* 75 is libjpeg default quality */
+        ngx_conf_merge_uint_value(conf->jpeg_quality, prev->jpeg_quality, 75);
+
+        if (conf->jqcv == NULL) {
+            conf->jqcv = prev->jqcv;
+        }
+    }
+
+    if (conf->sharpen == NGX_CONF_UNSET_UINT) {
+        ngx_conf_merge_uint_value(conf->sharpen, prev->sharpen, 0);
+
+        if (conf->shcv == NULL) {
+            conf->shcv = prev->shcv;
+        }
+    }
+
+    ngx_conf_merge_value(conf->transparency, prev->transparency, 1);
+
+    ngx_conf_merge_size_value(conf->buffer_size, prev->buffer_size,
+                              1 * 1024 * 1024);
+
+    ngx_conf_merge_str_value(conf->watermark, prev->watermark, "");
+    
+    ngx_conf_merge_str_value(conf->watermark_position,
+                             prev->watermark_position, "bottom-right");
+    
+    return NGX_CONF_OK;
+}
+
+
+static char *
+ngx_http_image_filter(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_http_image_filter_conf_t *imcf = conf;
+
+    ngx_str_t                         *value;
+    ngx_int_t                          n;
+    ngx_uint_t                         i;
+    ngx_http_complex_value_t           cv;
+    ngx_http_compile_complex_value_t   ccv;
+
+    value = cf->args->elts;
+
+    i = 1;
+
+    if (cf->args->nelts == 2) {
+        if (ngx_strcmp(value[i].data, "off") == 0) {
+            imcf->filter = NGX_HTTP_IMAGE_OFF;
+
+        } else if (ngx_strcmp(value[i].data, "test") == 0) {
+            imcf->filter = NGX_HTTP_IMAGE_TEST;
+
+        } else if (ngx_strcmp(value[i].data, "size") == 0) {
+            imcf->filter = NGX_HTTP_IMAGE_SIZE;
+
+        } else if (ngx_strcmp(value[i].data, "watermark") == 0) {
+            imcf->filter = NGX_HTTP_IMAGE_WATERMARK;
+            
+        } else {
+            goto failed;
+        }
+
+        return NGX_CONF_OK;
+
+    } else if (cf->args->nelts == 3) {
+
+        if (ngx_strcmp(value[i].data, "rotate") == 0) {
+            if (imcf->filter != NGX_HTTP_IMAGE_RESIZE
+                && imcf->filter != NGX_HTTP_IMAGE_CROP)
+            {
+                imcf->filter = NGX_HTTP_IMAGE_ROTATE;
+            }
+
+            ngx_memzero(&ccv, sizeof(ngx_http_compile_complex_value_t));
+
+            ccv.cf = cf;
+            ccv.value = &value[++i];
+            ccv.complex_value = &cv;
+
+            if (ngx_http_compile_complex_value(&ccv) != NGX_OK) {
+                return NGX_CONF_ERROR;
+            }
+
+            if (cv.lengths == NULL) {
+                n = ngx_http_image_filter_value(&value[i]);
+
+                if (n != 90 && n != 180 && n != 270) {
+                    goto failed;
+                }
+
+                imcf->angle = (ngx_uint_t) n;
+
+            } else {
+                imcf->acv = ngx_palloc(cf->pool,
+                                       sizeof(ngx_http_complex_value_t));
+                if (imcf->acv == NULL) {
+                    return NGX_CONF_ERROR;
+                }
+
+                *imcf->acv = cv;
+            }
+
+            return NGX_CONF_OK;
+
+        } else {
+            goto failed;
+        }
+    }
+
+    if (ngx_strcmp(value[i].data, "resize") == 0) {
+        imcf->filter = NGX_HTTP_IMAGE_RESIZE;
+
+    } else if (ngx_strcmp(value[i].data, "crop") == 0) {
+        imcf->filter = NGX_HTTP_IMAGE_CROP;
+
+    } else {
+        goto failed;
+    }
+
+    ngx_memzero(&ccv, sizeof(ngx_http_compile_complex_value_t));
+
+    ccv.cf = cf;
+    ccv.value = &value[++i];
+    ccv.complex_value = &cv;
+
+    if (ngx_http_compile_complex_value(&ccv) != NGX_OK) {
+        return NGX_CONF_ERROR;
+    }
+
+    if (cv.lengths == NULL) {
+        n = ngx_http_image_filter_value(&value[i]);
+
+        if (n == 0) {
+            goto failed;
+        }
+
+        imcf->width = (ngx_uint_t) n;
+
+    } else {
+        imcf->wcv = ngx_palloc(cf->pool, sizeof(ngx_http_complex_value_t));
+        if (imcf->wcv == NULL) {
+            return NGX_CONF_ERROR;
+        }
+
+        *imcf->wcv = cv;
+    }
+
+    ngx_memzero(&ccv, sizeof(ngx_http_compile_complex_value_t));
+
+    ccv.cf = cf;
+    ccv.value = &value[++i];
+    ccv.complex_value = &cv;
+
+    if (ngx_http_compile_complex_value(&ccv) != NGX_OK) {
+        return NGX_CONF_ERROR;
+    }
+
+    if (cv.lengths == NULL) {
+        n = ngx_http_image_filter_value(&value[i]);
+
+        if (n == 0) {
+            goto failed;
+        }
+
+        imcf->height = (ngx_uint_t) n;
+
+    } else {
+        imcf->hcv = ngx_palloc(cf->pool, sizeof(ngx_http_complex_value_t));
+        if (imcf->hcv == NULL) {
+            return NGX_CONF_ERROR;
+        }
+
+        *imcf->hcv = cv;
+    }
+
+    return NGX_CONF_OK;
+
+failed:
+
+    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid parameter \"%V\"",
+                       &value[i]);
+
+    return NGX_CONF_ERROR;
+}
+
+
+static char *
+ngx_http_image_filter_jpeg_quality(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf)
+{
+    ngx_http_image_filter_conf_t *imcf = conf;
+
+    ngx_str_t                         *value;
+    ngx_int_t                          n;
+    ngx_http_complex_value_t           cv;
+    ngx_http_compile_complex_value_t   ccv;
+
+    value = cf->args->elts;
+
+    ngx_memzero(&ccv, sizeof(ngx_http_compile_complex_value_t));
+
+    ccv.cf = cf;
+    ccv.value = &value[1];
+    ccv.complex_value = &cv;
+
+    if (ngx_http_compile_complex_value(&ccv) != NGX_OK) {
+        return NGX_CONF_ERROR;
+    }
+
+    if (cv.lengths == NULL) {
+        n = ngx_http_image_filter_value(&value[1]);
+
+        if (n <= 0) {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                               "invalid value \"%V\"", &value[1]);
+            return NGX_CONF_ERROR;
+        }
+
+        imcf->jpeg_quality = (ngx_uint_t) n;
+
+    } else {
+        imcf->jqcv = ngx_palloc(cf->pool, sizeof(ngx_http_complex_value_t));
+        if (imcf->jqcv == NULL) {
+            return NGX_CONF_ERROR;
+        }
+
+        *imcf->jqcv = cv;
+    }
+
+    return NGX_CONF_OK;
+}
+
+
+static char *
+ngx_http_image_filter_sharpen(ngx_conf_t *cf, ngx_command_t *cmd,
+    void *conf)
+{
+    ngx_http_image_filter_conf_t *imcf = conf;
+
+    ngx_str_t                         *value;
+    ngx_int_t                          n;
+    ngx_http_complex_value_t           cv;
+    ngx_http_compile_complex_value_t   ccv;
+
+    value = cf->args->elts;
+
+    ngx_memzero(&ccv, sizeof(ngx_http_compile_complex_value_t));
+
+    ccv.cf = cf;
+    ccv.value = &value[1];
+    ccv.complex_value = &cv;
+
+    if (ngx_http_compile_complex_value(&ccv) != NGX_OK) {
+        return NGX_CONF_ERROR;
+    }
+
+    if (cv.lengths == NULL) {
+        n = ngx_http_image_filter_value(&value[1]);
+
+        if (n < 0) {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                               "invalid value \"%V\"", &value[1]);
+            return NGX_CONF_ERROR;
+        }
+
+        imcf->sharpen = (ngx_uint_t) n;
+
+    } else {
+        imcf->shcv = ngx_palloc(cf->pool, sizeof(ngx_http_complex_value_t));
+        if (imcf->shcv == NULL) {
+            return NGX_CONF_ERROR;
+        }
+
+        *imcf->shcv = cv;
+    }
+
+    return NGX_CONF_OK;
+}
+
+
+static ngx_int_t
+ngx_http_image_filter_init(ngx_conf_t *cf)
+{
+    ngx_http_next_header_filter = ngx_http_top_header_filter;
+    ngx_http_top_header_filter = ngx_http_image_header_filter;
+
+    ngx_http_next_body_filter = ngx_http_top_body_filter;
+    ngx_http_top_body_filter = ngx_http_image_body_filter;
+
+    return NGX_OK;
+}
+#+end_src  
+
+**** 编译
+     #+begin_src sh
+     ./configure --with-debug --with-http_image_filter_module --add-module=`pwd`/../ngx_http_qrcode_module/ --add-module=`pwd`/../ngx_devel_kit/ --add-module=`pwd`/../set-misc-nginx-module/ --add-module=`pwd`/../ngx_http_image_water_filiter_module/src && make
+     #+end_src
+
+**** 配置
+     #+begin_example
+          location ~ /qr {
+              qrcode_fg_color FF0000;
+              qrcode_bg_color FFFFFF;    
+              qrcode_level 2;
+              qrcode_hint 2;
+              qrcode_size 90;
+              qrcode_margin 2;
+              qrcode_version 5;
+              set_unescape_uri $txt $arg_txt;
+              qrcode_txt $txt;
+              qrcode_casesensitive 1; 
+              qrcode_gen;  
+
+              image_filter_watermark "/tmp/water.png";
+              image_filter_watermark_position top-left;
+              image_filter watermark;
+          }
+     #+end_example
+
+**** 访问
+#+begin_example
+   http://localhost:8080/qr?txt=hello
+#+end_example
+
+*** 二维码基础服务的一点思索
+    - 必须建立在cdn的基础上
+    - 用户只需按照约定将内容以及定制参数按照直观的方式编码成二维码图片链接即可
+
+** DONE 解决保存快照失败后redis无法写入的问题                         :redis:
+   CLOSED: <2012-12-16 日 15:14>
+   
+   用命令行工具连上后执行“set test 0”出现以下错误提示：
+   #+BEGIN_EXAMPLE
+   MISCONF Redis is configured to save RDB snapshots, but is currently not able to persist on disk. Commands that may modify the data set are disabled. Please check Redis logs for details about the error.
+   #+END_EXAMPLE
+   这个应该是之前强制停止redis快照导致的，查看redis快照状态证实了这一点：
+   #+BEGIN_EXAMPLE
+   redis 127.0.0.1:6379> info
+   ...
+   rdb_last_bgsave_status:err
+   ...
+   #+END_EXAMPLE
+   通过关闭配置项stop-writes-on-bgsave-error解决该问题。
+   #+BEGIN_EXAMPLE
+   redis 127.0.0.1:6379> config set stop-writes-on-bgsave-error no
+   #+END_EXAMPLE
+
+** DONE 使用hash表结构减少redis内存占用                               :redis:
+   CLOSED: <2012-12-16 日 15:14>
+
+   当hash结构中的元素较少（少于redis.conf:hash-max-zipmap-entries指定的数量时，配置成<=1000，过大会减低处理速度，参见： [[http://stackoverflow.com/questions/11281734/redis-using-hashes][这里]] 和 [[http://instagram-engineering.tumblr.com/post/12202313862/storing-hundreds-of-millions-of-simple-key-value-pairs][这里]] ），redis使用特殊的方式（数组保存，时间换空间）保存hash结构以减少内存占用，参见 [[http://redis.io/topics/memory-optimization][这里]] 。但当hash结构超过指定数量时将使用普通的[[http://redis.io/commands#string][字符串]]方式保存，也就无法再节省内存了。
+
+** DONE 估算redis内存占用                                             :redis:
+   CLOSED: <2012-12-16 日 15:14>
+
+  参考: [[http://lethain.com/notes-on-redis-memory-usage/][Notes on Redis Memory Usage]]
+*** 测试环境
+   - redis版本 ::
+     redis_version:2.4.4
+   - 操作系统（uname -a） ::
+     Linux CentOS 2.6.32-220.13.1.el6.x86_64 #1 SMP Tue Apr 17 23:56:34 BST 2012 x86_64 x86_64 x86_64 GNU/Linux
+   - python版本（python --version） ::
+     Python 2.6.6
+   - 测试脚本 ::
+#+BEGIN_EXAMPLE
+#!/bin/env python
+
+import redis
+import uuid
+import time
+
+r = redis.Redis(host='localhost', port=6379, db=0)
+for num_strings in (100000,):
+    r.flushall()
+    time.sleep(1.0)
+    initial_size = r.dbsize()
+    initial_info = r.info()
+
+    for i in xrange(0, num_strings):
+        r.set(str(uuid.uuid4()), time.time())
+        #r.setex(str(uuid.uuid4()), time.time(), 100000)
+    final_size = r.dbsize()
+    final_info = r.info()
+
+    print "For %s strings." % (num_strings,)
+    print "Keys: %s => %s" % (initial_size, final_size)
+    print "Memory: %s => %s" % (initial_info['used_memory'],
+                                    final_info['used_memory'])
+    print "Memory per key: %d"%((int(final_info['used_memory']) - int(initial_info['used_memory'])) / num_strings)
+#+END_EXAMPLE
+*** 测试结果
+    - set ::
+      每个key-value占用138字节，可见redis本身的维护开销为89字节
+    - setex ::
+      每个key-value占用180字节，可见redis本身的维护开销为131字节，启用过期时间需要42字节开销（这是因为redis使用新的链表保存设置了过期时间的条目）。
+
+    
+  - 除非你能够保证你的机器总是有一半的空闲内存，否则别使用快照方式持久化数据或者通过执行BGREWRITEAOF压缩aof文件 ::
+    redis在执行bgsave时，会进行一次fork，fork后的进程负责将内存中的数据写入磁盘，由于fork采用Copy-On-Write，两个redis进程共享内存中的数据。redis如果有数据更新，则会将对应的共享内存页创建一份副本再更新，当更新操作足够频繁时，共享的内存空间会迅速地副本化，导致物理内存被耗光，系统被迫动用交换空间，从而导致redis服务极不稳定，整个系统堵塞在磁盘io上。
+
+** DONE linux下跨进程传递文件描述符                                   :linux:
+   CLOSED: <2013-03-09 六 15:11>
+
+*** 问题
+    在web开发中，以典型的php-fpm为例，对于到外部系统的连接（如：mysql、redis）等都提供了持久连接接口（pconnect），但是受限于多进程模型，事实上是每个php-fpm进程都有单独的一个连接池的（参见：《[[file:php_meet_redis.org][当php遇上redis]]》，大量空闲连接的存在不仅对系统资源造成了浪费（不单指fd空间，像mysql的每连接一线程会附带大量内存空间：sort\_buffer、read\_buffer等），而且整个系统将无法横向扩展（如：mysql连接数限制）。如果可以在进程间共享文件描述符，将可以大大提升系统性能，促进多进程模型的应用。
+
+*** 方案
+    在linux平台下，sendmsg、recvmsg可以将一个进程的文件描述符传递给另一进程使用，这使得实现系统级的连接池成为可能。
+
+*** 实现
+    《The Linux Programming Interface》61.13.3 Passing File Descriptors
+     
+** DONE Web模型初探                                                     :web:
+   CLOSED: <2013-02-28 四 15:07>
+*** CGI
+    全称为Common Gateway Interface，即公共网关接口。
+    当Web服务器收到一个请求时，运行相应的处理程序，相关参数通过标准输入传递给处理程序，处理程序的标准输出做为响应内容，处理程序运行结束后将响应发送给客户端。
+    
+    - 性能 *
+      进程级，每请求一进程。进程创建有很大的开销，并发数与系统资源消耗呈线性增长，有限的系统资源成为瓶颈。
+      
+*** FastCGI
+    为CGI的改良，CGI程序做为独立的网络后台程序运行，当Web服务器收到一个请求时，发起一个tcp请求到处理程序，通过该tcp连接传入相关参数，处理程序的响应也通过该tcp连接发回给Web服务器，处理程序关闭该连接表示处理完毕，Web服务器最终将响应发送给客户端。
+
+    - 性能 **
+      网络级，每请求一连接。CGI的改良，重用进程，进程处理完一个请求后再处理下一请求，对于多个请求，只需要付出一次进程创建的开销，可以在后继请求重用资源（从文件载入的配置项、查询到的数据、打开的文件、数据库连接等）。因为处理程序是串行处理请求，往往需要同时运行多个处理程序以提升并发处理能力，这些处理程序无法共享资源以进一步提升性能。
+    
+    - 附录
+      Web服务器可重用到服务程序的连接进一步提升性能（如：nginx的[[http://nginx.org/en/docs/http/ngx_http_upstream_module.html#keepalive][upstream_keepalive]]）。
+      
+*** WSGI
+
+*** uWSGI
+** DONE memcached_get会重置超时间吗？                             :memcached:
+   CLOSED: <2012-11-13 二 20:29>
+
+   不会。获取数据的操作不会影响数据的超时时间，最新的memcache1.6添加了touch和GAT（get and touch)命令，可以在获取数据时重置超时间。

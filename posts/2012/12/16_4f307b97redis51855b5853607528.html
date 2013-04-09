@@ -2,7 +2,7 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8"/>
-    <title>看看俺 - KanKanAn.com</title>
+    <title>估算redis内存占用 | 看看俺 - KanKanAn.com</title>
     <link rel="stylesheet" type="text/less" href="../../../style/less/o-blog.less"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="generator" content="o-blog version 1.2-143-gb5a9a69"/>
@@ -49,16 +49,147 @@
     </div>
     <div id="page" class="container">
 
-<article>
-  <div class="article-content">
-    <nav class="archives">
-      <ul class="month 2013 4">
-  <li>09 <a href="../../../index.html">使用o-blog搭建个人博客</a></li><li>07 <a href="../../../posts/2013/04/07_59824f555b664e6082f18bed.html">如何学习英语</a></li>
-</ul>
+  <div class="article">
+  <header class="article-header">
 
-    </nav>
+    <div class="page-header">
+      <div class="row">
+	<div class="date span1">
+	  <div class=" date-d">16</div>
+	  <div class=" date-m"><a href="../../../posts/2012/12/index.html">12月</a></div>
+	  <div class=" date-y"><a href="../../../posts/2012/index.html">2012</a>
+	  </div>
+	</div>
+	<div class="span1">
+	  <div class="qr-code">
+  <img style="min-width:70px; min-height:70px; max-width:70px; max-height:70px;" src="http://chart.apis.google.com/chart?chs=70x70&cht=qr&chld=|0&chl=http%3a%2f%2fblog.kankanan.com%2f%2fposts%2f2012%2f12%2f16_4f307b97redis51855b5853607528.html"
+       alt="qr-code" />
+</div>
+
+	</div>
+	<h1 class="offset2">估算redis内存占用</h1>
+      </div>
+      <nav>
+	<ul class="pager">
+	  <li class="previous"><a href="../../../posts/2012/12/15_archlinux4e0b5b8988c5fcitx8f9351656cd5.html"><i class="icon-chevron-left"></i>&nbsp;Archlinux下安装fcitx输入法</a></li><li class="next" style="text-align: right;"><a href="../../../posts/2012/12/16_4f7f7528hash88687ed3678451cf5c11redis51855b5853607528.html">使用hash表结构减少redis内存占用&nbsp;<i class="icon-chevron-right"></i></a></li>
+	</ul>
+      </nav>
+    </div>
+
+  </header>
+  <div class="article-content">
+    <p>
+ 参考: <a href="http://lethain.com/notes-on-redis-memory-usage/">Notes on Redis Memory Usage</a>
+</p>
+<div id="outline-container-1" class="outline-3">
+<h3 id="sec-1">测试环境</h3>
+<div class="outline-text-3" id="text-1">
+
+<dl>
+<dt>redis版本</dt><dd>
+<p>
+     redis<sub>version</sub>:2.4.4
+</p></dd>
+<dt>操作系统（uname -a）</dt><dd>
+<p>
+     Linux CentOS 2.6.32-220.13.1.el6.x86<sub>64</sub> #1 SMP Tue Apr 17 23:56:34 BST 2012 x86<sub>64</sub> x86<sub>64</sub> x86<sub>64</sub> GNU/Linux
+</p></dd>
+<dt>python版本（python &ndash;version）</dt><dd>
+<p>
+     Python 2.6.6
+</p></dd>
+<dt>测试脚本</dt><dd>
+</dd>
+</dl>
+
+
+
+
+<pre class="example">#!/bin/env python
+
+import redis
+import uuid
+import time
+
+r = redis.Redis(host='localhost', port=6379, db=0)
+for num_strings in (100000,):
+    r.flushall()
+    time.sleep(1.0)
+    initial_size = r.dbsize()
+    initial_info = r.info()
+
+    for i in xrange(0, num_strings):
+        r.set(str(uuid.uuid4()), time.time())
+        #r.setex(str(uuid.uuid4()), time.time(), 100000)
+    final_size = r.dbsize()
+    final_info = r.info()
+
+    print "For %s strings." % (num_strings,)
+    print "Keys: %s =&gt; %s" % (initial_size, final_size)
+    print "Memory: %s =&gt; %s" % (initial_info['used_memory'],
+                                    final_info['used_memory'])
+    print "Memory per key: %d"%((int(final_info['used_memory']) - int(initial_info['used_memory'])) / num_strings)
+</pre>
+
+</div>
+
+</div>
+
+<div id="outline-container-2" class="outline-3">
+<h3 id="sec-2">测试结果</h3>
+<div class="outline-text-3" id="text-2">
+
+<dl>
+<dt>set</dt><dd>
+<p>
+     每个key-value占用138字节，可见redis本身的维护开销为89字节
+</p></dd>
+<dt>setex</dt><dd>
+<p>
+     每个key-value占用180字节，可见redis本身的维护开销为131字节，启用过期时间需要42字节开销（这是因为redis使用新的链表保存设置了过期时间的条目）。
+</p></dd>
+</dl>
+
+
+
+<dl>
+<dt>除非你能够保证你的机器总是有一半的空闲内存，否则别使用快照方式持久化数据或者通过执行BGREWRITEAOF压缩aof文件</dt><dd>
+<p>
+   redis在执行bgsave时，会进行一次fork，fork后的进程负责将内存中的数据写入磁盘，由于fork采用Copy-On-Write，两个redis进程共享内存中的数据。redis如果有数据更新，则会将对应的共享内存页创建一份副本再更新，当更新操作足够频繁时，共享的内存空间会迅速地副本化，导致物理内存被耗光，系统被迫动用交换空间，从而导致redis服务极不稳定，整个系统堵塞在磁盘io上。
+</p></dd>
+</dl>
+
+</div>
+</div>
+
   </div>
-</article>
+  
+  <footer class="article-footer">
+    <nav class="tag-cloud">
+      <ul>
+	<li class="label label-inverse small"><a href="../../../tags/redis.html">redis</a></li>
+      </ul>
+    </nav>
+    <span class="muted">
+      发布于 <time datetime="2012-12-16T15:14:00Z"> 2012-12-16 15:14:00</time>
+    </span>
+  </footer>
+  </div>
+  <div id="disqus_thread"></div>
+<script type="text/javascript">
+  /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+  var disqus_shortname = 'kankananblog'; // required: replace example with your forum shortname
+
+  /* * * DON'T EDIT BELOW THIS LINE * * */
+  (function() {
+  var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+  dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
       </div>
       <div id="footer">
 	<div class="container">
