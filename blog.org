@@ -1023,3 +1023,47 @@ for num_strings in (100000,):
    CLOSED: <2012-11-13 二 20:29>
 
    不会。获取数据的操作不会影响数据的过期时间，最新的memcache1.6添加了touch和GAT（get and touch)命令，可以在获取数据时过期时间。
+** DONE python中MySQLdb使用utf-8字符集                         :python:mysql:
+   CLOSED: <2011-04-29 Fri 01:22>
+   - 要避免乱码需要做好以下几点 ::
+     - python源代码保存为utf-8
+     - 数据库建成utf-8
+     - mysql连接设置为utf-8
+     - 查询結果中的文本字段是unicode的，转回utf-8
+
+   - 总结性的示例代码 ::
+     #+begin_src python
+       #!/usr/bin/env python
+       #-*- coding: utf-8 -*-
+       
+       import MySQLdb
+       
+       if __name__ == '__main__':
+           mysql = MySQLdb.connect(host='localhost', user='root', passwd='123456', charset='utf8')
+           cursor = mysql.cursor()
+           cursor.execute('SET NAMES UTF8')
+           sql = 'DROP DATABASE IF EXISTS mysqldb_utf8_test'
+           cursor.execute(sql)
+           sql = 'CREATE DATABASE mysqldb_utf8_test DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci'
+           cursor.execute(sql)
+           mysql = MySQLdb.connect(host='localhost', user='root', passwd='123456', db='mysqldb_utf8_test', charset='utf8')
+           cursor = mysql.cursor()
+           cursor.execute('SET NAMES UTF8')
+           sql = 'CREATE TABLE utf8_table(key_field VARCHAR(32) NOT NULL, value_field VARCHAR(255) NOT NULL)'
+           cursor.execute(sql)
+           key = 'tangxinfa'
+           value = '好人一个'
+           sql = 'INSERT INTO utf8_table VALUES("%s", "%s")'%(key, value)
+           cursor.execute(sql)       #注意某些旧版本的mysql（如4.1.22以下），mysql.character_set_name()总是返回latin1，会引起乱码，需要改为cursor.execute('INSERT INTO utf8_table VALUES("%s", "%s")', (key, value))
+           sql = 'select * from utf8_table'
+           cursor.execute(sql)
+           for record in cursor.fetchall():
+               for item in record:
+                   print item.encode('utf8')
+     #+end_src
+
+   - 参考 ::
+     - http://mysql-python.sourceforge.net/MySQLdb.html
+     - http://bbs.phpchina.com/viewthread.php?tid=13861
+     - http://hi.baidu.com/ak456/blog/item/c318502394aa20569922ed7b.html
+

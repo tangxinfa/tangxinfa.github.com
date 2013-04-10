@@ -2,7 +2,7 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8"/>
-    <title>看看俺 - KanKanAn.com</title>
+    <title>python中MySQLdb使用utf-8字符集 | 看看俺 - KanKanAn.com</title>
     <link rel="stylesheet" type="text/less" href="../../../style/less/o-blog.less"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="generator" content="o-blog version 1.2-148-g6da8733"/>
@@ -49,16 +49,114 @@
     </div>
     <div id="page" class="container">
 
-<article>
+  <div class="article">
+  <header class="article-header">
+
+    <div class="page-header">
+      <div class="row">
+	<div class="date span1">
+	  <div class=" date-d">29</div>
+	  <div class=" date-m"><a href="../../../posts/2011/04/index.html">4月</a></div>
+	  <div class=" date-y"><a href="../../../posts/2011/index.html">2011</a>
+	  </div>
+	</div>
+	<div class="span1">
+	  <div class="qr-code">
+  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="http://chart.apis.google.com/chart?chs=90x90&cht=qr&chld=|0&chl=http%3A%2F%2Fblog.kankanan.com%2Fposts%2F2011%2F04%2F29_python4e2dmysqldb4f7f7528utf-85b577b2696c6.html"
+       alt="qr-code" />
+</div>
+
+	</div>
+	<h1 class="offset2">python中MySQLdb使用utf-8字符集</h1>
+      </div>
+      <nav>
+	<ul class="pager">
+	  <li class="previous">&nbsp;</li><li class="next" style="text-align: right;"><a href="../../../posts/2012/08/01_5728python4e2d5b8988c5mysqldb6a215757.html">在python中安装mysqldb模块&nbsp;<i class="icon-chevron-right"></i></a></li>
+	</ul>
+      </nav>
+    </div>
+
+  </header>
   <div class="article-content">
-    <nav class="archives">
-      <ul class="month 2012 12">
-  <li>16 <a href="../../../posts/2012/12/16_89e351b34fdd5b585feb716759318d25540eredis65e06cd551995165768495ee9898.html">解决保存快照失败后redis无法写入的问题</a></li><li>16 <a href="../../../posts/2012/12/16_4f7f7528hash88687ed3678451cf5c11redis51855b5853607528.html">使用hash表结构减少redis内存占用</a></li><li>16 <a href="../../../posts/2012/12/16_4f307b97redis51855b5853607528.html">估算redis内存占用</a></li><li>15 <a href="../../../posts/2012/12/15_archlinux4e0b5b8988c5fcitx8f9351656cd5.html">Archlinux下安装fcitx输入法</a></li><li>14 <a href="../../../posts/2012/12/14_nginx-comet3a-57fa4e8e-http-957f8fde63a57684201c670d52a1566863a8201d6280672f.html">Nginx Comet: 基于 HTTP 长连接的“服务器推”技术</a></li><li>08 <a href="../../../posts/2012/12/08_5f53php90474e0aredis.html">当php遇上redis</a></li><li>06 <a href="../../../posts/2012/12/06_89e351b3mysql5fconnect6162768495ee9898.html">解决mysql_connect慢的问题</a></li>
+    <dl>
+<dt>总结性的示例代码</dt><dd>
+
+
+
+<pre class="src src-python"><span style="color: #586e75; font-style: italic;">#</span><span style="color: #586e75; font-style: italic;">!/usr/bin/env python</span>
+<span style="color: #586e75; font-style: italic;">#</span><span style="color: #586e75; font-style: italic;">-*- coding: utf-8 -*-</span>
+
+<span style="color: #859900;">import</span> MySQLdb
+
+<span style="color: #859900;">if</span> <span style="color: #859900;">__name__</span> == <span style="color: #2aa198;">'__main__'</span>:
+    mysql = MySQLdb.connect(host=<span style="color: #2aa198;">'localhost'</span>, user=<span style="color: #2aa198;">'root'</span>, passwd=<span style="color: #2aa198;">'123456'</span>, charset=<span style="color: #2aa198;">'utf8'</span>)
+    cursor = mysql.cursor()
+    cursor.execute(<span style="color: #2aa198;">'SET NAMES UTF8'</span>)
+    sql = <span style="color: #2aa198;">'DROP DATABASE IF EXISTS mysqldb_utf8_test'</span>
+    cursor.execute(sql)
+    sql = <span style="color: #2aa198;">'CREATE DATABASE mysqldb_utf8_test DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci'</span>
+    cursor.execute(sql)
+    mysql = MySQLdb.connect(host=<span style="color: #2aa198;">'localhost'</span>, user=<span style="color: #2aa198;">'root'</span>, passwd=<span style="color: #2aa198;">'123456'</span>, db=<span style="color: #2aa198;">'mysqldb_utf8_test'</span>, charset=<span style="color: #2aa198;">'utf8'</span>)
+    cursor = mysql.cursor()
+    cursor.execute(<span style="color: #2aa198;">'SET NAMES UTF8'</span>)
+    sql = <span style="color: #2aa198;">'CREATE TABLE utf8_table(key_field VARCHAR(32) NOT NULL, value_field VARCHAR(255) NOT NULL)'</span>
+    cursor.execute(sql)
+    key = <span style="color: #2aa198;">'tangxinfa'</span>
+    value = <span style="color: #2aa198;">'&#22909;&#20154;&#19968;&#20010;'</span>
+    sql = <span style="color: #2aa198;">'INSERT INTO utf8_table VALUES("%s", "%s")'</span>%(key, value)
+    cursor.execute(sql)       <span style="color: #586e75; font-style: italic;">#</span><span style="color: #586e75; font-style: italic;">&#27880;&#24847;&#26576;&#20123;&#26087;&#29256;&#26412;&#30340;mysql&#65288;&#22914;4.1.22&#20197;&#19979;&#65289;&#65292;mysql.character_set_name()&#24635;&#26159;&#36820;&#22238;latin1&#65292;&#20250;&#24341;&#36215;&#20081;&#30721;&#65292;&#38656;&#35201;&#25913;&#20026;cursor.execute('INSERT INTO utf8_table VALUES("%s", "%s")', (key, value))</span>
+    sql = <span style="color: #2aa198;">'select * from utf8_table'</span>
+    cursor.execute(sql)
+    <span style="color: #859900;">for</span> record <span style="color: #859900;">in</span> cursor.fetchall():
+        <span style="color: #859900;">for</span> item <span style="color: #859900;">in</span> record:
+            <span style="color: #859900;">print</span> item.encode(<span style="color: #2aa198;">'utf8'</span>)
+</pre>
+
+
+</dd>
+<dt>参考</dt><dd>
+<ul>
+<li><a href="http://mysql-python.sourceforge.net/MySQLdb.html">http://mysql-python.sourceforge.net/MySQLdb.html</a>
+</li>
+<li><a href="http://bbs.phpchina.com/viewthread.php?tid=13861">http://bbs.phpchina.com/viewthread.php?tid=13861</a>
+</li>
+<li><a href="http://hi.baidu.com/ak456/blog/item/c318502394aa20569922ed7b.html">http://hi.baidu.com/ak456/blog/item/c318502394aa20569922ed7b.html</a>
+</li>
 </ul>
 
-    </nav>
+</dd>
+</dl>
+
+
+
   </div>
-</article>
+  
+  <footer class="article-footer">
+    <nav class="tag-cloud">
+      <ul>
+	<li class="label label-inverse small"><a href="../../../tags/python.html">python</a></li><li class="label label-inverse small"><a href="../../../tags/mysql.html">mysql</a></li>
+      </ul>
+    </nav>
+    <span class="muted">
+      发布于 <time datetime="2011-04-29T01:22:00Z"> 2011-04-29 01:22:00</time>
+    </span>
+  </footer>
+  </div>
+  <div id="disqus_thread"></div>
+<script type="text/javascript">
+  /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+  var disqus_shortname = 'kankananblog'; // required: replace example with your forum shortname
+
+  /* * * DON'T EDIT BELOW THIS LINE * * */
+  (function() {
+  var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+  dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
       </div>
       <div id="footer">
 	<div class="container">
