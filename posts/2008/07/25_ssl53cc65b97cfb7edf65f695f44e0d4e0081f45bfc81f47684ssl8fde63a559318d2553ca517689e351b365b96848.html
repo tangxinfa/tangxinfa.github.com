@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8"/>
+    <title>SSL双方系统时间不一致导致的SSL连接失败及其解决方案 | 看看俺 - KanKanAn.com</title>
+    <link rel="stylesheet" type="text/less" href="../../../style/less/o-blog.less"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="generator" content="o-blog version 1.2-148-g6da8733"/>
+    <script src="../../../style/js/less-1.3.0.min.js" type="text/javascript"></script>
+    <script src="../../../style/js/jquery-1.7.1.min.js" type="text/javascript"></script>
+    <script src="../../../style/bootstrap/js/bootstrap-modal.js" type="text/javascript"></script>
+    <script src="../../../style/bootstrap/js/bootstrap-transition.js" type="text/javascript"></script>
+    <script src="../../../style/bootstrap/js/bootstrap-dropdown.js" type="text/javascript"></script>
+    <script src="../../../style/bootstrap/js/bootstrap-collapse.js" type="text/javascript"></script>
+    <script src="../../../style/js/prettify.js" type="text/javascript"></script>
+    <script src="../../../style/js/o-blog.linenumber.js" type="text/javascript"></script>
+    <script src="../../../style/js/o-blog-fix.js" type="text/javascript"></script>
+    
+    
+  </head>
+  <body>
+
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+	<div class="container">
+	  <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+	  <a class="brand" href="../../../index.html">看看俺 - KanKanAn.com</a>
+	  <div class="nav-collapse collapse">
+	    <ul>
+<li><a href="../../../archives.html"><i>icon-list icon-white</i> 归档</a>
+
+</li>
+<li><a href="../../../tags.html"><i>icon-tags icon-white</i> 标签</a>
+
+</li>
+<li><a href="../../../index.xml"><i>icon-rss icon-white</i> 订阅</a>
+</li>
+</ul>
+
+
+
+	  </div>
+	</div>
+      </div>
+    </div>
+    <div id="page" class="container">
+
+  <div class="article">
+  <header class="article-header">
+
+    <div class="page-header">
+      <div class="row">
+	<div class="date span1">
+	  <div class=" date-d">25</div>
+	  <div class=" date-m"><a href="../../../posts/2008/07/index.html">7月</a></div>
+	  <div class=" date-y"><a href="../../../posts/2008/index.html">2008</a>
+	  </div>
+	</div>
+	<div class="span1">
+	  <div class="qr-code">
+  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="http://chart.apis.google.com/chart?chs=90x90&cht=qr&chld=|0&chl=http%3A%2F%2Fblog.kankanan.com%2Fposts%2F2008%2F07%2F25_ssl53cc65b97cfb7edf65f695f44e0d4e0081f45bfc81f47684ssl8fde63a559318d2553ca517689e351b365b96848.html"
+       alt="qr-code" />
+</div>
+
+	</div>
+	<h1 class="offset2">SSL双方系统时间不一致导致的SSL连接失败及其解决方案</h1>
+      </div>
+      <nav>
+	<ul class="pager">
+	  <li class="previous"><a href="../../../posts/2008/06/17_log4cxx4f7f75285fc35f97.html"><i class="icon-chevron-left"></i>&nbsp;log4cxx使用心得</a></li><li class="next" style="text-align: right;"><a href="../../../posts/2011/04/29_python4e2dmysqldb4f7f7528utf-85b577b2696c6.html">python中MySQLdb使用utf-8字符集&nbsp;<i class="icon-chevron-right"></i></a></li>
+	</ul>
+      </nav>
+    </div>
+
+  </header>
+  <div class="article-content">
+    <p>
+  在产品使用中，实施人员常常报告服务器与客户端无法连接，最终查明原因是双方的时间设置不一致。OpenSSL证书有一个有效时间段，当客户端或服务器的系统时间不在这个时间段内时SSL会因证书验证失败而无法连接。在实施中系统时间错误是很常见的，因不能上网而未开时间自动同步、bios没电了、客户疏忽等原因都会导致系统时间设置错误。如果连接失败后再查看系统时间设置进行故障排查终归是一件麻烦的事情。
+</p>
+<p>
+  解决这个问题有以下几个办法：
+</p>
+<ul>
+<li>将证书的有效期设置得够大（如：1970-2099）
+
+<p>    
+    这样估计可以在一定程度上解决这个问题，不过这也是个馊主意，一般申请的证书总会有一个合理的有效期。
+</p>
+</li>
+<li>检测及必要时自动同步客户端与服务器的时间
+
+<p>    
+    通过用wireshake抓包分析SSL建立连接的过程，发现在SSL握手过程中，会向对方传送本机的系统时间。因此一个显而易见的办法就是，当连接过程中检测到证书过期，将客户端的时间同步为服务器端的时间，再重连即可。
+</p>
+<p>
+    下面是具体的示例代码：
+</p>
+
+
+<pre class="src src-c"><span style="color: #cb4b16;">#include</span> <span style="color: #2aa198;">&lt;openssl/ssl.h&gt;</span>
+<span style="color: #cb4b16;">#include</span> <span style="color: #2aa198;">&lt;openssl/bio.h&gt;</span>
+<span style="color: #cb4b16;">#include</span> <span style="color: #2aa198;">&lt;openssl/err.h&gt;</span>
+<span style="color: #cb4b16;">#include</span> <span style="color: #2aa198;">&lt;winsock2.h&gt;</span>
+<span style="color: #cb4b16;">#include</span> <span style="color: #2aa198;">&lt;stdio.h&gt;</span>
+<span style="color: #cb4b16;">#include</span> <span style="color: #2aa198;">&lt;string.h&gt;</span>
+<span style="color: #cb4b16;">#include</span> <span style="color: #2aa198;">&lt;time.h&gt;</span>
+
+<span style="color: #859900;">typedef</span> <span style="color: #859900;">struct</span> <span style="color: #b58900;">_TimeInfo</span>
+{
+    <span style="color: #b58900;">time_t</span> <span style="color: #268bd2;">client</span>;  <span style="color: #586e75; font-style: italic;">/*</span><span style="color: #586e75; font-style: italic;">&#23458;&#25143;&#31471;&#30340;&#26102;&#38388;</span><span style="color: #586e75; font-style: italic;">*/</span>
+    <span style="color: #b58900;">time_t</span> <span style="color: #268bd2;">server</span>;  <span style="color: #586e75; font-style: italic;">/*</span><span style="color: #586e75; font-style: italic;">&#26381;&#21153;&#22120;&#30340;&#26102;&#38388;</span><span style="color: #586e75; font-style: italic;">*/</span>
+} <span style="color: #b58900;">TimeInfo</span>;
+
+<span style="color: #586e75; font-style: italic;">/**</span>
+<span style="color: #586e75; font-style: italic;"> * &#21516;&#27493;&#31995;&#32479;&#26102;&#38388;.</span>
+<span style="color: #586e75; font-style: italic;"> */</span>
+<span style="color: #b58900;">BOOL</span> <span style="color: #268bd2;">syncSystemTime</span>(<span style="color: #b58900;">time_t</span> <span style="color: #268bd2;">t</span>)
+{
+    <span style="color: #b58900;">SYSTEMTIME</span> <span style="color: #268bd2;">st</span>;
+    <span style="color: #b58900;">FILETIME</span>   <span style="color: #268bd2;">ft</span>;  
+    <span style="color: #b58900;">LONGLONG</span>   <span style="color: #268bd2;">ll</span>;  
+
+    ll = Int32x32To64(t, 10000000) + 116444736000000000; <span style="color: #586e75; font-style: italic;">//</span><span style="color: #586e75; font-style: italic;">1970.01.01  </span>
+
+    ft.dwLowDateTime  = (<span style="color: #b58900;">DWORD</span>)ll;  
+    ft.dwHighDateTime = (<span style="color: #b58900;">DWORD</span>)(ll &gt;&gt; 32);  
+
+    <span style="color: #859900;">return</span> FileTimeToSystemTime(&amp;ft, &amp;st) &amp;&amp; SetSystemTime(&amp;st);
+}
+
+<span style="color: #586e75; font-style: italic;">/**</span>
+<span style="color: #586e75; font-style: italic;"> * &#33719;&#21462;SSL&#25569;&#25163;&#36807;&#31243;&#20013;&#26381;&#21153;&#22120;&#19982;&#23458;&#25143;&#31471;&#21452;&#26041;&#30340;&#31995;&#32479;&#26102;&#38388;.</span>
+<span style="color: #586e75; font-style: italic;"> */</span>
+<span style="color: #b58900;">void</span> <span style="color: #268bd2;">getSSLHandleShakeTimeInfo</span>(<span style="color: #b58900;">int</span> <span style="color: #268bd2;">write_p</span>,
+                               <span style="color: #b58900;">int</span> <span style="color: #268bd2;">version</span>,
+                               <span style="color: #b58900;">int</span> <span style="color: #268bd2;">content_type</span>,
+                               <span style="color: #859900;">const</span> <span style="color: #b58900;">unsigned</span> <span style="color: #b58900;">char</span>* <span style="color: #268bd2;">buf</span>,
+                               <span style="color: #b58900;">size_t</span> <span style="color: #268bd2;">len</span>,
+                               <span style="color: #b58900;">SSL</span> *<span style="color: #268bd2;">ssl</span>,
+                               <span style="color: #b58900;">TimeInfo</span> *<span style="color: #268bd2;">ti</span>)
+{
+    <span style="color: #859900;">if</span>(content_type != 22)   <span style="color: #586e75; font-style: italic;">//</span><span style="color: #586e75; font-style: italic;">require handshake message</span>
+        <span style="color: #859900;">return</span>;
+    <span style="color: #859900;">if</span>(len &lt; 42)
+        <span style="color: #859900;">return</span>;
+    <span style="color: #859900;">if</span>(buf[0] == 1)          <span style="color: #586e75; font-style: italic;">//</span><span style="color: #586e75; font-style: italic;">ClientHello Message send from client to server</span>
+        ti-&gt;client = htonl(*((<span style="color: #b58900;">u_long</span>*)(buf + 6)));
+    <span style="color: #859900;">else</span> <span style="color: #859900;">if</span>(buf[0] == 2)     <span style="color: #586e75; font-style: italic;">//</span><span style="color: #586e75; font-style: italic;">ServerHello Message send from server to client</span>
+        ti-&gt;server = htonl(*((<span style="color: #b58900;">u_long</span>*)(buf + 6)));
+    <span style="color: #859900;">else</span>
+        <span style="color: #859900;">return</span>;
+}
+
+<span style="color: #b58900;">int</span> <span style="color: #268bd2;">main</span>()
+{
+    <span style="color: #b58900;">BIO</span> * <span style="color: #268bd2;">bio</span>;
+    <span style="color: #b58900;">SSL</span> * <span style="color: #268bd2;">ssl</span>;
+    <span style="color: #b58900;">SSL_CTX</span> * <span style="color: #268bd2;">ctx</span>;
+    <span style="color: #b58900;">TimeInfo</span> <span style="color: #268bd2;">timeInfo</span> = {-1, -1};
+    <span style="color: #b58900;">BOOL</span> <span style="color: #268bd2;">timeSynced</span> = FALSE;
+    <span style="color: #b58900;">long</span> <span style="color: #268bd2;">result</span>;
+
+    <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">Set up the library </span><span style="color: #586e75; font-style: italic;">*/</span>
+    SSL_library_init();
+    ERR_load_BIO_strings();
+    SSL_load_error_strings();
+
+    <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">Set up the SSL context </span><span style="color: #586e75; font-style: italic;">*/</span>
+    ctx = SSL_CTX_new(SSLv3_client_method());
+    <span style="color: #859900;">if</span>(ctx == <span style="color: #2aa198;">NULL</span>)
+    {
+        fprintf(stderr, <span style="color: #2aa198;">"Error new SSL_CTX\n"</span>);
+        ERR_print_errors_fp(stderr);
+        SSL_CTX_free(ctx);
+        <span style="color: #859900;">return</span> 0;
+    }
+
+    <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">Get Server and Client system time via SSL Handshake </span><span style="color: #586e75; font-style: italic;">*/</span>
+    SSL_CTX_set_msg_callback(ctx, getSSLHandleShakeTimeInfo);
+    SSL_CTX_set_msg_callback_arg(ctx, &amp;timeInfo);
+
+    <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">Load the trust store </span><span style="color: #586e75; font-style: italic;">*/</span>
+    <span style="color: #859900;">if</span>(<span style="color: #dc322f;">!</span> SSL_CTX_load_verify_locations(ctx, <span style="color: #2aa198;">".\\certs\\cacert.pem"</span>, <span style="color: #2aa198;">NULL</span>))
+    {
+        fprintf(stderr, <span style="color: #2aa198;">"Error loading trust store\n"</span>);
+        ERR_print_errors_fp(stderr);
+        SSL_CTX_free(ctx);
+        <span style="color: #859900;">return</span> 0;
+    }
+
+    <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">Setup the connection </span><span style="color: #586e75; font-style: italic;">*/</span>
+    bio = BIO_new_ssl_connect(ctx);
+
+    <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">Set the SSL_MODE_AUTO_RETRY flag </span><span style="color: #586e75; font-style: italic;">*/</span>
+    BIO_get_ssl(bio, &amp; ssl);
+    SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
+
+    <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">Create and setup the connection </span><span style="color: #586e75; font-style: italic;">*/</span>
+    BIO_set_conn_hostname(bio, <span style="color: #2aa198;">"192.168.1.5:5555"</span>);
+    <span style="color: #859900;">if</span>(BIO_do_connect(bio) &lt;= 0)
+    {
+        fprintf(stderr, <span style="color: #2aa198;">"Error attempting to connect\n"</span>);
+        ERR_print_errors_fp(stderr);
+        BIO_free_all(bio);
+        SSL_CTX_free(ctx);
+        <span style="color: #859900;">return</span> 0;
+    }
+
+    <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">Check the certificate </span><span style="color: #586e75; font-style: italic;">*/</span>
+    <span style="color: #859900;">switch</span>(SSL_get_verify_result(ssl))
+    {
+    <span style="color: #859900;">case</span> X509_V_OK:
+        <span style="color: #859900;">break</span>;
+    <span style="color: #859900;">case</span> X509_V_ERR_CERT_NOT_YET_VALID:
+    <span style="color: #859900;">case</span> X509_V_ERR_CERT_HAS_EXPIRED:
+        <span style="color: #859900;">if</span>(timeInfo.server != -1 &amp;&amp; timeInfo.client != -1)
+        {
+            printf(<span style="color: #2aa198;">"&#24403;&#21069;&#23458;&#25143;&#31471;&#26102;&#38388;: %s"</span>, ctime(&amp;timeInfo.client));
+            printf(<span style="color: #2aa198;">"&#24403;&#21069;&#26381;&#21153;&#22120;&#26102;&#38388;: %s"</span>, ctime(&amp;timeInfo.server));
+            printf(<span style="color: #2aa198;">"&#23581;&#35797;&#19982;&#26381;&#21153;&#22120;&#26102;&#38388;&#21516;&#27493;"</span>);
+
+            <span style="color: #859900;">if</span>(syncSystemTime(timeInfo.server))
+                printf(<span style="color: #2aa198;">"&#25104;&#21151;\n"</span>);
+            <span style="color: #859900;">else</span>
+                printf(<span style="color: #2aa198;">"&#22833;&#36133;\n"</span>);
+            printf(<span style="color: #2aa198;">"&#35831;&#37325;&#35797;&#36830;&#25509;&#26381;&#21153;&#22120;&#65281;\n"</span>);
+        }
+    <span style="color: #859900;">default</span>:
+        fprintf(stderr, <span style="color: #2aa198;">"Certificate verification error: %i\n"</span>, SSL_get_verify_result(ssl));
+        BIO_free_all(bio);
+        SSL_CTX_free(ctx);
+        <span style="color: #859900;">return</span> 0;
+    }
+
+    <span style="color: #586e75; font-style: italic;">/* </span><span style="color: #586e75; font-style: italic;">Close the connection and free the context </span><span style="color: #586e75; font-style: italic;">*/</span>
+    BIO_free_all(bio);
+    SSL_CTX_free(ctx);
+    <span style="color: #859900;">return</span> 0;
+}
+</pre>
+
+</li>
+</ul>
+
+
+  </div>
+  
+  <footer class="article-footer">
+    <nav class="tag-cloud">
+      <ul>
+	<li class="label label-inverse small"><a href="../../../tags/openssl.html">openssl</a></li><li class="label label-inverse small"><a href="../../../tags/c.html">c</a></li>
+      </ul>
+    </nav>
+    <span class="muted">
+      发布于 <time datetime="2008-07-25T17:45:00Z"> 2008-07-25 17:45:00</time>
+    </span>
+  </footer>
+  </div>
+  <div id="disqus_thread"></div>
+<script type="text/javascript">
+  /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+  var disqus_shortname = 'kankananblog'; // required: replace example with your forum shortname
+
+  /* * * DON'T EDIT BELOW THIS LINE * * */
+  (function() {
+  var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+  dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+      </div>
+      <div id="footer">
+	<div class="container">
+	  <div class="row">
+	    <nav class="span3">
+	      <h1>关于</h1>
+	      <p>
+记我所思，忆我所为
+</p>
+	    </nav>
+	    <nav id="links" class="span3">
+	      <h1>链接</h1>
+	      <ul>
+		<ul>
+<li><a href="../../../index.html"><i>icon-home icon-white</i> 首页</a>
+
+</li>
+<li><a href="../../../tags.html"><i>icon-tags icon-white</i> 标签</a>
+
+</li>
+<li><a href="../../../archives.html"><i>icon-list icon-white</i> 归档</a>
+
+</li>
+<li><a href="../../../index.xml"><i>icon-rss icon-white</i> 订阅</a>
+
+</li>
+<li><a href="../../../changelog.html"><i>icon-pencil icon-white</i> 更新日志</a>
+</li>
+</ul>
+
+
+
+	      </ul>
+	    </nav>
+	    <nav id="archives" class="span3">
+	      <h1><a href="../../../archives.html">归档</a></h1>
+	      <ul>
+		<li><a href="../../../index.html">使用o-blog搭建个人博客</a></li> <li><a href="../../../posts/2013/04/07_59824f555b664e6082f18bed.html">如何学习英语</a></li> <li><a href="../../../posts/2013/03/30_5728emacs4e2d59824f554ee5root674396504f7f7528gdb8c038bd57a0b5e8f.html">在emacs中如何以root权限使用gdb调试程序</a></li> <li><a href="../../../posts/2013/03/30_4e8c7ef4780178147a76.html">二维码研究</a></li> <li><a href="../../../posts/2013/03/27_archlinux4e0b5b8988c5cups625353707cfb7edf.html">Archlinux下安装cups打印系统</a></li> <li><a href="../../../posts/2013/03/20_python4e2d7684utc4e0e672c573065f6533a59047406.html">python中的UTC与本地时区处理</a></li> <li><a href="../../../posts/2013/03/15_c2b2b768451fd6570300195ed53054e0e534f7a0b.html">C++的函数、闭包与协程</a></li> <li><a href="../../../posts/2013/03/10_7f5198754e2d768481ea52a85b8c621076844e0b62c9521788686846.html">网页中的自动完成的下拉列表框</a></li> <li><a href="../../../posts/2013/03/09_linux4e0b8de88fdb7a0b4f20901265874ef663cf8ff07b26.html">linux下跨进程传递文件描述符</a></li> <li><a href="../../../posts/2013/02/28_web6a21578b521d63a2.html">Web模型初探</a></li> 
+	      </ul>
+	    </nav>
+	    <nav class="tags span3">
+	      <h1><a href="../../../tags/index.html">标签</a></h1>
+	      <ul>
+  <li style="font-size: 173.33%;"><a href="../../../tags/archlinux.html">archlinux</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/c.html">c</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/chosen.html">chosen</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/comet.html">comet</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/cpp.html">cpp</a></li> <li style="font-size: 126.67%;"><a href="../../../tags/emacs.html">emacs</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/english.html">english</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/fcitx.html">fcitx</a></li> <li style="font-size: 126.67%;"><a href="../../../tags/hash.html">hash</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/http.html">http</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/jabber.html">jabber</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/jquery.html">jquery</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/linux.html">linux</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/log4cxx.html">log4cxx</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/memcached.html">memcached</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/mongodb.html">mongodb</a></li> <li style="font-size: 126.67%;"><a href="../../../tags/mysql.html">mysql</a></li> <li style="font-size: 173.33%;"><a href="../../../tags/nginx.html">nginx</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/o-blog.html">o-blog</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/openssl.html">openssl</a></li> <li style="font-size: 173.33%;"><a href="../../../tags/php.html">php</a></li> <li style="font-size: 173.33%;"><a href="../../../tags/python.html">python</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/qrcode.html">qrcode</a></li> <li style="font-size: 220.00%;"><a href="../../../tags/redis.html">redis</a></li> <li style="font-size: 173.33%;"><a href="../../../tags/web.html">web</a></li> 
+</ul>
+
+	    </nav>
+	  </div>
+	</div>
+	<div class="copyright" style="text-align: center;">
+	  <p>
+版权所有 © 2011-2013 看看俺 – KanKanAn.com
+</p>
+	  <p>Powered by <a href="https://github.com/renard/o-blog">o-blog</a>.</p>
+	</div>
+      </div>
+</body>
+</html>
+
