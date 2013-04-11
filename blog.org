@@ -1167,3 +1167,161 @@ for num_strings in (100000,):
    - 体验
 
    　之前产品中用到的是log4cplus，但是常常有写日志崩溃的情况出现，使用log4cxx正是用于解决该崩溃。
+** DONE SSL双方系统时间不一致导致的SSL连接失败及其解决方案        :openssl:c:
+   CLOSED: <2008-07-25 五 17:45>
+
+   在产品使用中，实施人员常常报告服务器与客户端无法连接，最终查明原因是双方的时间设置不一致。OpenSSL证书有一个有效时间段，当客户端或服务器的系统时间不在这个时间段内时SSL会因证书验证失败而无法连接。在实施中系统时间错误是很常见的，因不能上网而未开时间自动同步、bios没电了、客户疏忽等原因都会导致系统时间设置错误。如果连接失败后再查看系统时间设置进行故障排查终归是一件麻烦的事情。
+
+   解决这个问题有以下几个办法：
+
+   - 将证书的有效期设置得够大（如：1970-2099）
+     
+     这样估计可以在一定程度上解决这个问题，不过这也是个馊主意，一般申请的证书总会有一个合理的有效期。
+
+   - 检测及必要时自动同步客户端与服务器的时间
+     
+     通过用wireshake抓包分析SSL建立连接的过程，发现在SSL握手过程中，会向对方传送本机的系统时间。因此一个显而易见的办法就是，当连接过程中检测到证书过期，将客户端的时间同步为服务器端的时间，再重连即可。
+
+     下面是具体的示例代码：
+     #+begin_src c
+       #include <openssl/ssl.h>
+       #include <openssl/bio.h>
+       #include <openssl/err.h>
+       #include <winsock2.h>
+       #include <stdio.h>
+       #include <string.h>
+       #include <time.h>
+       
+       typedef struct _TimeInfo
+       {
+           time_t client;  /*客户端的时间*/
+           time_t server;  /*服务器的时间*/
+       } TimeInfo;
+       
+       /**
+        * 同步系统时间.
+        */
+       BOOL syncSystemTime(time_t t)
+       {
+           SYSTEMTIME st;
+           FILETIME   ft;  
+           LONGLONG   ll;  
+           
+           ll = Int32x32To64(t, 10000000) + 116444736000000000; //1970.01.01  
+           
+           ft.dwLowDateTime  = (DWORD)ll;  
+           ft.dwHighDateTime = (DWORD)(ll >> 32);  
+           
+           return FileTimeToSystemTime(&ft, &st) && SetSystemTime(&st);
+       }
+       
+       /**
+        * 获取SSL握手过程中服务器与客户端双方的系统时间.
+        */
+       void getSSLHandleShakeTimeInfo(int write_p,
+                                      int version,
+                                      int content_type,
+                                      const unsigned char* buf,
+                                      size_t len,
+                                      SSL *ssl,
+                                      TimeInfo *ti)
+       {
+           if(content_type != 22)   //require handshake message
+               return;
+           if(len < 42)
+               return;
+           if(buf[0] == 1)          //ClientHello Message send from client to server
+               ti->client = htonl(*((u_long*)(buf + 6)));
+           else if(buf[0] == 2)     //ServerHello Message send from server to client
+               ti->server = htonl(*((u_long*)(buf + 6)));
+           else
+               return;
+       }
+       
+       int main()
+       {
+           BIO * bio;
+           SSL * ssl;
+           SSL_CTX * ctx;
+           TimeInfo timeInfo = {-1, -1};
+           BOOL timeSynced = FALSE;
+           long result;
+       
+           /* Set up the library */
+           SSL_library_init();
+           ERR_load_BIO_strings();
+           SSL_load_error_strings();
+       
+           /* Set up the SSL context */
+           ctx = SSL_CTX_new(SSLv3_client_method());
+           if(ctx == NULL)
+           {
+               fprintf(stderr, "Error new SSL_CTX\n");
+               ERR_print_errors_fp(stderr);
+               SSL_CTX_free(ctx);
+               return 0;
+           }
+       
+           /* Get Server and Client system time via SSL Handshake */
+           SSL_CTX_set_msg_callback(ctx, getSSLHandleShakeTimeInfo);
+           SSL_CTX_set_msg_callback_arg(ctx, &timeInfo);
+           
+           /* Load the trust store */
+           if(! SSL_CTX_load_verify_locations(ctx, ".\\certs\\cacert.pem", NULL))
+           {
+               fprintf(stderr, "Error loading trust store\n");
+               ERR_print_errors_fp(stderr);
+               SSL_CTX_free(ctx);
+               return 0;
+           }
+       
+           /* Setup the connection */
+           bio = BIO_new_ssl_connect(ctx);
+       
+           /* Set the SSL_MODE_AUTO_RETRY flag */
+           BIO_get_ssl(bio, & ssl);
+           SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
+       
+           /* Create and setup the connection */
+           BIO_set_conn_hostname(bio, "192.168.1.5:5555");
+           if(BIO_do_connect(bio) <= 0)
+           {
+               fprintf(stderr, "Error attempting to connect\n");
+               ERR_print_errors_fp(stderr);
+               BIO_free_all(bio);
+               SSL_CTX_free(ctx);
+               return 0;
+           }
+           
+           /* Check the certificate */
+           switch(SSL_get_verify_result(ssl))
+           {
+           case X509_V_OK:
+               break;
+           case X509_V_ERR_CERT_NOT_YET_VALID:
+           case X509_V_ERR_CERT_HAS_EXPIRED:
+               if(timeInfo.server != -1 && timeInfo.client != -1)
+               {
+                   printf("当前客户端时间: %s", ctime(&timeInfo.client));
+                   printf("当前服务器时间: %s", ctime(&timeInfo.server));
+                   printf("尝试与服务器时间同步");
+                   
+                   if(syncSystemTime(timeInfo.server))
+                       printf("成功\n");
+                   else
+                       printf("失败\n");
+                   printf("请重试连接服务器！\n");
+               }
+           default:
+               fprintf(stderr, "Certificate verification error: %i\n", SSL_get_verify_result(ssl));
+               BIO_free_all(bio);
+               SSL_CTX_free(ctx);
+               return 0;
+           }
+       
+           /* Close the connection and free the context */
+           BIO_free_all(bio);
+           SSL_CTX_free(ctx);
+           return 0;
+       }
+     #+end_src
