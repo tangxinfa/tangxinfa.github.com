@@ -1325,3 +1325,176 @@ for num_strings in (100000,):
            return 0;
        }
      #+end_src
+** DONE 搭建jabber服务器                                             :jabber:
+   CLOSED: <2011-05-04 三 00:32>
+
+   - 编译安装
+     
+     =下载=
+     #+begin_src sh
+       wget http://download.jabberd.org/jabberd14/jabberd14-1.6.1.1.tar.gz
+       tar xzvf jabberd14-1.6.1.1.tar.gz
+       cd jabberd14-1.6.1.1
+     #+end_src
+
+     =修改代码=
+     #+begin_src sh
+       diff -r jabberd14-1.6.1.1/jabberd/lib/xmlnode.cc tmp/jabberd14-1.6.1.1/jabberd/lib/xmlnode.cc
+       882,884c882,884
+       <     const char *next_step = NULL;
+       <     const char *start_predicate = NULL;
+       <     const char *end_predicate = NULL;
+       ---
+       >     char *next_step = NULL;
+       >     char *start_predicate = NULL;
+       >     char *end_predicate = NULL;
+       1836c1836
+       <         ((char*)strchr(lang, '-'))[0] = 0;
+       ---
+       >         strchr(lang, '-')[0] = 0;
+       diff -r jabberd14-1.6.1.1/jabberd/log.cc tmp/jabberd14-1.6.1.1/jabberd/log.cc
+       89c89
+       <         pos = (char*)strchr(zone,'.');
+       ---
+       >     pos = strchr(zone,'.');
+       diff -r jabberd14-1.6.1.1/jabberd/mio_tls.cc tmp/jabberd14-1.6.1.1/jabberd/mio_tls.cc
+       615c615
+       <         ret = gnutls_certificate_set_openpgp_key_file(current_credentials, pubfile, privfile, GNUTLS_OPENPGP_FMT_BASE64);
+       ---
+       >         ret = gnutls_certificate_set_openpgp_key_file(current_credentials, pubfile, privfile);
+       634c634
+       <         ret = gnutls_certificate_set_openpgp_keyring_file(current_credentials, file, GNUTLS_OPENPGP_FMT_BASE64);
+       ---
+       >         ret = gnutls_certificate_set_openpgp_keyring_file(current_credentials, file);
+       640a641,657
+       >     }
+       >
+       >     // load GnuPG trustdb
+       >     if (j_strcmp(xmlnode_get_localname(cur), "trustdb") == 0) {
+       >         char const *const file = xmlnode_get_data(cur);
+       >
+       >         if (file == NULL) {
+       >         log_warn(NULL, "Initializing TLS subsystem: <trustdb/> element inside the TLS configuration, that does not contain a file-name.");
+       >         continue;
+       >         }
+       >
+       >         // load the GnuPG trustdb
+       >         ret = gnutls_certificate_set_openpgp_trustdb(current_credentials, file);
+       >         if (ret < 0) {
+       >         log_error(NULL, "Error loading GnuPG trustdb %s: %s", file, gnutls_strerror(ret));
+       >         continue;
+       >         }
+     #+end_src
+     
+     =编译安装=
+     #+begin_src sh
+       ./configure && make && sudo make install
+     #+end_src
+
+     如出错通常是少了相关依赖库，用包管理工具（如：ubuntu下的新立得）安装即可。
+
+   - 配置
+
+     按照mysql.sql中的注释配置数据库：
+     
+     #+begin_src sh
+       mysql -uroot -p
+       mysql> CREATE DATABASE jabber CHARACTER SET utf8;
+       mysql> use jabber;
+       mysql> grant all on jabber.* to jabber@localhost identified by 'secret';
+       mysql> \. mysql.sql
+     #+end_src
+
+   - 运行
+
+     #+begin_src sh
+       sudo jabberd -h localhost -B
+     #+end_src
+
+   - 注册用户1
+
+     #+begin_src sh
+       telnet localhost 5222
+       <stream:stream
+         to='localhost'
+         xmlns='jabber:client'
+         xmlns:stream='http://etherx.jabber.org/streams'>
+       
+       <iq id='reg1' type='set'>
+         <query xmlns='jabber:iq:register'>
+           <username>jack</username>
+           <password>jack</password>
+           <name>jack</name>
+           <email></email>
+         </query>
+       </iq>
+       
+       </stream:stream>
+     #+end_src
+   
+   - 登录用户1
+
+     #+begin_example
+       Empathy菜单->编辑->帐户->添加：
+       协议: Jabber
+       登录ID: jack@localhost
+       记住密码
+       密码: jack
+       登录
+     #+end_example
+
+   - 注册用户2
+     
+     #+begin_src sh
+       telnet localhost 5222
+       <stream:stream
+         to='localhost'
+         xmlns='jabber:client'
+         xmlns:stream='http://etherx.jabber.org/streams'>
+       
+       <iq id='reg1' type='set'>
+         <query xmlns='jabber:iq:register'>
+           <username>rose</username>
+           <password>rose</password>
+           <name>rose</name>
+           <email></email>
+         </query>
+       </iq>
+       
+       </stream:stream>
+     #+end_src
+
+   - 用户1加用户2为联系人
+     
+     #+begin_example
+       Empathy菜单->聊天->添加联系人:
+       帐户：jack@localhost
+       标识符: rose@localhost
+       添加
+     #+end_example
+
+   - 登录用户2，并发一个消息给用户1
+
+     #+begin_src sh
+       telnet localhost 5222
+       <stream:stream
+         to='localhost'
+         xmlns='jabber:client'
+         xmlns:stream='http://etherx.jabber.org/streams'>
+       
+       <iq id='auth1' type='set'>
+         <query xmlns='jabber:iq:auth'>
+           <username>rose</username>
+           <password>rose</password>
+           <resource>test</resource>
+         </query>
+       </iq>
+       
+       <presence/>
+       
+       <message to='jack@localhost'>
+         <body>hello, jack</body>
+       </message>
+       
+       </stream:stream>
+     #+end_src
