@@ -2,7 +2,7 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8"/>
-    <title>理解nginx的keepalive_timeout配置项 | 看看俺 - KanKanAn.com</title>
+    <title>log4cxx使用心得 | 看看俺 - KanKanAn.com</title>
     <link rel="stylesheet" type="text/less" href="../../../style/less/o-blog.less"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="generator" content="o-blog version 1.2-148-g6da8733"/>
@@ -55,42 +55,179 @@
     <div class="page-header">
       <div class="row">
 	<div class="date span1">
-	  <div class=" date-d">12</div>
-	  <div class=" date-m"><a href="../../../posts/2012/11/index.html">11月</a></div>
-	  <div class=" date-y"><a href="../../../posts/2012/index.html">2012</a>
+	  <div class=" date-d">17</div>
+	  <div class=" date-m"><a href="../../../posts/2008/06/index.html">6月</a></div>
+	  <div class=" date-y"><a href="../../../posts/2008/index.html">2008</a>
 	  </div>
 	</div>
 	<div class="span1">
 	  <div class="qr-code">
-  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="http://chart.apis.google.com/chart?chs=90x90&cht=qr&chld=|0&chl=http%3A%2F%2Fblog.kankanan.com%2Fposts%2F2012%2F11%2F12_740689e3nginx7684keepalive5ftimeout914d7f6e9879.html"
+  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="http://chart.apis.google.com/chart?chs=90x90&cht=qr&chld=|0&chl=http%3A%2F%2Fblog.kankanan.com%2Fposts%2F2008%2F06%2F17_log4cxx4f7f75285fc35f97.html"
        alt="qr-code" />
 </div>
 
 	</div>
-	<h1 class="offset2">理解nginx的keepalive_timeout配置项</h1>
+	<h1 class="offset2">log4cxx使用心得</h1>
       </div>
       <nav>
 	<ul class="pager">
-	  <li class="previous"><a href="../../../posts/2012/10/24_59824f55505a97628bd5.html"><i class="icon-chevron-left"></i>&nbsp;如何做面试</a></li><li class="next" style="text-align: right;"><a href="../../../posts/2012/11/13_memcached5fget4f1a91cd7f6e8fc7671f65f695f45417ff1f.html">memcached_get会重置过期时间吗？&nbsp;<i class="icon-chevron-right"></i></a></li>
+	  <li class="previous">&nbsp;</li><li class="next" style="text-align: right;"><a href="../../../posts/2011/04/29_python4e2dmysqldb4f7f7528utf-85b577b2696c6.html">python中MySQLdb使用utf-8字符集&nbsp;<i class="icon-chevron-right"></i></a></li>
 	</ul>
       </nav>
     </div>
 
   </header>
   <div class="article-content">
-    <p>
-  不要误以为它是指tcp连接空闲多少秒后关闭，它仅表示连接建立多少秒后关闭，不会在一次请求后重新计时。
+    <ul>
+<li>简介
+
+<p>
+    apache出品必属精品。正宗c++日志库，与log4j一脉相承。
+</p>
+<p>
+    <a href="http://logging.apache.org/log4cxx/index.html">http://logging.apache.org/log4cxx/index.html</a>
+</p>
+</li>
+<li>下载、编译、安装
+
+<p>
+    打算安装到${HOME}/libs目录下：
+</p>
+
+
+
+<pre class="src src-sh"><span style="color: #859900;">cd</span> ~/libs
+wget http://mirror.bjtu.edu.cn/apache//apr/apr-1.4.4.tar.bz2
+tar xjvf apr-1.4.4.tar.bz2
+<span style="color: #859900;">cd</span> apr-1.4.4
+./configure --prefix=${<span style="color: #268bd2;">HOME</span>}/libs &amp;&amp; make &amp;&amp; make install
+<span style="color: #859900;">cd</span> ..
+wget http://mirror.bjtu.edu.cn/apache//apr/apr-util-1.3.11.tar.bz2
+tar xjvf apr-util-1.3.11.tar.bz2
+<span style="color: #859900;">cd</span> apr-util-1.3.11
+./configure --prefix=${<span style="color: #268bd2;">HOME</span>}/libs --with-apr=${<span style="color: #268bd2;">HOME</span>}/libs &amp;&amp; make &amp;&amp; make install
+<span style="color: #859900;">cd</span> ..
+wget http://apache.etoak.com//logging/log4cxx/0.10.0/apache-log4cxx-0.10.0.tar.gz
+tar xzvf apache-log4cxx-0.10.0.tar.gz
+<span style="color: #859900;">cd</span> apache-log4cxx-0.10.0
+./configure --with-charset=utf-8 --prefix=${<span style="color: #268bd2;">HOME</span>}/libs --with-apr=${<span style="color: #268bd2;">HOME</span>}/libs --with-apr-util=${<span style="color: #268bd2;">HOME</span>}/libs &amp;&amp; make &amp;&amp; make install
+</pre>
+
+
+</li>
+<li>使用例子
+
+<p>
+    <code>hello.cpp</code> ：
+</p>
+
+
+<pre class="src src-cpp"><span style="color: #cb4b16;">#include</span> <span style="color: #2aa198;">"log4cxx/logger.h"</span>
+<span style="color: #cb4b16;">#include</span> <span style="color: #2aa198;">"log4cxx/propertyconfigurator.h"</span>
+
+<span style="color: #859900;">static</span> <span style="color: #2aa198;">log4cxx</span>::<span style="color: #b58900;">LoggerPtr</span> <span style="color: #268bd2;">logger</span>(<span style="color: #2aa198;">log4cxx</span>::<span style="color: #2aa198;">Logger</span>::getLogger(<span style="color: #2aa198;">"hello"</span>));
+
+<span style="color: #b58900;">int</span> <span style="color: #268bd2;">main</span>(<span style="color: #b58900;">int</span> <span style="color: #268bd2;">argc</span>, <span style="color: #b58900;">char</span> *<span style="color: #268bd2;">argv</span>[])
+{
+  <span style="color: #2aa198;">log4cxx</span>::<span style="color: #2aa198;">PropertyConfigurator</span>::configure(<span style="color: #2aa198;">"./log4cxx_hello.properties"</span>);
+  LOG4CXX_INFO(logger, <span style="color: #2aa198;">"&#20320;&#22909;&#65292;log4cxx!"</span>);
+  <span style="color: #859900;">return</span> 0;
+}
+</pre>
+
+
+<p>  
+    <code>log4cxx_hello.properties</code> ：
+</p>
+
+
+<pre class="example">log4j.rootLogger=debug, R
+
+log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+
+# Pattern to output the caller's file name and line number.
+log4j.appender.stdout.layout.ConversionPattern=%5p [%t] (%F:%L) - %m%n
+
+log4j.appender.R=org.apache.log4j.RollingFileAppender
+log4j.appender.R.File=./hello.log
+
+log4j.appender.R.MaxFileSize=100KB
+# Keep one backup file
+log4j.appender.R.MaxBackupIndex=10
+
+log4j.appender.R.layout=org.apache.log4j.PatternLayout
+log4j.appender.R.layout.ConversionPattern=%5p %c [%t] (%F:%L) - %m%n
+</pre>
+
+
+<p>
+    编译：
+</p>
+
+
+<pre class="src src-sh">g++ -o hello hello.cpp -I${<span style="color: #268bd2;">HOME</span>}/libs/include ${<span style="color: #268bd2;">HOME</span>}/libs/lib/liblog4cxx.a ${<span style="color: #268bd2;">HOME</span>}/libs/lib/libaprutil-1.a ${<span style="color: #268bd2;">HOME</span>}/libs/lib/libapr-1.a  -lexpat -lpthread
+</pre>
+
+
+</li>
+<li>注意事项
+
+<p>
+    由于一个日志文件写满后会重命名所有已有的日志文件，配置过大MaxBackupIndex的会有性能问题，因此log4cxx编译时限制了它的大小（大概十多个）以避免配置的MaxBackupIndex过大，如果要设置更大一点的MaxFileSize来保存更多日志，需要在编译前进行修改。
+</p>
+<p>
+    参考：<a href="http://objectmix.com/apache/684503-urgent-log4cxx-large-window-sizes-not-allowed.html">http://objectmix.com/apache/684503-urgent-log4cxx-large-window-sizes-not-allowed.html</a>
+</p>
+</li>
+<li>使用技巧
+<ul>
+<li>决定配置文件的格式（xml，property）。以使用相应的配置器（Configurator）装入配置文件。
+
+<p>
+      xml虽较property格式繁锁，支持的配置面更全，而property格式的配置文件使用更简单，容易在网上找到现成的配置文件。
+</p>
+</li>
+<li>logger命名
+
+<p>
+      logger名称反映了软件模块，如果有代表软件模块的类，则在类中包含以该类类名命名的logger对象，该模块功能相关代码通过该logger进行日志记录。
+      另外可将logger对象作为全局变量，方便使用，特别是当软件模块较松散，并无对应的封装类时。
+</p>
+</li>
+<li>在代码中适当地放置日志代码。引用适当的日志对象，对日志进行适当分级。
+
+</li>
+<li>余下的工作就是修改配置文件，对日志进行控制了。
+</li>
+</ul>
+
+</li>
+</ul>
+
+
+<p>
+  　　使用配置文件的好处就是可以方便地配置日志而不需要修改源代码，可以在配置文件中方便配置日志过滤、格式、日志目的地。
+</p>
+<ul>
+<li>体验
+</li>
+</ul>
+
+
+<p>
+  　之前产品中用到的是log4cplus，但是常常有写日志崩溃的情况出现，使用log4cxx正是用于解决该崩溃。
 </p>
   </div>
   
   <footer class="article-footer">
     <nav class="tag-cloud">
       <ul>
-	<li class="label label-inverse small"><a href="../../../tags/nginx.html">nginx</a></li><li class="label label-inverse small"><a href="../../../tags/http.html">http</a></li>
+	<li class="label label-inverse small"><a href="../../../tags/log4cxx.html">log4cxx</a></li>
       </ul>
     </nav>
     <span class="muted">
-      发布于 <time datetime="2012-11-12T17:05:00Z"> 2012-11-12 17:05:00</time>
+      发布于 <time datetime="2008-06-17T10:01:00Z"> 2008-06-17 10:01:00</time>
     </span>
   </footer>
   </div>
