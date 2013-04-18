@@ -6,7 +6,7 @@
     <link rel="shortcut icon" href="/static/favicon.ico" />
     <link rel="stylesheet" type="text/less" href="../../../style/less/o-blog.less"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <meta name="generator" content="o-blog version 1.2-151-g8d27865"/>
+    <meta name="generator" content="o-blog version 1.2-152-ge2fd457"/>
     <script src="../../../style/js/less-1.3.0.min.js" type="text/javascript"></script>
     <script src="../../../style/js/jquery-1.7.1.min.js" type="text/javascript"></script>
     <script src="../../../style/bootstrap/js/bootstrap-modal.js" type="text/javascript"></script>
@@ -135,102 +135,102 @@
 
 
 
-<pre class="src src-php">/// &#20998;&#24067;&#24335;Redis.
-class RedisShard {
-    /// &#26500;&#36896;&#20989;&#25968;.
-    public function __construct($shards) {
-        $this-&gt;reinit($shards);
+<pre class="src src-php"><span style="color: #586e75; font-style: italic;">/// </span><span style="color: #586e75; font-style: italic;">&#20998;&#24067;&#24335;Redis.</span>
+<span style="color: #859900;">class</span> <span style="color: #b58900;">RedisShard</span> {
+    <span style="color: #586e75; font-style: italic;">/// </span><span style="color: #586e75; font-style: italic;">&#26500;&#36896;&#20989;&#25968;.</span>
+    <span style="color: #859900;">public</span> <span style="color: #859900;">function</span> <span style="color: #268bd2;">__construct</span>($<span style="color: #268bd2;">shards</span>) {
+        $<span style="color: #2aa198;">this</span>-&gt;<span style="color: #839496; background-color: #002b36;">reinit</span>($<span style="color: #268bd2;">shards</span>);
     }
 
-    /// &#26512;&#26500;&#20989;&#25968;.
-    /// &#33050;&#26412;&#32467;&#26463;&#26102;&#65292;phpredis&#19981;&#20250;&#33258;&#21160;&#20851;&#38381;redis&#36830;&#25509;&#65292;&#36825;&#37324;&#28155;&#21152;&#33258;&#21160;&#20851;&#38381;&#36830;&#25509;&#25903;&#25345;.
-    /// &#21487;&#20197;&#36890;&#36807;&#25163;&#21160;unset&#26412;&#31867;&#23545;&#35937;&#24555;&#36895;&#37322;&#25918;&#36164;&#28304;.
-    public function __destruct() {
-        if(isset($this-&gt;shard)){
-            $this-&gt;shard['redis']-&gt;close();
+    <span style="color: #586e75; font-style: italic;">/// </span><span style="color: #586e75; font-style: italic;">&#26512;&#26500;&#20989;&#25968;.</span>
+    <span style="color: #586e75; font-style: italic;">/// </span><span style="color: #586e75; font-style: italic;">&#33050;&#26412;&#32467;&#26463;&#26102;&#65292;phpredis&#19981;&#20250;&#33258;&#21160;&#20851;&#38381;redis&#36830;&#25509;&#65292;&#36825;&#37324;&#28155;&#21152;&#33258;&#21160;&#20851;&#38381;&#36830;&#25509;&#25903;&#25345;.</span>
+    <span style="color: #586e75; font-style: italic;">/// </span><span style="color: #586e75; font-style: italic;">&#21487;&#20197;&#36890;&#36807;&#25163;&#21160;unset&#26412;&#31867;&#23545;&#35937;&#24555;&#36895;&#37322;&#25918;&#36164;&#28304;.</span>
+    <span style="color: #859900;">public</span> <span style="color: #859900;">function</span> <span style="color: #268bd2;">__destruct</span>() {
+        <span style="color: #859900;">if</span>(<span style="color: #839496; background-color: #002b36;">isset(</span>$<span style="color: #2aa198;">this</span>-&gt;<span style="color: #268bd2;">shard</span>)){
+            $<span style="color: #2aa198;">this</span>-&gt;<span style="color: #268bd2;">shard</span>[<span style="color: #2aa198;">'redis'</span>]-&gt;<span style="color: #839496; background-color: #002b36;">close</span>();
         }
     }
 
-    /// &#37325;&#26032;&#21021;&#22987;&#21270;.
-    public function reinit($shards){
-        $index = 0;
-        $this-&gt;shards = array();
-        foreach($shards as $shard){
-            $this-&gt;shards[$index] = explode(':', $shard); //&#26684;&#24335;&#65306;host:port:db
-            $this-&gt;shards[$index]['index'] = $index;
-            ++$index;
+    <span style="color: #586e75; font-style: italic;">/// </span><span style="color: #586e75; font-style: italic;">&#37325;&#26032;&#21021;&#22987;&#21270;.</span>
+    <span style="color: #859900;">public</span> <span style="color: #859900;">function</span> <span style="color: #268bd2;">reinit</span>($<span style="color: #268bd2;">shards</span>){
+        $<span style="color: #268bd2;">index</span> = <span style="color: #839496; background-color: #002b36;">0</span>;
+        $<span style="color: #2aa198;">this</span>-&gt;<span style="color: #268bd2;">shards</span> = <span style="color: #839496; background-color: #002b36;">array(</span>);
+        <span style="color: #859900;">foreach</span>($<span style="color: #268bd2;">shards</span> <span style="color: #859900;">as</span> $<span style="color: #268bd2;">shard</span>){
+            $<span style="color: #2aa198;">this</span>-&gt;<span style="color: #268bd2;">shards</span>[$<span style="color: #268bd2;">index</span>] = <span style="color: #839496; background-color: #002b36;">explode(</span><span style="color: #2aa198;">':'</span>, $<span style="color: #268bd2;">shard</span>); <span style="color: #586e75; font-style: italic;">//</span><span style="color: #586e75; font-style: italic;">&#26684;&#24335;&#65306;host:port:db</span>
+            $<span style="color: #2aa198;">this</span>-&gt;<span style="color: #268bd2;">shards</span>[$<span style="color: #268bd2;">index</span>][<span style="color: #2aa198;">'index'</span>] = $<span style="color: #268bd2;">index</span>;
+            ++$<span style="color: #268bd2;">index</span>;
         }        
     }
 
-    /// &#36716;&#21457;&#26041;&#27861;&#35843;&#29992;&#21040;&#30495;&#27491;&#30340;redis&#23545;&#35937;.
-    public function __call($name, $arguments) {
-        $result = call_user_func_array(array($this-&gt;redis($arguments[0]), $name), $arguments);
-        if($result === false and in_array($name, array('set', 'setex', 'incr'))) {
-            trigger_error(<span style="color: #2aa198;">"redis error: "</span> . $this-&gt;shard[0] . ':' . $this-&gt;shard[1] . ':' .$this-&gt;shard[2] . <span style="color: #2aa198;">" $name "</span> . implode(' ', $arguments), E_USER_NOTICE);
+    <span style="color: #586e75; font-style: italic;">/// </span><span style="color: #586e75; font-style: italic;">&#36716;&#21457;&#26041;&#27861;&#35843;&#29992;&#21040;&#30495;&#27491;&#30340;redis&#23545;&#35937;.</span>
+    <span style="color: #859900;">public</span> <span style="color: #859900;">function</span> <span style="color: #268bd2;">__call</span>($<span style="color: #268bd2;">name</span>, $<span style="color: #268bd2;">arguments</span>) {
+        $<span style="color: #268bd2;">result</span> = <span style="color: #839496; background-color: #002b36;">call_user_func_array(array(</span>$<span style="color: #2aa198;">this</span>-&gt;<span style="color: #839496; background-color: #002b36;">redis</span>($<span style="color: #268bd2;">arguments</span>[<span style="color: #839496; background-color: #002b36;">0</span>]), $<span style="color: #268bd2;">name</span>), $<span style="color: #268bd2;">arguments</span>);
+        <span style="color: #859900;">if</span>($<span style="color: #268bd2;">result</span> === false <span style="color: #859900;">and</span> <span style="color: #839496; background-color: #002b36;">in_array(</span>$<span style="color: #268bd2;">name</span>, <span style="color: #839496; background-color: #002b36;">array(</span><span style="color: #2aa198;">'set'</span>, <span style="color: #2aa198;">'setex'</span>, <span style="color: #2aa198;">'incr'</span>))) {
+            <span style="color: #839496; background-color: #002b36;">trigger_error(</span><span style="color: #2aa198;">"redis error: "</span> . $<span style="color: #2aa198;">this</span>-&gt;<span style="color: #268bd2;">shard</span>[<span style="color: #839496; background-color: #002b36;">0</span>] . <span style="color: #2aa198;">':'</span> . $<span style="color: #2aa198;">this</span>-&gt;<span style="color: #268bd2;">shard</span>[<span style="color: #839496; background-color: #002b36;">1</span>] . <span style="color: #2aa198;">':'</span> .$<span style="color: #2aa198;">this</span>-&gt;<span style="color: #268bd2;">shard</span>[<span style="color: #839496; background-color: #002b36;">2</span>] . <span style="color: #2aa198;">" $name "</span> . <span style="color: #839496; background-color: #002b36;">implode(</span><span style="color: #2aa198;">' '</span>, $<span style="color: #268bd2;">arguments</span>), <span style="color: #2aa198;">E_USER_NOTICE</span>);
         }
-        return $result;
+        <span style="color: #859900;">return</span> $<span style="color: #268bd2;">result</span>;
     }
 
-    /// &#33719;&#21462;1&#33267;max&#38388;&#30340;&#21807;&#19968;&#24207;&#21495;name&#65292;&#36798;&#21040;max&#21518;&#20250;&#20174;1&#24320;&#22987;.
-    /// redis&#30340;&#36882;&#22686;&#21040;&#26368;&#22823;&#20540;&#21518;&#20250;&#36820;&#22238;&#38169;&#35823;&#65292;&#26412;&#26041;&#27861;&#23454;&#29616;&#23433;&#20840;&#30340;&#36882;&#22686;&#12290;
-    /// &#22833;&#36133;&#36820;&#22238;false&#65292;&#26368;&#35201;&#30830;&#20445;&#24050;&#29992;redis()&#26041;&#27861;&#36830;&#21040;&#29983;&#25104;&#24207;&#21495;&#30340;&#26576;&#20010;redis&#23545;&#35937;.
-    public function id($name, $max) {
-        if(isset($this-&gt;shard)){
-            $id = $this-&gt;shard['redis']-&gt;incr('_id_' . $name);
-            if($id){
-                $max = intval($max/count($this-&gt;shards));
-                if($id % $max == 0){
-                    while($this-&gt;shard['redis']-&gt;decrBy('_id_' . $name, $max) &gt;= $max){
+    <span style="color: #586e75; font-style: italic;">/// </span><span style="color: #586e75; font-style: italic;">&#33719;&#21462;1&#33267;max&#38388;&#30340;&#21807;&#19968;&#24207;&#21495;name&#65292;&#36798;&#21040;max&#21518;&#20250;&#20174;1&#24320;&#22987;.</span>
+    <span style="color: #586e75; font-style: italic;">/// </span><span style="color: #586e75; font-style: italic;">redis&#30340;&#36882;&#22686;&#21040;&#26368;&#22823;&#20540;&#21518;&#20250;&#36820;&#22238;&#38169;&#35823;&#65292;&#26412;&#26041;&#27861;&#23454;&#29616;&#23433;&#20840;&#30340;&#36882;&#22686;&#12290;</span>
+    <span style="color: #586e75; font-style: italic;">/// </span><span style="color: #586e75; font-style: italic;">&#22833;&#36133;&#36820;&#22238;false&#65292;&#26368;&#35201;&#30830;&#20445;&#24050;&#29992;redis()&#26041;&#27861;&#36830;&#21040;&#29983;&#25104;&#24207;&#21495;&#30340;&#26576;&#20010;redis&#23545;&#35937;.</span>
+    <span style="color: #859900;">public</span> <span style="color: #859900;">function</span> <span style="color: #268bd2;">id</span>($<span style="color: #268bd2;">name</span>, $<span style="color: #268bd2;">max</span>) {
+        <span style="color: #859900;">if</span>(<span style="color: #839496; background-color: #002b36;">isset(</span>$<span style="color: #2aa198;">this</span>-&gt;<span style="color: #268bd2;">shard</span>)){
+            $<span style="color: #268bd2;">id</span> = $<span style="color: #2aa198;">this</span>-&gt;<span style="color: #268bd2;">shard</span>[<span style="color: #2aa198;">'redis'</span>]-&gt;<span style="color: #839496; background-color: #002b36;">incr</span>(<span style="color: #2aa198;">'_id_'</span> . $<span style="color: #268bd2;">name</span>);
+            <span style="color: #859900;">if</span>($<span style="color: #268bd2;">id</span>){
+                $<span style="color: #268bd2;">max</span> = <span style="color: #839496; background-color: #002b36;">intval(</span>$<span style="color: #268bd2;">max</span>/<span style="color: #839496; background-color: #002b36;">count(</span>$<span style="color: #2aa198;">this</span>-&gt;<span style="color: #268bd2;">shards</span>));
+                <span style="color: #859900;">if</span>($<span style="color: #268bd2;">id</span> % $<span style="color: #268bd2;">max</span> == <span style="color: #839496; background-color: #002b36;">0</span>){
+                    <span style="color: #859900;">while</span>($<span style="color: #2aa198;">this</span>-&gt;<span style="color: #268bd2;">shard</span>[<span style="color: #2aa198;">'redis'</span>]-&gt;<span style="color: #839496; background-color: #002b36;">decrBy</span>(<span style="color: #2aa198;">'_id_'</span> . $<span style="color: #268bd2;">name</span>, $<span style="color: #268bd2;">max</span>) &gt;= $<span style="color: #268bd2;">max</span>){
                     }
-                    $id = $max;
+                    $<span style="color: #268bd2;">id</span> = $<span style="color: #268bd2;">max</span>;
                 }
-                else if($id &gt; $max){
-                    $id %= $max;
+                <span style="color: #859900;">else</span> <span style="color: #859900;">if</span>($<span style="color: #268bd2;">id</span> &gt; $<span style="color: #268bd2;">max</span>){
+                    $<span style="color: #268bd2;">id</span> %= $<span style="color: #268bd2;">max</span>;
                 }
-                return ($id - 1)*count($this-&gt;shards) + ($this-&gt;shard['index'] + 1);
+                <span style="color: #859900;">return</span> ($<span style="color: #268bd2;">id</span> - <span style="color: #839496; background-color: #002b36;">1</span>)*<span style="color: #839496; background-color: #002b36;">count(</span>$<span style="color: #2aa198;">this</span>-&gt;<span style="color: #268bd2;">shards</span>) + ($<span style="color: #2aa198;">this</span>-&gt;<span style="color: #268bd2;">shard</span>[<span style="color: #2aa198;">'index'</span>] + <span style="color: #839496; background-color: #002b36;">1</span>);
             }
         }
-        return false;
+        <span style="color: #859900;">return</span> false;
     }
 
-    /// &#36830;&#25509;&#24182;&#36820;&#22238;key&#23545;&#24212;&#30340;redis&#23545;&#35937;.
-    public function redis($key){
-        //TODO: crc32&#22312;32&#20301;&#31995;&#32479;&#19979;&#20250;&#36820;&#22238;&#36127;&#25968;&#65292;&#22240;&#25105;&#20204;&#26159;&#37096;&#32626;&#22312;64&#20301;&#31995;&#32479;&#19978;&#65292;&#26242;&#26102;&#24573;&#30053;.
-        assert(PHP_INT_SIZE === 8);
-        $index = crc32($key) % count($this-&gt;shards);
-        $shard = $this-&gt;shards[$index];
-        if(isset($this-&gt;shard)){
-            //&#23581;&#35797;&#37325;&#29992;&#24050;&#26377;&#36830;&#25509;.
-            if($this-&gt;shard[0] == $shard[0] and $this-&gt;shard[1] == $shard[1]){
-                if($this-&gt;shard[2] != $shard[2]){
-                    if(! $this-&gt;shard['redis']-&gt;select($shard[2])){
-                        trigger_error('redis error: select ' . $shard[0] . ':' . $shard[1] . ':' .$shard[2], E_USER_ERROR);
-                        return false;
+    <span style="color: #586e75; font-style: italic;">/// </span><span style="color: #586e75; font-style: italic;">&#36830;&#25509;&#24182;&#36820;&#22238;key&#23545;&#24212;&#30340;redis&#23545;&#35937;.</span>
+    <span style="color: #859900;">public</span> <span style="color: #859900;">function</span> <span style="color: #268bd2;">redis</span>($<span style="color: #268bd2;">key</span>){
+        <span style="color: #586e75; font-style: italic;">//</span><span style="color: #586e75; font-style: italic;">TODO: crc32&#22312;32&#20301;&#31995;&#32479;&#19979;&#20250;&#36820;&#22238;&#36127;&#25968;&#65292;&#22240;&#25105;&#20204;&#26159;&#37096;&#32626;&#22312;64&#20301;&#31995;&#32479;&#19978;&#65292;&#26242;&#26102;&#24573;&#30053;.</span>
+        <span style="color: #839496; background-color: #002b36;">assert(</span>PHP_INT_SIZE === <span style="color: #839496; background-color: #002b36;">8</span>);
+        $<span style="color: #268bd2;">index</span> = <span style="color: #839496; background-color: #002b36;">crc32(</span>$<span style="color: #268bd2;">key</span>) % <span style="color: #839496; background-color: #002b36;">count(</span>$<span style="color: #2aa198;">this</span>-&gt;<span style="color: #268bd2;">shards</span>);
+        $<span style="color: #268bd2;">shard</span> = $<span style="color: #2aa198;">this</span>-&gt;<span style="color: #268bd2;">shards</span>[$<span style="color: #268bd2;">index</span>];
+        <span style="color: #859900;">if</span>(<span style="color: #839496; background-color: #002b36;">isset(</span>$<span style="color: #2aa198;">this</span>-&gt;<span style="color: #268bd2;">shard</span>)){
+            <span style="color: #586e75; font-style: italic;">//</span><span style="color: #586e75; font-style: italic;">&#23581;&#35797;&#37325;&#29992;&#24050;&#26377;&#36830;&#25509;.</span>
+            <span style="color: #859900;">if</span>($<span style="color: #2aa198;">this</span>-&gt;<span style="color: #268bd2;">shard</span>[<span style="color: #839496; background-color: #002b36;">0</span>] == $<span style="color: #268bd2;">shard</span>[<span style="color: #839496; background-color: #002b36;">0</span>] <span style="color: #859900;">and</span> $<span style="color: #2aa198;">this</span>-&gt;<span style="color: #268bd2;">shard</span>[<span style="color: #839496; background-color: #002b36;">1</span>] == $<span style="color: #268bd2;">shard</span>[<span style="color: #839496; background-color: #002b36;">1</span>]){
+                <span style="color: #859900;">if</span>($<span style="color: #2aa198;">this</span>-&gt;<span style="color: #268bd2;">shard</span>[<span style="color: #839496; background-color: #002b36;">2</span>] != $<span style="color: #268bd2;">shard</span>[<span style="color: #839496; background-color: #002b36;">2</span>]){
+                    <span style="color: #859900;">if</span>(! $<span style="color: #2aa198;">this</span>-&gt;<span style="color: #268bd2;">shard</span>[<span style="color: #2aa198;">'redis'</span>]-&gt;<span style="color: #839496; background-color: #002b36;">select</span>($<span style="color: #268bd2;">shard</span>[<span style="color: #839496; background-color: #002b36;">2</span>])){
+                        <span style="color: #839496; background-color: #002b36;">trigger_error(</span><span style="color: #2aa198;">'redis error: select '</span> . $<span style="color: #268bd2;">shard</span>[<span style="color: #839496; background-color: #002b36;">0</span>] . <span style="color: #2aa198;">':'</span> . $<span style="color: #268bd2;">shard</span>[<span style="color: #839496; background-color: #002b36;">1</span>] . <span style="color: #2aa198;">':'</span> .$<span style="color: #268bd2;">shard</span>[<span style="color: #839496; background-color: #002b36;">2</span>], <span style="color: #2aa198;">E_USER_ERROR</span>);
+                        <span style="color: #859900;">return</span> false;
                     }
-                    $this-&gt;shard[2] = $shard[2];
+                    $<span style="color: #2aa198;">this</span>-&gt;<span style="color: #268bd2;">shard</span>[<span style="color: #839496; background-color: #002b36;">2</span>] = $<span style="color: #268bd2;">shard</span>[<span style="color: #839496; background-color: #002b36;">2</span>];
                 }
-                return $this-&gt;shard['redis'];
+                <span style="color: #859900;">return</span> $<span style="color: #2aa198;">this</span>-&gt;<span style="color: #268bd2;">shard</span>[<span style="color: #2aa198;">'redis'</span>];
             }
-            $this-&gt;shard['redis']-&gt;close();
-            unset($this-&gt;shard);
+            $<span style="color: #2aa198;">this</span>-&gt;<span style="color: #268bd2;">shard</span>[<span style="color: #2aa198;">'redis'</span>]-&gt;<span style="color: #839496; background-color: #002b36;">close</span>();
+            <span style="color: #839496; background-color: #002b36;">unset(</span>$<span style="color: #2aa198;">this</span>-&gt;<span style="color: #268bd2;">shard</span>);
         }
-        //&#26032;&#24314;&#36830;&#25509;.
-        $shard['redis'] = new Redis();
-        if(! $shard['redis']-&gt;connect($shard[0], $shard[1])){
-            trigger_error('redis error: connect ' . $shard[0] . ':' . $shard[1], E_USER_ERROR);
-            return false;
+        <span style="color: #586e75; font-style: italic;">//</span><span style="color: #586e75; font-style: italic;">&#26032;&#24314;&#36830;&#25509;.</span>
+        $<span style="color: #268bd2;">shard</span>[<span style="color: #2aa198;">'redis'</span>] = <span style="color: #859900;">new</span> <span style="color: #b58900;">Redis</span>();
+        <span style="color: #859900;">if</span>(! $<span style="color: #268bd2;">shard</span>[<span style="color: #2aa198;">'redis'</span>]-&gt;<span style="color: #839496; background-color: #002b36;">connect</span>($<span style="color: #268bd2;">shard</span>[<span style="color: #839496; background-color: #002b36;">0</span>], $<span style="color: #268bd2;">shard</span>[<span style="color: #839496; background-color: #002b36;">1</span>])){
+            <span style="color: #839496; background-color: #002b36;">trigger_error(</span><span style="color: #2aa198;">'redis error: connect '</span> . $<span style="color: #268bd2;">shard</span>[<span style="color: #839496; background-color: #002b36;">0</span>] . <span style="color: #2aa198;">':'</span> . $<span style="color: #268bd2;">shard</span>[<span style="color: #839496; background-color: #002b36;">1</span>], <span style="color: #2aa198;">E_USER_ERROR</span>);
+            <span style="color: #859900;">return</span> false;
         }
-        $db = intval($shard[2]);
-        if($db != 0 and !$shard['redis']-&gt;select($db)){
-            trigger_error('redis error: select ' . $shard[0] . ':' . $shard[1] . ':' .$shard[2], E_USER_ERROR);
-            $shard['redis']-&gt;close();
-            return false;
+        $<span style="color: #268bd2;">db</span> = <span style="color: #839496; background-color: #002b36;">intval(</span>$<span style="color: #268bd2;">shard</span>[<span style="color: #839496; background-color: #002b36;">2</span>]);
+        <span style="color: #859900;">if</span>($<span style="color: #268bd2;">db</span> != <span style="color: #839496; background-color: #002b36;">0</span> <span style="color: #859900;">and</span> !$<span style="color: #268bd2;">shard</span>[<span style="color: #2aa198;">'redis'</span>]-&gt;<span style="color: #839496; background-color: #002b36;">select</span>($<span style="color: #268bd2;">db</span>)){
+            <span style="color: #839496; background-color: #002b36;">trigger_error(</span><span style="color: #2aa198;">'redis error: select '</span> . $<span style="color: #268bd2;">shard</span>[<span style="color: #839496; background-color: #002b36;">0</span>] . <span style="color: #2aa198;">':'</span> . $<span style="color: #268bd2;">shard</span>[<span style="color: #839496; background-color: #002b36;">1</span>] . <span style="color: #2aa198;">':'</span> .$<span style="color: #268bd2;">shard</span>[<span style="color: #839496; background-color: #002b36;">2</span>], <span style="color: #2aa198;">E_USER_ERROR</span>);
+            $<span style="color: #268bd2;">shard</span>[<span style="color: #2aa198;">'redis'</span>]-&gt;<span style="color: #839496; background-color: #002b36;">close</span>();
+            <span style="color: #859900;">return</span> false;
         }
-        if(ENABLE_DEVELOP){
-            trigger_error('redis connect success. ' . $shard[0] . ':' . $shard[1] . ':' . $shard[2], E_USER_NOTICE);
+        <span style="color: #859900;">if</span>(ENABLE_DEVELOP){
+            <span style="color: #839496; background-color: #002b36;">trigger_error(</span><span style="color: #2aa198;">'redis connect success. '</span> . $<span style="color: #268bd2;">shard</span>[<span style="color: #839496; background-color: #002b36;">0</span>] . <span style="color: #2aa198;">':'</span> . $<span style="color: #268bd2;">shard</span>[<span style="color: #839496; background-color: #002b36;">1</span>] . <span style="color: #2aa198;">':'</span> . $<span style="color: #268bd2;">shard</span>[<span style="color: #839496; background-color: #002b36;">2</span>], <span style="color: #2aa198;">E_USER_NOTICE</span>);
         }        
-        $this-&gt;shard = $shard;
-        return $this-&gt;shard['redis'];
+        $<span style="color: #2aa198;">this</span>-&gt;<span style="color: #268bd2;">shard</span> = $<span style="color: #268bd2;">shard</span>;
+        <span style="color: #859900;">return</span> $<span style="color: #2aa198;">this</span>-&gt;<span style="color: #268bd2;">shard</span>[<span style="color: #2aa198;">'redis'</span>];
     }
 }
 </pre>
@@ -255,6 +255,7 @@ class RedisShard {
 <script type="text/javascript">
   /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
   var disqus_shortname = 'kankananblog'; // required: replace example with your forum shortname
+  var disqus_url = 'http://blog.kankanan.com/posts/2012/12/08_5f53php90474e0aredis.html';
 
   /* * * DON'T EDIT BELOW THIS LINE * * */
   (function() {
