@@ -1499,3 +1499,88 @@ for num_strings in (100000,):
        
        </stream:stream>
      #+end_src
+** TODO Node.js学习                                                 :node.js:
+   
+*** 适用范围
+    
+    - 引用[[http://nodejs.org/docs/latest/][原文]] ::
+
+      #begin_example
+        Node.js is a platform built on Chrome's JavaScript runtime for easily building fast, scalable network applications. Node.js uses an event-driven, non-blocking I/O model that makes it lightweight and efficient, perfect for data-intensive real-time applications that run across distributed devices.
+      #end_example
+    
+    - 可以归结如下 ::
+
+      - 较低的资源消耗处理海量网络请求
+      - 开发分布式的数据密集型实时应用
+
+*** 参考资源
+    
+    - [[http://www.nodebeginner.org/index-zh-cn.html][Node入门]] ::
+
+      从Hello World到图片上传示例演示了如何以正确的方式开发[[http://nodejs.org][Node.js]]应用。
+    
+    - [[http://nodejs.org/docs/latest/api/all.html][Node.js官方API手册]]
+
+** DONE log4php初步使用                                             :log4php:
+   CLOSED: [2013-05-06 一 18:32]
+   
+*** 简介
+    apache出品必属精品。正宗php日志库，与log4j一脉相承。
+
+    [[http://logging.apache.org/log4php/]]
+
+*** 安装
+    参考：[[http://logging.apache.org/log4php/install.html]]
+
+    - 有root权限，安装到系统目录
+
+      #+begin_src sh
+        sudo apt-get install php-pear
+        sudo pear channel-discover pear.apache.org/log4php
+        sudo pear install log4php/Apache_log4php
+      #+end_src
+
+    - 没有root权限，安装到当前目录下
+       
+      #+begin_src sh
+        cd libs
+        wget http://mirrors.tuna.tsinghua.edu.cn/apache/logging/log4php/2.3.0/apache-log4php-2.3.0-src.tar.gz
+        tar xzvf apache-log4php-2.3.0-src.tar.gz
+        ln -sf apache-log4php-2.3.0/src/main/php ./log4php
+      #+end_src
+
+*** 使用
+    
+    - 进行一下封装定制，可以满足绝大部分情况下的使用
+
+      #+o_blog_source ./static/logging.inc
+
+      - 类似nginx的访问日志记录格式
+      - 日志中输出文件名及行号
+      - 日志文件数据限制为10个，每个日志文件大小为10MB
+
+    - 使用示例
+
+      =example.php=
+      #+begin_src php
+        <?php
+        define('LOGGING_APPNAME', 'example');
+        require_once(dirname(__FILE__) . "/logging.inc");
+        
+        $logger = Logger::getLogger("main");
+        $logger->debug("info log");
+        $logger->warn("info log");
+        $logger->error("info log");
+        ?>
+      #+end_src
+
+    - 运行结果
+
+      #+begin_src sh
+        $ php ./example.php
+        $ tail -f ./logs/example.log
+        2013-05-06 18:24:57,925 [DEBUG] main: info log (/home/tangxinfa/php/example.php:6)
+        2013-05-06 18:24:57,930 [WARN] main: info log (/home/tangxinfa/php/example.php:7)
+        2013-05-06 18:24:57,930 [ERROR] main: info log (/home/tangxinfa/php/example.php:8)
+      #+end_src
