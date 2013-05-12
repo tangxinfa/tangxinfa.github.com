@@ -1554,11 +1554,11 @@ for num_strings in (100000,):
     
     - 进行一下封装定制，可以满足绝大部分情况下的使用
 
-      #+o_blog_source ./static/logging.inc
-
       - 类似nginx的访问日志记录格式
       - 日志中输出文件名及行号
       - 日志文件数据限制为10个，每个日志文件大小为10MB
+
+#+o_blog_source ./static/logging.inc
 
     - 使用示例
 
@@ -1584,3 +1584,30 @@ for num_strings in (100000,):
         2013-05-06 18:24:57,930 [WARN] main: info log (/home/tangxinfa/php/example.php:7)
         2013-05-06 18:24:57,930 [ERROR] main: info log (/home/tangxinfa/php/example.php:8)
       #+end_src
+
+** TODO 使用boost.coroutine异步访问mysql                          :cpp:mysql:
+   
+   开发高性能、高并发后台服务时，访问mysql总是一件头疼的事情，这绝对算是整个系统中最伤性能的部分，访问mysql总是很慢的，并且连接数受限，阻碍了开发高性能可线性扩展的后台服务。这也导致了像memcache、redis之类的NoSQL数据库的流行。
+
+   但是，到目前为止mysql在可靠存储数据方面仍无法替代，NoSQL一般也仅用于做为mysql的缓存层，以减轻mysql的压力，所以探究一下如何更高效地访问mysql还是很有必要的。
+   
+   提高访问mysql效率的常见方法是异步化：用独立的数据库访问线程来执行数据库操作，在执行完成后通知应用逻辑进行后继处理，这种程序往往主程序是一个事件循环，而应用逻辑被切分成一个个回调函数，导致程序流程变得更加复杂，不易理解也容易滋生问题。
+
+   接下来我打算使用协程来异步访问mysql，协程（[[http://www.boost.org/doc/libs/release/libs/coroutine/][boost.coroutine]]）可以让我们线性的书写处理逻辑，而不必引入复杂的状态机。
+
+** TODO 深入理解Ember.js                                           :ember.js:
+   
+*** Ember.jsr的组件层次
+
+    从下往上依次为：
+    - 模板（templates）
+      使用Handlebars模板语言描述用户界面，除了纯html还包含以下组件：
+      - 表达式。{{firstName}}，以html来展示控制器和模型的信息，并保持同步。
+      - 插座。{{outlet}}，路由根据应用当前所处的位置将对应的模板插入到相应的插座中。
+      - 视图。{{view}}，将原始的用户事件（如：点击）转化为语义事件（如：增、删、改)并发送到控制器。
+    - 控制器（controller）
+      保存应用状态的对象。通常用于将模型进行进一步包装后暴露给模板。
+    - 模型（model）
+      保存持久状态的对象。通常从服务器端装入并最终会保存回去。
+    - 路由（router）
+      管理应用状态的对象。根据当前的url显示相应的模板，以及为模板指定配对的模型。
