@@ -2,7 +2,7 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8"/>
-    <title>Nginx Comet: 基于 HTTP 长连接的“服务器推”技术 | 看看俺 - KanKanAn.com</title>
+    <title>《理解Http与Spdy协议》培训课件 | 看看俺 - KanKanAn.com</title>
     <link rel="shortcut icon" href="/static/favicon.ico" />
     <link rel="stylesheet" type="text/less" href="../../../style/less/o-blog.less"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -58,160 +58,61 @@
     <div class="page-header">
       <div class="row">
 	<div class="date span1">
-	  <div class=" date-d">14</div>
-	  <div class=" date-m"><a href="../../../posts/2012/12/index.html">12月</a></div>
-	  <div class=" date-y"><a href="../../../posts/2012/index.html">2012</a>
+	  <div class=" date-d">23</div>
+	  <div class=" date-m"><a href="../../../posts/2013/05/index.html">5月</a></div>
+	  <div class=" date-y"><a href="../../../posts/2013/index.html">2013</a>
 	  </div>
 	</div>
 	<div class="span1">
 	  <div class="qr-code">
-  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="http://chart.apis.google.com/chart?chs=90x90&cht=qr&chld=|0&chl=http%3A%2F%2Fblog.kankanan.com%2Fposts%2F2012%2F12%2F14_nginx-comet3a-57fa4e8e-http-957f8fde63a57684201c670d52a1566863a8201d6280672f.html"
+  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="http://chart.apis.google.com/chart?chs=90x90&cht=qr&chld=|0&chl=http%3A%2F%2Fblog.kankanan.com%2Fposts%2F2013%2F05%2F23_300a740689e3http4e0espdy534f8bae300b57f98bad8bfe4ef6.html"
        alt="qr-code" />
 </div>
 
 	</div>
-	<h1 class="offset2">Nginx Comet: 基于 HTTP 长连接的“服务器推”技术</h1>
+	<h1 class="offset2">《理解Http与Spdy协议》培训课件</h1>
       </div>
       <nav>
 	<ul class="pager">
-	  <li class="previous"><a href="../../../posts/2012/12/08_5f53php90474e0aredis.html"><i class="icon-chevron-left"></i>&nbsp;当php遇上redis</a></li><li class="next" style="text-align: right;"><a href="../../../posts/2012/12/15_archlinux4e0b5b8988c5fcitx8f9351656cd5.html">Archlinux下安装fcitx输入法&nbsp;<i class="icon-chevron-right"></i></a></li>
+	  <li class="previous"><a href="../../../posts/2013/05/06_log4php521d6b654f7f7528.html"><i class="icon-chevron-left"></i>&nbsp;log4php初步使用</a></li><li class="next">&nbsp;</li>
 	</ul>
       </nav>
     </div>
 
   </header>
   <div class="article-content">
-    <div id="outline-container-1" class="outline-3">
-<h3 id="sec-1">简介</h3>
+    <p>
+  本课件针对刚入职的毕业生，讲解Http与Spdy协议的基础知识。
+</p>
+
+<div id="outline-container-1" class="outline-3">
+<h3 id="sec-1">开发计划 [1/5]</h3>
 <div class="outline-text-3" id="text-1">
 
-<p>   可参考这篇文章：<a href="http://www.ibm.com/developerworks/cn/web/wa-lo-comet/">Comet：基于 HTTP 长连接的“服务器推”技术</a>
-</p>
+<ul>
+<li><code>[X]</code> 编写Http部分大纲
+</li>
+<li><code>[&nbsp;]</code> 编写Http部分章节内容
+</li>
+<li><code>[&nbsp;]</code> 编写Spdy部分大纲
+</li>
+<li><code>[&nbsp;]</code> 编写Spdy部分章节内容
+</li>
+<li><code>[&nbsp;]</code> 制作Microsoft PowerPoint格式文档
+</li>
+</ul>
+
+
 </div>
 
 </div>
 
 <div id="outline-container-2" class="outline-3">
-<h3 id="sec-2"><a href="https://github.com/slact/nginx_http_push_module">nginx_http_push_module</a> （不建议使用）</h3>
+<h3 id="sec-2">在线演示</h3>
 <div class="outline-text-3" id="text-2">
 
-<p>  这个模块功能上没有问题，网上介绍的文章相对比较多，但是存在严重的内存泄露问题，而且发现使用kill -HUP的方式优雅重启nginx虽会释放一部分内存，但nginx错误日志显示有共享内存锁相关的冲突，我们不得不每小时彻底重启一次nginx。简单说一下就是它使用一个全局的内存池来分配订阅者及响应需要的内存空间，但是从nginx内存池分配的小内存块（&lt; pagesize，4096）是不会释放的也不会归还到池中进行重用，具体可查看nginx源码的ngx_palloc和ngx_pfree函数进行验证。
-</p>
-<p>
-  可google "nginx中mod_push模块内存分配改造"，在作者的<a href="http://http://blog.lifeibo.com/">网站</a>正在改版暂时找不到该文章。
-</p>
-<p>  
-  <a href="http://bsd.ee/~hadara/blog/?p=215=1">这里</a>也有人<a href="https://github.com/slact/nginx_http_push_module/pull/60">指出</a>该问题，同时该文作者也fork了一个分枝，但是我试了一下，除了不支持push_channel_timeout特性外，还是一样有内存泄露。
-</p>
-<dl>
-<dt>参考配置</dt><dd>
-</dd>
-</dl>
-
-
-
-
-<pre class="example">location ~ ^/publish$ {
-    allow 127.0.0.1;
-    deny all;
-    set $push_channel_id $arg_id;
-    push_publisher;
-    push_delete_oldest_received_message on;
-    push_message_timeout 5s;
-    #push_channel_timeout 60s;
-    push_store_messages off;
-}
-
-location ~ ^/activity$ {
-    if ($args ~ "callback=(.+)" ) {
-        rewrite ^/activity "/activity_jsonp" last;
-    }
-    push_subscriber;
-    push_subscriber_timeout 60s;
-    push_subscriber_concurrency first;
-    push_max_channel_subscribers 1;
-    set $push_channel_id $arg_id;
-    default_type application/json;
-}
-
-location ~ ^/activity_jsonp$ {
-    push_subscriber;
-    push_subscriber_timeout 60s;
-    push_subscriber_concurrency first;
-    push_max_channel_subscribers 1;
-    set $push_channel_id $arg_id;
-    default_type application/json;
-    echo_before_body $arg_callback "(";
-    echo_after_body ")";
-}
-</pre>
-
-
-</div>
-
-</div>
-
-<div id="outline-container-3" class="outline-3">
-<h3 id="sec-3"><a href="https://github.com/wandenberg/nginx-push-stream-module">nginx-push-stream-module</a> （建议使用）</h3>
-<div class="outline-text-3" id="text-3">
-
-<p>  由于 <a href="https://github.com/slact/nginx_http_push_module">nginx_http_push_module</a> 存在内存泄露问题，同时没有人进行正式的修复，我们决定尝试一下<a href="https://github.com/wandenberg/nginx-push-stream-module">nginx-push-stream-module</a>，这个模块功能更强大同时文档更完整，看起来也更活跃。
-</p>
-<dl>
-<dt>优点</dt><dd>
-<ul>
-<li>更成熟
-      有内存消耗说明文档，便于决定共享内存容量配置。
-      有统计功能。
-      可对响应内容进行再处理。
-</li>
-<li>测试中未发现明显的内存泄露
-</li>
-<li>内置支持jsonp
-      返回的jsonp是这样的格式callback([text])，可以通过修改ngx_http_push_stream_module_utils.h中定义的NGX_HTTP_PUSH_STREAM_CALLBACK_INIT_CHUNK和NGX_HTTP_PUSH_STREAM_CALLBACK_END_CHUNK去除多余的中括号。
-
-</li>
-</ul>
-
-</dd>
-<dt>参考配置</dt><dd>
-</dd>
-</dl>
-
-
-
-
-<pre class="example">push_stream_store_messages off;
-push_stream_max_subscribers_per_channel 1;
-push_stream_subscriber_connection_ttl 60s;
-push_stream_longpolling_connection_ttl 60s;
-
-server {
-    listen 80;
-    server_name localhost 127.0.0.1;
-    
-    ...
-
-    location ~ ^/publish$ {
-        allow 127.0.0.1;
-        deny all;
-        push_stream_publisher admin;
-        set $push_stream_channel_id $arg_id;
-    }
-    
-    location ~ ^/activity$ {
-        push_stream_subscriber long-polling;
-        set $push_stream_channels_path $arg_id;
-        push_stream_content_type "application/json";
-        push_stream_message_template "~text~";
-    }
-
-    ...
-}
-
-</pre>
-
-</div>
+<p>   <a href="http://blog.kankanan.com/slides/理解Http与Spdy协议.html">《理解Http与Spdy协议》</a>
+</p></div>
 </div>
 
   </div>
@@ -219,11 +120,11 @@ server {
   <footer class="article-footer">
     <nav class="tag-cloud">
       <ul>
-	<li class="label label-inverse small"><a href="../../../tags/nginx.html">nginx</a></li><li class="label label-inverse small"><a href="../../../tags/comet.html">comet</a></li>
+	<li class="label label-inverse small"><a href="../../../tags/http.html">http</a></li><li class="label label-inverse small"><a href="../../../tags/spdy.html">spdy</a></li>
       </ul>
     </nav>
     <span class="muted">
-      发布于 <time datetime="2012-12-14T21:09:00Z"> 2012-12-14 21:09:00</time>
+      发布于 <time datetime="2013-05-23T13:11:00Z"> 2013-05-23 13:11:00</time>
     </span>
   </footer>
   </div>
@@ -231,7 +132,7 @@ server {
 <script type="text/javascript">
   /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
   var disqus_shortname = 'kankananblog'; // required: replace example with your forum shortname
-  var disqus_url = 'http://blog.kankanan.com/posts/2012/12/14_nginx-comet3a-57fa4e8e-http-957f8fde63a57684201c670d52a1566863a8201d6280672f.html';
+  var disqus_url = 'http://blog.kankanan.com/posts/2013/05/23_300a740689e3http4e0espdy534f8bae300b57f98bad8bfe4ef6.html';
 
   /* * * DON'T EDIT BELOW THIS LINE * * */
   (function() {
