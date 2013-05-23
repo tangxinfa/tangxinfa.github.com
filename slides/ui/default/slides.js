@@ -609,6 +609,7 @@ function loadNote() {
 		var nextTitle = jl.options[jl.selectedIndex + 1].text.replace(/^\d+\s+:\s+/, '') + ((jl.selectedIndex + 1) ? ' (' + (jl.selectedIndex + 1) + '/' + (smax - 1) + ')' : '');
 	} else {
 		var nextTitle = '[end of slide show]';
+        nextNotes = '';
 	}
 	
 	if (s5NotesWindow && !s5NotesWindow.closed && s5NotesWindow.document) {
