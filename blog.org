@@ -942,54 +942,93 @@ class RedisShard {
 ** DONE 使用hash表结构减少redis内存占用                               :redis:
    CLOSED: <2012-12-16 日 15:14>
 
-   当hash结构中的元素较少（少于redis.conf:hash-max-zipmap-entries指定的数量时，配置成<=1000，过大会减低处理速度，参见： [[http://stackoverflow.com/questions/11281734/redis-using-hashes][这里]] 和 [[http://instagram-engineering.tumblr.com/post/12202313862/storing-hundreds-of-millions-of-simple-key-value-pairs][这里]] ），redis使用特殊的方式（数组保存，时间换空间）保存hash结构以减少内存占用，参见 [[http://redis.io/topics/memory-optimization][这里]] 。但当hash结构超过指定数量时将使用普通的[[http://redis.io/commands#string][字符串]]方式保存，也就无法再节省内存了。
+   当hash结构中的元素较少（少于redis.conf:hash-max-zipmap-entries指定的数量时，配置成<=1000，过大会减低处理速度，参见： [[http://stackoverflow.com/questions/11281734/redis-using-hashes][这里]] 和 [[http://instagram-engineering.tumblr.com/post/12202313862/storing-hundreds-of-millions-of-simple-key-value-pairs][这里]] ）且数据为整型时，redis使用特殊的方式（数组保存，时间换空间）保存hash结构以减少内存占用，参见 [[http://redis.io/topics/memory-optimization][这里]] 和 [[http://stackoverflow.com/questions/9625246/what-are-the-underlying-data-structures-used-for-redis][这里]] 。但当hash结构超过指定数量时将使用普通的[[http://redis.io/commands#string][字符串]]方式保存，也就无法再节省内存了。
 
 ** DONE 估算redis内存占用                                             :redis:
    CLOSED: <2012-12-16 日 15:14>
 
-  参考: [[http://lethain.com/notes-on-redis-memory-usage/][Notes on Redis Memory Usage]]
-*** 测试环境
-   - redis版本 ::
-     redis\_version:2.4.4
-   - 操作系统（uname -a） ::
-     Linux CentOS 2.6.32-220.13.1.el6.x86\_64 #1 SMP Tue Apr 17 23:56:34 BST 2012 x86\_64 x86\_64 x86\_64 GNU/Linux
-   - python版本（python --version） ::
-     Python 2.6.6
-   - 测试脚本 ::
-#+BEGIN_EXAMPLE
-#!/bin/env python
+   参考: [[http://lethain.com/notes-on-redis-memory-usage/][Notes on Redis Memory Usage]]
 
-import redis
-import uuid
-import time
+   - 测试环境
+     - redis版本 :: redis\_version:2.4.4
+     - 操作系统（uname -a） :: Linux CentOS 2.6.32-220.13.1.el6.x86\_64 #1 SMP Tue Apr 17 23:56:34 BST 2012 x86\_64 x86\_64 x86\_64 GNU/Linux
+     - python版本（python --version） :: Python 2.6.6
 
-r = redis.Redis(host='localhost', port=6379, db=0)
-for num_strings in (100000,):
-    r.flushall()
-    time.sleep(1.0)
-    initial_size = r.dbsize()
-    initial_info = r.info()
+*** Strings
+    - 测试脚本
+      #+BEGIN_SRC python
+        #!/bin/env python
+        
+        import redis
+        import uuid
+        import time
+        
+        r = redis.Redis(host='localhost', port=6379, db=0)
+        for num_strings in (100000,):
+            r.flushall()
+            time.sleep(1.0)
+            initial_size = r.dbsize()
+            initial_info = r.info()
+        
+            for i in xrange(0, num_strings):
+                r.set(str(uuid.uuid4()), time.time())
+                #r.setex(str(uuid.uuid4()), time.time(), 100000)
+            final_size = r.dbsize()
+            final_info = r.info()
+        
+            print "For %s strings." % (num_strings,)
+            print "Keys: %s => %s" % (initial_size, final_size)
+            print "Memory: %s => %s" % (initial_info['used_memory'],
+                                            final_info['used_memory'])
+            print "Memory per key: %d"%((int(final_info['used_memory']) - int(initial_info['used_memory'])) / num_strings)
+        #+END_SRC
+    - 测试结果
+      - set :: 每个key-value占用138字节，可见redis本身的维护开销为89字节
+      - setex :: 每个key-value占用180字节，可见redis本身的维护开销为131字节，启用过期时间需要42字节开销（这是因为redis使用新的链表保存设置了过期时间的条目）。
 
-    for i in xrange(0, num_strings):
-        r.set(str(uuid.uuid4()), time.time())
-        #r.setex(str(uuid.uuid4()), time.time(), 100000)
-    final_size = r.dbsize()
-    final_info = r.info()
+*** Sets
+    - 测试脚本
+      #+BEGIN_SRC python
+        #!/bin/env python
+        
+        import redis
+        import math
+        import time
+        
+        r = redis.Redis(host='localhost', port=6379, db=0)
+        set_capcity = int(r.config_get("set-max-intset-entries")["set-max-intset-entries"])
+        
+        def set_name(i, num_strings, set_capcity):
+            set_num = math.ceil(num_strings/float(set_capcity))
+            return "s%d"%(i%set_num)
+            
+        for num_strings in (100000,):
+            r.flushall()
+            time.sleep(1.0)
+            initial_size = r.dbsize()
+            initial_info = r.info()
+        
+            for i in xrange(0, num_strings):
+                #r.sadd("s", str(i))
+                r.sadd(set_name(i, num_strings, set_capcity), str(i))
+            final_size = r.dbsize()
+            final_info = r.info()
+        
+            print "For %s strings." % (num_strings,)
+            print "Keys: %s => %s" % (initial_size, final_size)
+            print "Memory: %s => %s" % (initial_info['used_memory'],
+                                            final_info['used_memory'])
+            print "Memory per key: %d"%((int(final_info['used_memory']) - int(initial_info['used_memory'])) / num_strings)
+        
+        #+END_SRC
 
-    print "For %s strings." % (num_strings,)
-    print "Keys: %s => %s" % (initial_size, final_size)
-    print "Memory: %s => %s" % (initial_info['used_memory'],
-                                    final_info['used_memory'])
-    print "Memory per key: %d"%((int(final_info['used_memory']) - int(initial_info['used_memory'])) / num_strings)
-#+END_EXAMPLE
-*** 测试结果
-    - set ::
-      每个key-value占用138字节，可见redis本身的维护开销为89字节
-    - setex ::
-      每个key-value占用180字节，可见redis本身的维护开销为131字节，启用过期时间需要42字节开销（这是因为redis使用新的链表保存设置了过期时间的条目）。
+    - 测试结果
+      - 启用压缩 :: 每个value占用4字节
+      - 不启用压缩 :: 每个value占用39字节
+      注意: redis的set仅当值为整型，压缩才会生效。
 
-    
-  - 除非你能够保证你的机器总是有一半的空闲内存，否则别使用快照方式持久化数据或者通过执行BGREWRITEAOF压缩aof文件 ::
+*** 内存预留
+    除非你能够保证你的机器总是有一半的空闲内存，否则别使用快照方式持久化数据或者通过执行BGREWRITEAOF压缩aof文件 ::
     redis在执行bgsave时，会进行一次fork，fork后的进程负责将内存中的数据写入磁盘，由于fork采用Copy-On-Write，两个redis进程共享内存中的数据。redis如果有数据更新，则会将对应的共享内存页创建一份副本再更新，当更新操作足够频繁时，共享的内存空间会迅速地副本化，导致物理内存被耗光，系统被迫动用交换空间，从而导致redis服务极不稳定，整个系统堵塞在磁盘io上。
 
 ** DONE linux下跨进程传递文件描述符                                   :linux:
@@ -1630,3 +1669,59 @@ for num_strings in (100000,):
    
 *** 在线演示
     [[http://blog.kankanan.com/slides/理解Http与Spdy协议.html][《理解Http与Spdy协议》]]
+
+** TODO Hash、Bitmap和BloomFilter算法           :hash:algorithms:bitmap:bloomfilter:
+
+   Hash、Bitmap和BloomFilter都可用于判断某个元素是否在集合中。
+
+   参考：[[http://blog.csdn.net/jiaomeng/article/details/1496329][从哈希存储到Bloom Filter]]
+
+*** Hash
+    
+    - 原理
+      准备好哈希空间（足够保存集合中的所有元素），对于每个元素通过哈希函数求出其在哈希空间保存的位置，由于两个不同元素可能被哈希函数映射到同一哈希空间位置（碰撞、冲突），
+      这需要进行一次解冲突，通常使用冲突链解决：获取哈希空间映射位置已存在的元素，如果元素值与当前元素不等，则挂在该哈希空间的冲突链中，图示如下：
+
+      #+begin_src artist
+        
+        hash space 
+        +-------------------------------------------------------------------+
+        |     key1   key2   key3   key4   key5   key6                     --+--> hash keys
+        |   +------+------+------+------+------+------+-----------------+   |        
+        |   | val1 | val2 | val3 | val4 | val5 | val6 |  ...            | --+--> element values
+        |   |   |  | NULL | NULL | NULL | NULL | NULL |                 | --+--> collision link head 
+        |   +---+--+------+------+------+------+------+-----------------+   |                       
+        |       |                                                           |                    
+        |   +---+--+                                                        |                    
+        |   |val1.1| -------------------------------------------------------+--> collision element values
+        |   | NULL | -------------------------------------------------------+--> collision link pointer
+        |   +------+                                                        |
+        +-------------------------------------------------------------------+
+        
+      #+end_src
+      
+    - 特点
+
+      - 0误差 :: 判断结果100%可信
+      - 空间浪费 :: 由于哈希函数不可能做到没有冲突，所以哈希空间必然大于元素集合空间
+      - 需要有好的哈希函数 :: 当哈希不均匀时，会导致一些哈希位置冲突链过长，访问这个哈希位置时算法复杂度由哈希表（O(1)）退化成链表（O(n)）。
+
+*** Bitmap
+    
+    - 原理
+      准备好位图空间（足够保存集合中的所有元素的位数），对于每个元素通过哈希函数求出其在位图空间占用的位，位置为1表示元素存在，由于位图空间没有保存元素值，因此无法检测哈希冲突。
+
+    - 特点
+      
+      - 有误差 :: 仅能给出元素一定不在集合内以及元素可能在集合内的判断。当哈希函数能做到完全均匀才能达到0误差。
+      - 节省空间 :: 每个元素只需要一个位来存储。
+
+*** BloomFilter
+    
+    - 原理
+      类似于位图，只不过每个元素由n个哈希函数来映射到n个位，元素映射的所有位都为1方表示元素存在。
+      
+    - 特点
+
+      - 有误差 :: 比起Bitmap误差率可以很好的控制（除了通过选择更好的哈希函数，还可以通过增加更多的哈希函数以及相应的哈希空间来减少误差率）
+      - 节省空间 :: 每个元素只需要n个位来存储，n可自定。
