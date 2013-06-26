@@ -82,87 +82,144 @@
   </header>
   <div class="article-content">
     <p>
- 参考: <a href="http://lethain.com/notes-on-redis-memory-usage/">Notes on Redis Memory Usage</a>
+  参考: <a href="http://lethain.com/notes-on-redis-memory-usage/">Notes on Redis Memory Usage</a>
 </p>
-<div id="outline-container-1" class="outline-3">
-<h3 id="sec-1">测试环境</h3>
-<div class="outline-text-3" id="text-1">
-
+<ul>
+<li>测试环境
 <dl>
-<dt>redis版本</dt><dd>
-<p>
-     redis_version:2.4.4
-</p></dd>
-<dt>操作系统（uname -a）</dt><dd>
-<p>
-     Linux CentOS 2.6.32-220.13.1.el6.x86_64 #1 SMP Tue Apr 17 23:56:34 BST 2012 x86_64 x86_64 x86_64 GNU/Linux
-</p></dd>
-<dt>python版本（python &ndash;version）</dt><dd>
-<p>
-     Python 2.6.6
-</p></dd>
-<dt>测试脚本</dt><dd>
+<dt>redis版本</dt><dd>redis_version:2.4.4
+</dd>
+<dt>操作系统（uname -a）</dt><dd>Linux CentOS 2.6.32-220.13.1.el6.x86_64 #1 SMP Tue Apr 17 23:56:34 BST 2012 x86_64 x86_64 x86_64 GNU/Linux
+</dd>
+<dt>python版本（python &ndash;version）</dt><dd>Python 2.6.6
 </dd>
 </dl>
 
+</li>
+</ul>
 
 
 
-<pre class="example">#!/bin/env python
+<div id="outline-container-1" class="outline-3">
+<h3 id="sec-1">Strings</h3>
+<div class="outline-text-3" id="text-1">
 
-import redis
-import uuid
-import time
+<ul>
+<li>测试脚本
 
-r = redis.Redis(host='localhost', port=6379, db=0)
-for num_strings in (100000,):
-    r.flushall()
-    time.sleep(1.0)
-    initial_size = r.dbsize()
-    initial_info = r.info()
 
-    for i in xrange(0, num_strings):
-        r.set(str(uuid.uuid4()), time.time())
-        #r.setex(str(uuid.uuid4()), time.time(), 100000)
-    final_size = r.dbsize()
-    final_info = r.info()
 
-    print "For %s strings." % (num_strings,)
-    print "Keys: %s =&gt; %s" % (initial_size, final_size)
-    print "Memory: %s =&gt; %s" % (initial_info['used_memory'],
-                                    final_info['used_memory'])
-    print "Memory per key: %d"%((int(final_info['used_memory']) - int(initial_info['used_memory'])) / num_strings)
+<pre class="src src-python"><span style="color: #888a85;">#</span><span style="color: #888a85;">!/bin/env python</span>
+
+<span style="color: #729fcf; font-weight: bold;">import</span> redis
+<span style="color: #729fcf; font-weight: bold;">import</span> uuid
+<span style="color: #729fcf; font-weight: bold;">import</span> time
+
+<span style="color: #eeeeec;">r</span> = redis.Redis(host=<span style="color: #ad7fa8; font-style: italic;">'localhost'</span>, port=6379, db=0)
+<span style="color: #729fcf; font-weight: bold;">for</span> num_strings <span style="color: #729fcf; font-weight: bold;">in</span> (100000,):
+<span style="background-color: #1a1a1a;"> </span>   r.flushall()
+<span style="background-color: #1a1a1a;"> </span>   time.sleep(1.0)
+<span style="background-color: #1a1a1a;"> </span>   <span style="color: #eeeeec;">initial_size</span> = r.dbsize()
+<span style="background-color: #1a1a1a;"> </span>   <span style="color: #eeeeec;">initial_info</span> = r.info()
+
+<span style="background-color: #1a1a1a;"> </span>   <span style="color: #729fcf; font-weight: bold;">for</span> i <span style="color: #729fcf; font-weight: bold;">in</span> <span style="color: #729fcf;">xrange</span>(0, num_strings):
+<span style="background-color: #1a1a1a;"> </span>   <span style="background-color: #1a1a1a;"> </span>   r.<span style="color: #729fcf;">set</span>(<span style="color: #729fcf;">str</span>(uuid.uuid4()), time.time())
+<span style="background-color: #1a1a1a;"> </span>   <span style="background-color: #1a1a1a;"> </span>   <span style="color: #888a85;">#</span><span style="color: #888a85;">r.setex(str(uuid.uuid4()), time.time(), 100000)</span>
+<span style="background-color: #1a1a1a;"> </span>   <span style="color: #eeeeec;">final_size</span> = r.dbsize()
+<span style="background-color: #1a1a1a;"> </span>   <span style="color: #eeeeec;">final_info</span> = r.info()
+
+<span style="background-color: #1a1a1a;"> </span>   <span style="color: #729fcf; font-weight: bold;">print</span> <span style="color: #ad7fa8; font-style: italic;">"For %s strings."</span> % (num_strings,)
+<span style="background-color: #1a1a1a;"> </span>   <span style="color: #729fcf; font-weight: bold;">print</span> <span style="color: #ad7fa8; font-style: italic;">"Keys: %s =&gt; %s"</span> % (initial_size, final_size)
+<span style="background-color: #1a1a1a;"> </span>   <span style="color: #729fcf; font-weight: bold;">print</span> <span style="color: #ad7fa8; font-style: italic;">"Memory: %s =&gt; %s"</span> % (initial_info[<span style="color: #ad7fa8; font-style: italic;">'used_memory'</span>],
+<span style="background-color: #1a1a1a;"> </span>   <span style="background-color: #1a1a1a;"> </span>   <span style="background-color: #1a1a1a;"> </span>   <span style="background-color: #1a1a1a;"> </span>   <span style="background-color: #1a1a1a;"> </span>   <span style="background-color: #1a1a1a;"> </span>   <span style="background-color: #1a1a1a;"> </span>   <span style="background-color: #1a1a1a;"> </span>   <span style="background-color: #1a1a1a;"> </span>   final_info[<span style="color: #ad7fa8; font-style: italic;">'used_memory'</span>])
+<span style="background-color: #1a1a1a;"> </span>   <span style="color: #729fcf; font-weight: bold;">print</span> <span style="color: #ad7fa8; font-style: italic;">"Memory per key: %d"</span>%((<span style="color: #729fcf;">int</span>(final_info[<span style="color: #ad7fa8; font-style: italic;">'used_memory'</span>]) - <span style="color: #729fcf;">int</span>(initial_info[<span style="color: #ad7fa8; font-style: italic;">'used_memory'</span>])) / num_strings)
 </pre>
+
+</li>
+<li>测试结果
+<dl>
+<dt>set</dt><dd>每个key-value占用138字节，可见redis本身的维护开销为89字节
+</dd>
+<dt>setex</dt><dd>每个key-value占用180字节，可见redis本身的维护开销为131字节，启用过期时间需要42字节开销（这是因为redis使用新的链表保存设置了过期时间的条目）。
+</dd>
+</dl>
+
+</li>
+</ul>
+
 
 </div>
 
 </div>
 
 <div id="outline-container-2" class="outline-3">
-<h3 id="sec-2">测试结果</h3>
+<h3 id="sec-2">Sets</h3>
 <div class="outline-text-3" id="text-2">
 
+<ul>
+<li>测试脚本
+
+
+
+<pre class="src src-python"><span style="color: #888a85;">#</span><span style="color: #888a85;">!/bin/env python</span>
+
+<span style="color: #729fcf; font-weight: bold;">import</span> redis
+<span style="color: #729fcf; font-weight: bold;">import</span> math
+<span style="color: #729fcf; font-weight: bold;">import</span> time
+
+<span style="color: #eeeeec;">r</span> = redis.Redis(host=<span style="color: #ad7fa8; font-style: italic;">'localhost'</span>, port=6379, db=0)
+<span style="color: #eeeeec;">set_capcity</span> = <span style="color: #729fcf;">int</span>(r.config_get(<span style="color: #ad7fa8; font-style: italic;">"set-max-intset-entries"</span>)[<span style="color: #ad7fa8; font-style: italic;">"set-max-intset-entries"</span>])
+
+<span style="color: #729fcf; font-weight: bold;">def</span> <span style="color: #edd400; font-weight: bold; font-style: italic;">set_name</span>(i, num_strings, set_capcity):
+<span style="background-color: #1a1a1a;"> </span>   <span style="color: #eeeeec;">set_num</span> = math.ceil(num_strings/<span style="color: #729fcf;">float</span>(set_capcity))
+<span style="background-color: #1a1a1a;"> </span>   <span style="color: #729fcf; font-weight: bold;">return</span> <span style="color: #ad7fa8; font-style: italic;">"s%d"</span>%(i%set_num)
+
+<span style="color: #729fcf; font-weight: bold;">for</span> num_strings <span style="color: #729fcf; font-weight: bold;">in</span> (100000,):
+<span style="background-color: #1a1a1a;"> </span>   r.flushall()
+<span style="background-color: #1a1a1a;"> </span>   time.sleep(1.0)
+<span style="background-color: #1a1a1a;"> </span>   <span style="color: #eeeeec;">initial_size</span> = r.dbsize()
+<span style="background-color: #1a1a1a;"> </span>   <span style="color: #eeeeec;">initial_info</span> = r.info()
+
+<span style="background-color: #1a1a1a;"> </span>   <span style="color: #729fcf; font-weight: bold;">for</span> i <span style="color: #729fcf; font-weight: bold;">in</span> <span style="color: #729fcf;">xrange</span>(0, num_strings):
+<span style="background-color: #1a1a1a;"> </span>   <span style="background-color: #1a1a1a;"> </span>   <span style="color: #888a85;">#</span><span style="color: #888a85;">r.sadd("s", str(i))</span>
+<span style="background-color: #1a1a1a;"> </span>   <span style="background-color: #1a1a1a;"> </span>   r.sadd(set_name(i, num_strings, set_capcity), <span style="color: #729fcf;">str</span>(i))
+<span style="background-color: #1a1a1a;"> </span>   <span style="color: #eeeeec;">final_size</span> = r.dbsize()
+<span style="background-color: #1a1a1a;"> </span>   <span style="color: #eeeeec;">final_info</span> = r.info()
+
+<span style="background-color: #1a1a1a;"> </span>   <span style="color: #729fcf; font-weight: bold;">print</span> <span style="color: #ad7fa8; font-style: italic;">"For %s strings."</span> % (num_strings,)
+<span style="background-color: #1a1a1a;"> </span>   <span style="color: #729fcf; font-weight: bold;">print</span> <span style="color: #ad7fa8; font-style: italic;">"Keys: %s =&gt; %s"</span> % (initial_size, final_size)
+<span style="background-color: #1a1a1a;"> </span>   <span style="color: #729fcf; font-weight: bold;">print</span> <span style="color: #ad7fa8; font-style: italic;">"Memory: %s =&gt; %s"</span> % (initial_info[<span style="color: #ad7fa8; font-style: italic;">'used_memory'</span>],
+<span style="background-color: #1a1a1a;"> </span>   <span style="background-color: #1a1a1a;"> </span>   <span style="background-color: #1a1a1a;"> </span>   <span style="background-color: #1a1a1a;"> </span>   <span style="background-color: #1a1a1a;"> </span>   <span style="background-color: #1a1a1a;"> </span>   <span style="background-color: #1a1a1a;"> </span>   <span style="background-color: #1a1a1a;"> </span>   <span style="background-color: #1a1a1a;"> </span>   final_info[<span style="color: #ad7fa8; font-style: italic;">'used_memory'</span>])
+<span style="background-color: #1a1a1a;"> </span>   <span style="color: #729fcf; font-weight: bold;">print</span> <span style="color: #ad7fa8; font-style: italic;">"Memory per key: %d"</span>%((<span style="color: #729fcf;">int</span>(final_info[<span style="color: #ad7fa8; font-style: italic;">'used_memory'</span>]) - <span style="color: #729fcf;">int</span>(initial_info[<span style="color: #ad7fa8; font-style: italic;">'used_memory'</span>])) / num_strings)
+
+</pre>
+
+
+</li>
+<li>测试结果
 <dl>
-<dt>set</dt><dd>
-<p>
-     每个key-value占用138字节，可见redis本身的维护开销为89字节
-</p></dd>
-<dt>setex</dt><dd>
-<p>
-     每个key-value占用180字节，可见redis本身的维护开销为131字节，启用过期时间需要42字节开销（这是因为redis使用新的链表保存设置了过期时间的条目）。
-</p></dd>
+<dt>启用压缩</dt><dd>每个value占用4字节
+</dd>
+<dt>不启用压缩</dt><dd>每个value占用39字节
+</dd>
 </dl>
 
+<p>     注意: redis的set仅当值为整型，压缩才会生效。
+</p></li>
+</ul>
 
-
-<dl>
-<dt>除非你能够保证你的机器总是有一半的空闲内存，否则别使用快照方式持久化数据或者通过执行BGREWRITEAOF压缩aof文件</dt><dd>
-<p>
-   redis在执行bgsave时，会进行一次fork，fork后的进程负责将内存中的数据写入磁盘，由于fork采用Copy-On-Write，两个redis进程共享内存中的数据。redis如果有数据更新，则会将对应的共享内存页创建一份副本再更新，当更新操作足够频繁时，共享的内存空间会迅速地副本化，导致物理内存被耗光，系统被迫动用交换空间，从而导致redis服务极不稳定，整个系统堵塞在磁盘io上。
-</p></dd>
-</dl>
 
 </div>
+
+</div>
+
+<div id="outline-container-3" class="outline-3">
+<h3 id="sec-3">内存预留</h3>
+<div class="outline-text-3" id="text-3">
+
+<p>   除非你能够保证你的机器总是有一半的空闲内存，否则别使用快照方式持久化数据或者通过执行BGREWRITEAOF压缩aof文件。
+   redis在执行bgsave时，会进行一次fork，fork后的进程负责将内存中的数据写入磁盘，由于fork采用Copy-On-Write，两个redis进程共享内存中的数据。redis如果有数据更新，则会将对应的共享内存页创建一份副本再更新，当更新操作足够频繁时，共享的内存空间会迅速地副本化，导致物理内存被耗光，系统被迫动用交换空间，从而导致redis服务极不稳定，整个系统堵塞在磁盘io上。
+</p></div>
 </div>
 
   </div>
@@ -239,13 +296,13 @@ for num_strings in (100000,):
 	    <nav id="archives" class="span3">
 	      <h1><a href="../../../archives.html">归档</a></h1>
 	      <ul>
-		<li><a href="../../../posts/2013/05/23_300a740689e3http4e0espdy534f8bae300b57f98bad8bfe4ef6.html">《理解Http与Spdy协议》培训课件</a></li> <li><a href="../../../posts/2013/05/06_log4php521d6b654f7f7528.html">log4php初步使用</a></li> <li><a href="../../../index.html">使用o-blog搭建个人博客</a></li> <li><a href="../../../posts/2013/04/07_59824f555b664e6082f18bed.html">如何学习英语</a></li> <li><a href="../../../posts/2013/03/30_5728emacs4e2d59824f554ee5root674396504f7f7528gdb8c038bd57a0b5e8f.html">在emacs中如何以root权限使用gdb调试程序</a></li> <li><a href="../../../posts/2013/03/30_4e8c7ef4780178147a76.html">二维码研究</a></li> <li><a href="../../../posts/2013/03/27_archlinux4e0b5b8988c5cups625353707cfb7edf.html">Archlinux下安装cups打印系统</a></li> <li><a href="../../../posts/2013/03/20_python4e2d7684utc4e0e672c573065f6533a59047406.html">python中的UTC与本地时区处理</a></li> <li><a href="../../../posts/2013/03/15_c2b2b768451fd6570300195ed53054e0e534f7a0b.html">C++的函数、闭包与协程</a></li> <li><a href="../../../posts/2013/03/10_7f5198754e2d768481ea52a85b8c621076844e0b62c9521788686846.html">网页中的自动完成的下拉列表框</a></li> 
+		<li><a href="../../../posts/2013/06/26_archlinux4e0b89e351b366f465b0grub540e65e06cd58fdb5165gnome3684c9762768495ee9898.html">Archlinux下解决更新grub后无法进入gnome3桌面的问题</a></li> <li><a href="../../../posts/2013/05/23_300a740689e3http4e0espdy534f8bae300b57f98bad8bfe4ef6.html">《理解Http与Spdy协议》培训课件</a></li> <li><a href="../../../posts/2013/05/06_log4php521d6b654f7f7528.html">log4php初步使用</a></li> <li><a href="../../../index.html">使用o-blog搭建个人博客</a></li> <li><a href="../../../posts/2013/04/07_59824f555b664e6082f18bed.html">如何学习英语</a></li> <li><a href="../../../posts/2013/03/30_5728emacs4e2d59824f554ee5root674396504f7f7528gdb8c038bd57a0b5e8f.html">在emacs中如何以root权限使用gdb调试程序</a></li> <li><a href="../../../posts/2013/03/30_4e8c7ef4780178147a76.html">二维码研究</a></li> <li><a href="../../../posts/2013/03/27_archlinux4e0b5b8988c5cups625353707cfb7edf.html">Archlinux下安装cups打印系统</a></li> <li><a href="../../../posts/2013/03/20_python4e2d7684utc4e0e672c573065f6533a59047406.html">python中的UTC与本地时区处理</a></li> <li><a href="../../../posts/2013/03/15_c2b2b768451fd6570300195ed53054e0e534f7a0b.html">C++的函数、闭包与协程</a></li> 
 	      </ul>
 	    </nav>
 	    <nav class="tags span3">
 	      <h1><a href="../../../tags/index.html">标签</a></h1>
 	      <ul>
-  <li style="font-size: 173.33%;"><a href="../../../tags/archlinux.html">archlinux</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/c.html">c</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/chosen.html">chosen</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/comet.html">comet</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/cpp.html">cpp</a></li> <li style="font-size: 126.67%;"><a href="../../../tags/emacs.html">emacs</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/english.html">english</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/fcitx.html">fcitx</a></li> <li style="font-size: 126.67%;"><a href="../../../tags/hash.html">hash</a></li> <li style="font-size: 126.67%;"><a href="../../../tags/http.html">http</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/jabber.html">jabber</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/jquery.html">jquery</a></li> <li style="font-size: 126.67%;"><a href="../../../tags/linux.html">linux</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/log4cxx.html">log4cxx</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/log4php.html">log4php</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/memcached.html">memcached</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/mongodb.html">mongodb</a></li> <li style="font-size: 126.67%;"><a href="../../../tags/mysql.html">mysql</a></li> <li style="font-size: 173.33%;"><a href="../../../tags/nginx.html">nginx</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/o-blog.html">o-blog</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/openssl.html">openssl</a></li> <li style="font-size: 173.33%;"><a href="../../../tags/php.html">php</a></li> <li style="font-size: 173.33%;"><a href="../../../tags/python.html">python</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/qrcode.html">qrcode</a></li> <li style="font-size: 220.00%;"><a href="../../../tags/redis.html">redis</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/spdy.html">spdy</a></li> <li style="font-size: 173.33%;"><a href="../../../tags/web.html">web</a></li> 
+  <li style="font-size: 220.00%;"><a href="../../../tags/archlinux.html">archlinux</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/c.html">c</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/chosen.html">chosen</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/comet.html">comet</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/cpp.html">cpp</a></li> <li style="font-size: 126.67%;"><a href="../../../tags/emacs.html">emacs</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/english.html">english</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/fcitx.html">fcitx</a></li> <li style="font-size: 126.67%;"><a href="../../../tags/hash.html">hash</a></li> <li style="font-size: 126.67%;"><a href="../../../tags/http.html">http</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/jabber.html">jabber</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/jquery.html">jquery</a></li> <li style="font-size: 126.67%;"><a href="../../../tags/linux.html">linux</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/log4cxx.html">log4cxx</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/log4php.html">log4php</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/memcached.html">memcached</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/mongodb.html">mongodb</a></li> <li style="font-size: 126.67%;"><a href="../../../tags/mysql.html">mysql</a></li> <li style="font-size: 173.33%;"><a href="../../../tags/nginx.html">nginx</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/o-blog.html">o-blog</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/openssl.html">openssl</a></li> <li style="font-size: 173.33%;"><a href="../../../tags/php.html">php</a></li> <li style="font-size: 173.33%;"><a href="../../../tags/python.html">python</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/qrcode.html">qrcode</a></li> <li style="font-size: 220.00%;"><a href="../../../tags/redis.html">redis</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/spdy.html">spdy</a></li> <li style="font-size: 173.33%;"><a href="../../../tags/web.html">web</a></li> 
 </ul>
 
 	    </nav>
