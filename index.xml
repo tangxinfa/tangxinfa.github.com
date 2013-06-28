@@ -5,7 +5,90 @@
   <link href="http://blog.kankanan.com"/>
   <updated>2013-04-09T12:00:00Z</updated>
   <id>http://blog.kankanan.comindex.xml</id>
-  <entry><title type="html">Archlinux下解决更新grub后无法进入gnome3桌面的问题</title><author><name>nil</name></author><link href="http://blog.kankanan.com/posts/2013/06/26_archlinux4e0b89e351b366f465b0grub540e65e06cd58fdb5165gnome3684c9762768495ee9898.html"/><updated>2013-06-26T10:07:00Z</updated><published>2013-06-26T10:07:00Z</published><id>posts/2013/06/26_archlinux4e0b89e351b366f465b0grub540e65e06cd58fdb5165gnome3684c9762768495ee9898.html</id><category scheme="/tags/archlinux.html" term="archlinux" label="archlinux"/><content type="html">&lt;p&gt;
+  <entry><title type="html">linux下翻墙访问bitbucket.org仓库</title><author><name>nil</name></author><link href="http://blog.kankanan.com/posts/2013/06/28_linux4e0b7ffb58998bbf95eebitbucket2eorg4ed35e93.html"/><updated>2013-06-28T13:57:00Z</updated><published>2013-06-28T13:57:00Z</published><id>posts/2013/06/28_linux4e0b7ffb58998bbf95eebitbucket2eorg4ed35e93.html</id><category scheme="/tags/linux.html" term="linux" label="linux"/><category scheme="/tags/hg.html" term="hg" label="hg"/><category scheme="/tags/bitbucket.html" term="bitbucket" label="bitbucket"/><content type="html">&lt;p&gt;
+  &#20170;&#22825;&#24448;bitbucket.org push&#26102;&#25165;&#21457;&#29616;bitbucket&#34987;GFW&#20102;&#12290;&#25105;&#30340;&#20179;&#24211;&#20026;Mercurial hg&#65292;hg&#39033;&#30446;&#26681;&#30446;&#24405;&#19979;&#30340; &lt;code&gt;.hg/hgrc&lt;/code&gt; &#37197;&#32622;&#25991;&#20214;&#20013;&#21487;&#25351;&#23450;http&lt;sub&gt;proxy&#65292;&#35797;&#20102;&#19968;&#19979;&#19981;&#25903;&#25345;socks&#20195;&#29702;&#65288;&#25105;&#30340;&#27983;&#35272;&#22120;&#29992;&#23427;&#26469;&#32763;&#22681;&#65289;&#65292;&#26368;&#32456;&#20351;&#29992;tsocks&#36719;&#20214;&#23454;&#29616;&#32763;&#22681;&#35775;&#38382;bitbucket&lt;/sub&gt;.org&#20179;&#24211;&#12290;
+&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&#21033;&#29992;vps&#24314;&#26412;&#22320;socks&#20195;&#29702;&#30340;&#33050;&#26412; &lt;code&gt;ssh_proxy.sh&lt;/code&gt;
+
+
+
+&lt;pre class="src src-sh"&gt;&lt;span style="color: #888a85;"&gt;#&lt;/span&gt;&lt;span style="color: #888a85;"&gt;!/bin/&lt;/span&gt;&lt;span style="color: #729fcf; font-weight: bold;"&gt;bash&lt;/span&gt;
+
+&lt;span style="color: #eeeeec;"&gt;n&lt;/span&gt;=&lt;span style="color: #fa8072;"&gt;`ps waux | grep 'bash .*/ssh_proxy.sh' | grep -v grep | wc -l`&lt;/span&gt;
+&lt;span style="color: #729fcf; font-weight: bold;"&gt;if&lt;/span&gt; [ $&lt;span style="color: #eeeeec;"&gt;n&lt;/span&gt; -lt 3 ]; &lt;span style="color: #729fcf; font-weight: bold;"&gt;then&lt;/span&gt;
+    &lt;span style="color: #729fcf; font-weight: bold;"&gt;while&lt;/span&gt; [ true ]; &lt;span style="color: #729fcf; font-weight: bold;"&gt;do&lt;/span&gt;
+        &lt;span style="color: #eeeeec;"&gt;n&lt;/span&gt;=&lt;span style="color: #fa8072;"&gt;`ps aux | grep 'ssh' | grep '7070' | grep -v grep | wc -l`&lt;/span&gt;
+        &lt;span style="color: #729fcf; font-weight: bold;"&gt;if&lt;/span&gt; [ $&lt;span style="color: #eeeeec;"&gt;n&lt;/span&gt; -lt 1 ]; &lt;span style="color: #729fcf; font-weight: bold;"&gt;then&lt;/span&gt;
+            &lt;span style="color: #729fcf;"&gt;echo&lt;/span&gt; &lt;span style="color: #ad7fa8; font-style: italic;"&gt;"start ssh connecting"&lt;/span&gt;
+            ssh -qTnNf -D 7070 user@host
+        &lt;span style="color: #729fcf; font-weight: bold;"&gt;fi&lt;/span&gt;
+        &lt;span style="color: #729fcf;"&gt;echo&lt;/span&gt; &lt;span style="color: #ad7fa8; font-style: italic;"&gt;"wait for next checking"&lt;/span&gt;
+        sleep 30
+    &lt;span style="color: #729fcf; font-weight: bold;"&gt;done&lt;/span&gt;
+&lt;span style="color: #729fcf; font-weight: bold;"&gt;fi&lt;/span&gt;
+&lt;span style="color: #729fcf;"&gt;echo&lt;/span&gt; &lt;span style="color: #ad7fa8; font-style: italic;"&gt;"ssh_proxy.sh already running"&lt;/span&gt;
+
+&lt;/pre&gt;
+
+
+&lt;p&gt;
+    &#35831;&#23558;user@host&#25913;&#20026;&#20320;&#30340;vps&#29992;&#25143;&#21450;&#20027;&#26426;&#65292;&#24182;&#37197;&#32622;&#20026;&#20813;&#36755;&#20837;&#23494;&#30721;&#12290;
+&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;&#21551;&#21160;socks&#20195;&#29702;&#33050;&#26412;
+
+
+
+
+&lt;pre class="src src-sh"&gt;nohup bash ./ssh_proxy.sh &amp;amp;
+&lt;/pre&gt;
+
+
+&lt;p&gt;
+    &#27983;&#35272;&#22120;&#20063;&#21487;&#20197;&#21033;&#29992;&#23427;&#26469;&#32763;&#22681;&#12290;
+&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;&#23433;&#35013;tsocks
+
+
+
+&lt;pre class="src src-sh"&gt;yaourt -S tsocks
+&lt;/pre&gt;
+
+
+&lt;/li&gt;
+&lt;li&gt;&#37197;&#32622;tsocks
+    &lt;code&gt;/etc/tsocks.conf&lt;/code&gt;
+
+
+
+&lt;pre class="example"&gt;# We can access 192.168.0.* directly
+local = 192.168.0.0/255.255.255.0
+local = 10.0.0.0/255.0.0.0
+
+# Otherwise we use the server
+server = 127.0.0.1
+server_port = 7070
+&lt;/pre&gt;
+
+&lt;p&gt;
+    &#20855;&#20307;&#29992;&#27861; &lt;code&gt;man tsocks.conf&lt;/code&gt;
+&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;&#20351;&#29992;tsocks&#35753;hg&#29992;&#19978;socks&#20195;&#29702;&#21151;&#33021;
+
+
+
+&lt;pre class="src src-sh"&gt;tsocks hg push
+&lt;/pre&gt;
+
+&lt;p&gt;
+    tsocks&#30475;&#36215;&#26469;&#24456;&#36890;&#29992;&#65292;&#24212;&#35813;&#20063;&#21487;&#20197;&#35753;git&#31561;&#36827;&#34892;socks&#20195;&#29702;&#35775;&#38382;&#12290;
+&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+</content></entry><entry><title type="html">Archlinux下解决更新grub后无法进入gnome3桌面的问题</title><author><name>nil</name></author><link href="http://blog.kankanan.com/posts/2013/06/26_archlinux4e0b89e351b366f465b0grub540e65e06cd58fdb5165gnome3684c9762768495ee9898.html"/><updated>2013-06-26T10:07:00Z</updated><published>2013-06-26T10:07:00Z</published><id>posts/2013/06/26_archlinux4e0b89e351b366f465b0grub540e65e06cd58fdb5165gnome3684c9762768495ee9898.html</id><category scheme="/tags/archlinux.html" term="archlinux" label="archlinux"/><content type="html">&lt;p&gt;
   &#22312;&#21551;&#21160;&#30028;&#38754;&#19978;&#20250;&#30475;&#21040;&#20197;&#19979;&#38169;&#35823;&#26085;&#24535;&#65306;
 &lt;/p&gt;
 
@@ -2081,235 +2164,5 @@ sudo gdb &amp;lt;program&amp;gt; &amp;lt;pid&amp;gt; --annotate=3
 &lt;span style="background-color: #1a1a1a;"&gt; &lt;/span&gt;   &lt;span style="color: #729fcf; font-weight: bold;"&gt;assert&lt;/span&gt;(formatdatetime(parsed_utc_datetime) == input_local_datetime)
 &lt;/pre&gt;
 
-</content></entry><entry><title type="html">C++的函数、闭包与协程</title><author><name>nil</name></author><link href="http://blog.kankanan.com/posts/2013/03/15_c2b2b768451fd6570300195ed53054e0e534f7a0b.html"/><updated>2013-03-15T10:04:00Z</updated><published>2013-03-15T10:04:00Z</published><id>posts/2013/03/15_c2b2b768451fd6570300195ed53054e0e534f7a0b.html</id><category scheme="/tags/cpp.html" term="cpp" label="cpp"/><content type="html">&lt;div id="outline-container-1" class="outline-3"&gt;
-&lt;h3 id="sec-1"&gt;&#23454;&#29616;&#24207;&#21495;&#29983;&#25104;&#22120;&lt;/h3&gt;
-&lt;div class="outline-text-3" id="text-1"&gt;
-
-
-&lt;/div&gt;
-
-&lt;div id="outline-container-1-1" class="outline-4"&gt;
-&lt;h4 id="sec-1-1"&gt;&#20989;&#25968;&#65288;Function&#65289;&lt;/h4&gt;
-&lt;div class="outline-text-4" id="text-1-1"&gt;
-
-
-
-
-&lt;pre class="src src-c++"&gt;&lt;span style="color: #729fcf;"&gt;#include&lt;/span&gt; &lt;span style="color: #ad7fa8; font-style: italic;"&gt;&amp;lt;cassert&amp;gt;&lt;/span&gt;
-
-&lt;span style="color: #8ae234; font-weight: bold;"&gt;int&lt;/span&gt; &lt;span style="color: #edd400; font-weight: bold; font-style: italic;"&gt;id_generator&lt;/span&gt;(&lt;span style="color: #8ae234; font-weight: bold;"&gt;int&lt;/span&gt;&amp;amp; &lt;span style="color: #eeeeec;"&gt;base&lt;/span&gt;, &lt;span style="color: #8ae234; font-weight: bold;"&gt;int&lt;/span&gt; &lt;span style="color: #eeeeec;"&gt;step&lt;/span&gt;)
-{
-    &lt;span style="color: #8ae234; font-weight: bold;"&gt;int&lt;/span&gt; &lt;span style="color: #eeeeec;"&gt;result&lt;/span&gt; = *base;
-    *base += step;
-    &lt;span style="color: #729fcf; font-weight: bold;"&gt;return&lt;/span&gt; result;
-}
-
-&lt;span style="color: #8ae234; font-weight: bold;"&gt;int&lt;/span&gt; &lt;span style="color: #edd400; font-weight: bold; font-style: italic;"&gt;main&lt;/span&gt;(&lt;span style="color: #8ae234; font-weight: bold;"&gt;int&lt;/span&gt; &lt;span style="color: #eeeeec;"&gt;argc&lt;/span&gt;, &lt;span style="color: #8ae234; font-weight: bold;"&gt;char&lt;/span&gt; *&lt;span style="color: #eeeeec;"&gt;argv&lt;/span&gt;[])
-{
-    &lt;span style="color: #8ae234; font-weight: bold;"&gt;int&lt;/span&gt; &lt;span style="color: #eeeeec;"&gt;odd_base&lt;/span&gt; = 1;
-    &lt;span style="color: #8ae234; font-weight: bold;"&gt;int&lt;/span&gt; &lt;span style="color: #eeeeec;"&gt;even_base&lt;/span&gt; = 0;    
-    assert(id_generator(odd_base, 2) == 1);
-    assert(id_generator(odd_base, 2) == 3);
-    assert(id_generator(odd_base, 2) == 5);
-    assert(id_generator(even_base, 2) == 0);
-    assert(id_generator(even_base, 2) == 2);
-    assert(id_generator(even_base, 2) == 4);        
-    &lt;span style="color: #729fcf; font-weight: bold;"&gt;return&lt;/span&gt; 0;
-}
-&lt;/pre&gt;
-
-
-&lt;dl&gt;
-&lt;dt&gt;&#32534;&#35793;&lt;/dt&gt;&lt;dd&gt;
-
-
-
-&lt;pre class="example"&gt;g++ -g add.cpp -o add
-&lt;/pre&gt;
-
-&lt;/dd&gt;
-&lt;/dl&gt;
-
-
-&lt;/div&gt;
-
-&lt;/div&gt;
-
-&lt;div id="outline-container-1-2" class="outline-4"&gt;
-&lt;h4 id="sec-1-2"&gt;&#38381;&#21253;&#65288;Closure&#65289;&lt;/h4&gt;
-&lt;div class="outline-text-4" id="text-1-2"&gt;
-
-
-
-
-&lt;pre class="src src-c++"&gt;&lt;span style="color: #729fcf;"&gt;#include&lt;/span&gt; &lt;span style="color: #ad7fa8; font-style: italic;"&gt;&amp;lt;cassert&amp;gt;&lt;/span&gt;
-
-&lt;span style="color: #8ae234; font-weight: bold;"&gt;int&lt;/span&gt; &lt;span style="color: #edd400; font-weight: bold; font-style: italic;"&gt;main&lt;/span&gt;(&lt;span style="color: #8ae234; font-weight: bold;"&gt;int&lt;/span&gt; &lt;span style="color: #eeeeec;"&gt;argc&lt;/span&gt;, &lt;span style="color: #8ae234; font-weight: bold;"&gt;char&lt;/span&gt; *&lt;span style="color: #eeeeec;"&gt;argv&lt;/span&gt;[])
-{
-    &lt;span style="color: #8ae234; font-weight: bold;"&gt;int&lt;/span&gt; &lt;span style="color: #eeeeec;"&gt;base&lt;/span&gt; = 1;
-    &lt;span style="color: #729fcf; font-weight: bold;"&gt;auto&lt;/span&gt; &lt;span style="color: #8ae234; font-weight: bold;"&gt;id_generator_odd&lt;/span&gt; = [=]() &lt;span style="color: #729fcf; font-weight: bold;"&gt;mutable&lt;/span&gt; { &lt;span style="color: #8ae234; font-weight: bold;"&gt;int&lt;/span&gt; &lt;span style="color: #eeeeec;"&gt;result&lt;/span&gt; = base; base += 2; &lt;span style="color: #729fcf; font-weight: bold;"&gt;return&lt;/span&gt; result; };
-    base = 0;
-    &lt;span style="color: #729fcf; font-weight: bold;"&gt;auto&lt;/span&gt; &lt;span style="color: #8ae234; font-weight: bold;"&gt;id_generator_even&lt;/span&gt; = [=]() &lt;span style="color: #729fcf; font-weight: bold;"&gt;mutable&lt;/span&gt; { &lt;span style="color: #8ae234; font-weight: bold;"&gt;int&lt;/span&gt; &lt;span style="color: #eeeeec;"&gt;result&lt;/span&gt; = base; base += 2; &lt;span style="color: #729fcf; font-weight: bold;"&gt;return&lt;/span&gt; result; };
-    assert(id_generator_odd() == 1);
-    assert(id_generator_odd() == 3);
-    assert(id_generator_odd() == 5);
-    assert(id_generator_even() == 0);
-    assert(id_generator_even() == 2);
-    assert(id_generator_even() == 4);
-    assert(base == 0);
-    &lt;span style="color: #729fcf; font-weight: bold;"&gt;return&lt;/span&gt; 0;
-}
-&lt;/pre&gt;
-
-
-&lt;dl&gt;
-&lt;dt&gt;&#32534;&#35793;&lt;/dt&gt;&lt;dd&gt;
-
-
-
-&lt;pre class="example"&gt;g++ -g closure.cpp -o closure -std=c++0x
-&lt;/pre&gt;
-
-&lt;/dd&gt;
-&lt;/dl&gt;
-
-
-&lt;/div&gt;
-
-&lt;/div&gt;
-
-&lt;div id="outline-container-1-3" class="outline-4"&gt;
-&lt;h4 id="sec-1-3"&gt;&#21327;&#31243;&#65288;Coroutine&#65289;&lt;/h4&gt;
-&lt;div class="outline-text-4" id="text-1-3"&gt;
-
-
-
-
-&lt;pre class="src src-c++"&gt;&lt;span style="color: #729fcf;"&gt;#include&lt;/span&gt; &lt;span style="color: #ad7fa8; font-style: italic;"&gt;&amp;lt;boost/bind.hpp&amp;gt;&lt;/span&gt;
-&lt;span style="color: #729fcf;"&gt;#include&lt;/span&gt; &lt;span style="color: #ad7fa8; font-style: italic;"&gt;&amp;lt;boost/coroutine/all.hpp&amp;gt;&lt;/span&gt;
-
-&lt;span style="color: #729fcf; font-weight: bold;"&gt;typedef&lt;/span&gt; &lt;span style="color: #8ae234;"&gt;boost&lt;/span&gt;::&lt;span style="color: #8ae234;"&gt;coroutines&lt;/span&gt;::&lt;span style="color: #8ae234; font-weight: bold;"&gt;coroutine&lt;/span&gt;&amp;lt; &lt;span style="color: #8ae234; font-weight: bold;"&gt;int&lt;/span&gt;(&lt;span style="color: #8ae234; font-weight: bold;"&gt;void&lt;/span&gt;) &amp;gt; &lt;span style="color: #8ae234; font-weight: bold;"&gt;IDGenerator&lt;/span&gt;;
-
-&lt;span style="color: #8ae234; font-weight: bold;"&gt;void&lt;/span&gt; &lt;span style="color: #edd400; font-weight: bold; font-style: italic;"&gt;idGenerator&lt;/span&gt;(&lt;span style="color: #8ae234;"&gt;IDGenerator&lt;/span&gt;::&lt;span style="color: #8ae234; font-weight: bold;"&gt;caller_type&lt;/span&gt;&amp;amp; &lt;span style="color: #eeeeec;"&gt;ca&lt;/span&gt;, &lt;span style="color: #8ae234; font-weight: bold;"&gt;int&lt;/span&gt; &lt;span style="color: #eeeeec;"&gt;base&lt;/span&gt;, &lt;span style="color: #8ae234; font-weight: bold;"&gt;int&lt;/span&gt; &lt;span style="color: #eeeeec;"&gt;step&lt;/span&gt;)
-{
-    &lt;span style="color: #729fcf; font-weight: bold;"&gt;do&lt;/span&gt;{
-        ca(base);
-        base += step;
-    }&lt;span style="color: #729fcf; font-weight: bold;"&gt;while&lt;/span&gt;(&lt;span style="color: #8ae234;"&gt;true&lt;/span&gt;);
-}
-
-&lt;span style="color: #8ae234; font-weight: bold;"&gt;int&lt;/span&gt; &lt;span style="color: #edd400; font-weight: bold; font-style: italic;"&gt;main&lt;/span&gt;(&lt;span style="color: #8ae234; font-weight: bold;"&gt;int&lt;/span&gt; &lt;span style="color: #eeeeec;"&gt;argc&lt;/span&gt;, &lt;span style="color: #8ae234; font-weight: bold;"&gt;char&lt;/span&gt; *&lt;span style="color: #eeeeec;"&gt;argv&lt;/span&gt;[])
-{
-    &lt;span style="color: #8ae234; font-weight: bold;"&gt;IDGenerator&lt;/span&gt; &lt;span style="color: #eeeeec;"&gt;id_generator_odd&lt;/span&gt;(&lt;span style="color: #8ae234;"&gt;boost&lt;/span&gt;::bind(idGenerator, _1, 1, 2));
-    &lt;span style="color: #8ae234; font-weight: bold;"&gt;IDGenerator&lt;/span&gt; &lt;span style="color: #eeeeec;"&gt;id_generator_even&lt;/span&gt;(&lt;span style="color: #8ae234;"&gt;boost&lt;/span&gt;::bind(idGenerator, _1, 0, 2));
-    assert(id_generator_odd.get() == 1);
-    assert(id_generator_odd().get() == 3);
-    assert(id_generator_odd().get() == 5);
-    assert(id_generator_even.get() == 0);
-    assert(id_generator_even().get() == 2);
-    assert(id_generator_even().get() == 4);
-    &lt;span style="color: #729fcf; font-weight: bold;"&gt;return&lt;/span&gt; 0;
-}
-&lt;/pre&gt;
-
-
-&lt;dl&gt;
-&lt;dt&gt;&#32534;&#35793;&lt;/dt&gt;&lt;dd&gt;
-
-
-
-&lt;pre class="example"&gt;g++ -g coroutine.cpp -lboost_context -o coroutine -std=c++0x
-&lt;/pre&gt;
-
-&lt;/dd&gt;
-&lt;/dl&gt;
-
-
-&lt;/div&gt;
-&lt;/div&gt;
-
-&lt;/div&gt;
-
-&lt;div id="outline-container-2" class="outline-3"&gt;
-&lt;h3 id="sec-2"&gt;&#29305;&#24615;&#27604;&#36739;&lt;/h3&gt;
-&lt;div class="outline-text-3" id="text-2"&gt;
-
-
-&lt;/div&gt;
-
-&lt;div id="outline-container-2-1" class="outline-4"&gt;
-&lt;h4 id="sec-2-1"&gt;&#20989;&#25968;&#65288;Function&#65289;&lt;/h4&gt;
-&lt;div class="outline-text-4" id="text-2-1"&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&#26080;&#29366;&#24577;
-&lt;/li&gt;
-&lt;li&gt;&#38656;&#35201;&#29420;&#31435;&#23450;&#20041;&#25191;&#34892;&#20307;
-&lt;/li&gt;
-&lt;li&gt;&#35843;&#29992;&#36807;&#31243;&#20013;&#20174;&#22836;&#21040;&#23614;&#25191;&#34892;&#20307;&#20869;&#25152;&#26377;&#20195;&#30721;
-&lt;/li&gt;
-&lt;li&gt;&#22312;&#36755;&#20837;&#30456;&#21516;&#30340;&#24773;&#20917;&#19979;&#65292;&#33021;&#22815;&#20445;&#35777;&#36755;&#20986;&#20063;&#30456;&#21516;
-&lt;/li&gt;
-&lt;li&gt;&#27809;&#26377;&#21103;&#20316;&#29992;&#65292;&#22810;&#32447;&#31243;&#23433;&#20840;
-&lt;/li&gt;
-&lt;li&gt;&#35201;&#20511;&#21161;&#22806;&#37096;&#21464;&#37327;&#20445;&#23384;&#29366;&#24577;
-&lt;/li&gt;
-&lt;li&gt;&#35843;&#29992;&#27604;&#36739;&#40635;&#28902;&#65292;&#38656;&#35201;&#20256;&#20837;&#20445;&#23384;&#29366;&#24577;&#30340;&#21442;&#25968;
-&lt;/li&gt;
-&lt;/ul&gt;
-
-
-&lt;/div&gt;
-
-&lt;/div&gt;
-
-&lt;div id="outline-container-2-2" class="outline-4"&gt;
-&lt;h4 id="sec-2-2"&gt;&#38381;&#21253;&#65288;Closure&#65289;&lt;/h4&gt;
-&lt;div class="outline-text-4" id="text-2-2"&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&#26377;&#29366;&#24577;&#65292;&#20869;&#37096;&#30452;&#25509;&#20445;&#23384;
-&lt;/li&gt;
-&lt;li&gt;&#30452;&#25509;&#20869;&#32852;&#23450;&#20041;&#25191;&#34892;&#20307;
-&lt;/li&gt;
-&lt;li&gt;&#35843;&#29992;&#36807;&#31243;&#20013;&#20174;&#22836;&#21040;&#23614;&#25191;&#34892;&#20307;&#20869;&#25152;&#26377;&#20195;&#30721;
-&lt;/li&gt;
-&lt;li&gt;&#36755;&#20837;&#30456;&#21516;&#30340;&#24773;&#20917;&#19979;&#65292;&#36755;&#20986;&#21487;&#33021;&#19981;&#21516;
-&lt;/li&gt;
-&lt;li&gt;&#26377;&#21103;&#20316;&#29992;&#65292;&#38750;&#22810;&#32447;&#31243;&#23433;&#20840;
-&lt;/li&gt;
-&lt;li&gt;&#23450;&#20041;&#26102;&#21487;&#20197;&#22810;&#31181;&#26041;&#24335;&#23433;&#20840;&#22320;&#24341;&#29992;&#22806;&#37096;&#21464;&#37327;
-&lt;/li&gt;
-&lt;li&gt;&#35843;&#29992;&#31616;&#21333;&#65292;&#19981;&#38656;&#35201;&#20256;&#20837;&#20445;&#23384;&#29366;&#24577;&#30340;&#21442;&#25968;
-&lt;/li&gt;
-&lt;/ul&gt;
-
-
-&lt;/div&gt;
-
-&lt;/div&gt;
-
-&lt;div id="outline-container-2-3" class="outline-4"&gt;
-&lt;h4 id="sec-2-3"&gt;&#21327;&#31243;&#65288;Coroutine&#65289;&lt;/h4&gt;
-&lt;div class="outline-text-4" id="text-2-3"&gt;
-
-&lt;ul&gt;
-&lt;li&gt;&#26377;&#29366;&#24577;&#65292;&#20869;&#37096;&#30452;&#25509;&#20445;&#23384;
-&lt;/li&gt;
-&lt;li&gt;&#38656;&#35201;&#29420;&#31435;&#23450;&#20041;&#25191;&#34892;&#20307;
-&lt;/li&gt;
-&lt;li&gt;&#35843;&#29992;&#36807;&#31243;&#20013;&#30452;&#25509;&#20174;&#19978;&#27425;&#30340;&#36816;&#34892;&#29366;&#24577;&#32487;&#32493;&#36816;&#34892;
-&lt;/li&gt;
-&lt;li&gt;&#36755;&#20837;&#30456;&#21516;&#30340;&#24773;&#20917;&#19979;&#65292;&#36755;&#20986;&#21487;&#33021;&#19981;&#21516;
-&lt;/li&gt;
-&lt;li&gt;&#20005;&#31105;&#22810;&#32447;&#31243;&#35775;&#38382;
-&lt;/li&gt;
-&lt;li&gt;&#35843;&#29992;&#31616;&#21333;&#65292;&#19981;&#38656;&#35201;&#20256;&#20837;&#20445;&#23384;&#29366;&#24577;&#30340;&#21442;&#25968;    
-&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;/div&gt;
 </content></entry>
 </feed>

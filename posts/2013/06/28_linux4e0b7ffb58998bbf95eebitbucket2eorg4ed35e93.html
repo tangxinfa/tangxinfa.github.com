@@ -2,7 +2,7 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8"/>
-    <title>MongoDB基础 | 看看俺 - KanKanAn.com</title>
+    <title>linux下翻墙访问bitbucket.org仓库 | 看看俺 - KanKanAn.com</title>
     <link rel="shortcut icon" href="/static/favicon.ico" />
     <link rel="stylesheet" type="text/less" href="../../../style/less/o-blog.less"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -58,146 +58,123 @@
     <div class="page-header">
       <div class="row">
 	<div class="date span1">
-	  <div class=" date-d">21</div>
-	  <div class=" date-m"><a href="../../../posts/2012/10/index.html">10月</a></div>
-	  <div class=" date-y"><a href="../../../posts/2012/index.html">2012</a>
+	  <div class=" date-d">28</div>
+	  <div class=" date-m"><a href="../../../posts/2013/06/index.html">6月</a></div>
+	  <div class=" date-y"><a href="../../../posts/2013/index.html">2013</a>
 	  </div>
 	</div>
 	<div class="span1">
 	  <div class="qr-code">
-  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="http://chart.apis.google.com/chart?chs=90x90&cht=qr&chld=|0&chl=http%3A%2F%2Fblog.kankanan.com%2Fposts%2F2012%2F10%2F21_mongodb57fa7840.html"
+  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="http://chart.apis.google.com/chart?chs=90x90&cht=qr&chld=|0&chl=http%3A%2F%2Fblog.kankanan.com%2Fposts%2F2013%2F06%2F28_linux4e0b7ffb58998bbf95eebitbucket2eorg4ed35e93.html"
        alt="qr-code" />
 </div>
 
 	</div>
-	<h1 class="offset2">MongoDB基础</h1>
+	<h1 class="offset2">linux下翻墙访问bitbucket.org仓库</h1>
       </div>
       <nav>
 	<ul class="pager">
-	  <li class="previous"><a href="../../../posts/2012/09/27_php4e2ddomdocument7c7bcreateelement548ccreatetextnode7684533a522b.html"><i class="icon-chevron-left"></i>&nbsp;php中DOMDocument类createElement和createTextNode的区别</a></li><li class="next" style="text-align: right;"><a href="../../../posts/2012/10/24_59824f55505a97628bd5.html">如何做面试&nbsp;<i class="icon-chevron-right"></i></a></li>
+	  <li class="previous"><a href="../../../posts/2013/06/26_archlinux4e0b89e351b366f465b0grub540e65e06cd58fdb5165gnome3684c9762768495ee9898.html"><i class="icon-chevron-left"></i>&nbsp;Archlinux下解决更新grub后无法进入gnome3桌面的问题</a></li><li class="next">&nbsp;</li>
 	</ul>
       </nav>
     </div>
 
   </header>
   <div class="article-content">
-    <div id="outline-container-1" class="outline-3">
-<h3 id="sec-1">MongoDB与Mysql的基本结构对应关系</h3>
-<div class="outline-text-3" id="text-1">
-
-
-</div>
-
-<div id="outline-container-1-1" class="outline-4">
-<h4 id="sec-1-1">一台机器</h4>
-<div class="outline-text-4" id="text-1-1">
-
-<p>    computer
+    <p>
+  今天往bitbucket.org push时才发现bitbucket被GFW了。我的仓库为Mercurial hg，hg项目根目录下的 <code>.hg/hgrc</code> 配置文件中可指定http<sub>proxy，试了一下不支持socks代理（我的浏览器用它来翻墙），最终使用tsocks软件实现翻墙访问bitbucket</sub>.org仓库。
 </p>
+<ul>
+<li>利用vps建本地socks代理的脚本 <code>ssh_proxy.sh</code>
 
-</div>
 
-<div id="outline-container-1-1-1" class="outline-5">
-<h5 id="sec-1-1-1">多个MongoDB实例                                          &lt;&ndash;对应&ndash;&gt;                    mysql服务器进程</h5>
-<div class="outline-text-5" id="text-1-1-1">
 
-<p>     MongoDB Instance                                        &lt;&ndash;对应&ndash;&gt;                    Mysqld Instance
-</p>
+<pre class="src src-sh"><span style="color: #888a85;">#</span><span style="color: #888a85;">!/bin/</span><span style="color: #729fcf; font-weight: bold;">bash</span>
+
+<span style="color: #eeeeec;">n</span>=<span style="color: #fa8072;">`ps waux | grep 'bash .*/ssh_proxy.sh' | grep -v grep | wc -l`</span>
+<span style="color: #729fcf; font-weight: bold;">if</span> [ $<span style="color: #eeeeec;">n</span> -lt 3 ]; <span style="color: #729fcf; font-weight: bold;">then</span>
+    <span style="color: #729fcf; font-weight: bold;">while</span> [ true ]; <span style="color: #729fcf; font-weight: bold;">do</span>
+        <span style="color: #eeeeec;">n</span>=<span style="color: #fa8072;">`ps aux | grep 'ssh' | grep '7070' | grep -v grep | wc -l`</span>
+        <span style="color: #729fcf; font-weight: bold;">if</span> [ $<span style="color: #eeeeec;">n</span> -lt 1 ]; <span style="color: #729fcf; font-weight: bold;">then</span>
+            <span style="color: #729fcf;">echo</span> <span style="color: #ad7fa8; font-style: italic;">"start ssh connecting"</span>
+            ssh -qTnNf -D 7070 user@host
+        <span style="color: #729fcf; font-weight: bold;">fi</span>
+        <span style="color: #729fcf;">echo</span> <span style="color: #ad7fa8; font-style: italic;">"wait for next checking"</span>
+        sleep 30
+    <span style="color: #729fcf; font-weight: bold;">done</span>
+<span style="color: #729fcf; font-weight: bold;">fi</span>
+<span style="color: #729fcf;">echo</span> <span style="color: #ad7fa8; font-style: italic;">"ssh_proxy.sh already running"</span>
+
+</pre>
+
+
 <p>
-     运行着的MongoDB后台服务进程：/etc/rc.d/mongodb start      &lt;&ndash;对应&ndash;&gt;                     /etc/rc.d/mysqld start
+    请将user@host改为你的vps用户及主机，并配置为免输入密码。
 </p>
-
-</div>
-
-<div id="outline-container-1-1-1-1" class="outline-6">
-<h6 id="sec-1-1-1-1">多个数据库                                              &lt;&ndash;对应&ndash;&gt;                    mysql中的数据库</h6>
-<div class="outline-text-6" id="text-1-1-1-1">
-
-<p>      MongoDB Database                                       &lt;&ndash;对应&ndash;&gt;                     Database
-</p>
-
-</div>
-
-<div id="outline-container-1-1-1-1-1" class="outline-7">
-<h7 id="sec-1-1-1-1-1">多个集合                                               &lt;&ndash;对应&ndash;&gt;                    mysql中的表</h7>
-<div class="outline-text-7" id="text-1-1-1-1-1">
-
-<p>       MongoDB Collection                                    &lt;&ndash;对应&ndash;&gt;                     Table
-</p>
-
-</div>
-
-<div id="outline-container-1-1-1-1-1-1" class="outline-8">
-<h8 id="sec-1-1-1-1-1-1">多个文档                                             &lt;&ndash;对应&ndash;&gt;                     mysql中的记录行</h8>
-<div class="outline-text-8" id="text-1-1-1-1-1-1">
-
-<p>        MongoDB Document                                     &lt;&ndash;对应&ndash;&gt;                    Row
-</p>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-
-</div>
-
-<div id="outline-container-2" class="outline-3">
-<h3 id="sec-2">CentOS上搭建环境</h3>
-<div class="outline-text-3" id="text-2">
-
-<dl>
-<dt>添加源/etc/yum.repos.d/10gen.repo</dt><dd>
+</li>
+<li>启动socks代理脚本
 
 
 
-<pre class="example">[10gen]
-name=10gen Repository
-baseurl=http://downloads-distro.mongodb.org/repo/redhat/os/x86_64
-gpgcheck=0
+
+<pre class="src src-sh">nohup bash ./ssh_proxy.sh &amp;
 </pre>
 
-</dd>
-<dt>安装服务器客户端程序</dt><dd>
+
+<p>
+    浏览器也可以利用它来翻墙。
+</p>
+</li>
+<li>安装tsocks
 
 
 
-<pre class="src src-sh">yum install mongo-10gen mongo-10gen-server
+<pre class="src src-sh">yaourt -S tsocks
 </pre>
 
-</dd>
-<dt>安装php扩展</dt><dd>
+
+</li>
+<li>配置tsocks
+    <code>/etc/tsocks.conf</code>
 
 
 
-<pre class="src src-sh">yum -y install make gcc php-devel
-yum install php-pear
-<span style="color: #eeeeec;">PATH</span>=$<span style="color: #eeeeec;">PATH</span>:/usr/local/php/bin/ pecl install mongo
+<pre class="example"># We can access 192.168.0.* directly
+local = 192.168.0.0/255.255.255.0
+local = 10.0.0.0/255.0.0.0
+
+# Otherwise we use the server
+server = 127.0.0.1
+server_port = 7070
 </pre>
 
 <p>
-     php.ini中添加：extension=mongo.so
-</p></dd>
-<dt>启动服务</dt><dd>
+    具体用法 <code>man tsocks.conf</code>
+</p>
+</li>
+<li>使用tsocks让hg用上socks代理功能
+
+
+
+<pre class="src src-sh">tsocks hg push
+</pre>
+
 <p>
-     /etc/rc.d/init.d/mongodb start
-</p></dd>
-</dl>
+    tsocks看起来很通用，应该也可以让git等进行socks代理访问。
+</p></li>
+</ul>
 
-
-</div>
-</div>
 
   </div>
   
   <footer class="article-footer">
     <nav class="tag-cloud">
       <ul>
-	<li class="label label-inverse small"><a href="../../../tags/mongodb.html">mongodb</a></li>
+	<li class="label label-inverse small"><a href="../../../tags/linux.html">linux</a></li><li class="label label-inverse small"><a href="../../../tags/hg.html">hg</a></li><li class="label label-inverse small"><a href="../../../tags/bitbucket.html">bitbucket</a></li>
       </ul>
     </nav>
     <span class="muted">
-      发布于 <time datetime="2012-10-21T17:06:00Z"> 2012-10-21 17:06:00</time>
+      发布于 <time datetime="2013-06-28T13:57:00Z"> 2013-06-28 13:57:00</time>
     </span>
   </footer>
   </div>
@@ -205,7 +182,7 @@ yum install php-pear
 <script type="text/javascript">
   /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
   var disqus_shortname = 'kankananblog'; // required: replace example with your forum shortname
-  var disqus_url = 'http://blog.kankanan.com/posts/2012/10/21_mongodb57fa7840.html';
+  var disqus_url = 'http://blog.kankanan.com/posts/2013/06/28_linux4e0b7ffb58998bbf95eebitbucket2eorg4ed35e93.html';
 
   /* * * DON'T EDIT BELOW THIS LINE * * */
   (function() {
