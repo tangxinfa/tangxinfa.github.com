@@ -1,0 +1,649 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+               "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<title>理解Node.js</title>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+<meta name="title" content="理解Node.js"/>
+<meta name="generator" content="Org-mode"/>
+<meta name="generated" content="2013-07-04 18:32:26 CST"/>
+<meta name="author" content="唐新发"/>
+<meta name="description" content="120 minutes"/>
+<meta name="keywords" content=""/>
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  html { font-family: Times, serif; font-size: 12pt; }
+  .title  { text-align: center; }
+  .todo   { color: red; }
+  .done   { color: green; }
+  .tag    { background-color: #add8e6; font-weight:normal }
+  .target { }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .right  {margin-left:auto; margin-right:0px;  text-align:right;}
+  .left   {margin-left:0px;  margin-right:auto; text-align:left;}
+  .center {margin-left:auto; margin-right:auto; text-align:center;}
+  p.verse { margin-left: 3% }
+  pre {
+	border: 1pt solid #AEBDCC;
+	background-color: #F3F5F7;
+	padding: 5pt;
+	font-family: courier, monospace;
+        font-size: 90%;
+        overflow:auto;
+  }
+  table { border-collapse: collapse; }
+  td, th { vertical-align: top;  }
+  th.right  { text-align:center;  }
+  th.left   { text-align:center;   }
+  th.center { text-align:center; }
+  td.right  { text-align:right;  }
+  td.left   { text-align:left;   }
+  td.center { text-align:center; }
+  dt { font-weight: bold; }
+  div.figure { padding: 0.5em; }
+  div.figure p { text-align: center; }
+  div.inlinetask {
+    padding:10px;
+    border:2px solid gray;
+    margin:10px;
+    background: #ffffcc;
+  }
+  textarea { overflow-x: auto; }
+  .linenr { font-size:smaller }
+  .code-highlighted {background-color:#ffff00;}
+  .org-info-js_info-navigation { border-style:none; }
+  #org-info-js_console-label { font-size:10px; font-weight:bold;
+                               white-space:nowrap; }
+  .org-info-js_search-highlight {background-color:#ffff00; color:#000000;
+                                 font-weight:bold; }
+  /*]]>*/-->
+</style><!-- configuration parameters -->
+<meta name="defaultView" content="slideshow" />
+<meta name="controlVis" content="hidden" />
+<!-- style sheet links -->
+<link rel="stylesheet" href="ui/default/slides.css" type="text/css" media="projection" id="slideProj" />
+<link rel="stylesheet" href="ui/default/outline.css" type="text/css" media="screen" id="outlineStyle" />
+<link rel="stylesheet" href="ui/default/print.css" type="text/css" media="print" id="slidePrint" />
+<link rel="stylesheet" href="ui/default/opera.css" type="text/css" media="projection" id="operaFix" />
+<!-- S5 JS -->
+<script src="ui/default/slides.js" type="text/javascript"></script>
+<script type="text/javascript">
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+
+</head>
+<body>
+
+<div id="preamble">
+
+</div>
+
+<div class="layout">
+<div id="controls"><!-- no edit --></div>
+<div id="currentSlide"><!-- no edit --></div>
+<div id="header"></div>
+<div id="footer">
+<h1>唐新发 - 理解Node.js</h1>
+</div>
+</div>
+
+<div class="presentation">
+<div class="slide">
+<h1>理解Node.js</h1>
+<h1>唐新发</h1>
+<h1>2013-07-04</h1>
+</div>
+<h1 class="title">理解Node.js</h1>
+
+
+<div id="outline-container-1" class="outline-1 slide">
+<h1 id="sec-1"><span class="section-number-1">1</span> Javascript简介</h1>
+<div class="outline-text-1" id="text-1">
+
+
+<blockquote>
+
+<p>web浏览器上的唯一语言<br/>
+<br/>
+批着c外衣的lisp<br/>
+<br/>
+被误解最多的语言
+</p>
+</blockquote>
+
+
+
+
+
+<pre class="src src-html">&lt;<span style="color: #edd400; font-weight: bold; font-style: italic;">button</span> <span style="color: #eeeeec;">onClick</span>='alert(<span style="color: #ad7fa8; font-style: italic;">"Hello Javascript"</span>);'&gt;Click Me&lt;/<span style="color: #edd400; font-weight: bold; font-style: italic;">button</span>&gt;
+</pre>
+
+
+
+<div style="text-align: center">
+
+<a href='javascript: alert("Hello Javascript");'>Click Me</a>
+
+</div>
+
+</div>
+
+</div>
+
+<div id="outline-container-2" class="outline-1 slide">
+<h1 id="sec-2"><span class="section-number-1">2</span> Javascript诞生</h1>
+<div class="outline-text-1" id="text-2">
+
+
+<p>
+  　　1995年，Netscape（网景）打算在浏览器（Netscape Navigator 2.0）中嵌入Scheme，招募来Brendan Eich（布兰登·艾奇），事情很快变成在浏览器中嵌入一种像Java的脚本语言，Brendan Eich在10天的时间里写出了JavaScript的雏形Mocha（摩卡），Mocha也被用于嵌入Netscape的服务器产品LiveWire，为了便于市场营销Mocha改名为LiveScript，1995年底Netscape和Sun商谈后终将LiveScript更名为JavaScript。
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-3" class="outline-1 slide">
+<h1 id="sec-3"><span class="section-number-1">3</span> Javascript扩张</h1>
+<div class="outline-text-1" id="text-3">
+
+
+<p>  
+  　　JavaScript 1.0随Netscape Navigator 2.0发行并取得了成功，随后Netscape在Netscape Navigator 3.0中发布了JavaScript 1.1版，这个时候微软决定进军浏览器，发布了IE 3.0并搭载了一个JavaScript的克隆版，叫做JScript。
+</p>
+<p>
+  　　1997年，JavaScript 1.1作为一个草案提交给欧洲计算机制造商协会（ECMA），完成了标准化（ECMA-262标准，ECMAScript脚本语言）。
+</p>
+<p>
+  　　后来Netscape在浏览器大战中不敌微软，LiveWire服务器产品也跟着失败了，服务器端JavaScript消失了。
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-4" class="outline-1 slide">
+<h1 id="sec-4"><span class="section-number-1">4</span> Javascript统治</h1>
+<div class="outline-text-1" id="text-4">
+
+
+
+<div style="text-align: center">
+
+<div class="figure">
+<p><img src="../static/browsers.png" width="100%" title="javascript driver the web" alt="../static/browsers.png" /></p>
+<p>Javascript驱动Web</p>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<div id="outline-container-5" class="outline-1 slide">
+<h1 id="sec-5"><span class="section-number-1">5</span> ECMAScript</h1>
+<div class="outline-text-1" id="text-5">
+
+
+<p>
+  ECMAScript 描述了以下内容：
+</p><ul>
+<li>语法
+</li>
+<li>类型
+</li>
+<li>语句
+</li>
+<li>关键字
+</li>
+<li>保留字
+</li>
+<li>运算符
+</li>
+<li>对象
+</li>
+</ul>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-6" class="outline-1 slide">
+<h1 id="sec-6"><span class="section-number-1">6</span> Javascript的组成</h1>
+<div class="outline-text-1" id="text-6">
+
+
+<p>
+  一个完整的 JavaScript 实现是由以下 3 个不同部分组成的：
+</p><ul>
+<li>核心（ECMAScript）
+</li>
+<li>文档对象模型（DOM）
+</li>
+<li>浏览器对象模型（BOM）
+</li>
+</ul>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-7" class="outline-1 slide">
+<h1 id="sec-7"><span class="section-number-1">7</span> Javascript特点</h1>
+<div class="outline-text-1" id="text-7">
+
+
+<blockquote>
+
+<p>函数式<br/>
+<br/>
+原型继承<br/>
+<br/>
+弱类型<br/>
+<br/>
+词法作用域
+</p>
+</blockquote>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-8" class="outline-1 slide">
+<h1 id="sec-8"><span class="section-number-1">8</span> Javascript特性：“类”</h1>
+<div class="outline-text-1" id="text-8">
+
+
+<blockquote>
+
+<p>Javascript是<br/>
+<br/>
+基于原型<br/>
+<br/>
+面向对象语言<br/>
+<br/>
+没有“类”概念<br/>
+<br/>
+<br/>
+原型＋构造函数＋new关键字＝类
+</p>
+</blockquote>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-9" class="outline-1 slide">
+<h1 id="sec-9"><span class="section-number-1">9</span> Javascript特性：“类”（示例）</h1>
+<div class="outline-text-1" id="text-9">
+
+
+
+
+
+<pre class="src src-javascript"><span style="color: #729fcf; font-weight: bold;">function</span> <span style="color: #edd400; font-weight: bold; font-style: italic;">Man</span>(<span style="color: #eeeeec;">name</span>, <span style="color: #eeeeec;">age</span>) {
+    <span style="color: #8ae234;">this</span>.name = name;
+    <span style="color: #8ae234;">this</span>.age  = age;
+}
+Man.<span style="color: #8ae234;">prototype</span>.introduce = <span style="color: #729fcf; font-weight: bold;">function</span>(){
+    <span style="color: #729fcf; font-weight: bold;">return</span> <span style="color: #ad7fa8; font-style: italic;">"My name is "</span> + <span style="color: #8ae234;">this</span>.name + <span style="color: #ad7fa8; font-style: italic;">", I'am "</span> + <span style="color: #8ae234;">this</span>.age;
+};
+
+<span style="color: #729fcf; font-weight: bold;">var</span> <span style="color: #eeeeec;">man1</span> = <span style="color: #729fcf; font-weight: bold;">new</span> <span style="color: #8ae234; font-weight: bold;">Man</span>(<span style="color: #ad7fa8; font-style: italic;">"jack"</span>, 24);
+<span style="color: #729fcf; font-weight: bold;">var</span> <span style="color: #eeeeec;">man2</span> = <span style="color: #729fcf; font-weight: bold;">new</span> <span style="color: #8ae234; font-weight: bold;">Man</span>(<span style="color: #ad7fa8; font-style: italic;">"tom"</span>, 25);
+console.log(man1.introduce());
+console.log(man2.introduce());
+</pre>
+
+
+
+<pre class="example">My name is jack, I'am 24
+My name is tom, I'am 25
+</pre>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-10" class="outline-1 slide">
+<h1 id="sec-10"><span class="section-number-1">10</span> Javascript特性：闭包</h1>
+<div class="outline-text-1" id="text-10">
+
+
+<blockquote>
+
+<p>闭包是<br/>
+代码块（通常是函数）<br/>
+和<br/>
+创建该代码块的上下文中数据<br/>
+的结合。<br/>
+<br/>
+表现为<br/>
+函数可以访问外部作用域定义的变量<br/>
+即使外部作用域已经退出
+</p>
+</blockquote>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-11" class="outline-1 slide">
+<h1 id="sec-11"><span class="section-number-1">11</span> Javascript特性：闭包（示例）</h1>
+<div class="outline-text-1" id="text-11">
+
+
+
+
+
+<pre class="src src-javascript"><span style="color: #729fcf; font-weight: bold;">function</span> <span style="color: #edd400; font-weight: bold; font-style: italic;">Woman</span>(<span style="color: #eeeeec;">name</span>, <span style="color: #eeeeec;">age</span>) {
+    <span style="color: #8ae234;">this</span>.name = name;
+    <span style="color: #8ae234;">this</span>.introduce = <span style="color: #729fcf; font-weight: bold;">function</span>(){
+        <span style="color: #729fcf; font-weight: bold;">return</span> <span style="color: #ad7fa8; font-style: italic;">"My name is "</span> + <span style="color: #8ae234;">this</span>.name + <span style="color: #ad7fa8; font-style: italic;">", I'am "</span> + (age - 10);
+    };
+}
+<span style="color: #729fcf; font-weight: bold;">var</span> <span style="color: #eeeeec;">woman1</span> = <span style="color: #729fcf; font-weight: bold;">new</span> <span style="color: #8ae234; font-weight: bold;">Woman</span>(<span style="color: #ad7fa8; font-style: italic;">"mary"</span>, 34);
+<span style="color: #729fcf; font-weight: bold;">var</span> <span style="color: #eeeeec;">woman2</span> = <span style="color: #729fcf; font-weight: bold;">new</span> <span style="color: #8ae234; font-weight: bold;">Woman</span>(<span style="color: #ad7fa8; font-style: italic;">"rose"</span>, 45);
+console.log(woman1.introduce());
+console.log(woman2.introduce());
+</pre>
+
+
+
+<pre class="example">My name is mary, I'am 24
+My name is rose, I'am 35
+</pre>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-12" class="outline-1 slide">
+<h1 id="sec-12"><span class="section-number-1">12</span> 常见的Web后端开发技术</h1>
+<div class="outline-text-1" id="text-12">
+
+
+
+<div style="text-align: center">
+
+<div class="figure">
+<p><img src="../static/perl.jpeg" :textarea width="50%" title="Perl" alt="../static/perl.jpeg" /></p>
+<p>Perl</p>
+</div>
+
+
+<div class="figure">
+<p><img src="../static/php.jpeg" width="50%" title="Php" alt="../static/php.jpeg" /></p>
+<p>Php</p>
+</div>
+
+
+<div class="figure">
+<p><img src="../static/python.jpeg" width="50%" title="Python" alt="../static/python.jpeg" /></p>
+<p>Python</p>
+</div>
+
+
+<div class="figure">
+<p><img src="../static/ruby.jpeg" width="50%" title="Ruby" alt="../static/ruby.jpeg" /></p>
+<p>Ruby</p>
+</div>
+
+</div>
+
+
+<div style="text-align: center">
+<p><img src="../static/apache.jpeg" width="10%" alt="../static/apache.jpeg" />
+<img src="../static/nginx.jpeg" width="10%" alt="../static/nginx.jpeg" />
+<img src="../static/lighttpd.jpeg" width="10%" alt="../static/lighttpd.jpeg" />
+</p>
+</div>
+
+
+<div style="text-align: center">
+<p><img src="../static/mysql.jpeg" width="10%" alt="../static/mysql.jpeg" />
+<img src="../static/postgres.jpeg" width="10%" alt="../static/postgres.jpeg" />
+<img src="../static/oracle.jpeg" width="10%" alt="../static/oracle.jpeg" />
+<img src="../static/memcache.jpeg" width="10%" alt="../static/memcache.jpeg" />
+<img src="../static/redis.jpeg" width="10%" alt="../static/redis.jpeg" />
+<img src="../static/mongodb.jpeg" width="10%" alt="../static/mongodb.jpeg" />
+</p>
+</div>
+
+</div>
+
+</div>
+
+<div id="outline-container-13" class="outline-1 slide">
+<h1 id="sec-13"><span class="section-number-1">13</span> 今天要介绍的Web后端开发技术</h1>
+<div class="outline-text-1" id="text-13">
+
+
+
+<div style="text-align: center">
+<p><img src="../static/node.jpeg" width="75%" title="Node" alt="../static/node.jpeg" />
+</p>
+</div>
+
+<p>
+  <br/>
+  <br/>
+</p>
+<div style="text-align: center">
+<p><img src="../static/mysql.jpeg" width="10%" alt="../static/mysql.jpeg" />
+<img src="../static/postgres.jpeg" width="10%" alt="../static/postgres.jpeg" />
+<img src="../static/oracle.jpeg" width="10%" alt="../static/oracle.jpeg" />
+<img src="../static/memcache.jpeg" width="10%" alt="../static/memcache.jpeg" />
+<img src="../static/redis.jpeg" width="10%" alt="../static/redis.jpeg" />
+<img src="../static/mongodb.jpeg" width="10%" alt="../static/mongodb.jpeg" />
+</p>
+</div>
+
+</div>
+
+</div>
+
+<div id="outline-container-14" class="outline-1 slide">
+<h1 id="sec-14"><span class="section-number-1">14</span> Node.js简介</h1>
+<div class="outline-text-1" id="text-14">
+
+
+<p>
+  <code>Node.js不是</code>
+</p><blockquote>
+
+<p>像php、python、perl、ruby这样的语言<br/>
+<br/>
+像CakePHP、Django、Rails这样的服务器端框架<br/>
+<br/>
+像JQuery、ExtJS、Backbone.js这样的浏览器端库<br/>
+</p>
+</blockquote>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-15" class="outline-1 slide">
+<h1 id="sec-15"><span class="section-number-1">15</span> Node.js简介</h1>
+<div class="outline-text-1" id="text-15">
+
+
+<p>
+  <code>Node.js是</code>
+</p><blockquote>
+
+<p>一个后端的Javascript运行环境<br/>
+<br/>
+采用Google Chrome浏览器的JavaScript引擎：V8
+</p>
+</blockquote>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-16" class="outline-1 slide">
+<h1 id="sec-16"><span class="section-number-1">16</span> Node.js适用范围</h1>
+<div class="outline-text-1" id="text-16">
+
+</div>
+
+</div>
+
+<div id="outline-container-17" class="outline-1 slide">
+<h1 id="sec-17"><span class="section-number-1">17</span> Node.js代码风格</h1>
+<div class="outline-text-1" id="text-17">
+
+</div>
+
+</div>
+
+<div id="outline-container-18" class="outline-1 slide">
+<h1 id="sec-18"><span class="section-number-1">18</span> Node.js包管理机制</h1>
+<div class="outline-text-1" id="text-18">
+
+</div>
+
+</div>
+
+<div id="outline-container-19" class="outline-1 slide">
+<h1 id="sec-19"><span class="section-number-1">19</span> Node.js构建Http服务</h1>
+<div class="outline-text-1" id="text-19">
+
+</div>
+
+</div>
+
+<div id="outline-container-20" class="outline-1 slide">
+<h1 id="sec-20"><span class="section-number-1">20</span> Node.js构建Http服务：Connect</h1>
+<div class="outline-text-1" id="text-20">
+
+</div>
+
+</div>
+
+<div id="outline-container-21" class="outline-1 slide">
+<h1 id="sec-21"><span class="section-number-1">21</span> Node.js构建Http服务：Express</h1>
+<div class="outline-text-1" id="text-21">
+
+</div>
+
+</div>
+
+<div id="outline-container-22" class="outline-1 slide">
+<h1 id="sec-22"><span class="section-number-1">22</span> Node.js超越Http服务</h1>
+<div class="outline-text-1" id="text-22">
+
+</div>
+
+</div>
+
+<div id="outline-container-23" class="outline-1 slide">
+<h1 id="sec-23"><span class="section-number-1">23</span> Javascript工具：Jslint</h1>
+<div class="outline-text-1" id="text-23">
+
+</div>
+
+</div>
+
+<div id="outline-container-24" class="outline-1 slide">
+<h1 id="sec-24"><span class="section-number-1">24</span> 浏览器中的Javascript</h1>
+<div class="outline-text-1" id="text-24">
+
+</div>
+
+</div>
+
+<div id="outline-container-25" class="outline-1 slide">
+<h1 id="sec-25"><span class="section-number-1">25</span> C10K问题</h1>
+<div class="outline-text-1" id="text-25">
+
+</div>
+
+</div>
+
+<div id="outline-container-26" class="outline-1 slide">
+<h1 id="sec-26"><span class="section-number-1">26</span> select与epoll</h1>
+<div class="outline-text-1" id="text-26">
+
+</div>
+
+</div>
+
+<div id="outline-container-27" class="outline-1 slide">
+<h1 id="sec-27"><span class="section-number-1">27</span> 事件回调</h1>
+<div class="outline-text-1" id="text-27">
+
+</div>
+
+</div>
+
+<div id="outline-container-28" class="outline-1 slide">
+<h1 id="sec-28"><span class="section-number-1">28</span> Javascript从前端到后端</h1>
+<div class="outline-text-1" id="text-28">
+
+</div>
+
+</div>
+
+<div id="outline-container-29" class="outline-1 slide">
+<h1 id="sec-29"><span class="section-number-1">29</span> V8引擎简介</h1>
+<div class="outline-text-1" id="text-29">
+
+</div>
+
+</div>
+
+<div id="outline-container-30" class="outline-1 slide">
+<h1 id="sec-30"><span class="section-number-1">30</span> 参考资料</h1>
+<div class="outline-text-1" id="text-30">
+
+<ul>
+<li>《Javascript语言精粹》
+</li>
+<li><a href="http://jibbering.com/faq/notes/closures/">Javascript Closures</a>
+</li>
+<li><a href="http://www.nodebeginner.org/index-zh-cn.html">Node.js入门</a>
+</li>
+<li><a href="http://debuggable.com/posts/understanding-node-js:4bd98440-45e4-4a9a-8ef7-0f7ecbdd56cb">Understanding node.js</a>
+</li>
+<li><a href="http://blog.mixu.net/2011/02/01/understanding-the-node-js-event-loop/">Understanding the node.js event loop « Mixu's tech blog</a>
+</li>
+</ul>
+
+</div>
+</div>
+</div>
+
+</body>
+</html>
