@@ -112,7 +112,7 @@ function currentSlide() {
 	} else {
 		cs = document.currentSlide;
 	}
-	cs.innerHTML = '<a id="plink" href="">' + 
+	cs.innerHTML = '<a id="plink" href="" target="_self">' + 
 		'<span id="csHere">' + snum + '<\/span> ' + 
 		'<span id="csSep">\/<\/span> ' + 
 		'<span id="csTotal">' + (smax-1) + '<\/span>' +
@@ -425,10 +425,10 @@ function createControls() {
 	}
 	controlsDiv.innerHTML = '<form action="#" id="controlForm"' + hideDiv + '>' +
 	'<div id="navLinks">' +
-	'<a accesskey="n" id="show-notes" href="javascript:toggleNotesWindow();" title="Show Notes">&equiv;<\/a>' +
-	'<a accesskey="t" id="toggle" href="javascript:toggle();" title="Show Outline">&#216;<\/a>' +
-	'<a accesskey="z" id="prev" href="javascript:go(-1);" title="Prev Slide">&laquo;<\/a>' +
-	'<a accesskey="x" id="next" href="javascript:go(1);" title="Next Slide">&raquo;<\/a>' +
+	'<a accesskey="n" id="show-notes" href="javascript:toggleNotesWindow();" title="Show Notes" target="_self">&equiv;<\/a>' +
+	'<a accesskey="t" id="toggle" href="javascript:toggle();" title="Show Outline" target="_self">&#216;<\/a>' +
+	'<a accesskey="z" id="prev" href="javascript:go(-1);" title="Prev Slide" target="_self">&laquo;<\/a>' +
+	'<a accesskey="x" id="next" href="javascript:go(1);" title="Next Slide" target="_self">&raquo;<\/a>' +
 	'<div id="navList"' + hideList + '><select id="jumplist" onchange="go(\'j\');"><\/select><\/div>' +
 	'<\/div><\/form>';
 	if (controlVis == 'hidden') {
