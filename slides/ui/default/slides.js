@@ -304,6 +304,18 @@ function keys(key) {
 	return false;
 }
 
+function isleft(x){
+    var width = 1024;
+    if (window.innerWidth) {
+		width = window.innerWidth;
+	} else if (document.documentElement.clientWidth) {
+		width = document.documentElement.clientWidth;
+	} else if (document.body.clientWidth) {
+		width = document.body.clientWidth;
+	}
+    return x < width/2;
+}
+
 function clicker(e) {
 	number = undef;
 	var target;
@@ -313,10 +325,14 @@ function clicker(e) {
 	} else target = e.target;
 	if (target.href != null || hasValue(target.rel, 'external') || isParentOrSelf(target, 'controls') || isParentOrSelf(target,'embed') || isParentOrSelf(target,'object')) return true;
 	if (!e.which || e.which == 1) {
+        var step = 1;
+        if(isleft(e.clientX)){
+            step = -1;
+        }
 		if (!incrementals[snum] || incpos >= incrementals[snum].length) {
-			go(1);
+			go(step);
 		} else {
-			subgo(1);
+			subgo(step);
 		}
 	}
 }
@@ -410,9 +426,9 @@ function createControls() {
 	controlsDiv.innerHTML = '<form action="#" id="controlForm"' + hideDiv + '>' +
 	'<div id="navLinks">' +
 	'<a accesskey="n" id="show-notes" href="javascript:toggleNotesWindow();" title="Show Notes">&equiv;<\/a>' +
-	'<a accesskey="t" id="toggle" href="javascript:toggle();">&#216;<\/a>' +
-	'<a accesskey="z" id="prev" href="javascript:go(-1);">&laquo;<\/a>' +
-	'<a accesskey="x" id="next" href="javascript:go(1);">&raquo;<\/a>' +
+	'<a accesskey="t" id="toggle" href="javascript:toggle();" title="Show Outline">&#216;<\/a>' +
+	'<a accesskey="z" id="prev" href="javascript:go(-1);" title="Prev Slide">&laquo;<\/a>' +
+	'<a accesskey="x" id="next" href="javascript:go(1);" title="Next Slide">&raquo;<\/a>' +
 	'<div id="navList"' + hideList + '><select id="jumplist" onchange="go(\'j\');"><\/select><\/div>' +
 	'<\/div><\/form>';
 	if (controlVis == 'hidden') {
@@ -675,4 +691,19 @@ function startup() {
 }
 
 window.onload = startup;
-window.onresize = function(){setTimeout('windowChange()',5);}
+window.onresize = function(){setTimeout('windowChange()',5);};
+window.onmousemove = function(e) {
+    var cursor = 'auto';
+    if(s5mode){
+        if (isleft(e.clientX)) {
+            cursor = 'url("ui/default/cursor_left.cur"), auto';
+            console.log(e.target.id + " left");
+        } else {
+		    cursor = 'url("ui/default/cursor_right.cur"), auto';
+            console.log(e.target.id + "right");
+	    }
+    }else{
+        cursor = 'auto';
+    }
+    document.body.style.cursor = cursor;
+};
