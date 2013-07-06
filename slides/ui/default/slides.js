@@ -697,10 +697,8 @@ window.onmousemove = function(e) {
     if(s5mode){
         if (isleft(e.clientX)) {
             cursor = 'url("ui/default/cursor_left.cur"), auto';
-            console.log(e.target.id + " left");
         } else {
 		    cursor = 'url("ui/default/cursor_right.cur"), auto';
-            console.log(e.target.id + "right");
 	    }
     }else{
         cursor = 'auto';
