@@ -63,6 +63,15 @@ function isParentOrSelf(element, id) {
 	else return isParentOrSelf(element.parentNode, id);
 }
 
+function isParentLink(element){
+	if (element == null || element.nodeName=='BODY') {
+        return false;
+    } else if (element.nodeName.toLowerCase() == 'a'){
+        return true;
+    }
+    return isParentLink(element.parentNode);    
+}
+
 function nodeValue(node) {
 	var result = "";
 	if (node.nodeType == 1) {
@@ -325,7 +334,7 @@ function clicker(e) {
 	} else {
          target = e.target;
     }
-	if (target.href != null || hasValue(target.rel, 'external') || isParentOrSelf(target, 'controls') || isParentOrSelf(target,'embed') || isParentOrSelf(target,'object') || target.nodeName.toLowerCase () == "button") {
+	if (target.href != null || hasValue(target.rel, 'external') || isParentOrSelf(target, 'controls') || isParentOrSelf(target,'embed') || isParentOrSelf(target,'object') || target.nodeName.toLowerCase () == "button" || (target.nodeName.toLowerCase () == "img" && isParentLink(target))) {
         return true;
     }
 	if (!e.which || e.which == 1) {
