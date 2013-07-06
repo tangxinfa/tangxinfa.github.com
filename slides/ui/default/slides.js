@@ -249,7 +249,7 @@ function keys(key) {
 			case 10: // return
 			case 13: // enter
 				if (window.event && isParentOrSelf(window.event.srcElement, 'controls')) return;
-				if (key.target && isParentOrSelf(key.target, 'controls')) return;
+				if (key.target && (isParentOrSelf(key.target, 'controls') || target.nodeName.toLowerCase () == "button")) return;
 				if(number != undef) {
 					goTo(number);
 					break;
@@ -322,8 +322,12 @@ function clicker(e) {
 	if (window.event) {
 		target = window.event.srcElement;
 		e = window.event;
-	} else target = e.target;
-	if (target.href != null || hasValue(target.rel, 'external') || isParentOrSelf(target, 'controls') || isParentOrSelf(target,'embed') || isParentOrSelf(target,'object')) return true;
+	} else {
+         target = e.target;
+    }
+	if (target.href != null || hasValue(target.rel, 'external') || isParentOrSelf(target, 'controls') || isParentOrSelf(target,'embed') || isParentOrSelf(target,'object') || target.nodeName.toLowerCase () == "button") {
+        return true;
+    }
 	if (!e.which || e.which == 1) {
         var step = 1;
         if(isleft(e.clientX)){
