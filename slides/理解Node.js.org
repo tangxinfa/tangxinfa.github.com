@@ -319,6 +319,126 @@
   </div>
   #+end_html
 
+* Node.js模块机制
+
+  #+begin_html
+    <div class="leftinfo">
+  #+end_html
+
+  #+begin_quote
+  JavaScript没有模块系统\\
+  所有js文件中定义的顶级对象名存在于同一个命名空间\\
+  \\
+  #+end_quote
+
+  #+begin_html
+    </div>
+    <div class="rightinfo">
+  #+end_html
+
+  #+begin_quote
+  - [[http://www.commonjs.org][CommonJS]]规范 :: 其目标是为了构建JavaScript在包括Web服务器，桌面，命令行工具，及浏览器方面的生态系统。
+  #+end_quote
+
+  #+begin_html
+      </div>
+      <div style="clear:both; padding:0;">
+      </div>
+      <div class="leftinfo" style="font-size:0.7em;">
+  #+end_html
+
+  [[http://wiki.commonjs.org/wiki/Modules/1.1][CommonJS模块规范]]：
+  #+begin_src artist
+    
+    +---------------+
+    |  module.js ---+-->模块是普通的js文件
+    |               |                     
+    |  +---------+  | 
+    |  | require +--+-->用于导入其它模块接口的函数
+    |  +---------+  |   
+    |  +---------+  |   
+    |  | exports +--+-->用于导出接口的对象
+    |  +---------+  |   
+    |  +---------+  |   
+    |  | module  +--+-->当前模块对象
+    |  +---------+  |   
+    |     ...  -----+-->其它用户定义对象为模块私有
+    +---------------+
+  #+end_src
+
+  #+begin_html
+    </div>
+    <div class="rightinfo">
+  #+end_html
+
+  #+begin_quote
+  在Node.js应用程序中\\
+  require一个模块返回其exports对象\\
+  该exports对象会被Node.js缓存\\
+  当再次require该模块直接返回缓存结果\\
+  \\
+  exports变量是module.exports对象的引用\\
+  \\
+  该模块不会对全局命名空间造成影响
+  #+end_quote
+  
+  #+begin_html
+    </div>
+  #+end_html
+
+* Node.js模块示例
+
+  #+begin_html
+    <div class="leftinfo" style="font-size:0.8em">
+  #+end_html
+
+  =woman.js=
+  #+begin_src javascript
+    var value = 10;
+    exports.Woman = function (name, age) {
+        this.name = name;
+        this.introduce = function(){
+            return "My name is " + this.name + ", I'am " + (age - value);
+        };
+    };
+  #+end_src
+  \\
+  #+begin_src javascript
+    var Woman = require("./woman.js").Woman;
+    var woman1 = new Woman("mary", 34);
+    var woman2 = new Woman("rose", 45);
+    console.log(woman1.introduce());
+    console.log(woman2.introduce());
+  #+end_src
+
+  #+begin_html
+    </div>
+    <div class="rightinfo" style="font-size:0.8em">
+  #+end_html
+
+  =woman.js=
+  #+begin_src javascript
+    var value = 10;
+    module.exports = function (name, age) {
+        this.name = name;
+        this.introduce = function(){
+            return "My name is " + this.name + ", I'am " + (age - value);
+        };
+    };
+  #+end_src
+  \\
+  #+begin_src javascript
+    var Woman = require("./woman.js");
+    var woman1 = new Woman("mary", 34);
+    var woman2 = new Woman("rose", 45);
+    console.log(woman1.introduce());
+    console.log(woman2.introduce());
+  #+end_src
+
+  #+begin_html
+    </div>
+  #+end_html
+
 * Node.js包机制
   
   #+begin_html
@@ -337,13 +457,14 @@
   #+end_html
 
   #+begin_quote
-  - [[http://www.commonjs.org][CommonJS]]规范 :: 其目标是为了构建JavaScript在包括Web服务器，桌面，命令行工具，及浏览器方面的生态系统。
+  - [[http://wiki.commonjs.org/wiki/Packages/1.1][CommonJS包规范]] :: 存在package.json文件的目录即为包。
   #+end_quote
 
   #+begin_html
-    </div>
-    <div style="clear:both;">
-      <div class="leftinfo" style="font-size:0.37em;" title=" /usr/local/lib/node_modules/npm/node_modules/tar/package.json">
+        </div>
+        <div style="clear:both; padding:0;">
+        </div>
+        <div class="leftinfo" style="font-size:0.37em;" title=" /usr/local/lib/node_modules/npm/node_modules/tar/package.json">
   #+end_html
   
   #+begin_src javascript
@@ -390,18 +511,13 @@
     <div class="rightinfo" style="font-size:0.7em">
   #+end_html
 
-  #+begin_verse
-  存在package.json文件的目录即为包。
+  #+ATTR_HTML: style="border-style:hidden;"
+  | name         | 包名                       |
+  | version      | 版本号                     |
+  | main         | 当包被程序引用时需载入模块 |
+  | dependencies | 依赖的其它包               |
+  | scripts      | 用于包管理                 |
 
-  name ........... 包名
-  version ......... 版本号
-  main ............ 当包被程序引用时需载入模块
-  dependencies .. 依赖的其它包
-  scripts ......... 用于包管理
-  
-  参考：[[http://wiki.commonjs.org/wiki/Packages/1.1][CommonJS包规范]]
-  #+end_verse
-  
   #+begin_html
     </div>
   #+end_html
@@ -429,36 +545,6 @@
   #+begin_html
     </div>
   #+end_html
-
-* Node.js模块机制
-
-  #+begin_quote
-  JavaScript没有模块系统
-  
-  所有js文件中定义的顶级对象名存在于同一个命名空间
-  #+end_quote
-
-  [[http://wiki.commonjs.org/wiki/Modules/1.1][CommonJS模块规范]]：
-  
-  #+begin_src artist
-    +----------------------------+
-    |   module.js ---------------+----->模块是普通的js文件
-    |                            |  
-    |   +---------+              |  
-    |   | require +--------------+----->用于导入其它模块接口的函数
-    |   +---------+              |      
-    |   +---------+              |      
-    |   | exports +--------------+----->当前模块导出的接口
-    |   +---------+              |      
-    |   +---------+              |      
-    |   | module  +--------------+----->当前模块对象
-    |   +---------+              |     
-    +----------------------------+
-        
-  #+end_src
-
-* Node.js模块示例
-
 
 * Node.js模块加载流程
   
