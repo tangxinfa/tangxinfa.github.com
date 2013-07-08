@@ -43,7 +43,7 @@
   [[../static/browsers.png]]  
   #+end_center
 
-* ECMAScript
+* Javascript标准：ECMAScript
 
   ECMAScript 描述了以下内容：
     - 语法
@@ -174,7 +174,7 @@
   #+ATTR_HTML: style="width:2.5em;"
   [[../static/lighttpd.jpeg]]
   #+end_center
-
+  \\
   #+begin_center
   #+ATTR_HTML: style="width:2.5em;"
   [[../static/mysql.jpeg]]
@@ -193,9 +193,10 @@
 * 今天要介绍的Web后端开发技术
 
   #+begin_center
-  #+ATTR_HTML: style="width:22.5em;" title="Node"
+  #+ATTR_HTML: style="width:20.8em;" title="Node"
   [[../static/node.jpeg]]
   #+end_center
+  \\
   \\
   \\
   #+begin_center
@@ -217,7 +218,9 @@
   
   　　Node.js是在Chrome的Javascript引擎之上构建的一个平台，
   很容易用来构建 =高性能= 、 =可扩展= 的网络应用程序。
-
+  \\
+  \\
+  \\
   　　Node.js使用 =事件驱动= 、 =非阻塞I/O模型= 从而表现得轻巧、高效，
   适用于开发 =数据密集型= 的 =实时响应= 分布式应用程序。
 
@@ -262,10 +265,14 @@
 
 * Node.js用户案例
 
+  #+begin_center
+  《[[http://www.csdn.net/article/2012-10-08/2810589-LinkedIn_Rails_to_Node][LinkedIn移动端用Node替代Rails：减少90%服务器 速度提升20倍]]》
+  #+end_center
+
   #+begin_html
   <div class="leftinfo">
   #+end_html
-  #+ATTR_HTML: style="width:7em;"
+  #+ATTR_HTML: style="width:10em;"
   [[../static/linkedin.jpeg]]
   #+begin_quote
   在服务端\\
@@ -276,9 +283,7 @@
   #+begin_html
   </div>
   <div class="rightinfo" style="font-size:0.7em;">
-  #+end_html  
-  《[[http://www.csdn.net/article/2012-10-08/2810589-LinkedIn_Rails_to_Node][LinkedIn移动端用Node替代Rails：减少90%服务器 速度提升20倍]]》\\
-  \\
+  #+end_html
   Node.js的优势在于：\\
   - 更好的性能以及更少的内存占用，在某型情景下性能提升20倍
   - 程序员可以充分发挥他们JavaScript的技巧
@@ -372,6 +377,7 @@
   #+end_html
 
   #+begin_quote
+  \\
   在Node.js应用程序中\\
   require一个模块返回其exports对象\\
   该exports对象会被Node.js缓存\\
@@ -416,7 +422,7 @@
     <div class="rightinfo" style="font-size:0.8em">
   #+end_html
 
-  =woman.js=
+  =woman.js= 模块即类
   #+begin_src javascript
     var value = 10;
     module.exports = function (name, age) {
@@ -464,7 +470,7 @@
         </div>
         <div style="clear:both; padding:0;">
         </div>
-        <div class="leftinfo" style="font-size:0.37em;" title=" /usr/local/lib/node_modules/npm/node_modules/tar/package.json">
+        <div class="leftinfo" style="font-size:0.4em;" title=" /usr/local/lib/node_modules/npm/node_modules/tar/package.json">
   #+end_html
   
   #+begin_src javascript
@@ -541,19 +547,119 @@
     </div>
     <div class="rightinfo" style="font-size:0.7em;">
   #+end_html
-
+  
   #+begin_html
     </div>
   #+end_html
 
-* Node.js模块加载流程
+* Node.js模块定位流程
+
+  #+begin_html
+    <div class="leftinfo" style="font-size:0.7em;">
+  #+end_html
+
+  =require(X)是怎么定位到模块文件的？=
+
+  - require("fs")
+    
+    直接加载核心模块
+
+  - require("./X")
+  - require("../X")
+  - require("/X")
+
+    指定路径加载模块
+
+  - require("X")
+
+    搜索路径加载模块
+
+  #+begin_html
+    </div>
+    <div class="rightinfo" style="font-size:0.65em;">
+  #+end_html
   
+  - 指定路径加载模块
+      - 指定路径下X文件
+      - 指定路径下X.js文件
+      - 指定路径下X.node文件
+      - 指定路径下X/package.json文件中的main对应的文件
+      - 指定路径下X/index.js
+      - 指定路径下X/index.node
+
+  - 搜索路径加载模块
+
+    依次按以下目录进行指定路径模块加载
+
+    - 当前目录下的node\_modules目录
+    - 上一级目录下的node\_modules目录，直到根目录为止
+    - NODE\_PATH环境变量指定的各个路径
+    - 用户根目录下的.node\_modules目录
+    - 用户根目录下的.node\_libraries目录
+    - node.js安装目录前缀下的/lib/node
+      
+      通常为：/usr/local/lib/node
+
+  #+begin_html
+    </div>
+  #+end_html
+  
+* Node.js示例：Echo服务器
+
+  #+begin_html
+    <div class="leftinfo">
+  #+end_html
+  
+  =echo_server.js=
   #+begin_src javascript
-    require("fs");                                /*加载核心模块*/
-    require("/NodeExamples/node_modules/redis");  /*绝对路径加载模块*/
-    require("../common.js");                      /*相对路径加载模块*/
+    var net = require('net');
+    
+    var server = net.createServer(
+        function (socket) {
+            socket.pipe(socket);
+        }
+    );
+    
+    server.listen(8001);        
   #+end_src
+
+  #+begin_example
+  ~$ node ./echo_server.js
+  #+end_example
+
+  #+begin_example
+    ~$ telnet 127.0.0.1 8001
+    hello node.js
+    hello node.js
+  #+end_example
+
+  #+begin_html
+    </div>
+    <div class="rightinfo" style="font-size:0.95em;">
+  #+end_html
+
+  =echo_client.js=
+  #+begin_src javascript
+    var net = require('net');
+    
+    var client = net.connect({port: 8001});
+    
+    client.on('connect', function () {
+        client.write("hello node.js");
+    }).on("data", function (data) {
+        console.log(data.toString());
+    });
+  #+end_src
+
+  #+begin_example
+    ~$ node ./echo_client.js
+    hello node.js
+  #+end_example  
   
+  #+begin_html
+    </div>
+  #+end_html
+
 * Node.js代码风格
 * Node.js构建Http服务
 * Node.js构建Http服务：Connect
