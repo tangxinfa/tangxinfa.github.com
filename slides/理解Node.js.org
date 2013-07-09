@@ -91,13 +91,13 @@
 * Javascript特性：“类”（示例）
 
   #+ATTR_HTML: :textarea
-  #+begin_src javascript
+  #+begin_src javascript -n
     function Man(name, age) {
         this.name = name;
         this.age  = age;
     }
     Man.prototype.introduce = function(){
-        return "My name is " + this.name + ", I'am " + this.age;
+        return this.name + " is " + this.age;
     };
     
     var man1 = new Man("jack", 24);
@@ -107,8 +107,8 @@
   #+end_src
   \\
   #+begin_example
-    My name is jack, I'am 24
-    My name is tom, I'am 25
+    jack is 24
+    tom is 25
   #+end_example
       
 * Javascript特性：闭包
@@ -128,11 +128,11 @@
 
 * Javascript特性：闭包（示例）
 
-  #+begin_src javascript
+  #+begin_src javascript -n
     function Woman(name, age) {
         this.name = name;
         this.introduce = function(){
-            return "My name is " + this.name + ", I'am " + (age - 10);
+            return this.name + " is " + (age - 10);
         };
     }
     var woman1 = new Woman("mary", 34);
@@ -142,8 +142,8 @@
   #+end_src
   \\
   #+begin_example
-    My name is mary, I'am 24
-    My name is rose, I'am 35
+    mary is 24
+    rose is 35
   #+end_example
 
 * 常见的Web后端开发技术
@@ -221,7 +221,7 @@
   \\
   \\
   \\
-  　　Node.js使用 =事件驱动= 、 =非阻塞I/O模型= 从而表现得轻巧、高效，
+  　　Node.js是 =单线程= 基于 =事件驱动= 、 =非阻塞I/O模型= 从而表现得轻巧、高效，
   适用于开发 =数据密集型= 的 =实时响应= 分布式应用程序。
 
 * Node.js简介
@@ -265,9 +265,13 @@
 
 * Node.js用户案例
 
-  #+begin_center
+  #+begin_html
+    <center style="font-size:0.8em">
+  #+end_html
   《[[http://www.csdn.net/article/2012-10-08/2810589-LinkedIn_Rails_to_Node][LinkedIn移动端用Node替代Rails：减少90%服务器 速度提升20倍]]》
-  #+end_center
+  #+begin_html
+    </center>
+  #+end_html
 
   #+begin_html
   <div class="leftinfo">
@@ -295,6 +299,31 @@
   #+end_html
 
 * Node.js安装
+  
+  #+begin_html
+    <div class="leftinfo">
+  #+end_html
+
+  [[http://nodejs.org/download/]]
+
+  #+ATTR_HTML: style="width:11em;"
+  [[../static/node_download.png]]
+
+  #+begin_html
+    </div>
+    <div class="rightinfo" style="font-size:0.7em;">
+  #+end_html
+
+  - /usr/local/bin/node :: 主程序
+    
+  - /usr/local/bin/npm :: 模块管理程序
+
+  - /usr/local/lib/node\_modules :: 全局模块目录
+
+  #+begin_html
+    </div>
+    <div style="clear:both;"></div>
+  #+end_html
 
   #+begin_src sh
     wget http://nodejs.org/dist/v0.10.12/node-v0.10.12.tar.gz
@@ -304,25 +333,10 @@
     sudo make install
   #+end_src
 
-  #+begin_html
-  <div class="leftinfo">
-  #+end_html
-  - /usr/local/bin/node :: 主程序
-    
-  - /usr/local/bin/npm :: 模块管理程序
-
-  - /usr/local/lib/node\_modules :: 全局模块目录
-
-  #+begin_html
-  </div>
-  <div class="rightinfo">
-  #+end_html
-  #+ATTR_HTML: style="width:13em;"
-
-  [[../static/hello_node.png]]
-  #+begin_html
-  </div>
-  #+end_html
+  #+begin_example
+    ~$ node -e 'console.log("hello node.js");'
+    hello node.js
+  #+end_example
 
 * Node.js模块机制
 
@@ -355,20 +369,20 @@
   [[http://wiki.commonjs.org/wiki/Modules/1.1][CommonJS模块规范]]：
   #+begin_src artist
     
-    +---------------+
-    |  module.js ---+-->模块是普通的js文件
-    |               |                     
-    |  +---------+  | 
-    |  | require +--+-->用于导入其它模块接口的函数
-    |  +---------+  |   
-    |  +---------+  |   
-    |  | exports +--+-->用于导出接口的对象
-    |  +---------+  |   
-    |  +---------+  |   
-    |  | module  +--+-->当前模块对象
-    |  +---------+  |   
-    |     ...  -----+-->其它用户定义对象为模块私有
-    +---------------+
+    +-------------+
+    | module.js --+->模块是普通的js文件
+    |             |                    
+    | +---------+ |
+    | | require +-+->用于导入其它模块接口的函数
+    | +---------+ |  
+    | +---------+ |  
+    | | exports +-+->用于导出接口的对象
+    | +---------+ |  
+    | +---------+ |  
+    | | module  +-+->当前模块对象
+    | +---------+ |  
+    |    ...  ----+->其它用户定义对象为模块私有
+    +-------------+
   #+end_src
 
   #+begin_html
@@ -377,9 +391,9 @@
   #+end_html
 
   #+begin_quote
-  \\
   在Node.js应用程序中\\
-  require一个模块返回其exports对象\\
+  首次require一个模块执行其代码\\
+  返回其exports对象\\
   该exports对象会被Node.js缓存\\
   当再次require该模块直接返回缓存结果\\
   \\
@@ -394,22 +408,18 @@
 
 * Node.js模块示例
 
-  #+begin_html
-    <div class="leftinfo" style="font-size:0.8em">
-  #+end_html
-
   =woman.js=
-  #+begin_src javascript
+  #+begin_src javascript -n
     var value = 10;
     exports.Woman = function (name, age) {
         this.name = name;
         this.introduce = function(){
-            return "My name is " + this.name + ", I'am " + (age - value);
+            return this.name + " is " + (age - value);
         };
     };
   #+end_src
   \\
-  #+begin_src javascript
+  #+begin_src javascript -n
     var Woman = require("./woman.js").Woman;
     var woman1 = new Woman("mary", 34);
     var woman2 = new Woman("rose", 45);
@@ -417,33 +427,26 @@
     console.log(woman2.introduce());
   #+end_src
 
-  #+begin_html
-    </div>
-    <div class="rightinfo" style="font-size:0.8em">
-  #+end_html
+* Node.js模块示例（类即模块）
 
-  =woman.js= 模块即类
-  #+begin_src javascript
+  =woman.js=
+  #+begin_src javascript -n
     var value = 10;
     module.exports = function (name, age) {
         this.name = name;
         this.introduce = function(){
-            return "My name is " + this.name + ", I'am " + (age - value);
+            return this.name + " is " + (age - value);
         };
     };
   #+end_src
   \\
-  #+begin_src javascript
+  #+begin_src javascript -n
     var Woman = require("./woman.js");
     var woman1 = new Woman("mary", 34);
     var woman2 = new Woman("rose", 45);
     console.log(woman1.introduce());
     console.log(woman2.introduce());
   #+end_src
-
-  #+begin_html
-    </div>
-  #+end_html
 
 * Node.js包机制
   
@@ -470,28 +473,28 @@
         </div>
         <div style="clear:both; padding:0;">
         </div>
-        <div class="leftinfo" style="font-size:0.4em;" title=" /usr/local/lib/node_modules/npm/node_modules/tar/package.json">
+        <div class="leftinfo" style="font-size:0.425em;" title=" /usr/local/lib/node_modules/npm/node_modules/tar/package.json">
   #+end_html
   
-  #+begin_src javascript
+  #+begin_src javascript -n -r
     {
       "author": {
         "name": "Isaac Z. Schlueter",
         "email": "i@izs.me",
         "url": "http://blog.izs.me/"
       },
-      "name": "tar",
+      "name": "tar",                                    (ref:package_specs__name)
       "description": "tar for node",
-      "version": "0.1.17",
+      "version": "0.1.17",                              (ref:package_specs__version)
       "repository": {
         "type": "git",
         "url": "git://github.com/isaacs/node-tar.git"
       },
-      "main": "tar.js",
-      "scripts": {
+      "main": "tar.js",                                 (ref:package_specs__main)
+      "scripts": {                                      (ref:package_specs__scripts)
         "test": "tap test/*.js"
       },
-      "dependencies": {
+      "dependencies": {                                 (ref:package_specs__dependencies)
         "inherits": "1.x",
         "block-stream": "*",
         "fstream": "~0.1.8"
@@ -518,11 +521,11 @@
   #+end_html
 
   #+ATTR_HTML: style="border-style:hidden;"
-  | name         | 包名                       |
-  | version      | 版本号                     |
-  | main         | 当包被程序引用时需载入模块 |
-  | dependencies | 依赖的其它包               |
-  | scripts      | 用于包管理                 |
+  | name[[(package_specs__name)]]                 | 包名                       |
+  | version[[(package_specs__version)]]           | 版本号                     |
+  | main[[(package_specs__main)]]                 | 当包被程序引用时需载入模块 |
+  | scripts[[(package_specs__scripts)]]           | 用于包管理                 |
+  | dependencies[[(package_specs__dependencies)]] | 依赖的其它包               |
 
   #+begin_html
     </div>
@@ -531,34 +534,49 @@
 * Node.js包管理工具
 
   #+begin_html
+  <style type="text/css">
+    .npm-logo img {
+      width: 7em;
+    }
+  </style>
+  #+end_html
+
+  #+ATTR_HTML: class="npm-logo"
+  [[https://npmjs.org/][../static/npm.png]]
+
+  #+begin_html
     <div class="leftinfo" style="font-size:0.7em;">
   #+end_html
 
-  #+Caption: Node.js包管理程序
-  #+ATTR_HTML: style="width:7em;"
-  [[https://npmjs.org/][../static/npm.png]]
-
-  - npm install <name> :: 安装包到本地路径
-  - npm install -g <name> :: 安装包到全局路径
-  - npm link :: 将当前包链接全局路径下
-  - npm link <name> :: 将全局包链接本地路径下
+  - npm install <name> :: 安装包到本地模块目录（./node\_modules）
+  - npm install -g <name> :: 安装包到全局模块目录
+  - npm link :: 将当前包链接全局模块目录下
+  - npm link <name> :: 将全局包链接本地模块目录下
 
   #+begin_html
     </div>
     <div class="rightinfo" style="font-size:0.7em;">
   #+end_html
-  
+
+  #+begin_quote
+  \\
+  全局模块目录不在Node.js的模块搜索范围内\\
+  \\
+  将全局安装的包链接到本地模块目录启用即可\\
+  \\
+  #+end_quote
+
   #+begin_html
     </div>
   #+end_html
 
-* Node.js模块定位流程
+* Node.js模块定位
 
   #+begin_html
     <div class="leftinfo" style="font-size:0.7em;">
   #+end_html
 
-  =require(X)是怎么定位到模块文件的？=
+  =require(X)如何定位到模块文件？=
 
   - require("fs")
     
@@ -576,7 +594,7 @@
 
   #+begin_html
     </div>
-    <div class="rightinfo" style="font-size:0.65em;">
+    <div class="rightinfo" style="font-size:0.6em;">
   #+end_html
   
   - 指定路径加载模块
@@ -589,7 +607,7 @@
 
   - 搜索路径加载模块
 
-    依次按以下目录进行指定路径模块加载
+    依次尝试以下路径进行模块加载
 
     - 当前目录下的node\_modules目录
     - 上一级目录下的node\_modules目录，直到根目录为止
@@ -606,12 +624,8 @@
   
 * Node.js示例：Echo服务器
 
-  #+begin_html
-    <div class="leftinfo">
-  #+end_html
-  
   =echo_server.js=
-  #+begin_src javascript
+  #+begin_src javascript -n
     var net = require('net');
     
     var server = net.createServer(
@@ -620,45 +634,43 @@
         }
     );
     
-    server.listen(8001);        
+    server.listen(8001);
+    console.log("Server running");
   #+end_src
+
+  #+begin_html
+    <div class="leftinfo">
+  #+end_html
 
   #+begin_example
   ~$ node ./echo_server.js
+  Server running
+
   #+end_example
+
+  #+begin_html
+    </div>
+    <div class="rightinfo">
+  #+end_html
 
   #+begin_example
     ~$ telnet 127.0.0.1 8001
-    hello node.js
-    hello node.js
+    hello
+    hello
   #+end_example
 
   #+begin_html
     </div>
-    <div class="rightinfo" style="font-size:0.95em;">
+    <div style="clear:both;"></div>
   #+end_html
 
-  =echo_client.js=
-  #+begin_src javascript
-    var net = require('net');
-    
-    var client = net.connect({port: 8001});
-    
-    client.on('connect', function () {
-        client.write("hello node.js");
-    }).on("data", function (data) {
-        console.log(data.toString());
-    });
-  #+end_src
+  #+begin_quote
+  在Node.js中，除了代码，一切都是并行的！\\
+  #+end_quote
 
-  #+begin_example
-    ~$ node ./echo_client.js
-    hello node.js
-  #+end_example  
+  :NOTES:
   
-  #+begin_html
-    </div>
-  #+end_html
+  :END:
 
 * Node.js代码风格
 * Node.js构建Http服务
