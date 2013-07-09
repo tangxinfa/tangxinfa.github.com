@@ -258,7 +258,7 @@ function keys(key) {
 			case 10: // return
 			case 13: // enter
 				if (window.event && isParentOrSelf(window.event.srcElement, 'controls')) return;
-				if (key.target && (isParentOrSelf(key.target, 'controls') || target.nodeName.toLowerCase () == "button")) return;
+				if (key.target && (isParentOrSelf(key.target, 'controls') || key.target.nodeName.toLowerCase () == "button")) return;
 				if(number != undef) {
 					goTo(number);
 					break;
