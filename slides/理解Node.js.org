@@ -665,8 +665,84 @@
   #+end_html
 
   #+begin_quote
-  在Node.js中，除了代码，一切都是并行的！
+  在Node.js中，除了代码，一切都是并行的！\\
+  \\
+  #+begin_html
+  <a href="javascript: toggleNotesWindow();" target="_self">代码详解</a>
+  #+end_html
   #+end_quote
+
+  :NOTES:
+  现在我们来逐行解释发生了什么：
+
+  #+begin_src sh
+    node ./echo_server.js
+  #+end_src
+
+  #+begin_quote
+  node.js解释执行echo\_server.js，
+  
+  然后进入事件循环，
+
+  如果没有事件需要处理则退出程序。
+  \\
+  \\
+  #+end_quote
+
+  #+begin_src javascript
+  var net = require('net');
+  #+end_src
+  
+  #+begin_quote
+  导入 [[http://nodejs.org/api/net.html][net]] 模块，它是node.js自带的核心模块，对异步网络进行了封装。
+
+  net模块的js代码将被执行，返回该模块导出的一些函数及“类”。
+  \\
+  \\
+  #+end_quote
+
+  #+begin_src javascript -n -r
+    var server = net.createServer(             (ref:echo_server__createServer)
+        function (socket) {                    (ref:echo_server__createServer_callback)
+            socket.pipe(socket);               (ref:echo_server__createServer_pipe)
+        }
+    );
+  #+end_src
+
+  #+begin_quote
+  [[(echo_server__createServer)]] net.createServer创建一个tcp服务器对象，参数为绑定到服务器 [[http://nodejs.org/api/net.html#net_event_connection][connection]] 事件的回调函数，当node.js成功接收到一个连接时，该回调函数将被调用。
+  
+  [[(echo_server__createServer_callback)]] 该回调函数的参数为新建立的tcp连接对象，它是一个 [[http://nodejs.org/api/net.html#net_class_net_socket][net.Socket]] 类实例，
+
+  [[(echo_server__createServer_pipe)]] echo的实现使用了Socket.pipe方法，该方法来自Socket的父类，将当前对象读取到的数据转发到参数指定的目标对象。
+  \\
+  \\
+  #+end_quote
+
+  #+begin_src javascript -n -r
+    server.listen(8001);
+  #+end_src
+
+  #+begin_quote
+  tcp服务器在绑定在8001端口进行监听，这里省略了第二个参数 =host= （其默认值为 =INADDR_ANY=），第三个参数 =backlog= (其默认值为 =511= )，第四个数 =callback= ，
+  net.Server的 =listen= 方法也是非阻塞的，绑定成功会调用回调函数 =callback= ，失败会发出 =error= 事件，这里为了示例的简单性没有进行错误处理。
+  \\
+  \\
+  #+end_quote
+
+  #+begin_src javascript -n -r
+      console.log("Server running");
+  #+end_src
+
+  #+begin_quote
+  node.js引入了浏览器端的console对象，用于输出日志。
+  \\
+  \\
+  #+end_quote
+
+  接下来就由node.js的事件循环接管了，应用程序的逻辑会在事件回调中得以执行。
+
+  :END:
 
 * Node.js程序运行得非常快
 

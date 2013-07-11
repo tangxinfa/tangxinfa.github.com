@@ -661,6 +661,7 @@ function loadNote() {
 	s5NotesWindow.document.getElementById('next').innerHTML = nextTitle;
 	s5NotesWindow.document.getElementById('nextnotes').innerHTML = nextNotes;
     s5NotesWindow.document.getElementById('timeLeft').innerHTML = document.getElementById('timeLeft').innerHTML;
+    s5NotesWindow.noteLoaded();
 }
 
 function windowChange() {
