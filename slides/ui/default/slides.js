@@ -443,9 +443,7 @@ function createControls() {
 	'<a accesskey="z" id="prev" href="javascript:go(-1);" title="Prev Slide" target="_self">&laquo;<\/a>' +
 	'<a accesskey="x" id="next" href="javascript:go(1);" title="Next Slide" target="_self">&raquo;<\/a>' +
 	'<div id="navList"' + hideList + '><select id="jumplist" onchange="go(\'j\');"><\/select><\/div>' +
-	'<\/div><\/form>' +
-    '<div id="cursor_left_holder" style="display:none; cursor:url(' + "'ui/default/cursor_left.ico'" + '), auto"></div>' +
-    '<div id="cursor_right_holder" style="display:none; cursor:url(' + "'ui/default/cursor_right.ico'" + '), auto"></div>';
+	'<\/div><\/form>';
 	if (controlVis == 'hidden') {
 		var hidden = document.getElementById('navLinks');
 	} else {
@@ -711,13 +709,9 @@ window.onresize = function(){setTimeout('windowChange()',5);};
 window.onmousemove = function(e) {
     if(s5mode){
         if (isleft(e.clientX)) {
-            if(document.body.style.cursor != document.getElementById("cursor_left_holder").style.cursor){
-                document.body.style.cursor = document.getElementById("cursor_left_holder").style.cursor;
-            }
+            document.body.style.cursor = 'url("ui/default/cursor_left.ico"), auto';
         } else {
-            if(document.body.style.cursor != document.getElementById("cursor_right_holder").style.cursor){
-                document.body.style.cursor = document.getElementById("cursor_right_holder").style.cursor;
-            }
+            document.body.style.cursor = 'url("ui/default/cursor_right.ico"), auto';
 	    }
     } else {
         document.body.style.cursor = 'auto';
