@@ -714,8 +714,8 @@ window.onmousemove = function(e) {
         } else {
 		    cursor = 'url("ui/default/cursor_right.cur"), auto';
 	    }
-    }else{
-        cursor = 'auto';
     }
-    document.body.style.cursor = cursor;
+    if(document.body.style.cursor != cursor){
+        document.body.style.cursor = cursor;
+    }
 };
