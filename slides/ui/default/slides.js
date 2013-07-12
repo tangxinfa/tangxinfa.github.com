@@ -707,15 +707,19 @@ function startup() {
 window.onload = startup;
 window.onresize = function(){setTimeout('windowChange()',5);};
 window.onmousemove = function(e) {
-    var cursor = 'auto';
+    var cursor_file;
     if(s5mode){
         if (isleft(e.clientX)) {
-            cursor = 'url("ui/default/cursor_left.cur"), auto';
+            cursor_file = 'ui/default/cursor_left.cur';
         } else {
-		    cursor = 'url("ui/default/cursor_right.cur"), auto';
+		    cursor_file = 'ui/default/cursor_right.cur';
 	    }
     }
-    if(document.body.style.cursor != cursor){
-        document.body.style.cursor = cursor;
+    if(cursor_file) {
+        if(document.body.style.cursor.indexOf(cursor_file) < 0){
+            document.body.style.cursor = 'url("' + cursor_file + '"), auto';
+        }
+    } else {
+        document.body.style.cursor = 'auto';
     }
 };
