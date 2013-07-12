@@ -520,12 +520,12 @@
     <div class="rightinfo" style="font-size:0.7em">
   #+end_html
 
-  #+ATTR_HTML: style="border-style:hidden;"
-  | name[[(package_specs__name)]]                 | 包名                       |
-  | version[[(package_specs__version)]]           | 版本号                     |
-  | main[[(package_specs__main)]]                 | 当包被程序引用时需载入模块 |
-  | scripts[[(package_specs__scripts)]]           | 用于包管理                 |
-  | dependencies[[(package_specs__dependencies)]] | 依赖的其它包               |
+  #+ATTR_HTML: style="border-style:hidden; font-size:0.75em;"
+  | =name= [[(package_specs__name)]]                 | 包名                       |
+  | =version= [[(package_specs__version)]]           | 版本号                     |
+  | =main= [[(package_specs__main)]]                 | 当包被程序引用时需载入模块 |
+  | =scripts= [[(package_specs__scripts)]]           | 用于包管理                 |
+  | =dependencies= [[(package_specs__dependencies)]] | 依赖的其它包               |
 
   #+begin_html
     </div>
@@ -544,31 +544,14 @@
   #+ATTR_HTML: class="npm-logo"
   [[https://npmjs.org/][../static/npm.png]]
 
-  #+begin_html
-    <div class="leftinfo" style="font-size:0.7em;">
-  #+end_html
-
-  - npm install <name> :: 安装包到本地模块目录（./node\_modules）
-  - npm install -g <name> :: 安装包到全局模块目录
-  - npm link :: 将当前包链接全局模块目录下
-  - npm link <name> :: 将全局包链接本地模块目录下
-
-  #+begin_html
-    </div>
-    <div class="rightinfo" style="font-size:0.7em;">
-  #+end_html
-
   #+begin_quote
-  \\
+  - =npm install <name>= :: 安装包到本地模块目录（./node\_modules）
+  - =npm install -g <name>= :: 安装包到全局模块目录（/usr/local/lib/node\_modules）
+  - =npm link= :: 将当前包链接全局模块目录下
+  - =npm link <name>= :: 将全局包链接本地模块目录下
   全局模块目录不在Node.js的模块搜索范围内\\
-  \\
-  将全局安装的包链接到本地模块目录启用即可\\
-  \\
+  将全局安装的包链接到本地模块目录即可\\
   #+end_quote
-
-  #+begin_html
-    </div>
-  #+end_html
 
 * Node.js模块定位
 
@@ -625,6 +608,9 @@
 * Node.js示例：Echo服务器
 
   =echo_server.js=
+  #+begin_html
+  <a href="javascript: toggleNotesWindow();" target="_self" style="font-size:0.5em; padding-top:0.5em;">讲解</a>
+  #+end_html
   #+begin_src javascript -n
     var net = require('net');
     
@@ -666,10 +652,6 @@
 
   #+begin_quote
   在Node.js中，除了代码，一切都是并行的！\\
-  \\
-  #+begin_html
-  <a href="javascript: toggleNotesWindow();" target="_self">代码详解</a>
-  #+end_html
   #+end_quote
 
   :NOTES:
@@ -724,7 +706,7 @@
   #+end_src
 
   #+begin_quote
-  tcp服务器在绑定在8001端口进行监听，这里省略了第二个参数 =host= （其默认值为 =INADDR_ANY=），第三个参数 =backlog= (其默认值为 =511= )，第四个数 =callback= ，
+  TCP服务器在绑定在8001端口进行监听，这里省略了第二个参数 =host= （其默认值为 =INADDR_ANY= ），第三个参数 =backlog= (其默认值为 =511= )，第四个数 =callback= ，
   net.Server的 =listen= 方法也是非阻塞的，绑定成功会调用回调函数 =callback= ，失败会发出 =error= 事件，这里为了示例的简单性没有进行错误处理。
   \\
   \\
@@ -735,7 +717,11 @@
   #+end_src
 
   #+begin_quote
-  node.js引入了浏览器端的console对象，用于输出日志。
+  node.js引入了浏览器端JavasSript常见的一些功能。
+  
+  如：console对象，用于输出日志；setTimeout函数，用于延迟执行。
+
+  但浏览器上特有东西在node.js中是不存在的，如：window全局对象的，在node.js中对应的是 =process= 全局对象。
   \\
   \\
   #+end_quote
@@ -783,8 +769,108 @@
   \\
   #+end_quote
 
-* Node.js代码风格
 * Node.js构建Http服务
+
+  =web_server.js=
+  #+begin_html
+  <a href="javascript: toggleNotesWindow();" target="_self" style="font-size:0.5em; padding-top:0.5em;">讲解</a>
+  #+end_html
+
+  #+begin_src javascript -n
+    var http = require("http");
+    
+    var server = http.createServer( function(req, res) {
+        res.writeHead(200, {'Content-Type': 'text/plain'});
+        res.end("hello node.js\n");
+    });
+    
+    server.listen(8002);
+  #+end_src
+
+  #+begin_example -n
+    ~$ curl -i http://localhost:8002
+    HTTP/1.1 200 OK
+    Content-Type: text/plain
+    Date: Fri, 12 Jul 2013 08:28:42 GMT
+    Connection: keep-alive
+    Transfer-Encoding: chunked
+    
+    hello node.js
+  #+end_example
+  
+  :NOTES:
+  使用node.js写HTTP Web服务与之前写的TCP Echo服务形式上非常相近。
+
+  #+begin_src javascript
+    var http = require("http");
+  #+end_src
+
+  #+begin_quote
+  导入 [[http://nodejs.org/api/http.html][=http=]] 模块。 
+  
+  [[http://nodejs.org/api/http.html][=http=]] 模块封装了HTTP相关功能，包括HTTP服务器与HTTP客户端。
+  \\
+  \\
+  #+end_quote
+
+  #+begin_src javascript -r -n
+    var server = http.createServer( function(req, res) {            (ref:web_server__createServer)
+        res.writeHead(200, {'Content-Type': 'text/plain'});         (ref:web_server__response_header)
+        res.end("hello node.js\n");                                 (ref:web_server__response_content)
+    });
+  #+end_src
+
+  #+begin_quote
+  [[(web_server__createServer)]] 调用 [[http://nodejs.org/api/http.html#http_http_createserver_requestlistener][http.createServer]] 创建 [[http://nodejs.org/api/http.html#http_class_web_server][http.Server]] 对象，参数为回调函数，当web服务器收到请求时调用该回调函数，回调函数接受两个参数：req（请求对象）、res（响应对象）。
+  #+end_quote
+
+  #+begin_quote
+  [[(web_server__response_header)]] 发送HTTP响应状态码及消息头到客户端。
+  #+end_quote
+
+  #+begin_quote
+  [[(web_server__response_content)]] 发送响应内容并结束当前请求。由于持久连接的存在，同一连接上可能存在多个请求-响应， =[[http://nodejs.org/api/http.html#http_response_end_data_encoding][end]]= 用于指示当前请求已处理完毕。
+  #+end_quote
+  
+  #+begin_src javascript
+      res.end("hello node.js\n");
+  #+end_src
+  等同于
+  #+begin_src javascript
+      res.write("hello node.js\n"); 
+      res.end();
+  #+end_src
+
+  在客户端收到的响应中，有以下非预期的消息头出现：
+  #+begin_example -r -n
+    Date: Fri, 12 Jul 2013 08:28:42 GMT                            (ref:web_server__output_date)
+    Connection: keep-alive                                         (ref:web_server__output_keep-alive)
+    Transfer-Encoding: chunked                                     (ref:web_server__output_chunked)
+  #+end_example
+  这是node.js的默认设置，通过启用持久连接和流式数据传输，可以减少客户端连接和对响应数据的缓存，性能进一步提升。
+  
+  hack一下消除以上非预期的消息头：
+  #+begin_src javascript
+    var server = http.createServer( function(req, res) {
+        res.sendDate = false;
+        res.shouldKeepAlive = false;
+        res.useChunkedEncodingByDefault = false;
+        res.writeHead(200, {'Content-Type': 'text/plain'});
+        res.end("hello node.js\n");
+    });
+  #+end_src
+  #+begin_example
+    ~$ curl -i http://localhost:8002
+    HTTP/1.1 200 OK
+    Content-Type: text/plain
+    Connection: close
+    
+    hello node.js
+  #+end_example
+  \\
+  \\
+  :END:
+
 * Node.js构建Http服务：Connect
 * Node.js构建Http服务：Express
 * Node.js超越Http服务
