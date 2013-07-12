@@ -710,9 +710,9 @@ window.onmousemove = function(e) {
     var cursor_file;
     if(s5mode){
         if (isleft(e.clientX)) {
-            cursor_file = 'ui/default/cursor_left.cur';
+            cursor_file = 'ui/default/cursor_left.ico';
         } else {
-		    cursor_file = 'ui/default/cursor_right.cur';
+		    cursor_file = 'ui/default/cursor_right.ico';
 	    }
     }
     if(cursor_file) {
