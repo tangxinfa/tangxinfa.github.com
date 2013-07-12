@@ -708,11 +708,15 @@ window.onload = startup;
 window.onresize = function(){setTimeout('windowChange()',5);};
 window.onmousemove = function(e) {
     if(s5mode){
+        var cursor_file;
         if (isleft(e.clientX)) {
-            document.body.style.cursor = 'url("ui/default/cursor_left.ico"), auto';
+            cursor_file = "ui/default/cursor_left.ico";
         } else {
-            document.body.style.cursor = 'url("ui/default/cursor_right.ico"), auto';
+            cursor_file = "ui/default/cursor_right.ico";
 	    }
+        if(document.body.style.cursor.indexOf(cursor_file) < 0){
+            document.body.style.cursor = 'url("' + cursor_file + '"), auto';
+        }
     } else {
         document.body.style.cursor = 'auto';
     }
