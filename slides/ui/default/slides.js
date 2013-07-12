@@ -443,7 +443,9 @@ function createControls() {
 	'<a accesskey="z" id="prev" href="javascript:go(-1);" title="Prev Slide" target="_self">&laquo;<\/a>' +
 	'<a accesskey="x" id="next" href="javascript:go(1);" title="Next Slide" target="_self">&raquo;<\/a>' +
 	'<div id="navList"' + hideList + '><select id="jumplist" onchange="go(\'j\');"><\/select><\/div>' +
-	'<\/div><\/form>';
+	'<\/div><\/form>' +
+    '<div id="cursor_left_holder" style="display:none; cursor:url(' + "'ui/default/cursor_left.ico'" + '), auto"></div>' +
+    '<div id="cursor_right_holder" style="display:none; cursor:url(' + "'ui/default/cursor_right.ico'" + '), auto"></div>';
 	if (controlVis == 'hidden') {
 		var hidden = document.getElementById('navLinks');
 	} else {
@@ -707,18 +709,16 @@ function startup() {
 window.onload = startup;
 window.onresize = function(){setTimeout('windowChange()',5);};
 window.onmousemove = function(e) {
-    var cursor_file;
     if(s5mode){
         if (isleft(e.clientX)) {
-            cursor_file = 'ui/default/cursor_left.ico';
+            if(document.body.style.cursor != document.getElementById("cursor_left_holder").style.cursor){
+                document.body.style.cursor = document.getElementById("cursor_left_holder").style.cursor;
+            }
         } else {
-		    cursor_file = 'ui/default/cursor_right.ico';
+            if(document.body.style.cursor != document.getElementById("cursor_right_holder").style.cursor){
+                document.body.style.cursor = document.getElementById("cursor_right_holder").style.cursor;
+            }
 	    }
-    }
-    if(cursor_file) {
-        if(document.body.style.cursor.indexOf(cursor_file) < 0){
-            document.body.style.cursor = 'url("' + cursor_file + '"), auto';
-        }
     } else {
         document.body.style.cursor = 'auto';
     }
