@@ -871,8 +871,34 @@
   \\
   :END:
 
-* Node.js构建Http服务：Connect
-* Node.js构建Http服务：Express
+* Node.js构建Http服务：静态资源服务器
+
+  #+begin_src javascript -r -n
+    var http = require('http');
+    var url = require('url');
+    var fs = require('fs');
+    
+    var server = http.createServer();
+    
+    server.on('request', function(req, res) {
+        var parsed_url = url.parse(req.url);
+        var filename = './' + parsed_url.pathname;
+        fs.readFile(filename, function (err, data) {
+            if(err) {
+                res.writeHead(500);
+                res.end(err.code);
+            } else {
+                res.writeHead(200);
+                res.end(data);
+            }
+        });
+    });
+    
+    server.listen(8003);
+  #+end_src
+
+* Node.js使用Connect库构建Http服务
+* Node.js使用Express框架构建Http服务
 * Node.js超越Http服务
 * Javascript工具：Jslint
 * 浏览器中的Javascript
