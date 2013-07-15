@@ -43,7 +43,7 @@
   [[../static/browsers.png]]  
   #+end_center
 
-* Javascript标准：ECMAScript
+* Javascript标准
 
   ECMAScript 描述了以下内容：
     - 语法
@@ -73,7 +73,7 @@
   词法作用域
   #+end_quote
 
-* Javascript特性：“类”
+* Javascript的类
 
   #+begin_quote
   Javascript是\\
@@ -88,10 +88,10 @@
   原型＋构造函数＋new关键字＝类
   #+end_quote
 
-* Javascript特性：“类”（示例）
+* Javascript类示例
 
   #+ATTR_HTML: :textarea
-  #+begin_src javascript -n
+  #+begin_src js -n
     function Man(name, age) {
         this.name = name;
         this.age  = age;
@@ -111,7 +111,7 @@
     tom is 25
   #+end_example
       
-* Javascript特性：闭包
+* Javascript的闭包
 
   #+begin_quote
   闭包是\\
@@ -126,9 +126,9 @@
   即使外部作用域已经退出
   #+end_quote
 
-* Javascript特性：闭包（示例）
+* Javascript闭包示例
 
-  #+begin_src javascript -n
+  #+begin_src js -n
     function Woman(name, age) {
         this.name = name;
         this.introduce = function(){
@@ -406,47 +406,22 @@
     </div>
   #+end_html
 
-* Node.js模块示例
+* Node.js模块
 
-  =woman.js=
-  #+begin_src javascript -n
-    var value = 10;
-    exports.Woman = function (name, age) {
-        this.name = name;
-        this.introduce = function(){
-            return this.name + " is " + (age - value);
-        };
-    };
-  #+end_src
-  \\
-  #+begin_src javascript -n
-    var Woman = require("./woman.js").Woman;
-    var woman1 = new Woman("mary", 34);
-    var woman2 = new Woman("rose", 45);
-    console.log(woman1.introduce());
-    console.log(woman2.introduce());
-  #+end_src
+  [[../static/woman_module.js][=woman\_module.js=]]
+#+INCLUDE: "../static/woman_module.js" src js -n
 
-* Node.js模块示例（类即模块）
+  [[../static/woman_module.js][=woman\_module\_usage.js=]]
+#+INCLUDE: "../static/woman_module_usage.js" src js -n
 
-  =woman.js=
-  #+begin_src javascript -n
-    var value = 10;
-    module.exports = function (name, age) {
-        this.name = name;
-        this.introduce = function(){
-            return this.name + " is " + (age - value);
-        };
-    };
-  #+end_src
-  \\
-  #+begin_src javascript -n
-    var Woman = require("./woman.js");
-    var woman1 = new Woman("mary", 34);
-    var woman2 = new Woman("rose", 45);
-    console.log(woman1.introduce());
-    console.log(woman2.introduce());
-  #+end_src
+* Node.js类模块
+
+  [[../static/woman_module.js][=woman\_class\_module.js=]]
+#+INCLUDE: "../static/woman_class_module.js" src js -n
+
+  [[../static/woman_module.js][=woman\_class\_module\_usage.js=]]
+#+INCLUDE: "../static/woman_class_module_usage.js" src js -n
+
 
 * Node.js包机制
   
@@ -476,7 +451,7 @@
         <div class="leftinfo" style="font-size:0.425em;" title=" /usr/local/lib/node_modules/npm/node_modules/tar/package.json">
   #+end_html
   
-  #+begin_src javascript -n -r
+  #+begin_src js -n -r
     {
       "author": {
         "name": "Isaac Z. Schlueter",
@@ -605,24 +580,93 @@
     </div>
   #+end_html
   
-* Node.js示例：Echo服务器
+* Node.js高效的秘诀
 
-  =echo_server.js=
+  #+begin_html
+    <style type="text/css" media="screen">
+    .data-access-latency-table .right {
+       border-left: 1px solid black;
+       border-right: 1px solid black;
+    }
+    .data-access-latency-table td {
+       padding:0 0.5em;
+    }
+    </style>   
+    
+  #+end_html
+
+  #+CAPTION: I/O操作耗时对比
+  #+ATTR_HTML: style="width:70%; margin:0 auto; border: 1px; padding:" class="data-access-latency-table"
+  |----------+-----------+--------------|
+  | I/O      | CPU Cycle | Type         |
+  |----------+-----------+--------------|
+  | L1-cache |         3 |              |
+  | L2-cache |        14 | Non-blocking |
+  | RAM      |       250 |              |
+  |----------+-----------+--------------|
+  | Disk     |  41000000 | Blocking     |
+  | Network  | 240000000 |              |
+  |----------+-----------+--------------|
+
+  #+ATTR_HTML: style="float:left; margin-left:4em; width:5em;"
+  [[../static/nonblocking.jpeg]]
+  
+  #+begin_quote
+  \\
+  Node.js是一个全新的开发平台\\
+  \\
+  所有会阻塞的api都以异步回调的方式进行封装\\
+  \\
+  #+end_quote
+
+* Node.js层次化的世界
+
+  #+ATTR_HTML: style="float:left; margin-left:3em; width:6.5em;"
+  [[../static/modules.jpeg]]
+
+  #+begin_quote
+  \\
+  node.js像积木一样灵活\\
+  \\
+  能够开发小到像telnet这样的网络客户端工具\\
+  \\
+  大到twitter这样的大规模分布式web服务\\
+  \\
+  #+end_quote
+
+  #+begin_quote
+  从你喜欢的层次开始开发应用吧：
+  #+end_quote
+
+  #+begin_html
+  <div style="background:url(../static/up.jpeg) no-repeat center center; background-size:contain;">
+  #+end_html
+
+  #+begin_quote
+  \\
+  =express=
+
+  =connect=
+
+  [[http://nodejs.org/api/http.html#http_http][=http=]]
+
+  [[http://nodejs.org/api/net.html][=net=]]
+
+  [[http://nodejs.org/api/dgram.html][=udp=]]
+  #+end_quote
+  
+  #+begin_html
+  </div>
+  #+end_html
+
+* Node.js构建Echo服务器
+
+  [[../static/echo_server.js][=echo\_server.js=]]
   #+begin_html
   <a href="javascript: toggleNotesWindow();" target="_self" style="font-size:0.5em; padding-top:0.5em;">讲解</a>
   #+end_html
-  #+begin_src javascript -n
-    var net = require('net');
-    
-    var server = net.createServer(
-        function (socket) {
-            socket.pipe(socket);
-        }
-    );
-    
-    server.listen(8001);
-    console.log("Server running");
-  #+end_src
+
+#+INCLUDE: "../static/echo_server.js" src js -n
 
   #+begin_html
     <div class="leftinfo">
@@ -671,7 +715,7 @@
   \\
   #+end_quote
 
-  #+begin_src javascript
+  #+begin_src js
   var net = require('net');
   #+end_src
   
@@ -683,7 +727,7 @@
   \\
   #+end_quote
 
-  #+begin_src javascript -n -r
+  #+begin_src js -n -r
     var server = net.createServer(             (ref:echo_server__createServer)
         function (socket) {                    (ref:echo_server__createServer_callback)
             socket.pipe(socket);               (ref:echo_server__createServer_pipe)
@@ -701,7 +745,7 @@
   \\
   #+end_quote
 
-  #+begin_src javascript
+  #+begin_src js
     server.listen(8001);
   #+end_src
 
@@ -712,7 +756,7 @@
   \\
   #+end_quote
 
-  #+begin_src javascript
+  #+begin_src js
       console.log("Server running");
   #+end_src
 
@@ -726,67 +770,22 @@
   \\
   #+end_quote
 
-  接下来就由node.js的事件循环接管了，应用程序的逻辑会在事件回调中得以执行。
+  js文件解释执行完毕，接下来就由node.js的事件循环接管了， node.js等待事件发生，然后调用事件关联的回调函数，应用程序的逻辑会在事件回调中得以执行。
 
   :END:
 
-* Node.js程序运行得非常快
-
-  #+begin_html
-    <style type="text/css" media="screen">
-    .data-access-latency-table .right {
-       border-left: 1px solid black;
-       border-right: 1px solid black;
-    }
-    .data-access-latency-table td {
-       padding:0 0.5em;
-    }
-    </style>   
-    
-  #+end_html
-
-  #+CAPTION: I/O操作耗时对比
-  #+ATTR_HTML: style="width:70%; margin:0 auto; border: 1px; padding:" class="data-access-latency-table"
-  |----------+-----------+--------------|
-  | I/O      | CPU Cycle | Type         |
-  |----------+-----------+--------------|
-  | L1-cache |         3 |              |
-  | L2-cache |        14 | Non-blocking |
-  | RAM      |       250 |              |
-  |----------+-----------+--------------|
-  | Disk     |  41000000 | Blocking     |
-  | Network  | 240000000 |              |
-  |----------+-----------+--------------|
-
-  #+ATTR_HTML: style="float:left; margin-left:4em; width:5em;"
-  [[../static/nonblocking.jpeg]]
-  
-  #+begin_quote
-  \\
-  Node.js是一个全新的开发平台\\
-  \\
-  所有会阻塞的api都以异步回调的方式进行封装\\
-  \\
-  #+end_quote
-
 * Node.js构建Http服务
 
-  =web_server.js=
+  [[../static/web_server.js][=web\_server.js=]]
   #+begin_html
   <a href="javascript: toggleNotesWindow();" target="_self" style="font-size:0.5em; padding-top:0.5em;">讲解</a>
   #+end_html
 
-  #+begin_src javascript -n
-    var http = require("http");
-    
-    var server = http.createServer( function(req, res) {
-        res.writeHead(200, {'Content-Type': 'text/plain'});
-        res.end("hello node.js\n");
-    });
-    
-    server.listen(8002);
-  #+end_src
+#+INCLUDE: "../static/web_server.js" src js -n
 
+  #+begin_html
+  <div style="font-size:0.9em;">
+  #+end_html
   #+begin_example -n
     ~$ curl -i http://localhost:8002
     HTTP/1.1 200 OK
@@ -797,11 +796,14 @@
     
     hello node.js
   #+end_example
+  #+begin_html
+  </div>
+  #+end_html
   
   :NOTES:
   使用node.js写HTTP Web服务与之前写的TCP Echo服务形式上非常相近。
 
-  #+begin_src javascript
+  #+begin_src js
     var http = require("http");
   #+end_src
 
@@ -813,7 +815,7 @@
   \\
   #+end_quote
 
-  #+begin_src javascript -r -n
+  #+begin_src js -r -n
     var server = http.createServer( function(req, res) {            (ref:web_server__createServer)
         res.writeHead(200, {'Content-Type': 'text/plain'});         (ref:web_server__response_header)
         res.end("hello node.js\n");                                 (ref:web_server__response_content)
@@ -832,11 +834,11 @@
   [[(web_server__response_content)]] 发送响应内容并结束当前请求。由于持久连接的存在，同一连接上可能存在多个请求-响应， [[http://nodejs.org/api/http.html#http_response_end_data_encoding][=end=]] 用于指示当前请求已处理完毕。
   #+end_quote
   
-  #+begin_src javascript
+  #+begin_src js
       res.end("hello node.js\n");
   #+end_src
   等同于
-  #+begin_src javascript
+  #+begin_src js
       res.write("hello node.js\n"); 
       res.end();
   #+end_src
@@ -850,7 +852,7 @@
   这是node.js的默认设置，通过启用持久连接和流式数据传输，可以减少客户端连接和对响应数据的缓存，性能得到提升。
   
   hack一下消除以上非预期的消息头：
-  #+begin_src javascript
+  #+begin_src js
     var server = http.createServer( function(req, res) {
         res.sendDate = false;
         res.shouldKeepAlive = false;
@@ -871,31 +873,32 @@
   \\
   :END:
 
-* Node.js构建Http服务：静态资源服务器
+* Node.js构建静态Http服务
 
-  #+begin_src javascript -r -n
-    var http = require('http');
-    var url = require('url');
-    var fs = require('fs');
-    
-    var server = http.createServer();
-    
-    server.on('request', function(req, res) {
-        var parsed_url = url.parse(req.url);
-        var filename = './' + parsed_url.pathname;
-        fs.readFile(filename, function (err, data) {
-            if(err) {
-                res.writeHead(500);
-                res.end(err.code);
-            } else {
-                res.writeHead(200);
-                res.end(data);
-            }
-        });
-    });
-    
-    server.listen(8003);
-  #+end_src
+  [[../static/static_web_server.js][=static\_web\_server.js=]]
+
+  #+begin_html
+  <div class="leftinfo" style="width:60%; font-size:0.6em;">
+  #+end_html
+
+#+INCLUDE: "../static/static_web_server.js" src js -n
+
+  #+begin_html
+  </div>
+  <div class="rightinfo" style="width:35%; font-size:0.7em;">
+  #+end_html
+
+  　　node.js的 [[http://nodejs.org/api/http.html#http_http][=http=]] 模块构建于 [[http://nodejs.org/api/net.html][=net=]] 模块之上，从TCP数据流中解析HTTP消息，提供了基本的HTTP服务。
+
+  　　node.js以模块的方式提供了其它功能，如：
+      
+      - [[http://nodejs.org/api/url.html][=url=]] :: 解析url
+      - [[http://nodejs.org/api/querystring.html][=querystring=]] :: 解析url查询字符串
+      - [[https://npmjs.org/package/formidable][=formidable=]] :: 解析表单数据
+
+  #+begin_html
+  </div>
+  #+end_html
 
 * Node.js使用Connect库构建Http服务
 * Node.js使用Express框架构建Http服务

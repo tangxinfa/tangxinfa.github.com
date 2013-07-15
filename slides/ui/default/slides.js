@@ -334,7 +334,7 @@ function clicker(e) {
 	} else {
          target = e.target;
     }
-	if (target.href != null || hasValue(target.rel, 'external') || isParentOrSelf(target, 'controls') || isParentOrSelf(target,'embed') || isParentOrSelf(target,'object') || target.nodeName.toLowerCase () == "button" || (target.nodeName.toLowerCase () == "img" && isParentLink(target))) {
+	if (target.href != null || hasValue(target.rel, 'external') || isParentOrSelf(target, 'controls') || isParentOrSelf(target,'embed') || isParentOrSelf(target,'object') || target.nodeName.toLowerCase () == "button" || isParentLink(target)) {
         return true;
     }
 	if (!e.which || e.which == 1) {
