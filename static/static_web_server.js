@@ -8,7 +8,7 @@ var server = http.createServer();
 
 server.on('request', function(req, res) {
     var filename = decodeURI(url.parse(req.url).pathname);
-    filename = path.resolve( "." + filename);
+    filename = path.resolve("." + filename);
     if(filename.indexOf(root) != 0) {
         res.writeHead(403);
         res.end();
