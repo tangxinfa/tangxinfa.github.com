@@ -7,7 +7,7 @@
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
 <meta name="title" content="理解Node.js"/>
 <meta name="generator" content="Org-mode"/>
-<meta name="generated" content="2013-07-16 16:20:52 CST"/>
+<meta name="generated" content="2013-07-16 18:41:58 CST"/>
 <meta name="author" content="唐新发"/>
 <meta name="description" content="90 minutes"/>
 <meta name="keywords" content=""/>
@@ -1603,7 +1603,7 @@ hello node.js
 </div>
 
 <div id="outline-container-30" class="outline-1 slide">
-<h1 id="sec-30"><span class="section-number-1">30</span> Node.js的Http服务器框架：Connect</h1>
+<h1 id="sec-30"><span class="section-number-1">30</span> Node.js的Web框架：Connect</h1>
 <div class="outline-text-1" id="text-30">
 
 
@@ -1614,8 +1614,8 @@ hello node.js
 
 <p><a href="http://www.senchalabs.org/connect/"><code>Connect</code></a> 是 <a href="http://nodejs.org/api/http.html#http_http"><code>http</code></a> 模块之上的一层封装<br/>
 是一个插件式HTTP服务器框架<br/>
-内置大量中间件<br/>
-此外还有丰富的 <a href="https://github.com/senchalabs/connect/wiki">第三方中间件</a> 供选择<br/>
+大量内置中间件及 <a href="https://github.com/senchalabs/connect/wiki">第三方中间件</a><br/>
+目标是成为高级Web框架的基石
 </p>
 </blockquote>
 
@@ -1659,9 +1659,80 @@ hello node.js
 
 <blockquote>
 
-
+<p>中间件是一个函数
+</p>
+<p>
+原型“ <code>function</code> ( <code>req</code> , <code>res</code> , <code>next</code>)”
+</p>
+<p>
+其中 <code>req</code> 与 <code>res</code> 参数来自 <a href="http://nodejs.org/api/http.html#http_http"><code>http</code></a> <a href="http://nodejs.org/api//http.html#http_event_request">请求处理函数</a>
+</p>
+<p>
+中间件通常会在 <code>req</code> 与 <code>res</code> 上附加或修改属性
+</p>
+<p>
+供其它中间件或应用逻辑利用
+</p>
+<p>
+<code>next</code> 用于调用下一个中间件
+<br/>
+<br/>
+<br/>
+中间件可以完成当前请求
+</p>
+<p>
+则不必调用 <code>next</code>
+</p>
+<p>
+否则需调用 <code>next</code> 由下一中间件继续处理
+</p>
 
 </blockquote>
+
+
+
+
+  <div class="codeexplain"><a href="javascript: toggleNotesWindow();" target="_self">讲解</a></div>
+
+
+
+
+<div class="notes">
+<p>
+  <a href="http://www.senchalabs.org/connect/"><code>Connect</code></a> 提供 <code>use</code> 方法用于注册中间件到中间件队列中。
+</p>
+
+
+  <div style="font-size:0.7em;line-height:1em;">
+
+
+<pre class="src src-artist">+-----------------------------+       +-----------------------------+      +-----------------------------+ 
+|  +---------+                |       |  +---------+                |      |  +---------+                | 
+|  | request |                |       |  | request |                |      |  | request |                | 
+|  +---------+    +--------+  |       |  +---------+    +--------+  |      |  +---------+    +--------+  | 
+|                 |  next  +--+------&gt;|                 |  next  +--+-----&gt;|                 |  next  |  |
+|  +---------+    +--------+  |       |  +---------+    +--------+  |      |  +---------+    +--------+  | 
+|  | response|                |       |  | response|                |      |  | response|                | 
+|  +---------+                |       |  +---------+                |      |  +---------+                | 
++-----------------------------+       +-----------------------------+      +-----------------------------+ 
+</pre>
+
+
+  </div>
+
+<p>  
+  <code>use</code> 方法的原型“ <code>function</code> ( <code>route</code> , <code>fn</code> )”，用于在匹配的请求路径上挂载中间件。
+</p>
+<p>
+  - <code>route</code> :: 为请求路径，可选，默认为 <code>/</code> ，匹配所有请求路径。
+</p>
+<p>
+  - <code>fn</code> :: 为中间件
+</p>
+
+
+
+</div
 
 
 </div>
@@ -1669,7 +1740,7 @@ hello node.js
 </div>
 
 <div id="outline-container-32" class="outline-1 slide">
-<h1 id="sec-32"><span class="section-number-1">32</span> Node.js的Connect静态Http服务</h1>
+<h1 id="sec-32"><span class="section-number-1">32</span> 基于Connect的静态Http服务</h1>
 <div class="outline-text-1" id="text-32">
 
 
@@ -1689,7 +1760,8 @@ hello node.js
 
 <blockquote>
 
-<p>中间件并未包含依赖信息
+<p><br/>
+中间件并未包含依赖信息
 </p>
 <p>
 由于中间件可能依赖其它中间件的处理结果
@@ -1711,7 +1783,7 @@ hello node.js
 </div>
 
 <div id="outline-container-33" class="outline-1 slide">
-<h1 id="sec-33"><span class="section-number-1">33</span> Node.js的Http服务框架：Express</h1>
+<h1 id="sec-33"><span class="section-number-1">33</span> Node.js的Web框架：Express</h1>
 <div class="outline-text-1" id="text-33">
 
 </div>

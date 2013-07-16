@@ -902,7 +902,7 @@
   </div>
   #+end_html
 
-* Node.js的Http服务器框架：Connect
+* Node.js的Web框架：Connect
 
   #+ATTR_HTML: style="float:left; margin-left:1em; width:10em;"
   [[../static/dry.jpeg]]
@@ -910,8 +910,8 @@
   #+begin_quote
   [[http://www.senchalabs.org/connect/][=Connect=]] 是 [[http://nodejs.org/api/http.html#http_http][=http=]] 模块之上的一层封装\\
   是一个插件式HTTP服务器框架\\
-  内置大量中间件\\
-  此外还有丰富的 [[https://github.com/senchalabs/connect/wiki][第三方中间件]] 供选择\\
+  大量内置中间件及 [[https://github.com/senchalabs/connect/wiki][第三方中间件]]\\
+  目标是成为高级Web框架的基石
   #+end_quote
 
   #+begin_center
@@ -936,16 +936,72 @@
 * Connect框架工作原理
 
   #+begin_quote
+  中间件是一个函数
+
+  原型“ =function= ( =req= , =res= , =next=)”
+
+  其中 =req= 与 =res= 参数来自 [[http://nodejs.org/api/http.html#http_http][=http=]] [[http://nodejs.org/api//http.html#http_event_request][请求处理函数]]
+
+  中间件通常会在 =req= 与 =res= 上附加或修改属性
+
+  供其它中间件或应用逻辑利用
+
+  =next= 用于调用下一个中间件
+  \\
+  \\
+  \\
+  中间件可以完成当前请求
   
+  则不必调用 =next=
+
+  否则需调用 =next= 由下一中间件继续处理
+
   #+end_quote
 
-* Node.js的Connect静态Http服务
+  #+begin_html
+  <div class="codeexplain"><a href="javascript: toggleNotesWindow();" target="_self">讲解</a></div>
+  #+end_html
+
+  :NOTES:
+  [[http://www.senchalabs.org/connect/][=Connect=]] 提供 =use= 方法用于注册中间件到中间件队列中。
+
+  #+begin_html
+  <div style="font-size:0.7em;line-height:1em;">
+  #+end_html
+
+  #+begin_src artist
+    +-----------------------------+       +-----------------------------+      +-----------------------------+ 
+    |  +---------+                |       |  +---------+                |      |  +---------+                | 
+    |  | request |                |       |  | request |                |      |  | request |                | 
+    |  +---------+    +--------+  |       |  +---------+    +--------+  |      |  +---------+    +--------+  | 
+    |                 |  next  +--+------>|                 |  next  +--+----->|                 |  next  |  |
+    |  +---------+    +--------+  |       |  +---------+    +--------+  |      |  +---------+    +--------+  | 
+    |  | response|                |       |  | response|                |      |  | response|                | 
+    |  +---------+                |       |  +---------+                |      |  +---------+                | 
+    +-----------------------------+       +-----------------------------+      +-----------------------------+ 
+  #+end_src
+
+  #+begin_html
+  </div>
+  #+end_html
+  
+  =use= 方法的原型“ =function= ( =route= , =fn= )”，用于在匹配的请求路径上挂载中间件。
+
+  - =route= :: 为请求路径，可选，默认为 =/= ，匹配所有请求路径。
+
+  - =fn= :: 为中间件
+  
+  :END:
+
+
+* 基于Connect的静态Http服务
 
   #+ATTR_HTML: class="codelink"
   [[../static/connect_static_web_server.js][connect\_static\_web\_server.js]]
 #+INCLUDE: "../static/connect_static_web_server.js" src js -n
 
   #+begin_quote
+  \\
   中间件并未包含依赖信息
 
   由于中间件可能依赖其它中间件的处理结果
@@ -957,7 +1013,7 @@
   对于第三方的中间件请查阅其文档
   #+end_quote
 
-* Node.js的Http服务框架：Express
+* Node.js的Web框架：Express
 * Node.js使用Connect库构建Http服务
 * Node.js使用Express框架构建Http服务
 * Node.js超越Http服务
