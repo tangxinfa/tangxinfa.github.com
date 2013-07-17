@@ -13,14 +13,21 @@
   被误解最多的语言
   #+end_quote
   \\
+  \\
+  #+begin_center
+  #+begin_html
+    <div style="font-size:0.7em;">
+  #+end_html  
   #+begin_src html
     <button onClick='alert("Hello Javascript");'>Click Me</button>
   #+end_src
   \\
-  #+begin_center
-    #+begin_html
+  #+begin_html
     <button onClick='alert("Hello Javascript");'>Click Me</button>
-    #+end_html
+  #+end_html
+  #+begin_html
+    </div>
+  #+end_html  
   #+end_center
 
 * Javascript诞生
@@ -115,10 +122,10 @@
 
   #+begin_quote
   闭包是\\
-  代码块（通常是函数）\\
+  =代码块= （通常是函数）\\
   和\\
-  创建该代码块的上下文中数据\\
-  的结合。\\
+  创建该代码块的上下文中 =数据= \\
+  的 =结合= 。\\
   \\
   \\
   表现为\\
@@ -218,9 +225,7 @@
   
   　　Node.js是在Chrome的Javascript引擎之上构建的一个平台，
   很容易用来构建 =高性能= 、 =可扩展= 的网络应用程序。
-  \\
-  \\
-  \\
+
   　　Node.js是 =单线程= 基于 =事件驱动= 、 =非阻塞I/O模型= 从而表现得轻巧、高效，
   适用于开发 =数据密集型= 的 =实时响应= 分布式应用程序。
 
@@ -426,35 +431,38 @@
   [[../static/woman_module.js][woman\_class\_module\_usage.js]]
 #+INCLUDE: "../static/woman_class_module_usage.js" src js -n
 
-
 * Node.js包机制
   
   #+begin_html
-    <div class="leftinfo">
+    <div class="leftinfo" style="font-size:0.8em;">
   #+end_html
 
   #+begin_quote
   JavaScript没有包管理系统\\
+  \\
   不能自动加载和安装依赖\\
-  不利于开发大规模应用
+  \\
+  不利于开发大规模应用\\
+  \\
+  - [[http://wiki.commonjs.org/wiki/Packages/1.1][CommonJS包规范]] :: 存在 =package.json= 文件的目录即为包
   #+end_quote
+  \\
+  #+Caption: 重要字段说明
+  #+ATTR_HTML: style="border:1px; font-size:0.6em;"
+  | =name= [[(package_specs__name)]]                 | 包名                       |
+  | =version= [[(package_specs__version)]]           | 版本号                     |
+  | =main= [[(package_specs__main)]]                 | 当包被程序引用时需载入模块 |
+  | =scripts= [[(package_specs__scripts)]]           | 用于包管理                 |
+  | =dependencies= [[(package_specs__dependencies)]] | 依赖的其它包               |
+
 
   #+begin_html
     </div>
-    <div class="rightinfo">
-  #+end_html
-
-  #+begin_quote
-  - [[http://wiki.commonjs.org/wiki/Packages/1.1][CommonJS包规范]] :: 存在package.json文件的目录即为包
-  #+end_quote
-
-  #+begin_html
-        </div>
-        <div style="clear:both; padding:0;">
-        </div>
-        <div class="leftinfo" style="font-size:0.425em;" title=" /usr/local/lib/node_modules/npm/node_modules/tar/package.json">
+    <div class="rightinfo" style="font-size:0.5em;">
   #+end_html
   
+  #+ATTR_HTML: class="codelink"
+  [[/usr/local/lib/node_modules/npm/node_modules/tar/package.json][package.json]]
   #+begin_src js -n -r
     {
       "author": {
@@ -496,41 +504,85 @@
 
   #+begin_html
     </div>
-    <div class="rightinfo" style="font-size:0.7em">
-  #+end_html
-
-  #+ATTR_HTML: style="border-style:hidden; font-size:0.75em;"
-  | =name= [[(package_specs__name)]]                 | 包名                       |
-  | =version= [[(package_specs__version)]]           | 版本号                     |
-  | =main= [[(package_specs__main)]]                 | 当包被程序引用时需载入模块 |
-  | =scripts= [[(package_specs__scripts)]]           | 用于包管理                 |
-  | =dependencies= [[(package_specs__dependencies)]] | 依赖的其它包               |
-
-  #+begin_html
-    </div>
   #+end_html
 
 * Node.js包管理工具
 
   #+begin_html
-  <style type="text/css">
-    .npm-logo img {
-      width: 7em;
-    }
-  </style>
+    <style type="text/css">
+      .npm-logo a{
+          margin-left: 1em;
+      }
+      .npm-logo p {
+          margin:0;
+      }
+      .npm-logo img {
+          width: 3em;
+      }
+      .npm-install-choose p {
+          line-height: 1.5em;
+      }
+    </style>
+
+    <div class="npm-logo">
+  #+end_html
+  [[https://npmjs.org/][../static/npm.png]]
+  #+begin_html
+    </div>
+    <div class="leftinfo" style="font-size:0.5em; width:35%;">
   #+end_html
 
-  #+ATTR_HTML: class="npm-logo"
-  [[https://npmjs.org/][../static/npm.png]]
+  - =npm install <name>= 
 
-  #+begin_quote
-  - =npm install <name>= :: 安装包到本地模块目录（./node\_modules）
-  - =npm install -g <name>= :: 安装包到全局模块目录（/usr/local/lib/node\_modules）
-  - =npm link= :: 将当前包链接全局模块目录下
-  - =npm link <name>= :: 将全局包链接本地模块目录下
-  全局模块目录不在Node.js的模块搜索范围内\\
-  将全局安装的包链接到本地模块目录即可\\
-  #+end_quote
+    安装包到本地模块目录
+
+    ./node\_modules
+
+    附带的可执行程序将安装到
+
+    ./node\_modules/.bin
+
+  - =npm install -g <name>= 
+    
+    安装包到全局模块目录
+  
+    /usr/local/lib/node\_modules
+
+    附带的可执行程序将安装到
+
+    /usr/local/bin
+
+  - =npm link=
+  
+    将当前包链接到全局模块目录下
+
+  - =npm link <name>=
+    
+    将全局包链接到本地模块目录下
+
+  #+begin_html
+    </div>
+    <div class="rightinfo npm-install-choose" style="font-size:0.5em; width:60%;">
+  #+end_html
+  - 什么时候安装到本地？
+
+    当你想通过require("package")的方式使用你的包，则最好安装为本地，这样node.js可以更快找到包。
+
+  - 什么时候安装到全局？
+
+    如果安装的包附带有可执行程序，需要在命令行使用，最好安装为全局，这样可以直接在命令行访问。需要注意的是全局模块目录不在node.js的模块搜索范围内，需要链接到本地模块目录。
+
+  - 什么时候链接到全局？
+
+    当你在开发一个供其它项目使用的模块时，通过链接到全局方便其它项目使用。
+
+  - 什么时候链接到本地？
+
+    对于附带可执行程序又通过require("package")的方式使用的包，可先安装到全局，再链接到本地，在多个项目使用同一个包时特别便利。
+
+  #+begin_html
+  </div>
+  #+end_html
 
 * Node.js模块定位
 
@@ -902,16 +954,16 @@
   </div>
   #+end_html
 
-* Node.js的Web框架：Connect
+* 基础Web框架：Connect
 
   #+ATTR_HTML: style="float:left; margin-left:1em; width:10em;"
   [[../static/dry.jpeg]]
   
   #+begin_quote
-  [[http://www.senchalabs.org/connect/][=Connect=]] 是 [[http://nodejs.org/api/http.html#http_http][=http=]] 模块之上的一层封装\\
-  是一个插件式HTTP服务器框架\\
-  大量内置中间件及 [[https://github.com/senchalabs/connect/wiki][第三方中间件]]\\
-  目标是成为高级Web框架的基石
+  [[http://nodejs.org/api/http.html#http_http][=http=]] 模块之上构建的基础Web框架\\
+  采用插件式架构\\
+  目标是成为高级Web框架的基石\\
+  大量内置及 [[https://github.com/senchalabs/connect/wiki][第三方]] 中间件
   #+end_quote
 
   #+begin_center
@@ -919,9 +971,9 @@
   #+begin_src sh
     npm install connect
   #+end_src
-
-  #+ATTR_HTML: style="margin:0 auto; font-size:0.7em;"
+  
   #+Caption: 常用的中间件
+  #+ATTR_HTML: style="margin:0 auto; font-size:0.7em;"
   |-----------------+----------------------|
   | [[http://www.senchalabs.org/connect/logger.html][=logger=]]        | 请求日志记录         |
   | [[http://www.senchalabs.org/connect/bodyParser.html][=bodyParser=]]    | 请求消息体解析器     |
@@ -933,32 +985,75 @@
   |-----------------+----------------------|
   #+end_center
 
-* Connect框架工作原理
+* 基于Connect的静态Http服务
+
+  #+ATTR_HTML: class="codelink"
+  [[../static/connect_static_web_server.js][connect\_static\_web\_server.js]]
+#+INCLUDE: "../static/connect_static_web_server.js" src js -n
 
   #+begin_quote
-  中间件是一个函数
-
-  原型“ =function= ( =req= , =res= , =next=)”
-
-  其中 =req= 与 =res= 参数来自 [[http://nodejs.org/api/http.html#http_http][=http=]] [[http://nodejs.org/api//http.html#http_event_request][请求处理函数]]
-
-  中间件通常会在 =req= 与 =res= 上附加或修改属性
-
-  供其它中间件或应用逻辑利用
-
-  =next= 用于调用下一个中间件
   \\
-  \\
-  \\
-  中间件可以完成当前请求
+  中间件并未包含依赖信息
+
+  由于中间件可能依赖其它中间件的处理结果
+
+  因此其排列顺序非常关键
   
-  则不必调用 =next=
+  可以参照 [[http://www.senchalabs.org/connect/][Connect项目主页]] Middleware 部分给出的顺序
 
-  否则需调用 =next= 由下一中间件继续处理
+  对于第三方的中间件请查阅其文档
+  #+end_quote
 
+* Connect框架工作原理
+
+  #+begin_html
+  <div style="font-size:0.8em; background:url(../static/tools.jpeg) 90% no-repeat; background-size:contain;">
+  #+end_html
+
+  #+begin_quote
+  构建Web服务需要使用大量的组件
+  #+end_quote
+
+  #+begin_quote
+  =解析提交的表单=
+
+  =权限验证=
+
+  =会话管理=
+
+  =静态文件服务=
+
+  =压缩=
+
+  =...=
+  \\
+  \\
+  #+end_quote
+  #+begin_html
+  </div>
+  <div style="background:url(../static/connect.jpeg) no-repeat; background-size:contain; font-size:0.8em;">
+  #+end_html  
+
+  #+begin_quote
+   [[http://www.senchalabs.org/connect/][=Connect=]] 将它们串联起来
+  \\
+  \\
+  #+end_quote
+
+  #+begin_quote
+  http请求依次流过这些组件
+  
+  每个组件对请求进行自已的处理
+
+  它们靠请求及响应对象传递中间数据
+
+  互相协作
+
+  最终完成整个请求的处理
   #+end_quote
 
   #+begin_html
+  </div>
   <div class="codeexplain"><a href="javascript: toggleNotesWindow();" target="_self">讲解</a></div>
   #+end_html
 
@@ -985,50 +1080,116 @@
   </div>
   #+end_html
   
-  =use= 方法的原型“ =function= ( =route= , =fn= )”，用于在匹配的请求路径上挂载中间件。
-  #+ATTR_HTML: style="border-style:hidden;"
-  | =route= | 为请求路径，可选，默认为 =/= ，匹配所有请求路径。 |
-  | =fn=    | 为中间件                                          |
   
+  =use= 方法用于在匹配的请求路径上挂载中间件。
+  
+  #+Caption: =function= ( =route= , =fn= )
+  | 参数  | 说明                                                |
+  |-------+-----------------------------------------------------|
+  | route | 请求路径模式。                                      |
+  |       | 可选，默认为 =/= 匹配所有请求路径，                 |
+  |       | 用于限定中间件处理范围。                            |
+  |-------+-----------------------------------------------------|
+  | fn    | 中间件。                                            |
+  |       | 中间件是一个函数 ”function(req, res, next)“，     |
+  |       | 其中 =req= 与 =res= 参数来自 [[http://nodejs.org/api/http.html#http_http][=http=]] [[http://nodejs.org/api//http.html#http_event_request][请求处理函数]] ， |
+  |       | 中间件通常会在 =req= 与 =res= 上附加或修改属性，    |
+  |       | 供其它中间件或应用逻辑利用，                        |
+  |       | =next= 用于调用下一个中间件，                       |
+  |       | 中间件可以完成当前请求，                            |
+  |       | 则不必调用 =next= ，                                |
+  |       | 否则需调用 =next= 由下一中间件继续处理。            |
 
-  使用 =route= 参数限定中间件处理范围：
+
+  使用示例：
   #+begin_src js
     app.use('/public', connect.static(__dirname + '/public'));
   #+end_src
+  
+  上面的例子提供 =public= 目录的静态文件服务，假设当前项目目录结构为：
+
+  #+begin_html
+  <div style="font-size:0.7em;line-height:1em;">
+  #+end_html
+  #+begin_src artist
+     docroot   
+        |      
+        |----public
+        |       |
+        |       -----node.jpeg 
+  #+end_src
+  #+begin_html
+  </div>
+  #+end_html
+  
+  那么可以这样访问到 =node.jpeg= ： http://localhost/public/node.jpeg 。
+
+  如果上面的示例中，不指定 =route= ，则可以在根路径下访问到 =node.jpeg= ：http://localhost/node.jpeg 。
+
+  指定 =route= 为 "/static" ， 则要这样访问： http://localhost/static/node.jpeg 。
+
+  这是因为 [[http://www.senchalabs.org/connect/][=Connect=]] 在调用中间件之前，会将 =req= 路径中的 =route= 前缀删除，这样中间件可以挂载在任意路径下。
 
   :END:
 
-
-* 基于Connect的静态Http服务
-
-  #+ATTR_HTML: class="codelink"
-  [[../static/connect_static_web_server.js][connect\_static\_web\_server.js]]
-#+INCLUDE: "../static/connect_static_web_server.js" src js -n
+* 高级Web框架：Express
 
   #+begin_quote
+  Express是node.js的一个高性能、高级Web开发框架
+
+  以 [[http://www.senchalabs.org/connect/][=Connect=]] 为基础\\
   \\
-  中间件并未包含依赖信息
-
-  由于中间件可能依赖其它中间件的处理结果
-
-  因此其排列顺序非常关键
-  
-  可以参照 [[http://www.senchalabs.org/connect/][Connect项目主页]] Middleware 部分给出的顺序
-
-  对于第三方的中间件请查阅其文档
+  \\
   #+end_quote
 
-* Node.js的Web框架：Express
-* Node.js使用Connect库构建Http服务
-* Node.js使用Express框架构建Http服务
-* Node.js超越Http服务
-* Javascript工具：Jslint
-* 浏览器中的Javascript
-* C10K问题
-* select与epoll
-* 事件回调
-* Javascript从前端到后端
-* V8引擎简介
+  #+begin_center
+  #+ATTR_HTML: style="width:7em; margin-left:2em;"
+  [[../static/mvc.jpeg]]
+  #+end_center
+
+* Express安装
+  
+  #+begin_example
+  $ npm install -g express
+  $ express hello_express
+  $ cd hello_express
+  $ npm install -d
+  $ node app.js
+  #+end_example
+
+  #+begin_html
+  <div class="leftinfo">
+  #+end_html
+
+  #+begin_example
+    hello_express
+    ├── app.js
+    ├── package.json
+    ├── public
+    │   ├── images
+    │   ├── javascripts
+    │   └── stylesheets
+    │       └── style.css
+    ├── routes
+    │   ├── index.js
+    │   └── user.js
+    └── views
+        ├── index.jade
+        └── layout.jade
+  #+end_example
+
+  #+begin_html
+  </div>
+  <div class="rightinfo">
+  #+end_html
+
+  #+ATTR_HTML: style="width:12.5em;"
+  [[../static/hello_express.png]]
+  
+  #+begin_html
+  </div>
+  #+end_html
+
 * 参考资料
   - 《Javascript语言精粹》
   - [[http://jibbering.com/faq/notes/closures/][Javascript Closures]]
