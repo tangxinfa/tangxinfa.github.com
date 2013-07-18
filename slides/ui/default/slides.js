@@ -389,6 +389,13 @@ function fixLinks() {
 	thisUri = thisUri.slice(0, thisUri.length - window.location.hash.length);
 	var aelements = document.getElementsByTagName('A');
 	for (var i = 0; i < aelements.length; i++) {
+        var secID = aelements[i].href.match('\#sec-[0-9]+$');
+        if(secID) {
+            if(aelements[i].href.slice(0, aelements[i].href.length - secID[0].length) == thisUri) {
+                aelements[i].href = thisUri + '#slide' + secID[0].substring(5);
+                aelements[i].target = "_self";
+            }
+        }
 		var a = aelements[i].href;
 		var slideID = a.match('\#slide[0-9]{1,2}');
 		if ((slideID) && (slideID[0].slice(0,1) == '#')) {
