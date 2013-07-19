@@ -42,41 +42,50 @@
 * LAMP WEB架构
 
   #+Caption: 四大金刚
-  #+begin_src ditaa :file ../static/lamp_arch.png :cmdline -r -S
-        
-    +--------------+           +--------------+          +--------------+          +-------------+
-    |              |           |              |          |              |          |             |
-    |              |           |              |          |              |          |             |
-    |     cRED     |           |      cGRE    |          |     cBLU     |          |    cBLK     |
-    |    Browser   |<--------->|   WebServer  |<-------->|      PHP     |<-------->|    MySQL    |
-    |              |           |              |          |              |          |             |
-    |              |           |              |          |              |          |             |
-    |              |           |              |          |              |          |             |
-    +--------------+           +--------------+          +--------------+          +-------------+
-                                                                                                       
+  #+begin_src ditaa :file ../static/lamp_arch.png :cmdline -r -S -s 3
+    +-------+     +---------+     +-----+     +-----+
+    | cPNK  |     |   cGRE  |     |cBLU |     |cBLK |
+    |Browser|<--->|WebServer|<--->| PHP |<--->|MySQL|
+    |       |     |         |     |     |     |     |
+    +-------+     +---------+     +-----+     +-----+
   #+end_src
 
 * Node.js WEB架构
 
   #+Caption: 三个好汉
-  #+begin_src ditaa :file ../static/node_arch.png :cmdline -r -S
-        
-    +--------------+           +----------------------------------------+          +-------------+
-    |              |           |                                        |          |             |
-    |              |           |                                        |          |             |
-    |     cRED     |           |                cYEL                    |          |    cBLK     |
-    |    Browser   |<--------->|               Node.js                  |<-------->|    MySQL    |
-    |              |           |                                        |          |             |
-    |              |           |                                        |          |             |
-    |              |           |                                        |          |             |
-    +--------------+           +----------------------------------------+          +-------------+
-                                                                                                       
+  #+begin_src ditaa :file ../static/node_arch.png :cmdline -r -S -s 3
+    +-------+     +---------------------+     +-----+
+    | cPNK  |     |       cYEL          |     |cBLK |
+    |Browser|<--->|       Node.js       |<--->|MySQL|
+    |       |     |                     |     |     |
+    +-------+     +---------------------+     +-----+
   #+end_src
 
 * Node.js 内部结构
 
   #+ATTR_HTML: style="width:60%; margin-left:20%;"
-  [[../static/node_structure.png]]
+  #+begin_src ditaa :file ../static/node_structure.png :cmdline -r -S -s 2
+                                        
+               +-------------------------------+
+               |         cBLU                  |
+    Javascript |    Node standard library      |
+               |                               |
+               +-------------------------------+
+    -=------------------------------------------
+               +-------------------------------+
+               |         cGRE                  |
+               |        Node bindings          |
+               |                               |
+               +-------------------------------+
+               +------+ +----------+ +---------+
+        C      | cGRE | | cGRE     | |cGRE     |
+               |      | |  thread  | |  event  |
+               |  V8  | |   pool   | |  loop   |
+               |      | |          | |         |
+               |      | | (libeio) | | (libev) |
+               +------+ +----------+ +---------+
+    
+  #+end_src
   
 * 语言
 
@@ -124,7 +133,7 @@
   #+ATTR_HTML: class="codelink" style="right:52.5%"
   [[../static/woman_module.js][person.js]]
   #+ATTR_HTML: :textarea
-#+INCLUDE "../static/person.js" src js -n
+#+INCLUDE: "../static/person.js" src js -n
 
   #+begin_html
   </div>
@@ -152,7 +161,7 @@
   #+ATTR_HTML: class="codelink" style="right:52.5%"
   [[../static/woman_module.js][man.js]]
   #+ATTR_HTML: :textarea
-#+INCLUDE "../static/man.js" src js -n
+#+INCLUDE: "../static/man.js" src js -n
 
   #+begin_html
   </div>
@@ -177,7 +186,7 @@
   #+ATTR_HTML: class="codelink"
   [[../static/woman_module.js][woman.js]]
   #+ATTR_HTML: :textarea
-#+INCLUDE "../static/woman.js" src js -n
+#+INCLUDE: "../static/woman.js" src js -n
 
 * 安装
 
@@ -268,22 +277,29 @@
   #+end_html
 
   [[http://wiki.commonjs.org/wiki/Modules/1.1][CommonJS模块规范]]：
-  #+begin_src artist
-    
-    +-------------+
-    | module.js --+->模块是普通的js文件
-    |             |                    
-    | +---------+ |
-    | | require +-+->用于导入其它模块接口的函数
-    | +---------+ |  
-    | +---------+ |  
-    | | exports +-+->用于导出接口的对象
-    | +---------+ |  
-    | +---------+ |  
-    | | module  +-+->当前模块对象
-    | +---------+ |  
-    |    ...    --+->其它用户定义对象为模块私有
-    +-------------+
+  #+ATTR_HTML: style="width:80%;"
+  #+begin_src ditaa :file ../static/module_structure.png :cmdline -S -E -s 1.5
+    +--------------+
+    | cBLU         |
+    | module.js    |->模块是普通的js文件
+    |              | 
+    | +------------+ 
+    | | cGRE       | 
+    | | require    |->用于导入其它模块接口的函数
+    | |            |
+    | +------------+
+    | | cGRE       |
+    | | exports    |->用于导出接口的对象
+    | |            |
+    | +------------+
+    | | cGRE       |
+    | | module     |->当前模块对象
+    | |            |
+    | +------------+
+    | | cPNK       |
+    | |  ...       |->其它用户定义对象为模块私有
+    | |            |
+    +-+------------+
   #+end_src
 
   #+begin_html
