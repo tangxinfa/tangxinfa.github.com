@@ -89,40 +89,25 @@
   
 * 语言
 
-  #+begin_quote
-  完整的 =JavaScript= 实现由 =3= 个部分组成：
-  
-  核心（ =ECMAScript= ）
-
-  +文档对象模型（ DOM ）+
-
-  +浏览器对象模型（ BOM ）+
-  \\
-  \\
-  =ECMAScript= 描述了以下内容：
-  #+end_quote
-
-  #+begin_html
-  <div style="font-size:0.85em;">
-  #+end_html
-  #+begin_quote
-  语法
-
-  类型
-
-  语句
-
-  关键字
-
-  保留字
-
-  运算符
-
-  对象
-  #+end_quote
-  #+begin_html
-  </div>
-  #+end_html
+  #+Caption: Only ECMAScript inside Node.js
+  #+ATTR_HTML: style="width:14em;"
+  #+begin_src ditaa :file ../static/javascript_structure.png :cmdline -S -E -s 2
+    +------------+-------------------+
+    | cBLU                           |
+    |            +-------------------+
+    |            |      cGRE         |
+    |            |    ECMAScript     |
+    |            |                   |
+    |            +-------------------+
+    |            |       cPNK        |
+    | Javascript |       DOM         |
+    |            |                   |
+    |            +-------------------+
+    |            |       cRED        |
+    |            |       BOM         |
+    |            |                   |
+    +------------+-------------------+
+  #+end_src
 
 * 面向对象
 
@@ -137,7 +122,7 @@
 
   #+begin_html
   </div>
-  <div class="rightinfo" style="font-size:0.7em;">
+  <div class="rightinfo" style="font-size:0.85em;">
   #+end_html
 
   #+begin_quote
@@ -165,7 +150,7 @@
 
   #+begin_html
   </div>
-  <div class="rightinfo" style="font-size:0.7em;">
+  <div class="rightinfo" style="font-size:0.85em;">
   #+end_html
 
   #+begin_quote
@@ -227,57 +212,10 @@
     ~$ node -e 'console.log("hello node.js");'
     hello node.js
   #+end_example
-  
+
 * 模块
 
-  #+ATTR_HTML: class="codelink"
-  [[../static/woman_module.js][woman\_module.js]]
-#+INCLUDE: "../static/woman_module.js" src js -n
-
-  #+ATTR_HTML: class="codelink"
-  [[../static/woman_module.js][woman\_module\_usage.js]]
-#+INCLUDE: "../static/woman_module_usage.js" src js -n
-
-* 类模块
-
-  #+ATTR_HTML: class="codelink"
-  [[../static/woman_module.js][woman\_class\_module.js]]
-#+INCLUDE: "../static/woman_class_module.js" src js -n
-
-  #+ATTR_HTML: class="codelink"
-  [[../static/woman_module.js][woman\_class\_module\_usage.js]]
-#+INCLUDE: "../static/woman_class_module_usage.js" src js -n
-
-* CommonJS模块规范
-
-  #+begin_html
-    <div class="leftinfo" style="font-size:0.7em;">
-  #+end_html
-
-  #+begin_quote
-  JavaScript没有模块系统\\
-  所有js文件中定义的顶级对象名存在于同一个命名空间\\
-  \\
-  #+end_quote
-
-  #+begin_html
-    </div>
-    <div class="rightinfo" style="font-size:0.7em;">
-  #+end_html
-
-  #+begin_quote
-  - [[http://www.commonjs.org][CommonJS]]规范 :: 其目标是为了构建JavaScript在包括Web服务器，桌面，命令行工具，及浏览器方面的生态系统。
-  #+end_quote
-
-  #+begin_html
-      </div>
-      <div style="clear:both; padding:0;">
-      </div>
-      <div class="leftinfo" style="font-size:0.7em;">
-  #+end_html
-
-  [[http://wiki.commonjs.org/wiki/Modules/1.1][CommonJS模块规范]]：
-  #+ATTR_HTML: style="width:80%;"
+  #+ATTR_HTML: style="width:13em; margin:0 auto; display:block;"
   #+begin_src ditaa :file ../static/module_structure.png :cmdline -S -E -s 1.5
     +--------------+
     | cBLU         |
@@ -302,30 +240,213 @@
     +-+------------+
   #+end_src
 
+  #+begin_quote
+  按 [[http://www.commonjs.org][CommonJS]] [[http://wiki.commonjs.org/wiki/Modules/1.1][模块规范]] 实现
+  #+end_quote
+
+* 模块
+
+  #+ATTR_HTML: style="width:13.5em; margin:0 auto; display:block;"
+  #+begin_src ditaa :file ../static/module_workflow.png :cmdline -S -E -s 1.5
+    +-----------+     1     +-----------+
+    | cBLU      |---------->| cGRE      |
+    | require() |           |   cache   |<-+
+    |           |<----------|           |  |
+    +------+----+     2     +-----------+  |
+        ^  |                               |5
+        |  |         +------------------+  |
+        |  |   3     | cPNK             |  |
+        |  +-------->| module           |  |
+        |            |        ...       |  |
+        |            |       +----------+  |
+        |            |       |  cYEL    |  |
+        |            |       |  exports |  |
+        |            |       |          |  |
+        |            +-------+----------+  |
+        |       4               |   |      |
+        +-----------------------+   +------+
+  #+end_src
+
   #+begin_html
-    </div>
-    <div class="rightinfo">
+  <div style="font-size:0.7em; margin-left:12em;">
+  #+end_html
+
+  #+begin_verse
+  1，检查cache中是否有该模块
+  2，有则直接返回该模块的exports对象，require完成。
+  3，载入该模块并执行其代码
+  4，返回模块的exports对象
+  5，将模块加入缓存。
+  #+end_verse
+
+  #+begin_html
+  </div>
+  #+end_html
+
+* 模块
+
+  #+ATTR_HTML: class="codelink"
+  [[../static/woman_module.js][woman\_module.js]]
+#+INCLUDE: "../static/woman_module.js" src js -n
+
+  #+ATTR_HTML: class="codelink"
+  [[../static/woman_module.js][woman\_module\_usage.js]]
+#+INCLUDE: "../static/woman_module_usage.js" src js -n
+
+* 类模块
+
+  #+ATTR_HTML: class="codelink"
+  [[../static/woman_module.js][woman\_class\_module.js]]
+#+INCLUDE: "../static/woman_class_module.js" src js -n
+
+  #+ATTR_HTML: class="codelink"
+  [[../static/woman_module.js][woman\_class\_module\_usage.js]]
+#+INCLUDE: "../static/woman_class_module_usage.js" src js -n
+
+* 包
+
+  #+begin_html
+  <div class="leftinfo">
+  #+end_html
+
+  #+ATTR_HTML: style="width:8em;"
+  #+begin_src ditaa :file ../static/package.png :cmdline -S -E
+    +---------+
+    | cBLU    |
+    | package |
+    |         |
+    +----+----+
+         |          +--------------+
+         |          | cGRE         |
+         +----------+ package.json |
+         |          |              |
+         |          +--------------+
+         |                 
+         |          +-----+
+         |          | cBLU|
+         +----------+ bin |
+         |          |     |
+         |          +-----+
+         |
+         |          +-----+
+         |          | cBLU|
+         +----------+ lib |
+         |          |     |
+         |          +-----+
+         |
+         |          +-----+
+         |          | cBLU|
+         +----------+ doc |
+         |          |     |
+         |          +-----+
+         |           
+         |          +------+
+         |          | cBLU |
+         +----------+ test |
+                    |      |
+                    +------+
+  #+end_src
+
+  #+begin_html
+  </div>
+  <div class="rightinfo">
+  #+end_html
+
+  #+ATTR_HTML: style="width:13.5em;"
+  #+begin_src ditaa :file ../static/package_json.png :cmdline -S -E -s 1.5
+    +-------------------------------------+
+    |  cGRE                               |
+    |  package.json                       |
+    |                                     |
+    |       +-----------------------------+
+    |       |  cPNK                       |
+    |       |            name             |
+    |       |                             |
+    |       +-----------------------------+
+    |       |  cPNK                       |
+    |       |            version          |
+    |       |                             |
+    |       +-----------------------------+
+    |       |  cPNK                       |
+    |       |            main             |
+    |       |                             |
+    |       +-----------------------------+
+    |       |  cYEL                       |
+    |       |       dependencies ...      |
+    |       |                             |
+    +-------+-----------------------------+
+  #+end_src
+
+  #+begin_html
+  </div>
+  <div style="clear:both;"></div>
   #+end_html
 
   #+begin_quote
-  在Node.js应用程序中\\
-  首次require一个模块执行其代码\\
-  返回其exports对象\\
-  该exports对象会被Node.js缓存\\
-  当再次require该模块直接返回缓存结果\\
-  \\
-  exports变量是module.exports对象的引用\\
-  \\
-  该模块不会对全局命名空间造成影响
+  按 [[http://wiki.commonjs.org/wiki/Packages/1.1][CommonJS包规范]] 实现
   #+end_quote
-  
-  #+begin_html
-    </div>
-  #+end_html
-  
+
 * 包
+
+  #+begin_html
+  <div class="leftinfo">
+  #+end_html
+
+  #+ATTR_HTML: style="width:13.5em;"
+  #+begin_src ditaa :file ../static/woman_package.png :cmdline -S -E
+    +---------+
+    | cBLU    |
+    | woman   |
+    |         |                     
+    +----+----+                     
+         |          +--------------+
+         |          | cGRE         |
+         +----------+ package.json |
+         |          |              |
+         |          +--------------+
+         |
+         |          +-----+
+         |          | cBLU|
+         +----------+ lib |
+                    |     |
+                    +--+--+
+                       |    +----------+
+                       |    | cPNK     |
+                       +----+ woman.js +
+                            |          |
+                            +----------+
+  #+end_src
+
+  #+begin_html
+  </div>
+  <div class="rightinfo" style="font-size:0.8em;">
+  #+end_html
+  \\
+  \\
+  \\
+
+  #+ATTR_HTML: class="codelink"
+  [[../static/woman_module.js][package.json]]
+#+INCLUDE: "../static/woman/package.json" src js -n
+  #+begin_html
+  <div style="font-size:0.6em;">
+  #+end_html
+  \\
+  
+  #+ATTR_HTML: class="codelink"
+  [[../static/woman_module.js][woman.js]]
+#+INCLUDE: "../static/woman/lib/woman.js" src js -n
+
+  #+begin_html
+  </div>
+  #+end_html
+
+  #+begin_html
+  </div>
+  #+end_html
+
 * 运行机制
-* Http服务
+* 内置Http服务
 * 基础Http服务框架：Connect
 * 高级Http服务框架：Express
 
