@@ -215,6 +215,7 @@ function toggle() {
 			var slide = slideColl[n];
 			slide.style.visibility = 'visible';
 		}
+        document.getElementsByTagName('body')[0].setAttribute('id', 'outline');
 	} else {
 		slides.disabled = false;
 		outline.disabled = true;
@@ -225,6 +226,7 @@ function toggle() {
 			slide.style.visibility = 'hidden';
 		}
 		slideColl[snum].style.visibility = 'visible';
+        document.getElementsByTagName('body')[0].setAttribute('id', 'slideshow');
 	}
 }
 
