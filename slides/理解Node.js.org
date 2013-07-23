@@ -116,7 +116,7 @@
   #+end_html
 
   #+ATTR_HTML: class="codelink" style="right:52.5%"
-  [[../static/woman_module.js][person.js]]
+  [[../static/person.js][person.js]]
   #+ATTR_HTML: :textarea
 #+INCLUDE: "../static/person.js" src js -n
 
@@ -144,7 +144,7 @@
   #+end_html
 
   #+ATTR_HTML: class="codelink" style="right:52.5%"
-  [[../static/woman_module.js][man.js]]
+  [[../static/man.js][man.js]]
   #+ATTR_HTML: :textarea
 #+INCLUDE: "../static/man.js" src js -n
 
@@ -169,7 +169,7 @@
 * 闭包
 
   #+ATTR_HTML: class="codelink"
-  [[../static/woman_module.js][woman.js]]
+  [[../static/woman.js][woman.js]]
   #+ATTR_HTML: :textarea
 #+INCLUDE: "../static/woman.js" src js -n
 
@@ -290,17 +290,17 @@
 #+INCLUDE: "../static/woman_module.js" src js -n
 
   #+ATTR_HTML: class="codelink"
-  [[../static/woman_module.js][woman\_module\_usage.js]]
+  [[../static/woman_module_usage.js][woman\_module\_usage.js]]
 #+INCLUDE: "../static/woman_module_usage.js" src js -n
 
 * 类模块
 
   #+ATTR_HTML: class="codelink"
-  [[../static/woman_module.js][woman\_class\_module.js]]
+  [[../static/woman_class_module.js][woman\_class\_module.js]]
 #+INCLUDE: "../static/woman_class_module.js" src js -n
 
   #+ATTR_HTML: class="codelink"
-  [[../static/woman_module.js][woman\_class\_module\_usage.js]]
+  [[../static/woman_class_module_usage.js][woman\_class\_module\_usage.js]]
 #+INCLUDE: "../static/woman_class_module_usage.js" src js -n
 
 * 包
@@ -426,7 +426,7 @@
   \\
 
   #+ATTR_HTML: class="codelink"
-  [[../static/woman_module.js][package.json]]
+  [[../static/woman/package.json][package.json]]
 #+INCLUDE: "../static/woman/package.json" src js -n
   #+begin_html
   <div style="font-size:0.6em;">
@@ -434,7 +434,7 @@
   \\
   
   #+ATTR_HTML: class="codelink"
-  [[../static/woman_module.js][woman.js]]
+  [[../static/woman/lib/woman.js][woman.js]]
 #+INCLUDE: "../static/woman/lib/woman.js" src js -n
 
   #+begin_html
@@ -446,6 +446,213 @@
   #+end_html
 
 * 运行机制
+
+  #+begin_html
+  <div style="background:url(../static/podium.jpeg) no-repeat center center; background-size:contain; height:7em;">
+  #+end_html
+
+  #+begin_quote
+  =事件驱动= 　　　  =非阻塞I/O模型= 　　　  =单线程= 
+  #+end_quote
+  #+begin_html
+   </div>
+  #+end_html
+  \\
+  \\
+  #+begin_html
+  <div style="background:url(../static/right.jpeg) no-repeat 60% center; background-size:contain;">
+  #+end_html
+  #+begin_quote
+  =数据密集型= 
+
+  =实时响应=
+  #+end_quote
+  #+begin_html
+   </div>
+  #+end_html
+
+* 非阻塞
+
+  #+begin_html
+    <style type="text/css" media="screen">
+    .data-access-latency-table .right {
+       border-left: 1px solid black;
+       border-right: 1px solid black;
+    }
+    .data-access-latency-table td {
+       padding:0 0.5em;
+    }
+    </style>   
+    
+  #+end_html
+
+  #+CAPTION: I/O操作耗时对比
+  #+ATTR_HTML: style="width:70%; margin:0 auto; border: 1px; padding:" class="data-access-latency-table"
+  |----------+-----------+--------------|
+  | I/O      | CPU Cycle | Type         |
+  |----------+-----------+--------------|
+  | L1-cache |         3 |              |
+  | L2-cache |        14 | Non-blocking |
+  | RAM      |       250 |              |
+  |----------+-----------+--------------|
+  | Disk     |  41000000 | Blocking     |
+  | Network  | 240000000 |              |
+  |----------+-----------+--------------|
+
+  #+ATTR_HTML: style="float:left; margin-left:4em; width:5em;"
+  [[../static/nonblocking.jpeg]]
+  
+  #+begin_quote
+  \\
+  Node.js是一个全新的开发平台\\
+  \\
+  所有会阻塞的api都以异步回调的方式进行封装\\
+  \\
+  #+end_quote
+
+* 非阻塞
+
+  #+begin_html
+  <div style="font-size:0.675em;">
+  <div style="background:url(../static/mysql.jpeg) no-repeat center center; background-size:contain; width:9em; height:6em; position: absolute; top:8em; right:6%;">
+    <img src='../static/nonblocking.png' style="height:6em; margin: -1.75em 0.5em; display:block;" />
+  </div>
+  #+end_html
+
+  #+ATTR_HTML: class="codelink"
+  [[../static/mysql_users.js][mysql\_users.js]]
+#+INCLUDE: "../static/mysql_users.js" src js -n
+
+  #+begin_html
+  </div>
+  #+end_html
+  
+* 单线程事件回调
+
+  #+ATTR_HTML: style="width:18em; margin:0 auto; display:block;"
+  #+begin_src ditaa :file ../static/node_eventloop.png :cmdline -S -E -s 1.5
+    $ node ./app.js
+
+    +-----------------------------------------+
+    | cPNK               node                 |
+    +------------------\      /------------\  |
+    | cGRE             |      |            |  |
+    | app.js           |      |            |  |
+    |   |              |      |            |  |
+    |   |   /----------+      |            |  |
+    |   |   | async op |      |            |  |
+    |   |   +----------+      |   event    |  |
+    |   |-=-|  event   |--=-->|   loop     |  |
+    |   |   +----------+      |            |  |
+    |   |   | callback |<--=--|            |  |
+    |   |   \----------+      |            |  |
+    |   :              |      |            |  |
+    |   |              |      |            |  |
+    +------------------/      \--------->  |  |
+    |   |                                  |  |
+    |   \-=--------------------------------/  |
+    |                                         |
+    +-----------------------------------------+
+  #+end_src
+
+* 单线程事件回调
+
+  #+begin_html
+  <div class="leftinfo">
+  #+end_html
+  
+  #+begin_src php -r -n 
+    <?php
+        echo "wait...\n";
+        sleep(3);
+        echo "wait...\n";
+        sleep(5);
+        echo "done\n";
+    ?>
+  #+end_src
+
+  #+begin_html
+  </div>
+  <div class="rightinfo">
+  #+end_html
+  
+  #+begin_html
+  </div>
+  <div style="clear:both;"></div>
+  #+end_html
+
+  #+begin_quote
+  PHP: =SLEEP= IF YOU WANT
+  #+end_quote
+
+  #+begin_html
+  <div class="leftinfo">
+  #+end_html
+  
+  #+ATTR_HTML: style="width:2em; margin:auto auto; display:block;"
+  [[../static/meiqiu1.jpeg]]
+
+  #+begin_html
+  </div>
+  <div class="rightinfo">
+  #+end_html
+  
+  #+ATTR_HTML: style="width:9em; margin:0 auto; display:block;"
+  [[../static/meiqiu.jpeg]]
+
+  #+begin_html
+  </div>
+  #+end_html
+
+* 单线程事件回调
+
+  #+begin_html
+  <div class="leftinfo">
+  #+end_html
+  
+  #+begin_src javascript -r -n 
+    console.log('wait...');
+    setTimeout(function () {
+        console.log('wait...');
+        setTimeout(function () {
+            console.log('done');
+        }, 5000);
+    }, 3000);
+  #+end_src
+
+  #+begin_html
+  </div>
+  <div class="rightinfo">
+  #+end_html
+
+  #+begin_html
+  </div>
+  <div style="clear:both;"></div>
+  #+end_html
+
+  #+begin_quote
+  NODE: =NO SLEEP=
+  #+end_quote
+
+  #+begin_html
+  <div class="leftinfo">
+  #+end_html
+  
+  #+ATTR_HTML: style="width:2em; margin:0 auto; display:block;"
+  [[../static/guoluyeye1.jpeg]]
+
+  #+begin_html
+  </div>
+  <div class="rightinfo">
+  #+end_html
+  
+  #+ATTR_HTML: style="width:8em; margin:0 auto; display:block;"
+  [[../static/guoluyeye.jpeg]]
+
+  #+begin_html
+  </div>
+  #+end_html
+
 * 内置Http服务
 * 基础Http服务框架：Connect
 * 高级Http服务框架：Express

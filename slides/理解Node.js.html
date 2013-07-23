@@ -7,7 +7,7 @@
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
 <meta name="title" content="理解Node.js"/>
 <meta name="generator" content="Org-mode"/>
-<meta name="generated" content="2013-07-20 18:23:27 CST"/>
+<meta name="generated" content="2013-07-23 18:01:22 CST"/>
 <meta name="author" content="唐新发"/>
 <meta name="description" content="90 minutes"/>
 <meta name="keywords" content=""/>
@@ -115,7 +115,7 @@
 <div class="slide">
 <h1>理解Node.js</h1>
 <h1>唐新发</h1>
-<h1>2013-07-20</h1>
+<h1>2013-07-23</h1>
 </div>
 <h1 class="title">理解Node.js</h1>
 
@@ -150,10 +150,10 @@
 <li><a href="#Http">Http服务</a>
 
 </li>
-<li><a href="#sec-18">基础Http服务框架：Connect</a>
+<li><a href="#sec-23">基础Http服务框架：Connect</a>
 
 </li>
-<li><a href="#sec-19">高级Http服务框架：Express</a>
+<li><a href="#sec-24">高级Http服务框架：Express</a>
 </li>
 </ul>
 
@@ -260,7 +260,7 @@
   <div class="leftinfo" style="font-size:0.6em;">
 
 <p>
-  <a href="../static/woman_module.js" class="codelink" style="right:52.5%">person.js</a>
+  <a href="../static/person.js" class="codelink" style="right:52.5%">person.js</a>
 </p>
 
 
@@ -304,7 +304,7 @@
   <div class="leftinfo" style="font-size:0.6em;">
 
 <p>
-  <a href="../static/woman_module.js" :textarea class="codelink" style="right:52.5%">man.js</a>
+  <a href="../static/man.js" :textarea class="codelink" style="right:52.5%">man.js</a>
 </p>
 
 
@@ -355,7 +355,7 @@
 
 
 <p>
-  <a href="../static/woman_module.js" :textarea class="codelink">woman.js</a>
+  <a href="../static/woman.js" :textarea class="codelink">woman.js</a>
 </p>
 
 
@@ -512,7 +512,7 @@ hello node.js
 
 
 <p>
-  <a href="../static/woman_module.js" class="codelink">woman_module_usage.js</a>
+  <a href="../static/woman_module_usage.js" class="codelink">woman_module_usage.js</a>
 </p>
 
 
@@ -534,7 +534,7 @@ hello node.js
 
 
 <p>
-  <a href="../static/woman_module.js" class="codelink">woman_class_module.js</a>
+  <a href="../static/woman_class_module.js" class="codelink">woman_class_module.js</a>
 </p>
 
 
@@ -549,7 +549,7 @@ hello node.js
 
 
 <p>
-  <a href="../static/woman_module.js" class="codelink">woman_class_module_usage.js</a>
+  <a href="../static/woman_class_module_usage.js" class="codelink">woman_class_module_usage.js</a>
 </p>
 
 
@@ -629,7 +629,7 @@ hello node.js
   <br/>
 </p>
 <p>
-  <a href="../static/woman_module.js" class="codelink">package.json</a>
+  <a href="../static/woman/package.json" class="codelink">package.json</a>
 </p>
 
 
@@ -647,7 +647,7 @@ hello node.js
   <br/>
 </p>
 <p>  
-  <a href="../static/woman_module.js" class="codelink">woman.js</a>
+  <a href="../static/woman/lib/woman.js" class="codelink">woman.js</a>
 </p>
 
 
@@ -675,38 +675,311 @@ hello node.js
 <h1 id="sec-16"><span class="section-number-1">16</span> 运行机制</h1>
 <div class="outline-text-1" id="text-16">
 
+
+
+
+  <div style="background:url(../static/podium.jpeg) no-repeat center center; background-size:contain; height:7em;">
+
+<blockquote>
+
+<p><code>事件驱动</code> 　　　  <code>非阻塞I/O模型</code> 　　　  <code>单线程</code> 
+</p>
+</blockquote>
+
+
+
+
+   </div>
+<p>
+  <br/>
+  <br/>
+  <div style="background:url(../static/right.jpeg) no-repeat 60% center; background-size:contain;">
+</p><blockquote>
+
+<p><code>数据密集型</code> 
+</p>
+<p>
+<code>实时响应</code>
+</p>
+</blockquote>
+
+
+
+
+   </div>
+
 </div>
 
 </div>
 
 <div id="outline-container-17" class="outline-1 slide">
-<h1 id="sec-17"><span class="section-number-1">17</span> 内置Http服务</h1>
+<h1 id="sec-17"><span class="section-number-1">17</span> 非阻塞</h1>
 <div class="outline-text-1" id="text-17">
+
+
+
+
+    <style type="text/css" media="screen">
+    .data-access-latency-table .right {
+       border-left: 1px solid black;
+       border-right: 1px solid black;
+    }
+    .data-access-latency-table td {
+       padding:0 0.5em;
+    }
+    </style>   
+    
+
+<table  border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides" style="width:70%; margin:0 auto; border: 1px; padding:" class="data-access-latency-table">
+<caption>I/O操作耗时对比</caption>
+<colgroup><col class="left" /><col class="right" /><col class="left" />
+</colgroup>
+<thead>
+<tr><th scope="col" class="left">I/O</th><th scope="col" class="right">CPU Cycle</th><th scope="col" class="left">Type</th></tr>
+</thead>
+<tbody>
+<tr><td class="left">L1-cache</td><td class="right">3</td><td class="left"></td></tr>
+<tr><td class="left">L2-cache</td><td class="right">14</td><td class="left">Non-blocking</td></tr>
+<tr><td class="left">RAM</td><td class="right">250</td><td class="left"></td></tr>
+</tbody>
+<tbody>
+<tr><td class="left">Disk</td><td class="right">41000000</td><td class="left">Blocking</td></tr>
+<tr><td class="left">Network</td><td class="right">240000000</td><td class="left"></td></tr>
+</tbody>
+</table>
+
+
+<p>
+  <img src="../static/nonblocking.jpeg" style="float:left; margin-left:4em; width:5em;" alt="../static/nonblocking.jpeg" />
+</p>
+<blockquote>
+
+<p><br/>
+Node.js是一个全新的开发平台<br/>
+<br/>
+所有会阻塞的api都以异步回调的方式进行封装<br/>
+<br/>
+</p>
+</blockquote>
+
 
 </div>
 
 </div>
 
 <div id="outline-container-18" class="outline-1 slide">
-<h1 id="sec-18"><span class="section-number-1">18</span> 基础Http服务框架：Connect</h1>
+<h1 id="sec-18"><span class="section-number-1">18</span> 非阻塞</h1>
 <div class="outline-text-1" id="text-18">
+
+
+
+
+  <div style="font-size:0.675em;">
+  <div style="background:url(../static/mysql.jpeg) no-repeat center center; background-size:contain; width:9em; height:6em; position: absolute; top:8em; right:6%;">
+    <img src='../static/nonblocking.png' style="height:6em; margin: -1.75em 0.5em; display:block;" />
+  </div>
+
+<p>
+  <a href="../static/mysql_users.js" class="codelink">mysql_users.js</a>
+</p>
+
+
+<pre class="src src-js"><span class="linenr"> 1:  </span><span style="color: #729fcf; font-weight: bold;">var</span> <span style="color: #eeeeec;">mysql</span> = require(<span style="color: #ad7fa8; font-style: italic;">'mysql'</span>);
+<span class="linenr"> 2:  </span>
+<span class="linenr"> 3:  </span><span style="color: #729fcf; font-weight: bold;">var</span> <span style="color: #eeeeec;">connection</span> = mysql.createConnection({
+<span class="linenr"> 4:  </span>    host: <span style="color: #ad7fa8; font-style: italic;">'localhost'</span>,
+<span class="linenr"> 5:  </span>    user: <span style="color: #ad7fa8; font-style: italic;">'root'</span>,
+<span class="linenr"> 6:  </span>    password: <span style="color: #ad7fa8; font-style: italic;">'123456'</span>,
+<span class="linenr"> 7:  </span>    database: <span style="color: #ad7fa8; font-style: italic;">'mysql'</span>
+<span class="linenr"> 8:  </span>});
+<span class="linenr"> 9:  </span>
+<span class="linenr">10:  </span>connection.connect(<span style="color: #729fcf; font-weight: bold;">function</span> (<span style="color: #eeeeec;">err</span>) {
+<span class="linenr">11:  </span>    <span style="color: #729fcf; font-weight: bold;">if</span>(err) {
+<span class="linenr">12:  </span>        <span style="color: #729fcf; font-weight: bold;">throw</span> err;
+<span class="linenr">13:  </span>    }
+<span class="linenr">14:  </span>
+<span class="linenr">15:  </span>    connection.query(<span style="color: #ad7fa8; font-style: italic;">'select host, user from user'</span>, <span style="color: #729fcf; font-weight: bold;">function</span> (<span style="color: #eeeeec;">err</span>, <span style="color: #eeeeec;">results</span>) {
+<span class="linenr">16:  </span>        <span style="color: #729fcf; font-weight: bold;">if</span> (err) {
+<span class="linenr">17:  </span>            <span style="color: #729fcf; font-weight: bold;">throw</span> err;
+<span class="linenr">18:  </span>        } <span style="color: #729fcf; font-weight: bold;">else</span> {
+<span class="linenr">19:  </span>            results.forEach(<span style="color: #729fcf; font-weight: bold;">function</span>(<span style="color: #eeeeec;">row</span>){
+<span class="linenr">20:  </span>                console.log(row.host + <span style="color: #ad7fa8; font-style: italic;">'\t'</span> + row.user);
+<span class="linenr">21:  </span>            });
+<span class="linenr">22:  </span>        }
+<span class="linenr">23:  </span>        connection.end();
+<span class="linenr">24:  </span>    });
+<span class="linenr">25:  </span>});
+</pre>
+
+
+
+
+  </div>
 
 </div>
 
 </div>
 
 <div id="outline-container-19" class="outline-1 slide">
-<h1 id="sec-19"><span class="section-number-1">19</span> 高级Http服务框架：Express</h1>
+<h1 id="sec-19"><span class="section-number-1">19</span> 单线程事件回调</h1>
 <div class="outline-text-1" id="text-19">
 
 
+
+
+<p>
+    <img src="../static/node_eventloop.png" style="width:18em; margin:0 auto; display:block;" alt="../static/node_eventloop.png" />
+</p>
 </div>
 
 </div>
 
 <div id="outline-container-20" class="outline-1 slide">
-<h1 id="sec-20"><span class="section-number-1">20</span> Javascript简介</h1>
+<h1 id="sec-20"><span class="section-number-1">20</span> 单线程事件回调</h1>
 <div class="outline-text-1" id="text-20">
+
+
+
+
+  <div class="leftinfo">
+
+
+
+
+<pre class="src src-php"><span class="linenr">1:  </span><span style="color: #729fcf;">&lt;?php</span>
+<span class="linenr">2:  </span>    <span style="color: #729fcf; font-weight: bold;">echo</span> <span style="color: #ad7fa8; font-style: italic;">"wait...\n"</span>;
+<span class="linenr">3:  </span>    <span style="color: #eeeeec; background-color: #2e3436;">sleep(3</span>);
+<span class="linenr">4:  </span>    <span style="color: #729fcf; font-weight: bold;">echo</span> <span style="color: #ad7fa8; font-style: italic;">"wait...\n"</span>;
+<span class="linenr">5:  </span>    <span style="color: #eeeeec; background-color: #2e3436;">sleep(5</span>);
+<span class="linenr">6:  </span>    <span style="color: #729fcf; font-weight: bold;">echo</span> <span style="color: #ad7fa8; font-style: italic;">"done\n"</span>;
+<span class="linenr">7:  </span><span style="color: #729fcf;">?&gt;</span>
+</pre>
+
+
+  </div>
+  <div class="rightinfo">
+
+  
+
+  </div>
+  <div style="clear:both;"></div>
+
+<blockquote>
+
+<p>PHP: <code>SLEEP</code> IF YOU WANT
+</p>
+</blockquote>
+
+
+
+
+  <div class="leftinfo">
+
+<p>  
+  <img src="../static/meiqiu1.jpeg" style="width:2em; margin:auto auto; display:block;" alt="../static/meiqiu1.jpeg" />
+</p>
+
+
+  </div>
+  <div class="rightinfo">
+
+<p>  
+  <img src="../static/meiqiu.jpeg" style="width:9em; margin:0 auto; display:block;" alt="../static/meiqiu.jpeg" />
+</p>
+
+
+  </div>
+
+</div>
+
+</div>
+
+<div id="outline-container-21" class="outline-1 slide">
+<h1 id="sec-21"><span class="section-number-1">21</span> 单线程事件回调</h1>
+<div class="outline-text-1" id="text-21">
+
+
+
+
+  <div class="leftinfo">
+
+
+
+
+<pre class="src src-javascript"><span class="linenr">1:  </span>console.log(<span style="color: #ad7fa8; font-style: italic;">'wait...'</span>);
+<span class="linenr">2:  </span>setTimeout(<span style="color: #729fcf; font-weight: bold;">function</span> () {
+<span class="linenr">3:  </span>    console.log(<span style="color: #ad7fa8; font-style: italic;">'wait...'</span>);
+<span class="linenr">4:  </span>    setTimeout(<span style="color: #729fcf; font-weight: bold;">function</span> () {
+<span class="linenr">5:  </span>        console.log(<span style="color: #ad7fa8; font-style: italic;">'done'</span>);
+<span class="linenr">6:  </span>    }, 5000);
+<span class="linenr">7:  </span>}, 3000);
+</pre>
+
+
+  </div>
+  <div class="rightinfo">
+
+  </div>
+  <div style="clear:both;"></div>
+
+<blockquote>
+
+<p>NODE: <code>NO SLEEP</code>
+</p>
+</blockquote>
+
+
+
+
+  <div class="leftinfo">
+
+<p>  
+  <img src="../static/guoluyeye1.jpeg" style="width:2em; margin:0 auto; display:block;" alt="../static/guoluyeye1.jpeg" />
+</p>
+
+
+  </div>
+  <div class="rightinfo">
+
+<p>  
+  <img src="../static/guoluyeye.jpeg" style="width:8em; margin:0 auto; display:block;" alt="../static/guoluyeye.jpeg" />
+</p>
+
+
+  </div>
+
+</div>
+
+</div>
+
+<div id="outline-container-22" class="outline-1 slide">
+<h1 id="sec-22"><span class="section-number-1">22</span> 内置Http服务</h1>
+<div class="outline-text-1" id="text-22">
+
+</div>
+
+</div>
+
+<div id="outline-container-23" class="outline-1 slide">
+<h1 id="sec-23"><span class="section-number-1">23</span> 基础Http服务框架：Connect</h1>
+<div class="outline-text-1" id="text-23">
+
+</div>
+
+</div>
+
+<div id="outline-container-24" class="outline-1 slide">
+<h1 id="sec-24"><span class="section-number-1">24</span> 高级Http服务框架：Express</h1>
+<div class="outline-text-1" id="text-24">
+
+
+</div>
+
+</div>
+
+<div id="outline-container-25" class="outline-1 slide">
+<h1 id="sec-25"><span class="section-number-1">25</span> Javascript简介</h1>
+<div class="outline-text-1" id="text-25">
 
 
 <blockquote>
@@ -742,9 +1015,9 @@ hello node.js
 
 </div>
 
-<div id="outline-container-21" class="outline-1 slide">
-<h1 id="sec-21"><span class="section-number-1">21</span> Javascript诞生</h1>
-<div class="outline-text-1" id="text-21">
+<div id="outline-container-26" class="outline-1 slide">
+<h1 id="sec-26"><span class="section-number-1">26</span> Javascript诞生</h1>
+<div class="outline-text-1" id="text-26">
 
 
 <p>
@@ -754,9 +1027,9 @@ hello node.js
 
 </div>
 
-<div id="outline-container-22" class="outline-1 slide">
-<h1 id="sec-22"><span class="section-number-1">22</span> Javascript扩张</h1>
-<div class="outline-text-1" id="text-22">
+<div id="outline-container-27" class="outline-1 slide">
+<h1 id="sec-27"><span class="section-number-1">27</span> Javascript扩张</h1>
+<div class="outline-text-1" id="text-27">
 
 
 <p>  
@@ -772,9 +1045,9 @@ hello node.js
 
 </div>
 
-<div id="outline-container-23" class="outline-1 slide">
-<h1 id="sec-23"><span class="section-number-1">23</span> Javascript统治</h1>
-<div class="outline-text-1" id="text-23">
+<div id="outline-container-28" class="outline-1 slide">
+<h1 id="sec-28"><span class="section-number-1">28</span> Javascript统治</h1>
+<div class="outline-text-1" id="text-28">
 
 
 
@@ -791,9 +1064,9 @@ hello node.js
 
 </div>
 
-<div id="outline-container-24" class="outline-1 slide">
-<h1 id="sec-24"><span class="section-number-1">24</span> Javascript标准</h1>
-<div class="outline-text-1" id="text-24">
+<div id="outline-container-29" class="outline-1 slide">
+<h1 id="sec-29"><span class="section-number-1">29</span> Javascript标准</h1>
+<div class="outline-text-1" id="text-29">
 
 
 <p>
@@ -820,9 +1093,9 @@ hello node.js
 
 </div>
 
-<div id="outline-container-25" class="outline-1 slide">
-<h1 id="sec-25"><span class="section-number-1">25</span> Javascript的组成</h1>
-<div class="outline-text-1" id="text-25">
+<div id="outline-container-30" class="outline-1 slide">
+<h1 id="sec-30"><span class="section-number-1">30</span> Javascript的组成</h1>
+<div class="outline-text-1" id="text-30">
 
 
 <p>
@@ -841,9 +1114,9 @@ hello node.js
 
 </div>
 
-<div id="outline-container-26" class="outline-1 slide">
-<h1 id="sec-26"><span class="section-number-1">26</span> Javascript特点</h1>
-<div class="outline-text-1" id="text-26">
+<div id="outline-container-31" class="outline-1 slide">
+<h1 id="sec-31"><span class="section-number-1">31</span> Javascript特点</h1>
+<div class="outline-text-1" id="text-31">
 
 
 <blockquote>
@@ -863,9 +1136,9 @@ hello node.js
 
 </div>
 
-<div id="outline-container-27" class="outline-1 slide">
-<h1 id="sec-27"><span class="section-number-1">27</span> Javascript的类</h1>
-<div class="outline-text-1" id="text-27">
+<div id="outline-container-32" class="outline-1 slide">
+<h1 id="sec-32"><span class="section-number-1">32</span> Javascript的类</h1>
+<div class="outline-text-1" id="text-32">
 
 
 <blockquote>
@@ -888,9 +1161,9 @@ hello node.js
 
 </div>
 
-<div id="outline-container-28" class="outline-1 slide">
-<h1 id="sec-28"><span class="section-number-1">28</span> Javascript类示例</h1>
-<div class="outline-text-1" id="text-28">
+<div id="outline-container-33" class="outline-1 slide">
+<h1 id="sec-33"><span class="section-number-1">33</span> Javascript类示例</h1>
+<div class="outline-text-1" id="text-33">
 
 
 
@@ -924,9 +1197,9 @@ tom is 25
 
 </div>
 
-<div id="outline-container-29" class="outline-1 slide">
-<h1 id="sec-29"><span class="section-number-1">29</span> Javascript的闭包</h1>
-<div class="outline-text-1" id="text-29">
+<div id="outline-container-34" class="outline-1 slide">
+<h1 id="sec-34"><span class="section-number-1">34</span> Javascript的闭包</h1>
+<div class="outline-text-1" id="text-34">
 
 
 <blockquote>
@@ -949,9 +1222,9 @@ tom is 25
 
 </div>
 
-<div id="outline-container-30" class="outline-1 slide">
-<h1 id="sec-30"><span class="section-number-1">30</span> Javascript闭包示例</h1>
-<div class="outline-text-1" id="text-30">
+<div id="outline-container-35" class="outline-1 slide">
+<h1 id="sec-35"><span class="section-number-1">35</span> Javascript闭包示例</h1>
+<div class="outline-text-1" id="text-35">
 
 
 
@@ -983,9 +1256,9 @@ rose is 35
 
 </div>
 
-<div id="outline-container-31" class="outline-1 slide">
-<h1 id="sec-31"><span class="section-number-1">31</span> 常见的Web后端开发技术</h1>
-<div class="outline-text-1" id="text-31">
+<div id="outline-container-36" class="outline-1 slide">
+<h1 id="sec-36"><span class="section-number-1">36</span> 常见的Web后端开发技术</h1>
+<div class="outline-text-1" id="text-36">
 
 
 
@@ -1041,9 +1314,9 @@ rose is 35
 
 </div>
 
-<div id="outline-container-32" class="outline-1 slide">
-<h1 id="sec-32"><span class="section-number-1">32</span> 今天要介绍的Web后端开发技术</h1>
-<div class="outline-text-1" id="text-32">
+<div id="outline-container-37" class="outline-1 slide">
+<h1 id="sec-37"><span class="section-number-1">37</span> 今天要介绍的Web后端开发技术</h1>
+<div class="outline-text-1" id="text-37">
 
 
 
@@ -1071,9 +1344,9 @@ rose is 35
 
 </div>
 
-<div id="outline-container-33" class="outline-1 slide">
-<h1 id="sec-33"><span class="section-number-1">33</span> Node.js简介</h1>
-<div class="outline-text-1" id="text-33">
+<div id="outline-container-38" class="outline-1 slide">
+<h1 id="sec-38"><span class="section-number-1">38</span> Node.js简介</h1>
+<div class="outline-text-1" id="text-38">
 
 
   
@@ -1107,9 +1380,9 @@ rose is 35
 
 </div>
 
-<div id="outline-container-34" class="outline-1 slide">
-<h1 id="sec-34"><span class="section-number-1">34</span> Node.js简介</h1>
-<div class="outline-text-1" id="text-34">
+<div id="outline-container-39" class="outline-1 slide">
+<h1 id="sec-39"><span class="section-number-1">39</span> Node.js简介</h1>
+<div class="outline-text-1" id="text-39">
 
 
 <p>
@@ -1129,9 +1402,9 @@ rose is 35
 
 </div>
 
-<div id="outline-container-35" class="outline-1 slide">
-<h1 id="sec-35"><span class="section-number-1">35</span> Node.js现状</h1>
-<div class="outline-text-1" id="text-35">
+<div id="outline-container-40" class="outline-1 slide">
+<h1 id="sec-40"><span class="section-number-1">40</span> Node.js现状</h1>
+<div class="outline-text-1" id="text-40">
 
 
 
@@ -1164,9 +1437,9 @@ rose is 35
 
 </div>
 
-<div id="outline-container-36" class="outline-1 slide">
-<h1 id="sec-36"><span class="section-number-1">36</span> Node.js用户案例</h1>
-<div class="outline-text-1" id="text-36">
+<div id="outline-container-41" class="outline-1 slide">
+<h1 id="sec-41"><span class="section-number-1">41</span> Node.js用户案例</h1>
+<div class="outline-text-1" id="text-41">
 
 
 
@@ -1214,9 +1487,9 @@ rose is 35
 
 </div>
 
-<div id="outline-container-37" class="outline-1 slide">
-<h1 id="sec-37"><span class="section-number-1">37</span> Node.js安装</h1>
-<div class="outline-text-1" id="text-37">
+<div id="outline-container-42" class="outline-1 slide">
+<h1 id="sec-42"><span class="section-number-1">42</span> Node.js安装</h1>
+<div class="outline-text-1" id="text-42">
 
 
   
@@ -1270,9 +1543,9 @@ hello node.js
 
 </div>
 
-<div id="outline-container-38" class="outline-1 slide">
-<h1 id="sec-38"><span class="section-number-1">38</span> Node.js模块机制</h1>
-<div class="outline-text-1" id="text-38">
+<div id="outline-container-43" class="outline-1 slide">
+<h1 id="sec-43"><span class="section-number-1">43</span> Node.js模块机制</h1>
+<div class="outline-text-1" id="text-43">
 
 
 
@@ -1361,9 +1634,9 @@ exports变量是module.exports对象的引用<br/>
 
 </div>
 
-<div id="outline-container-39" class="outline-1 slide">
-<h1 id="sec-39"><span class="section-number-1">39</span> Node.js模块</h1>
-<div class="outline-text-1" id="text-39">
+<div id="outline-container-44" class="outline-1 slide">
+<h1 id="sec-44"><span class="section-number-1">44</span> Node.js模块</h1>
+<div class="outline-text-1" id="text-44">
 
 
 <p>
@@ -1398,9 +1671,9 @@ exports变量是module.exports对象的引用<br/>
 
 </div>
 
-<div id="outline-container-40" class="outline-1 slide">
-<h1 id="sec-40"><span class="section-number-1">40</span> Node.js类模块</h1>
-<div class="outline-text-1" id="text-40">
+<div id="outline-container-45" class="outline-1 slide">
+<h1 id="sec-45"><span class="section-number-1">45</span> Node.js类模块</h1>
+<div class="outline-text-1" id="text-45">
 
 
 <p>
@@ -1435,9 +1708,9 @@ exports变量是module.exports对象的引用<br/>
 
 </div>
 
-<div id="outline-container-41" class="outline-1 slide">
-<h1 id="sec-41"><span class="section-number-1">41</span> Node.js包机制</h1>
-<div class="outline-text-1" id="text-41">
+<div id="outline-container-46" class="outline-1 slide">
+<h1 id="sec-46"><span class="section-number-1">46</span> Node.js包机制</h1>
+<div class="outline-text-1" id="text-46">
 
 
   
@@ -1534,9 +1807,9 @@ exports变量是module.exports对象的引用<br/>
 
 </div>
 
-<div id="outline-container-42" class="outline-1 slide">
-<h1 id="sec-42"><span class="section-number-1">42</span> Node.js包管理工具</h1>
-<div class="outline-text-1" id="text-42">
+<div id="outline-container-47" class="outline-1 slide">
+<h1 id="sec-47"><span class="section-number-1">47</span> Node.js包管理工具</h1>
+<div class="outline-text-1" id="text-47">
 
 
 
@@ -1650,9 +1923,9 @@ exports变量是module.exports对象的引用<br/>
 
 </div>
 
-<div id="outline-container-43" class="outline-1 slide">
-<h1 id="sec-43"><span class="section-number-1">43</span> Node.js模块定位</h1>
-<div class="outline-text-1" id="text-43">
+<div id="outline-container-48" class="outline-1 slide">
+<h1 id="sec-48"><span class="section-number-1">48</span> Node.js模块定位</h1>
+<div class="outline-text-1" id="text-48">
 
 
 
@@ -1746,9 +2019,9 @@ exports变量是module.exports对象的引用<br/>
 
 </div>
 
-<div id="outline-container-44" class="outline-1 slide">
-<h1 id="sec-44"><span class="section-number-1">44</span> Node.js高效的秘诀</h1>
-<div class="outline-text-1" id="text-44">
+<div id="outline-container-49" class="outline-1 slide">
+<h1 id="sec-49"><span class="section-number-1">49</span> Node.js高效的秘诀</h1>
+<div class="outline-text-1" id="text-49">
 
 
 
@@ -1801,9 +2074,9 @@ Node.js是一个全新的开发平台<br/>
 
 </div>
 
-<div id="outline-container-45" class="outline-1 slide">
-<h1 id="sec-45"><span class="section-number-1">45</span> Node.js层次化的世界</h1>
-<div class="outline-text-1" id="text-45">
+<div id="outline-container-50" class="outline-1 slide">
+<h1 id="sec-50"><span class="section-number-1">50</span> Node.js层次化的世界</h1>
+<div class="outline-text-1" id="text-50">
 
 
 <p>
@@ -1857,9 +2130,9 @@ node.js像积木一样灵活<br/>
 
 </div>
 
-<div id="outline-container-46" class="outline-1 slide">
-<h1 id="sec-46"><span class="section-number-1">46</span> Node.js构建Echo服务器</h1>
-<div class="outline-text-1" id="text-46">
+<div id="outline-container-51" class="outline-1 slide">
+<h1 id="sec-51"><span class="section-number-1">51</span> Node.js构建Echo服务器</h1>
+<div class="outline-text-1" id="text-51">
 
 
 <p>
@@ -2037,9 +2310,9 @@ net.Server的 <code>listen</code> 方法也是非阻塞的，绑定成功会调�
 
 </div>
 
-<div id="outline-container-47" class="outline-1 slide">
-<h1 id="sec-47"><span class="section-number-1">47</span> Node.js构建Http服务</h1>
-<div class="outline-text-1" id="text-47">
+<div id="outline-container-52" class="outline-1 slide">
+<h1 id="sec-52"><span class="section-number-1">52</span> Node.js构建Http服务</h1>
+<div class="outline-text-1" id="text-52">
 
 
 <p>
@@ -2197,9 +2470,9 @@ hello node.js
 
 </div>
 
-<div id="outline-container-48" class="outline-1 slide">
-<h1 id="sec-48"><span class="section-number-1">48</span> Node.js构建静态Http服务</h1>
-<div class="outline-text-1" id="text-48">
+<div id="outline-container-53" class="outline-1 slide">
+<h1 id="sec-53"><span class="section-number-1">53</span> Node.js构建静态Http服务</h1>
+<div class="outline-text-1" id="text-53">
 
 
 
@@ -2271,9 +2544,9 @@ hello node.js
 
 </div>
 
-<div id="outline-container-49" class="outline-1 slide">
-<h1 id="sec-49"><span class="section-number-1">49</span> 基础Web框架：Connect</h1>
-<div class="outline-text-1" id="text-49">
+<div id="outline-container-54" class="outline-1 slide">
+<h1 id="sec-54"><span class="section-number-1">54</span> 基础Web框架：Connect</h1>
+<div class="outline-text-1" id="text-54">
 
 
 <p>
@@ -2321,9 +2594,9 @@ hello node.js
 
 </div>
 
-<div id="outline-container-50" class="outline-1 slide">
-<h1 id="sec-50"><span class="section-number-1">50</span> 基于Connect的静态Http服务</h1>
-<div class="outline-text-1" id="text-50">
+<div id="outline-container-55" class="outline-1 slide">
+<h1 id="sec-55"><span class="section-number-1">55</span> 基于Connect的静态Http服务</h1>
+<div class="outline-text-1" id="text-55">
 
 
 <p>
@@ -2364,9 +2637,9 @@ hello node.js
 
 </div>
 
-<div id="outline-container-51" class="outline-1 slide">
-<h1 id="sec-51"><span class="section-number-1">51</span> Connect框架工作原理</h1>
-<div class="outline-text-1" id="text-51">
+<div id="outline-container-56" class="outline-1 slide">
+<h1 id="sec-56"><span class="section-number-1">56</span> Connect框架工作原理</h1>
+<div class="outline-text-1" id="text-56">
 
 
 
@@ -2545,9 +2818,9 @@ hello node.js
 
 </div>
 
-<div id="outline-container-52" class="outline-1 slide">
-<h1 id="sec-52"><span class="section-number-1">52</span> 高级Web框架：Express</h1>
-<div class="outline-text-1" id="text-52">
+<div id="outline-container-57" class="outline-1 slide">
+<h1 id="sec-57"><span class="section-number-1">57</span> 高级Web框架：Express</h1>
+<div class="outline-text-1" id="text-57">
 
 
 <blockquote>
@@ -2572,9 +2845,9 @@ hello node.js
 
 </div>
 
-<div id="outline-container-53" class="outline-1 slide">
-<h1 id="sec-53"><span class="section-number-1">53</span> Express安装</h1>
-<div class="outline-text-1" id="text-53">
+<div id="outline-container-58" class="outline-1 slide">
+<h1 id="sec-58"><span class="section-number-1">58</span> Express安装</h1>
+<div class="outline-text-1" id="text-58">
 
 
 
@@ -2626,9 +2899,9 @@ $ node app.js
 
 </div>
 
-<div id="outline-container-54" class="outline-1 slide">
-<h1 id="sec-54"><span class="section-number-1">54</span> Express项目：package.json</h1>
-<div class="outline-text-1" id="text-54">
+<div id="outline-container-59" class="outline-1 slide">
+<h1 id="sec-59"><span class="section-number-1">59</span> Express项目：package.json</h1>
+<div class="outline-text-1" id="text-59">
 
 
 
@@ -2708,9 +2981,9 @@ $ node app.js
 
 </div>
 
-<div id="outline-container-55" class="outline-1 slide">
-<h1 id="sec-55"><span class="section-number-1">55</span> Express项目：app.js</h1>
-<div class="outline-text-1" id="text-55">
+<div id="outline-container-60" class="outline-1 slide">
+<h1 id="sec-60"><span class="section-number-1">60</span> Express项目：app.js</h1>
+<div class="outline-text-1" id="text-60">
 
 
 
@@ -2770,9 +3043,9 @@ $ node app.js
 
 </div>
 
-<div id="outline-container-56" class="outline-1 slide">
-<h1 id="sec-56"><span class="section-number-1">56</span> 参考资料</h1>
-<div class="outline-text-1" id="text-56">
+<div id="outline-container-61" class="outline-1 slide">
+<h1 id="sec-61"><span class="section-number-1">61</span> 参考资料</h1>
+<div class="outline-text-1" id="text-61">
 
 <ul>
 <li>《Javascript语言精粹》
