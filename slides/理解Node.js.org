@@ -95,6 +95,41 @@
     
   #+end_src
   
+* Node.js 用户案例
+
+  #+begin_html
+    <center style="font-size:0.8em">
+  #+end_html
+  《[[http://www.csdn.net/article/2012-10-08/2810589-LinkedIn_Rails_to_Node][LinkedIn移动端用Node替代Rails：减少90%服务器 速度提升20倍]]》
+  #+begin_html
+    </center>
+  #+end_html
+
+  #+begin_html
+  <div class="leftinfo">
+  #+end_html
+  #+ATTR_HTML: style="width:10em;"
+  [[../static/linkedin.jpeg]]
+  #+begin_quote
+  在服务端\\
+  我们的整个移动软件栈完全使用Node构建\\
+  第一个原因是可扩展\\
+  第二个原因是性能上的巨大提升
+  #+end_quote
+  #+begin_html
+  </div>
+  <div class="rightinfo" style="font-size:0.7em;">
+  #+end_html
+  Node.js的优势在于：\\
+  - 更好的性能以及更少的内存占用，在某型情景下性能提升20倍
+  - 程序员可以充分发挥他们JavaScript的技巧
+  - 前端与后端开发人员可以在一个小组内协作
+  - 服务器从30台减少到只有3台，硬件资源利用率提升10倍，并且还有提升的空间。
+  - 开发工作可以更加专注在应用开发，而不是到处去救火
+  #+begin_html
+  </div>
+  #+end_html
+
 * 语言
 
   #+Caption: Only ECMAScript inside Node.js
@@ -437,6 +472,7 @@
   [[../static/woman/package.json][package.json]]
 #+INCLUDE: "../static/woman/package.json" src js -n
   #+begin_html
+  <div class="codeexplain"><a href="https://npmjs.org/doc/json.html">包配置文件</a></div>
   <div style="font-size:0.6em;">
   #+end_html
   \\
@@ -453,6 +489,138 @@
   </div>
   #+end_html
 
+* 包管理工具
+
+  #+begin_html
+    <style type="text/css">
+      .npm-logo {
+          margin-left: 1em;
+      }
+      .npm-logo p {
+          margin:0;
+      }
+      .npm-logo img {
+          width: 3em;
+      }
+      .npm-install-choose p {
+          line-height: 1.5em;
+      }
+    </style>
+
+    <div class="npm-logo">
+  #+end_html
+
+  [[../static/npm.png]]
+
+  #+begin_html
+    </div>
+    <div class="leftinfo" style="font-size:0.5em; width:35%;">
+  #+end_html
+
+  - [[https://npmjs.org/][=npm=]] =install= <name>
+
+    安装包到本地模块目录
+
+    ./node\_modules
+
+    附带的可执行程序将安装到
+
+    ./node\_modules/.bin
+
+  - [[https://npmjs.org/][=npm=]] =install -g= <name> 
+    
+    安装包到全局模块目录
+  
+    /usr/local/lib/node\_modules
+
+    附带的可执行程序将安装到
+
+    /usr/local/bin
+
+  - [[https://npmjs.org/][=npm=]] =link=
+  
+    将当前包链接到全局模块目录下
+
+  - [[https://npmjs.org/][=npm=]] =link= <name>
+    
+    将全局包链接到本地模块目录下
+
+  #+begin_html
+    </div>
+    <div class="rightinfo npm-install-choose" style="font-size:0.5em; width:60%;">
+  #+end_html
+  - 什么时候安装到本地？
+
+    当你想通过require("package")的方式使用你的包，则最好安装为本地，这样node.js可以更快找到包。
+
+  - 什么时候安装到全局？
+
+    如果安装的包附带有可执行程序，需要在命令行使用，最好安装为全局，这样可以直接在命令行访问。需要注意的是全局模块目录不在node.js的模块搜索范围内，需要链接到本地模块目录。
+
+  - 什么时候链接到全局？
+
+    当你在开发一个供其它项目使用的模块时，通过链接到全局方便其它项目使用。
+
+  - 什么时候链接到本地？
+
+    对于附带可执行程序又通过require("package")的方式使用的包，可先安装到全局，再链接到本地，在多个项目使用同一个包时特别便利。
+
+  #+begin_html
+  </div>
+  #+end_html
+
+* 模块定位
+
+  #+begin_html
+    <div class="leftinfo" style="font-size:0.7em;">
+  #+end_html
+
+  =require(X)如何定位到模块文件？=
+
+  - require("fs")
+    
+    直接加载核心模块
+
+  - require("./X")
+  - require("../X")
+  - require("/X")
+
+    指定路径加载模块
+
+  - require("X")
+
+    搜索路径加载模块
+
+  #+begin_html
+    </div>
+    <div class="rightinfo" style="font-size:0.6em;">
+  #+end_html
+  
+  - 指定路径加载模块
+      - 指定路径下X文件
+      - 指定路径下X.js文件
+      - 指定路径下X.node文件
+      - 指定路径下X/package.json文件中的main对应的文件
+      - 指定路径下X/index.js
+      - 指定路径下X/index.node
+
+  - 搜索路径加载模块
+
+    依次尝试以下路径进行模块加载
+
+    - 当前目录下的node\_modules目录
+    - 上一级目录下的node\_modules目录，直到根目录为止
+    - NODE\_PATH环境变量指定的各个路径
+    - 用户根目录下的.node\_modules目录
+    - 用户根目录下的.node\_libraries目录
+    - node.js安装目录前缀下的/lib/node
+      
+      通常为：/usr/local/lib/node
+
+  #+begin_html
+    </div>
+  #+end_html
+  
 * 运行机制
 
   #+begin_html
@@ -670,719 +838,16 @@
   </div>
   #+end_html
 
-* 内置Http服务
-* 基础Http服务框架：Connect
-* 高级Http服务框架：Express
+* 模块化
 
-* Javascript简介
-
-  #+begin_quote
-  web浏览器上的唯一语言\\
-  \\
-  批着c外衣的lisp\\
-  \\
-  被误解最多的语言
-  #+end_quote
-  \\
-  \\
-  #+begin_center
-  #+begin_html
-    <div style="font-size:0.7em;">
-  #+end_html  
-  #+begin_src html
-    <button onClick='alert("Hello Javascript");'>Click Me</button>
-  #+end_src
-  \\
-  #+begin_html
-    <button onClick='alert("Hello Javascript");'>Click Me</button>
-  #+end_html
-  #+begin_html
-    </div>
-  #+end_html  
-  #+end_center
-
-* Javascript诞生
-
-  　　1995年，Netscape（网景）打算在浏览器（Netscape Navigator 2.0）中嵌入Scheme，招募来Brendan Eich（布兰登·艾奇），事情很快变成在浏览器中嵌入一种像Java的脚本语言，Brendan Eich在10天的时间里写出了JavaScript的雏形Mocha（摩卡），Mocha也被用于嵌入Netscape的服务器产品LiveWire，为了便于市场营销Mocha改名为LiveScript，1995年底Netscape和Sun商谈后终将LiveScript更名为JavaScript。
-
-* Javascript扩张
-  
-  　　JavaScript 1.0随Netscape Navigator 2.0发行并取得了成功，随后Netscape在Netscape Navigator 3.0中发布了JavaScript 1.1版，这个时候微软决定进军浏览器，发布了IE 3.0并搭载了一个JavaScript的克隆版，叫做JScript。
-
-  　　1997年，JavaScript 1.1作为一个草案提交给欧洲计算机制造商协会（ECMA），完成了标准化（ECMA-262标准，ECMAScript脚本语言）。
-
-  　　后来Netscape在浏览器大战中不敌微软，LiveWire服务器产品也跟着失败了，服务器端JavaScript消失了。
-
-* Javascript统治
-  
-  #+begin_center
-  #+Caption: Javascript驱动Web
-  #+ATTR_HTML: style="width:25em;" title="javascript driver the web"
-  [[../static/browsers.png]]  
-  #+end_center
-
-* Javascript标准
-
-  ECMAScript 描述了以下内容：
-    - 语法
-    - 类型
-    - 语句
-    - 关键字
-    - 保留字
-    - 运算符
-    - 对象
-
-* Javascript的组成
-
-  一个完整的 JavaScript 实现是由以下 3 个不同部分组成的：
-    - 核心（ECMAScript）
-    - 文档对象模型（DOM）
-    - 浏览器对象模型（BOM）
-
-* Javascript特点
-
-  #+begin_quote
-  函数式\\
-  \\
-  原型继承\\
-  \\
-  弱类型\\
-  \\
-  词法作用域
-  #+end_quote
-
-* Javascript的类
-
-  #+begin_quote
-  Javascript是\\
-  \\
-  基于原型\\
-  \\
-  面向对象语言\\
-  \\
-  没有“类”概念\\
-  \\
-  \\
-  原型＋构造函数＋new关键字＝类
-  #+end_quote
-
-* Javascript类示例
-
-  #+ATTR_HTML: :textarea
-  #+begin_src js -n
-    function Man(name, age) {
-        this.name = name;
-        this.age  = age;
-    }
-    Man.prototype.introduce = function(){
-        return this.name + " is " + this.age;
-    };
-    
-    var man1 = new Man("jack", 24);
-    var man2 = new Man("tom", 25);
-    console.log(man1.introduce());
-    console.log(man2.introduce());
-  #+end_src
-  \\
-  #+begin_example
-    jack is 24
-    tom is 25
-  #+end_example
-      
-* Javascript的闭包
-
-  #+begin_quote
-  闭包是\\
-  =代码块= （通常是函数）\\
-  和\\
-  创建该代码块的上下文中 =数据= \\
-  的 =结合= 。\\
-  \\
-  \\
-  表现为\\
-  函数可以访问外部作用域定义的变量\\
-  即使外部作用域已经退出
-  #+end_quote
-
-* Javascript闭包示例
-
-  #+begin_src js -n
-    function Woman(name, age) {
-        this.name = name;
-        this.introduce = function(){
-            return this.name + " is " + (age - 10);
-        };
-    }
-    var woman1 = new Woman("mary", 34);
-    var woman2 = new Woman("rose", 45);
-    console.log(woman1.introduce());
-    console.log(woman2.introduce());
-  #+end_src
-  \\
-  #+begin_example
-    mary is 24
-    rose is 35
-  #+end_example
-
-* 常见的Web后端开发技术
-
-  #+begin_center
-  #+Caption: Perl
-  #+ATTR_HTML: style="width:3em;" title="Perl"
-  [[../static/perl.jpeg]]
-
-  #+Caption: Php
-  #+ATTR_HTML: style="width:3em;" title="Php"
-  [[../static/php.jpeg]]
-
-  #+Caption: Python
-  #+ATTR_HTML: style="width:3em;" title="Python"
-  [[../static/python.jpeg]]
-
-  #+Caption: Ruby
-  #+ATTR_HTML: style="width:3em;" title="Ruby"
-  [[../static/ruby.jpeg]]
-  #+end_center
-
-  #+begin_center
-  #+ATTR_HTML: style="width:2.5em;"
-  [[../static/apache.jpeg]]
-  #+ATTR_HTML: style="width:2.5em;"
-  [[../static/nginx.jpeg]]
-  #+ATTR_HTML: style="width:2.5em;"
-  [[../static/lighttpd.jpeg]]
-  #+end_center
-  \\
-  #+begin_center
-  #+ATTR_HTML: style="width:2.5em;"
-  [[../static/mysql.jpeg]]
-  #+ATTR_HTML: style="width:2.5em;"
-  [[../static/postgres.jpeg]]
-  #+ATTR_HTML: style="width:2.5em;"
-  [[../static/oracle.jpeg]]
-  #+ATTR_HTML: style="width:2.5em;"
-  [[../static/memcache.jpeg]]
-  #+ATTR_HTML: style="width:2.5em;"
-  [[../static/redis.jpeg]]
-  #+ATTR_HTML: style="width:2.5em;"
-  [[../static/mongodb.jpeg]]
-  #+end_center
-
-* 今天要介绍的Web后端开发技术
-
-  #+begin_center
-  #+ATTR_HTML: style="width:20.8em;" title="Node"
-  [[../static/node.jpeg]]
-  #+end_center
-  \\
-  \\
-  \\
-  #+begin_center
-  #+ATTR_HTML: style="width:2.5em;"
-  [[../static/mysql.jpeg]]
-  #+ATTR_HTML: style="width:2.5em;"
-  [[../static/postgres.jpeg]]
-  #+ATTR_HTML: style="width:2.5em;"
-  [[../static/oracle.jpeg]]
-  #+ATTR_HTML: style="width:2.5em;"
-  [[../static/memcache.jpeg]]
-  #+ATTR_HTML: style="width:2.5em;"
-  [[../static/redis.jpeg]]
-  #+ATTR_HTML: style="width:2.5em;"
-  [[../static/mongodb.jpeg]]
-  #+end_center
-
-* Node.js简介
-  
-  #+begin_html
-  <div class="leftinfo">
-  #+end_html
-
-  　　Node.js是在Chrome的Javascript引擎之上构建的一个平台，
-  很容易用来构建 =高性能= 、 =可扩展= 的网络应用程序。
-
-  　　Node.js是 =单线程= 基于 =事件驱动= 、 =非阻塞I/O模型= 从而表现得轻巧、高效，
-  适用于开发 =数据密集型= 的 =实时响应= 分布式应用程序。
-
-  #+begin_html
-  </div>
-  <div class="rightinfo">
-  #+end_html
-
-  #+ATTR_HTML: style="width:85%;"
-  #+begin_center
-  [[../static/node_arch.jpeg]]
-  #+end_center
-
-  #+begin_html
-  </div>
-  #+end_html
-
-* Node.js简介
-
-  Node.js =不是=
-  #+begin_quote
-  像php、python、perl、ruby这样的 =语言=\\
-  \\
-  像CakePHP、Django、Rails这样的服务器端 =框架=\\
-  \\
-  像JQuery、ExtJS、Backbone.js这样的浏览器端 =库=\\
-  #+end_quote
-
-* Node.js现状
-
-  #+begin_html
-  <div class="leftinfo">
-  #+end_html
-
-  活跃的社区
-
-  #+ATTR_HTML: style="width:13em;" title="github最受欢迎的项目Top5"
-  [[../static/github_starred_top5.png]]
-
-  #+begin_html
-  </div>
-  #+end_html
-
-  #+begin_html
-  <div class="rightinfo">
-  #+end_html
-
-  丰富的模块
-
-  #+ATTR_HTML: style="width:13em;"
-  [[../static/npmjs_screenshot.png]]
-
-  #+begin_html
-  </div>
-  #+end_html
-
-* Node.js用户案例
-
-  #+begin_html
-    <center style="font-size:0.8em">
-  #+end_html
-  《[[http://www.csdn.net/article/2012-10-08/2810589-LinkedIn_Rails_to_Node][LinkedIn移动端用Node替代Rails：减少90%服务器 速度提升20倍]]》
-  #+begin_html
-    </center>
-  #+end_html
-
-  #+begin_html
-  <div class="leftinfo">
-  #+end_html
-  #+ATTR_HTML: style="width:10em;"
-  [[../static/linkedin.jpeg]]
-  #+begin_quote
-  在服务端\\
-  我们的整个移动软件栈完全使用Node构建\\
-  第一个原因是可扩展\\
-  第二个原因是性能上的巨大提升
-  #+end_quote
-  #+begin_html
-  </div>
-  <div class="rightinfo" style="font-size:0.7em;">
-  #+end_html
-  Node.js的优势在于：\\
-  - 更好的性能以及更少的内存占用，在某型情景下性能提升20倍
-  - 程序员可以充分发挥他们JavaScript的技巧
-  - 前端与后端开发人员可以在一个小组内协作
-  - 服务器从30台减少到只有3台，硬件资源利用率提升10倍，并且还有提升的空间。
-  - 开发工作可以更加专注在应用开发，而不是到处去救火
-  #+begin_html
-  </div>
-  #+end_html
-
-* Node.js安装
-  
-  #+begin_html
-    <div class="leftinfo">
-  #+end_html
-
-  [[http://nodejs.org/download/]]
-
-  #+ATTR_HTML: style="width:11em;"
-  [[../static/node_download.png]]
-
-  #+begin_html
-    </div>
-    <div class="rightinfo" style="font-size:0.7em;">
-  #+end_html
-
-  - /usr/local/bin/node :: 主程序
-    
-  - /usr/local/bin/npm :: 模块管理程序
-
-  - /usr/local/lib/node\_modules :: 全局模块目录
-
-  #+begin_html
-    </div>
-    <div style="clear:both;"></div>
-  #+end_html
-
-  #+begin_src sh
-    wget http://nodejs.org/dist/v0.10.12/node-v0.10.12.tar.gz
-    tar xzf node-v0.10.12.tar.gz
-    ./configure
-    make
-    sudo make install
-  #+end_src
-
-  #+begin_example
-    ~$ node -e 'console.log("hello node.js");'
-    hello node.js
-  #+end_example
-
-* Node.js模块机制
-
-  #+begin_html
-    <div class="leftinfo">
-  #+end_html
-
-  #+begin_quote
-  JavaScript没有模块系统\\
-  所有js文件中定义的顶级对象名存在于同一个命名空间\\
-  \\
-  #+end_quote
-
-  #+begin_html
-    </div>
-    <div class="rightinfo">
-  #+end_html
-
-  #+begin_quote
-  - [[http://www.commonjs.org][CommonJS]]规范 :: 其目标是为了构建JavaScript在包括Web服务器，桌面，命令行工具，及浏览器方面的生态系统。
-  #+end_quote
-
-  #+begin_html
-      </div>
-      <div style="clear:both; padding:0;">
-      </div>
-      <div class="leftinfo" style="font-size:0.7em;">
-  #+end_html
-
-  [[http://wiki.commonjs.org/wiki/Modules/1.1][CommonJS模块规范]]：
-  #+begin_src artist
-    
-    +-------------+
-    | module.js --+->模块是普通的js文件
-    |             |                    
-    | +---------+ |
-    | | require +-+->用于导入其它模块接口的函数
-    | +---------+ |  
-    | +---------+ |  
-    | | exports +-+->用于导出接口的对象
-    | +---------+ |  
-    | +---------+ |  
-    | | module  +-+->当前模块对象
-    | +---------+ |  
-    |    ...    --+->其它用户定义对象为模块私有
-    +-------------+
-  #+end_src
-
-  #+begin_html
-    </div>
-    <div class="rightinfo">
-  #+end_html
-
-  #+begin_quote
-  在Node.js应用程序中\\
-  首次require一个模块执行其代码\\
-  返回其exports对象\\
-  该exports对象会被Node.js缓存\\
-  当再次require该模块直接返回缓存结果\\
-  \\
-  exports变量是module.exports对象的引用\\
-  \\
-  该模块不会对全局命名空间造成影响
-  #+end_quote
-  
-  #+begin_html
-    </div>
-  #+end_html
-
-* Node.js模块
-
-  #+ATTR_HTML: class="codelink"
-  [[../static/woman_module.js][woman\_module.js]]
-#+INCLUDE: "../static/woman_module.js" src js -n
-
-  #+ATTR_HTML: class="codelink"
-  [[../static/woman_module.js][woman\_module\_usage.js]]
-#+INCLUDE: "../static/woman_module_usage.js" src js -n
-
-* Node.js类模块
-
-  #+ATTR_HTML: class="codelink"
-  [[../static/woman_module.js][woman\_class\_module.js]]
-#+INCLUDE: "../static/woman_class_module.js" src js -n
-
-  #+ATTR_HTML: class="codelink"
-  [[../static/woman_module.js][woman\_class\_module\_usage.js]]
-#+INCLUDE: "../static/woman_class_module_usage.js" src js -n
-
-* Node.js包机制
-  
-  #+begin_html
-    <div class="leftinfo" style="font-size:0.8em;">
-  #+end_html
-
-  #+begin_quote
-  JavaScript没有包管理系统\\
-  \\
-  不能自动加载和安装依赖\\
-  \\
-  不利于开发大规模应用\\
-  \\
-  - [[http://wiki.commonjs.org/wiki/Packages/1.1][CommonJS包规范]] :: 存在 [[https://npmjs.org/doc/json.html][=package.json=]] 文件的目录即为包
-  #+end_quote
-  \\
-  #+Caption: 重要字段说明
-  #+ATTR_HTML: style="border:1px; font-size:0.6em;"
-  | =name= [[(package_specs__name)]]                 | 包名                       |
-  | =version= [[(package_specs__version)]]           | 版本号                     |
-  | =main= [[(package_specs__main)]]                 | 当包被程序引用时需载入模块 |
-  | =scripts= [[(package_specs__scripts)]]           | 用于包管理                 |
-  | =dependencies= [[(package_specs__dependencies)]] | 依赖的其它包               |
-
-
-  #+begin_html
-    </div>
-    <div class="rightinfo" style="font-size:0.5em;">
-  #+end_html
-  
-  #+ATTR_HTML: class="codelink"
-  [[/usr/local/lib/node_modules/npm/node_modules/tar/package.json][package.json]]
-  #+begin_src js -n -r
-    {
-      "author": {
-        "name": "Isaac Z. Schlueter",
-        "email": "i@izs.me",
-        "url": "http://blog.izs.me/"
-      },
-      "name": "tar",                                    (ref:package_specs__name)
-      "description": "tar for node",
-      "version": "0.1.17",                              (ref:package_specs__version)
-      "repository": {
-        "type": "git",
-        "url": "git://github.com/isaacs/node-tar.git"
-      },
-      "main": "tar.js",                                 (ref:package_specs__main)
-      "scripts": {                                      (ref:package_specs__scripts)
-        "test": "tap test/*.js"
-      },
-      "dependencies": {                                 (ref:package_specs__dependencies)
-        "inherits": "1.x",
-        "block-stream": "*",
-        "fstream": "~0.1.8"
-      },
-      "devDependencies": {
-        "tap": "0.x",
-        "rimraf": "1.x"
-      },
-      "license": "BSD",
-      "readme": "...",
-      "readmeFilename": "README.md",
-      "_id": "tar@0.1.17",
-      "dist": {
-        "shasum": "408c8a95deb8e78a65b59b1a51a333183a32badc"
-      },
-      "_from": "tar@0.1.17",
-      "_resolved": "https://registry.npmjs.org/tar/-/tar-0.1.17.tgz"
-    }
-  #+end_src
-
-  #+begin_html
-    </div>
-  #+end_html
-
-* Node.js包管理工具
-
-  #+begin_html
-    <style type="text/css">
-      .npm-logo {
-          margin-left: 1em;
-      }
-      .npm-logo p {
-          margin:0;
-      }
-      .npm-logo img {
-          width: 3em;
-      }
-      .npm-install-choose p {
-          line-height: 1.5em;
-      }
-    </style>
-
-    <div class="npm-logo">
-  #+end_html
-
-  [[../static/npm.png]]
-
-  #+begin_html
-    </div>
-    <div class="leftinfo" style="font-size:0.5em; width:35%;">
-  #+end_html
-
-  - [[https://npmjs.org/][=npm=]] =install= <name>
-
-    安装包到本地模块目录
-
-    ./node\_modules
-
-    附带的可执行程序将安装到
-
-    ./node\_modules/.bin
-
-  - [[https://npmjs.org/][=npm=]] =install -g= <name> 
-    
-    安装包到全局模块目录
-  
-    /usr/local/lib/node\_modules
-
-    附带的可执行程序将安装到
-
-    /usr/local/bin
-
-  - [[https://npmjs.org/][=npm=]] =link=
-  
-    将当前包链接到全局模块目录下
-
-  - [[https://npmjs.org/][=npm=]] =link= <name>
-    
-    将全局包链接到本地模块目录下
-
-  #+begin_html
-    </div>
-    <div class="rightinfo npm-install-choose" style="font-size:0.5em; width:60%;">
-  #+end_html
-  - 什么时候安装到本地？
-
-    当你想通过require("package")的方式使用你的包，则最好安装为本地，这样node.js可以更快找到包。
-
-  - 什么时候安装到全局？
-
-    如果安装的包附带有可执行程序，需要在命令行使用，最好安装为全局，这样可以直接在命令行访问。需要注意的是全局模块目录不在node.js的模块搜索范围内，需要链接到本地模块目录。
-
-  - 什么时候链接到全局？
-
-    当你在开发一个供其它项目使用的模块时，通过链接到全局方便其它项目使用。
-
-  - 什么时候链接到本地？
-
-    对于附带可执行程序又通过require("package")的方式使用的包，可先安装到全局，再链接到本地，在多个项目使用同一个包时特别便利。
-
-  #+begin_html
-  </div>
-  #+end_html
-
-* Node.js模块定位
-
-  #+begin_html
-    <div class="leftinfo" style="font-size:0.7em;">
-  #+end_html
-
-  =require(X)如何定位到模块文件？=
-
-  - require("fs")
-    
-    直接加载核心模块
-
-  - require("./X")
-  - require("../X")
-  - require("/X")
-
-    指定路径加载模块
-
-  - require("X")
-
-    搜索路径加载模块
-
-  #+begin_html
-    </div>
-    <div class="rightinfo" style="font-size:0.6em;">
-  #+end_html
-  
-  - 指定路径加载模块
-      - 指定路径下X文件
-      - 指定路径下X.js文件
-      - 指定路径下X.node文件
-      - 指定路径下X/package.json文件中的main对应的文件
-      - 指定路径下X/index.js
-      - 指定路径下X/index.node
-
-  - 搜索路径加载模块
-
-    依次尝试以下路径进行模块加载
-
-    - 当前目录下的node\_modules目录
-    - 上一级目录下的node\_modules目录，直到根目录为止
-    - NODE\_PATH环境变量指定的各个路径
-    - 用户根目录下的.node\_modules目录
-    - 用户根目录下的.node\_libraries目录
-    - node.js安装目录前缀下的/lib/node
-      
-      通常为：/usr/local/lib/node
-
-  #+begin_html
-    </div>
-  #+end_html
-  
-* Node.js高效的秘诀
-
-  #+begin_html
-    <style type="text/css" media="screen">
-    .data-access-latency-table .right {
-       border-left: 1px solid black;
-       border-right: 1px solid black;
-    }
-    .data-access-latency-table td {
-       padding:0 0.5em;
-    }
-    </style>   
-    
-  #+end_html
-
-  #+CAPTION: I/O操作耗时对比
-  #+ATTR_HTML: style="width:70%; margin:0 auto; border: 1px; padding:" class="data-access-latency-table"
-  |----------+-----------+--------------|
-  | I/O      | CPU Cycle | Type         |
-  |----------+-----------+--------------|
-  | L1-cache |         3 |              |
-  | L2-cache |        14 | Non-blocking |
-  | RAM      |       250 |              |
-  |----------+-----------+--------------|
-  | Disk     |  41000000 | Blocking     |
-  | Network  | 240000000 |              |
-  |----------+-----------+--------------|
-
-  #+ATTR_HTML: style="float:left; margin-left:4em; width:5em;"
-  [[../static/nonblocking.jpeg]]
-  
-  #+begin_quote
-  \\
-  Node.js是一个全新的开发平台\\
-  \\
-  所有会阻塞的api都以异步回调的方式进行封装\\
-  \\
-  #+end_quote
-
-* Node.js层次化的世界
-
-  #+ATTR_HTML: style="float:left; margin-left:3em; width:6.5em;"
+  #+Caption: 通过组合模块构建应用
+  #+ATTR_HTML: style="width:10em; margin:0 auto; display:block;"
   [[../static/modules.jpeg]]
 
-  #+begin_quote
-  \\
-  node.js像积木一样灵活\\
-  \\
-  能够开发小到像telnet这样的网络客户端工具\\
-  \\
-  大到twitter这样的大规模分布式web服务\\
-  \\
-  #+end_quote
+* 层次化
 
   #+begin_html
-  <div style="background:url(../static/up.jpeg) no-repeat center center; background-size:contain;">
+  <div style="background:url(../static/up.jpeg) no-repeat center center; background-size:contain; padding:1.5em;">
   #+end_html
 
   #+begin_quote
@@ -1394,9 +859,7 @@
 
   [[http://nodejs.org/api/http.html#http_http][=http=]]
 
-  [[http://nodejs.org/api/net.html][=net=]]
-
-  [[http://nodejs.org/api/dgram.html][=udp=]]\\
+  [[http://nodejs.org/api/net.html][=net=]] [[http://nodejs.org/api/dgram.html][=dgram=]]\\
   \\
   #+end_quote
   
@@ -1404,7 +867,7 @@
   </div>
   #+end_html
 
-* Node.js构建Echo服务器
+* 构建Echo服务
 
   #+ATTR_HTML: class="codelink"
   [[../static/echo_server.js][echo\_server.js]]
@@ -1519,7 +982,7 @@
 
   :END:
 
-* Node.js构建Http服务
+* 构建Http服务
 
   #+ATTR_HTML: class="codelink"
   [[../static/web_server.js][web\_server.js]]
@@ -1618,7 +1081,7 @@
   \\
   :END:
 
-* Node.js构建静态Http服务
+* 构建静态Http服务
 
   #+begin_html
   <div class="leftinfo" style="width:60%; font-size:0.6em;">
@@ -1675,6 +1138,31 @@
   | [[http://www.senchalabs.org/connect/errorHandler.html][=errorHandler=]]  | 错误处理             |
   |-----------------+----------------------|
   #+end_center
+
+* 中间件的效果
+
+  #+Caption: bodyParser中间件
+  #+ATTR_HTML: style="width:16em; margin:0 auto; display:block;"
+  #+begin_src ditaa :file ../static/connect_middleware.png :cmdline -S -E -s 1.5
+    +--------------------------------------------------+
+    | http                  (req, res)            cBLU |
+    |     +--------------------------------------------+
+    |     | connect         (req, res)            cGRE |
+    |     |   +----------------------------------------+
+    |     |   | bodyParser  (req, res)            cGRE |
+    |     |   |                                        |
+    |     |   |         { req.body ＝ ? }               |
+    |     |   |   +------------------------------------+
+    |     |   |   | app     (req, res)                 |
+    |     |   |   |                                    |
+    |     |   |   |     { req.body.? }                 |
+    |     |   |   |                                    |
+    |     |   |   |                                    |
+    |     |   |   +------------------------------------+
+    |     |   +----------------------------------------+
+    |     +--------------------------------------------+
+    +--------------------------------------------------+
+  #+end_src
 
 * 基于Connect的静态Http服务
 
@@ -1944,9 +1432,62 @@
   <div class="rightinfo" style="font-size:0.65em;">
   #+end_html
 
+  #+begin_src ditaa :file ../static/express_app.png :cmdline -S -E -s 1.5
+                |
+                |
+    +-----------+-------------+
+    | cGRE require modules    +------+
+    +-------------------------+      |
+                                     |
+                                     |
+    +-------------------------+<-----+
+    | cGRE configure app      | 
+    |    +--------------------+
+    |    |   middlewares      |
+    |    |  template engine   |
+    |    |     routes    cGRE |
+    +----+--------------------+------+
+                                     |
+                                     |
+    +-------------------------+<-----+
+    | cGRE create server      |
+    +-----------+-------------+
+                |
+                |
+  #+end_src
+
   #+begin_html
   </div>
   #+end_html
+
+* 路由配置
+
+  #+ATTR_HTML: style="width:16em; margin:0 auto; display:block;"
+  #+begin_src ditaa :file ../static/express_route.png :cmdline -S -E -s 1.5
+                  +----------+     
+                  |  post    |     
+                  +----------+     
+    +---------+   |  put     |   +---------+   +---------+
+    |   app   + . +----------+ ( | pattern + , | handler | )
+    +---------+   |  get     |   +----+----+   +---------+
+                  +----------+        |
+                  |  delete  |        |
+                  +----+-----+        |
+                       |              |
+                       :              :
+                       |              |
+                  http method     url pattern       
+  #+end_src
+  \\
+  #+begin_src javascript -n
+    //CURD式的url配置
+    app.post('/users', user.create);
+    app.put('/user/:id', user.update);
+    app.get('/user/:id', user.read);
+    app.delete('/user/:id', user.delete);
+  #+end_src
+
+* 示例程序：番茄园
 
 * 参考资料
   - 《Javascript语言精粹》
