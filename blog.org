@@ -2,7 +2,7 @@
 #+DESCRIPTION: 记我所思，忆我所为。
 #+DATE: 2013-04-09 12:00:00
 #+LANGUAGE: zh-CN
-#+STARTUP: logdone
+#+STARTUP: logdone content
 
 #+PUBLISH_DIR: .
 #+URL: http://blog.kankanan.com
@@ -2072,19 +2072,21 @@ class RedisShard {
    
    番茄园是一个在线的番茄工作法实施环境。
 
-*** 用例
+*** 用例 [5/6]
     
-    - 添加任务
-    
-    - 开启番茄钟
+    - [X] 添加任务
 
-    - 取消番茄钟
+    - [X] 标记任务完成
+    
+    - [X] 开启番茄钟
+
+    - [X] 取消番茄钟
  
-    - 任务上记录完成的番茄数
+    - [X] 任务上记录完成的番茄数
      
-    - 任务上记录中断的番茄数
+    - [X] 任务上记录中断的番茄数
 
-    - 任务完成后启动休息钟
+    - [ ] 任务完成后启动休息钟
 
 *** 模型
 
@@ -2199,3 +2201,27 @@ class RedisShard {
    
 
 *** 解决的问题   
+
+** DONE node.js下访问mysql注意事项                            :node.js:mysql:
+   CLOSED: [2013-10-11 五 10:45]
+   
+   本文仅针对 [[https://github.com/felixge/node-mysql][node-mysql]] 模块。
+
+   - Connection 对象为一个到mysql的连接，在其上的query是串行进行的。
+
+     由于mysql协议类似http是串行的，在一个mysql连接上的多个query必须依次进行。
+     
+     [[https://github.com/felixge/node-mysql][node-mysql]] 的 Connection对象上同时发起的多个query会队列化，
+     
+     处理完一个query再进行下一query的处理，传递给回调函数的query结果不会错乱。
+
+     在有一定访问量的服务中应该总是使用 =连接池= 。
+
+     
+   - 处理Connection对象的重连。
+
+     mysql连接空闲一段时间后（默认8小时）会自动关闭，
+   
+     可以在Connection对象的 =error= 事件中检测后连接断开时进行重连。
+
+     使用 =连接池= 不会有问题，连接断开后会默认从连接池中剔除。
