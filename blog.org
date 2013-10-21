@@ -2225,3 +2225,74 @@ class RedisShard {
      可以在Connection对象的 =error= 事件中检测后连接断开时进行重连。
 
      使用 =连接池= 不会有问题，连接断开后会默认从连接池中剔除。
+
+** TODO 为什么不能在构造函数中调用shared_from_this                        :cpp:
+
+   先看示例代码：
+
+   #+begin_src c++
+     class Chicken : public enable_shared_from_this<Chicken>
+     {
+     public:
+         Chicken()
+         {
+             shared_ptr<Chicken> chicken_ptr = shared_from_this();    //throw std::bad_weak_ptr
+         }
+     };
+   #+end_src
+
+   再看shared_from_this()的行为：
+   #+begin_src c++
+     return _weak_ptr->lock();
+   #+end_src
+
+   _weak_ptr为父类（enable_shared_from_this<Chicken>）的成员变量，需要一个shared_ptr<Chicken>对象来初始化它，而shared_ptr<Chicken>需要一个Chicken对象来创建，但此时Chicken对象正在构造中，这是个鸡与蛋的无解问题。
+   
+   其实_weak_ptr成员变量是在shared_ptr的构造函数中延迟初始化的，不只是在构造函数中不能调用shared_from_this，像下面的使用方式同样不行：
+   #+begin_src c++
+     Chicken* chicken = new Chicken();
+     shared_ptr<Chicken> chicken_ptr = chicken->shared_from_this();  //throw std::bad_weak_ptr
+   #+end_src
+   
+   enable_shared_from_this不是从this祼指针变出智能指针的魔法，它只是一个辅助类，为一个只使用shared_ptr管理对象生命周期的类添加一个自身的智能指针成员变量供内部使用。
+
+   而“不能在构造函数中调用shared_from_this”这个问题仅仅是标准实现上的一个漏洞。
+
+   你应该像下面这样用：
+   #+begin_src c++
+     class Chicken : public enable_shared_from_this<Chicken>
+     {
+     public:
+         Chicken()
+         {
+         }
+     
+         void use()
+         {
+             shared_ptr<Chicken> chicken_ptr = shared_from_this();
+         }
+     };
+     
+     shared_ptr<Chicken> chicken_ptr(new Chicken);
+     chicken_ptr->use();
+   #+end_src
+
+   突然想起一段对话：
+   #+begin_quote
+   阿漆：闻西，事情进行的怎么样了，闻西？
+   达闻西： 最近我发明了些东西，相信能帮得到你。
+   达闻西拿出手电筒。
+   阿漆：手电筒？
+   达闻西：错，这支不是一只普通的手电筒，这支是一支不需要电池的太阳能手电筒，在有光的时候他就会亮。
+   司令：那如果没有光呢？
+   达闻西：绝对不亮。
+   阿漆：有没有可能没光的时候它也会亮？
+   达闻西：问的好，关灯。
+   达闻西：你拿另一只手电筒照它呢，它就会亮。
+   达闻西：哈哈，怎么样啊？
+   阿漆：这个发明还真有创意啊。
+   #+end_quote
+
+
+
+   参考：《[[http://hi.baidu.com/cpuramdisk/item/7c2f8d77385e0f29d7a89cf0][shared_from_this 几个值得注意的地方]]》
