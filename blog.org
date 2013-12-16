@@ -2296,3 +2296,83 @@ class RedisShard {
 
 
    参考：《[[http://hi.baidu.com/cpuramdisk/item/7c2f8d77385e0f29d7a89cf0][shared_from_this 几个值得注意的地方]]》
+
+** TODO Discuz访问推广任务反作弊                                 :php:discuz:
+
+   - 识别作弊
+
+     发贴、回复较少的用户具有偏高的积分、等级通常就是潜在的作弊对象。在后台查看该用户的积分历史，如果来历不明，那么很可能是通过访问推广作弊获得的。
+
+     在我们的例子里就发现有一个用户金钱数过高，先查看该用户的积分表：
+
+     #+begin_example
+       mysql> SELECT total, cyclenum, extcredits2 FROM g_common_credit_rule_log WHERE rid=8 and uid=119;
+       +-------+----------+-------------+
+       | total | cyclenum | extcredits2 |
+       +-------+----------+-------------+
+       |  3454 |     3454 |           1 |
+       +-------+----------+-------------+
+       1 row in set (0.00 sec)
+     #+end_example
+     
+     相关字段说明
+       - total :: 策略被执行总次数
+       - cyclenum :: 周期被执行次数 
+       - extcredits2 :: 我们的系统里对应金钱数
+       - rid :: 值8为访问推广任务类型
+       - uid :: 值119为作弊用户id
+
+     从上面可以看出该用户完成了3454次任务， 接下来就需要确认这些任务是通过作弊完成的了。
+     
+     搜索该用户推广链接在web服务器中留下的访问日志：
+     #+begin_example
+       logs# grep 'fromuid=227' /usr/local/nginx/logs/access.log*
+       "GET /?fromuid=119.jpg HTTP/1.1" 301 6243 "http://xxxx.org/details.php?id=178668"
+       ...
+     #+end_example
+
+     可以初步断定，该用户通过在其它论坛中发布信息并将推广url注入到图片的url中，这样我们的站点在访问量没有任何增长的情况下该用户的推广数确瞬间彪升了。
+
+   - 阻止作弊
+
+     通过使用引用页中的用户标识进行记录来解决这个问题，这样只有当用户来到论坛并进行了相关操作才算推荐有效。
+
+     修改source/class/discuz/discuz_application.php文件，将下面的内容：
+     #+begin_src php
+       if((!empty($_GET['fromuid']) || !empty($_GET['fromuser'])) && ($this->var['setting']['creditspolicy']['promotion_visit'] || $this->var['setting']['creditspolicy']['promotion_register'])) {
+           require_once libfile('misc/promotion', 'include');
+       }
+     #+end_src
+     改为：
+     #+begin_src php
+       if (isset($_SERVER['HTTP_REFERER']) && strpos($_SERVER['HTTP_REFERER'], 'http://g.xunlei.com/') === 0) {
+           $referer_query = parse_url($_SERVER['HTTP_REFERER'], PHP_URL_QUERY);
+           if ($referer_query) {
+               parse_str($referer_query, $referer_get);
+               if((!empty($referer_get['fromuid']) || !empty($referer_get['fromuser'])) && ($this->var['setting']['creditspolicy']['promotion_visit'] || $this->var['setting']['creditspolicy']['promotion_register'])) {
+                   require_once libfile('misc/promotion', 'include');
+               }
+           }
+       }
+     #+end_src
+
+     修改source/include/misc/misc_promotion.php文件，将下面的内容：
+     #+begin_src php
+       if(!empty($_GET['fromuid'])) {
+           $fromuid = intval($_GET['fromuid']);
+           $fromuser = '';
+       } else {
+           $fromuser = $_GET['fromuser'];
+           $fromuid = '';
+       }
+     #+end_src
+     改为：
+     #+begin_src php
+       if(!empty($referer_get['fromuid'])) {
+           $fromuid = intval($referer_get['fromuid']);
+           $fromuser = '';
+       } else {
+           $fromuser = $referer_get['fromuser'];
+           $fromuid = '';
+       }
+     #+end_src
