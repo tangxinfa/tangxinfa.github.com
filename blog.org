@@ -2329,18 +2329,18 @@ class RedisShard {
      
      搜索该用户推广链接在web服务器中留下的访问日志：
      #+begin_example
-       logs# grep 'fromuid=227' /usr/local/nginx/logs/access.log*
+       logs# grep 'fromuid=119' /usr/local/nginx/logs/access.log*
        "GET /?fromuid=119.jpg HTTP/1.1" 301 6243 "http://xxxx.org/details.php?id=178668"
        ...
      #+end_example
 
-     可以初步断定，该用户通过在其它论坛中发布信息并将推广url注入到图片的url中，这样我们的站点在访问量没有任何增长的情况下该用户的推广数确瞬间彪升了。
+     可以初步断定，该用户通过在其它论坛中发布信息并将推广url注入到图片的url中，这样我们的站点在访问量没有任何增长的情况下该用户的推广数却瞬间彪升了。
 
    - 阻止作弊
 
      通过使用引用页中的用户标识进行记录来解决这个问题，这样只有当用户来到论坛并进行了相关操作才算推荐有效。
 
-     修改source/class/discuz/discuz_application.php文件，将下面的内容：
+     修改source/class/discuz/discuz\_application.php文件，将下面的内容：
      #+begin_src php
        if((!empty($_GET['fromuid']) || !empty($_GET['fromuser'])) && ($this->var['setting']['creditspolicy']['promotion_visit'] || $this->var['setting']['creditspolicy']['promotion_register'])) {
            require_once libfile('misc/promotion', 'include');
@@ -2359,7 +2359,7 @@ class RedisShard {
        }
      #+end_src
 
-     修改source/include/misc/misc_promotion.php文件，将下面的内容：
+     修改source/include/misc/misc\_promotion.php文件，将下面的内容：
      #+begin_src php
        if(!empty($_GET['fromuid'])) {
            $fromuid = intval($_GET['fromuid']);
