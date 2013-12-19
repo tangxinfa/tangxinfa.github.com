@@ -108,10 +108,10 @@
 
 
 <p>
-  <sub>weak</sub><sub>ptr为父类（enable</sub><sub>shared</sub><sub>from</sub><sub>this&lt</sub>;Chicken&gt;）的成员变量，需要一个shared_ptr&lt;Chicken&gt;对象来初始化它，而shared_ptr&lt;Chicken&gt;需要一个Chicken对象来创建，但此时Chicken对象正在构造中，这是个鸡与蛋的无解问题。
+  <sub>weak</sub><sub>ptr为父类（</sub> <code>enable_shared_from_this</code> &lt;Chicken&gt;）的成员变量，需要一个 <code>shared_ptr</code> &lt;Chicken&gt;对象来初始化它，而 <code>shared_ptr</code> &lt;Chicken&gt;需要一个Chicken对象来创建，但此时Chicken对象正在构造中，这是个鸡与蛋的无解问题。
 </p>
 <p>  
-  其实_weak_ptr成员变量是在shared_ptr的构造函数中延迟初始化的，不只是在构造函数中不能调用shared_from_this，像下面的使用方式同样不行：
+  其实 <code>_weak_ptr</code> 成员变量是在 <code>shared_ptr</code> 的构造函数中延迟初始化的，不只是在构造函数中不能调用 <code>shared_from_this</code> ，像下面的使用方式同样不行：
 </p>
 
 
@@ -121,10 +121,10 @@
 
 
 <p>  
-  enable_shared_from_this不是从this祼指针变出智能指针的魔法，它只是一个辅助类，为一个只使用shared_ptr管理对象生命周期的类添加一个自身的智能指针成员变量供内部使用。
+  <code>enable_shared_from_this</code> 不是从this祼指针变出智能指针的魔法，它只是一个辅助类，为一个只使用 <code>shared_ptr</code> 管理对象生命周期的类添加一个自身的智能指针成员变量供内部使用。
 </p>
 <p>
-  而“不能在构造函数中调用shared_from_this”这个问题仅仅是标准实现上的一个漏洞。
+  而“不能在构造函数中调用 <code>shared_from_this</code> ”这个问题仅仅是标准实现上的一个漏洞。
 </p>
 <p>
   你应该像下面这样用：

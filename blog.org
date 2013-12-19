@@ -2248,17 +2248,17 @@ class RedisShard {
      return _weak_ptr->lock();
    #+end_src
 
-   _weak_ptr为父类（enable_shared_from_this<Chicken>）的成员变量，需要一个shared\_ptr<Chicken>对象来初始化它，而shared\_ptr<Chicken>需要一个Chicken对象来创建，但此时Chicken对象正在构造中，这是个鸡与蛋的无解问题。
+   _weak_ptr为父类（ =enable_shared_from_this= <Chicken>）的成员变量，需要一个 =shared_ptr= <Chicken>对象来初始化它，而 =shared_ptr= <Chicken>需要一个Chicken对象来创建，但此时Chicken对象正在构造中，这是个鸡与蛋的无解问题。
    
-   其实\_weak\_ptr成员变量是在shared\_ptr的构造函数中延迟初始化的，不只是在构造函数中不能调用shared\_from\_this，像下面的使用方式同样不行：
+   其实 =_weak_ptr= 成员变量是在 =shared_ptr= 的构造函数中延迟初始化的，不只是在构造函数中不能调用 =shared_from_this= ，像下面的使用方式同样不行：
    #+begin_src c++
      Chicken* chicken = new Chicken();
      shared_ptr<Chicken> chicken_ptr = chicken->shared_from_this();  //throw std::bad_weak_ptr
    #+end_src
    
-   enable\_shared\_from\_this不是从this祼指针变出智能指针的魔法，它只是一个辅助类，为一个只使用shared\_ptr管理对象生命周期的类添加一个自身的智能指针成员变量供内部使用。
+   =enable_shared_from_this= 不是从this祼指针变出智能指针的魔法，它只是一个辅助类，为一个只使用 =shared_ptr= 管理对象生命周期的类添加一个自身的智能指针成员变量供内部使用。
 
-   而“不能在构造函数中调用shared\_from\_this”这个问题仅仅是标准实现上的一个漏洞。
+   而“不能在构造函数中调用 =shared_from_this= ”这个问题仅仅是标准实现上的一个漏洞。
 
    你应该像下面这样用：
    #+begin_src c++
