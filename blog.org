@@ -2390,3 +2390,29 @@ class RedisShard {
            $fromuid = '';
        }
      #+end_src
+
+** DONE linux下允许普通用户执行需要root权限的命令                   :linux:c:
+   CLOSED: [2013-12-26 四 15:44]
+
+   最典型的情况是要实现一个通过web界面重启系统的功能，通常为了安全会以非root用户身份（通常是nobody）运行服务端脚本，这样脚本中就不能执行危险操作了。
+
+   下面的c工具程序可以允许任意用户执行需要root权限的命令：
+
+   #+o_blog_source ./static/as_root.c
+
+   编译：
+   #+begin_src sh
+     gcc -g as_root.c -o as_root
+   #+end_src
+
+   配置：
+   #+begin_src sh
+     chown root:root ./as_root; chmod 4755 ./as_root
+   #+end_src
+
+   运行：
+   #+begin_src sh
+     sudo -u "nobody" ./as_root "reboot"
+   #+end_src
+   
+   参考：[[http://blog.tianya.cn/blogger/post_show.asp?BlogID=126326&PostID=1629441][如何在普通用户下执行一些需要root用户执行的命令]]
