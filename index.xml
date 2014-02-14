@@ -23,16 +23,72 @@
 &lt;p&gt;
   &#20854;&#23454;&#65292;connect.sid&#36825;&#20010;cookie&#26159;&#22312;&#35831;&#27714;&#21040;&#26469;&#21518;&#22312;req&#19978;&#35774;&#32622;&#30340;&#65288;&#19981;&#23384;&#22312;&#21017;&#35774;&#32622;&#65289;&#65292;&#19981;&#31649;&#26377;&#27809;&#26377;&#30331;&#24405;&#37117;&#20250;&#35774;&#32622;&#12290;
 &lt;/p&gt;</content></entry><entry><title type="html">linux下允许普通用户执行需要root权限的命令</title><author><name>nil</name></author><link href="http://blog.kankanan.com/posts/2013/12/26_linux4e0b51418bb8666e901a752862376267884c97008981root674396507684547d4ee4.html"/><updated>2013-12-26T15:44:00Z</updated><published>2013-12-26T15:44:00Z</published><id>posts/2013/12/26_linux4e0b51418bb8666e901a752862376267884c97008981root674396507684547d4ee4.html</id><category scheme="/tags/linux.html" term="linux" label="linux"/><category scheme="/tags/c.html" term="c" label="c"/><content type="html">&lt;p&gt;
-  &#26368;&#20856;&#22411;&#30340;&#24773;&#20917;&#26159;&#35201;&#23454;&#29616;&#19968;&#20010;&#36890;&#36807;web&#30028;&#38754;&#37325;&#21551;&#31995;&#32479;&#30340;&#21151;&#33021;&#65292;&#36890;&#24120;&#20026;&#20102;&#23433;&#20840;&#20250;&#20197;&#38750;root&#29992;&#25143;&#36523;&#20221;&#65288;&#36890;&#24120;&#26159;nobody&#65289;&#36816;&#34892;&#26381;&#21153;&#31471;&#33050;&#26412;&#65292;&#36825;&#26679;&#33050;&#26412;&#20013;&#23601;&#19981;&#33021;&#25191;&#34892;&#21361;&#38505;&#25805;&#20316;&#20102;&#12290;
+   &#26368;&#20856;&#22411;&#30340;&#24773;&#20917;&#26159;&#35201;&#23454;&#29616;&#19968;&#20010;&#36890;&#36807;web&#30028;&#38754;&#37325;&#21551;&#31995;&#32479;&#30340;&#21151;&#33021;&#65292;&#36890;&#24120;&#20026;&#20102;&#23433;&#20840;&#20250;&#20197;&#38750;root&#29992;&#25143;&#36523;&#20221;&#65288;&#36890;&#24120;&#26159;nobody&#65289;&#36816;&#34892;&#26381;&#21153;&#31471;&#33050;&#26412;&#65292;&#36825;&#26679;&#33050;&#26412;&#20013;&#23601;&#19981;&#33021;&#25191;&#34892;&#21361;&#38505;&#25805;&#20316;&#20102;&#12290;
 &lt;/p&gt;
 &lt;p&gt;
-  &#19979;&#38754;&#30340;c&#24037;&#20855;&#31243;&#24207;&#21487;&#20197;&#20801;&#35768;&#20219;&#24847;&#29992;&#25143;&#25191;&#34892;&#38656;&#35201;root&#26435;&#38480;&#30340;&#21629;&#20196;&#65306;
+   &#19979;&#38754;&#30340;c&#24037;&#20855;&#31243;&#24207;&#21487;&#20197;&#20801;&#35768;&#20219;&#24847;&#29992;&#25143;&#25191;&#34892;&#38656;&#35201;root&#26435;&#38480;&#30340;&#21629;&#20196;&#65306;
 &lt;/p&gt;
+
+
+&lt;div class="o-blog-source"&gt;&lt;a class="btn btn-info" data-toggle="modal" data-target="#as5froot2ec" &gt;&lt;i class="icon-file icon-white"&gt;&lt;/i&gt;&amp;nbsp;as_root.c&lt;/a&gt;&lt;/div&gt;&lt;div class="modal fade hide" id="as5froot2ec"&gt;&lt;div class="modal-header"&gt;&lt;a class="close" data-dismiss="modal"&gt;&#215;&lt;/a&gt;&lt;h3&gt;as_root.c&lt;/h3&gt;&lt;/div&gt;&lt;div class="modal-body"&gt;&lt;pre&gt;
+&lt;span style="color: #729fcf;"&gt;#include&lt;/span&gt; &lt;span style="color: #ad7fa8; font-style: italic;"&gt;&amp;lt;stdio.h&amp;gt;&lt;/span&gt;
+&lt;span style="color: #729fcf;"&gt;#include&lt;/span&gt; &lt;span style="color: #ad7fa8; font-style: italic;"&gt;&amp;lt;sys/types.h&amp;gt;&lt;/span&gt;
+&lt;span style="color: #729fcf;"&gt;#include&lt;/span&gt; &lt;span style="color: #ad7fa8; font-style: italic;"&gt;&amp;lt;unistd.h&amp;gt;&lt;/span&gt;
+&lt;span style="color: #729fcf;"&gt;#include&lt;/span&gt; &lt;span style="color: #ad7fa8; font-style: italic;"&gt;&amp;lt;stdlib.h&amp;gt;&lt;/span&gt;
+&lt;span style="color: #729fcf;"&gt;#include&lt;/span&gt; &lt;span style="color: #ad7fa8; font-style: italic;"&gt;&amp;lt;signal.h&amp;gt;&lt;/span&gt;
+
+&lt;span style="color: #8ae234; font-weight: bold;"&gt;void&lt;/span&gt; &lt;span style="color: #edd400; font-weight: bold; font-style: italic;"&gt;daemon_init&lt;/span&gt;() {
+    &lt;span style="color: #8ae234; font-weight: bold;"&gt;int&lt;/span&gt; &lt;span style="color: #eeeeec;"&gt;i&lt;/span&gt;;
+    &lt;span style="color: #8ae234; font-weight: bold;"&gt;pid_t&lt;/span&gt; &lt;span style="color: #eeeeec;"&gt;pid&lt;/span&gt;;
+    
+    &lt;span style="color: #729fcf; font-weight: bold;"&gt;if&lt;/span&gt; (pid = fork()) {
+        &lt;span style="color: #8ae234; font-weight: bold;"&gt;int&lt;/span&gt; &lt;span style="color: #eeeeec;"&gt;status&lt;/span&gt; = EXIT_FAILURE;
+        waitpid(pid, &amp;amp;status, 0);
+        status = WEXITSTATUS(status);
+        exit(status);
+    }
+
+    setsid();
+    signal(SIGHUP, SIG_IGN);
+
+    &lt;span style="color: #729fcf; font-weight: bold;"&gt;if&lt;/span&gt; (pid = fork()) {
+        &lt;span style="color: #8ae234; font-weight: bold;"&gt;int&lt;/span&gt; &lt;span style="color: #eeeeec;"&gt;status&lt;/span&gt; = EXIT_FAILURE;
+        waitpid(pid, &amp;amp;status, 0);
+        status = WEXITSTATUS(status);
+        exit(status);
+    }
+
+    umask(0);
+}
+
+&lt;span style="color: #8ae234; font-weight: bold;"&gt;int&lt;/span&gt; &lt;span style="color: #edd400; font-weight: bold; font-style: italic;"&gt;main&lt;/span&gt;(&lt;span style="color: #8ae234; font-weight: bold;"&gt;int&lt;/span&gt; &lt;span style="color: #eeeeec;"&gt;argc&lt;/span&gt;, &lt;span style="color: #8ae234; font-weight: bold;"&gt;char&lt;/span&gt;* &lt;span style="color: #eeeeec;"&gt;argv&lt;/span&gt;[]) {
+    &lt;span style="color: #729fcf; font-weight: bold;"&gt;if&lt;/span&gt; (setuid(0) == -1) {
+        perror(&lt;span style="color: #ad7fa8; font-style: italic;"&gt;"setuid"&lt;/span&gt;);
+        fprintf(stderr, &lt;span style="color: #ad7fa8; font-style: italic;"&gt;"config: chown root:root %s; chmod 4755 %s\n"&lt;/span&gt;, argv[0], argv[0]);
+        &lt;span style="color: #729fcf; font-weight: bold;"&gt;return&lt;/span&gt; EXIT_FAILURE;
+    }
+
+    daemon_init();
+
+    &lt;span style="color: #8ae234; font-weight: bold;"&gt;FILE&lt;/span&gt;* &lt;span style="color: #eeeeec;"&gt;fp&lt;/span&gt; = popen(argv[1], &lt;span style="color: #ad7fa8; font-style: italic;"&gt;"r"&lt;/span&gt;);
+    &lt;span style="color: #729fcf; font-weight: bold;"&gt;if&lt;/span&gt; (&lt;span style="color: #8ae234;"&gt;NULL&lt;/span&gt; == fp) {
+        fprintf(stderr, &lt;span style="color: #ad7fa8; font-style: italic;"&gt;"popen failed\n"&lt;/span&gt;);
+        &lt;span style="color: #729fcf; font-weight: bold;"&gt;return&lt;/span&gt; EXIT_FAILURE;
+    }
+    &lt;span style="color: #8ae234; font-weight: bold;"&gt;int&lt;/span&gt; &lt;span style="color: #eeeeec;"&gt;status&lt;/span&gt; = pclose(fp);
+    &lt;span style="color: #729fcf; font-weight: bold;"&gt;if&lt;/span&gt; (-1 == status) {
+        fprintf(stderr, &lt;span style="color: #ad7fa8; font-style: italic;"&gt;"pclose failed\n"&lt;/span&gt;);
+        &lt;span style="color: #729fcf; font-weight: bold;"&gt;return&lt;/span&gt; EXIT_FAILURE;
+    }
+
+    status = WEXITSTATUS(status);
+    &lt;span style="color: #729fcf; font-weight: bold;"&gt;return&lt;/span&gt; status;
+}
+&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+
 &lt;p&gt;
-  #+o&lt;sub&gt;blog&lt;/sub&gt;&lt;sub&gt;source&lt;/sub&gt; ./static/as&lt;sub&gt;root&lt;/sub&gt;.c
-&lt;/p&gt;
-&lt;p&gt;
-  &#32534;&#35793;&#65306;
+   &#32534;&#35793;&#65306;
 &lt;/p&gt;
 
 
@@ -41,7 +97,7 @@
 
 
 &lt;p&gt;
-  &#37197;&#32622;&#65306;
+   &#37197;&#32622;&#65306;
 &lt;/p&gt;
 
 
@@ -50,7 +106,7 @@
 
 
 &lt;p&gt;
-  &#36816;&#34892;&#65306;
+   &#36816;&#34892;&#65306;
 &lt;/p&gt;
 
 
@@ -58,9 +114,9 @@
 &lt;/pre&gt;
 
 
-&lt;p&gt;  
-  &#21442;&#32771;&#65306;
-  &lt;a href="http://blog.tianya.cn/blogger/post_show.asp?BlogID=126326&amp;amp;PostID=1629441"&gt; &#22914;&#20309;&#22312;&#26222;&#36890;&#29992;&#25143;&#19979;&#25191;&#34892;&#19968;&#20123;&#38656;&#35201;root&#29992;&#25143;&#25191;&#34892;&#30340;&#21629;&#20196;&lt;/a&gt;
+&lt;p&gt;   
+   &#21442;&#32771;&#65306;
+   &lt;a href="http://blog.tianya.cn/blogger/post_show.asp?BlogID=126326&amp;amp;PostID=1629441"&gt; &#22914;&#20309;&#22312;&#26222;&#36890;&#29992;&#25143;&#19979;&#25191;&#34892;&#19968;&#20123;&#38656;&#35201;root&#29992;&#25143;&#25191;&#34892;&#30340;&#21629;&#20196;&lt;/a&gt;
 &lt;/p&gt;</content></entry><entry><title type="html">为什么不能在构造函数中调用shared_from_this</title><author><name>nil</name></author><link href="http://blog.kankanan.com/posts/2013/12/20_4e3a4ec04e484e0d80fd57286784902051fd65704e2d8c037528shared5ffrom5fthis.html"/><updated>2013-12-20T01:02:00Z</updated><published>2013-12-20T01:02:00Z</published><id>posts/2013/12/20_4e3a4ec04e484e0d80fd57286784902051fd65704e2d8c037528shared5ffrom5fthis.html</id><category scheme="/tags/cpp.html" term="cpp" label="cpp"/><content type="html">&lt;p&gt;
   &#20808;&#30475;&#31034;&#20363;&#20195;&#30721;&#65306;
 &lt;/p&gt;

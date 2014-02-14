@@ -82,16 +82,72 @@
   </header>
   <div class="article-content">
     <p>
-  最典型的情况是要实现一个通过web界面重启系统的功能，通常为了安全会以非root用户身份（通常是nobody）运行服务端脚本，这样脚本中就不能执行危险操作了。
+   最典型的情况是要实现一个通过web界面重启系统的功能，通常为了安全会以非root用户身份（通常是nobody）运行服务端脚本，这样脚本中就不能执行危险操作了。
 </p>
 <p>
-  下面的c工具程序可以允许任意用户执行需要root权限的命令：
+   下面的c工具程序可以允许任意用户执行需要root权限的命令：
 </p>
+
+
+<div class="o-blog-source"><a class="btn btn-info" data-toggle="modal" data-target="#as5froot2ec" ><i class="icon-file icon-white"></i>&nbsp;as_root.c</a></div><div class="modal fade hide" id="as5froot2ec"><div class="modal-header"><a class="close" data-dismiss="modal">×</a><h3>as_root.c</h3></div><div class="modal-body"><pre>
+<span style="color: #729fcf;">#include</span> <span style="color: #ad7fa8; font-style: italic;">&lt;stdio.h&gt;</span>
+<span style="color: #729fcf;">#include</span> <span style="color: #ad7fa8; font-style: italic;">&lt;sys/types.h&gt;</span>
+<span style="color: #729fcf;">#include</span> <span style="color: #ad7fa8; font-style: italic;">&lt;unistd.h&gt;</span>
+<span style="color: #729fcf;">#include</span> <span style="color: #ad7fa8; font-style: italic;">&lt;stdlib.h&gt;</span>
+<span style="color: #729fcf;">#include</span> <span style="color: #ad7fa8; font-style: italic;">&lt;signal.h&gt;</span>
+
+<span style="color: #8ae234; font-weight: bold;">void</span> <span style="color: #edd400; font-weight: bold; font-style: italic;">daemon_init</span>() {
+    <span style="color: #8ae234; font-weight: bold;">int</span> <span style="color: #eeeeec;">i</span>;
+    <span style="color: #8ae234; font-weight: bold;">pid_t</span> <span style="color: #eeeeec;">pid</span>;
+    
+    <span style="color: #729fcf; font-weight: bold;">if</span> (pid = fork()) {
+        <span style="color: #8ae234; font-weight: bold;">int</span> <span style="color: #eeeeec;">status</span> = EXIT_FAILURE;
+        waitpid(pid, &amp;status, 0);
+        status = WEXITSTATUS(status);
+        exit(status);
+    }
+
+    setsid();
+    signal(SIGHUP, SIG_IGN);
+
+    <span style="color: #729fcf; font-weight: bold;">if</span> (pid = fork()) {
+        <span style="color: #8ae234; font-weight: bold;">int</span> <span style="color: #eeeeec;">status</span> = EXIT_FAILURE;
+        waitpid(pid, &amp;status, 0);
+        status = WEXITSTATUS(status);
+        exit(status);
+    }
+
+    umask(0);
+}
+
+<span style="color: #8ae234; font-weight: bold;">int</span> <span style="color: #edd400; font-weight: bold; font-style: italic;">main</span>(<span style="color: #8ae234; font-weight: bold;">int</span> <span style="color: #eeeeec;">argc</span>, <span style="color: #8ae234; font-weight: bold;">char</span>* <span style="color: #eeeeec;">argv</span>[]) {
+    <span style="color: #729fcf; font-weight: bold;">if</span> (setuid(0) == -1) {
+        perror(<span style="color: #ad7fa8; font-style: italic;">"setuid"</span>);
+        fprintf(stderr, <span style="color: #ad7fa8; font-style: italic;">"config: chown root:root %s; chmod 4755 %s\n"</span>, argv[0], argv[0]);
+        <span style="color: #729fcf; font-weight: bold;">return</span> EXIT_FAILURE;
+    }
+
+    daemon_init();
+
+    <span style="color: #8ae234; font-weight: bold;">FILE</span>* <span style="color: #eeeeec;">fp</span> = popen(argv[1], <span style="color: #ad7fa8; font-style: italic;">"r"</span>);
+    <span style="color: #729fcf; font-weight: bold;">if</span> (<span style="color: #8ae234;">NULL</span> == fp) {
+        fprintf(stderr, <span style="color: #ad7fa8; font-style: italic;">"popen failed\n"</span>);
+        <span style="color: #729fcf; font-weight: bold;">return</span> EXIT_FAILURE;
+    }
+    <span style="color: #8ae234; font-weight: bold;">int</span> <span style="color: #eeeeec;">status</span> = pclose(fp);
+    <span style="color: #729fcf; font-weight: bold;">if</span> (-1 == status) {
+        fprintf(stderr, <span style="color: #ad7fa8; font-style: italic;">"pclose failed\n"</span>);
+        <span style="color: #729fcf; font-weight: bold;">return</span> EXIT_FAILURE;
+    }
+
+    status = WEXITSTATUS(status);
+    <span style="color: #729fcf; font-weight: bold;">return</span> status;
+}
+</pre></div></div>
+
+
 <p>
-  #+o<sub>blog</sub><sub>source</sub> ./static/as<sub>root</sub>.c
-</p>
-<p>
-  编译：
+   编译：
 </p>
 
 
@@ -100,7 +156,7 @@
 
 
 <p>
-  配置：
+   配置：
 </p>
 
 
@@ -109,7 +165,7 @@
 
 
 <p>
-  运行：
+   运行：
 </p>
 
 
@@ -117,9 +173,9 @@
 </pre>
 
 
-<p>  
-  参考：
-  <a href="http://blog.tianya.cn/blogger/post_show.asp?BlogID=126326&amp;PostID=1629441"> 如何在普通用户下执行一些需要root用户执行的命令</a>
+<p>   
+   参考：
+   <a href="http://blog.tianya.cn/blogger/post_show.asp?BlogID=126326&amp;PostID=1629441"> 如何在普通用户下执行一些需要root用户执行的命令</a>
 </p>
   </div>
   
