@@ -2416,3 +2416,84 @@ class RedisShard {
    #+end_src
    
    参考：[[http://blog.tianya.cn/blogger/post_show.asp?BlogID=126326&PostID=1629441][如何在普通用户下执行一些需要root用户执行的命令]]
+
+** TODO 安装archlinux实录                                         :archlinux:
+
+   - 机器型号
+
+   - 首先按照 [[https://bbs.archlinuxcn.org/viewtopic.php?id=1037][这篇文章]] 进行安装
+
+   - 因为是直接插网线的，启用网络服务
+     
+     #+begin_src sh
+       systemctl enable dhcpcd.service
+     #+end_src
+
+   - 安装完成重启后出现“device not found”的错误，并提示指定uuid的分区不存在
+     
+     在archlinux启动项上按c进入命令行，记下/boot分区（这里是hda0,msdos1）的uuid，再次重启机器，在archlinux启动项上按e，将里面的uuid值替换为之前记下来的正确的uuid，
+     按F10后应该可以正常启动了，使用root帐号登录后，再次执行“grub-mkconfig -o /boot/grub/grub.cfg”出现out of memory及其它错误（很可能在参考前一篇文章执行时就有这个错误，只是被忽视了），
+     参考 [[https://bbs.archlinux.org/viewtopic.php?id=173921][这篇文章]] 在/etc/default/grub.cfg中追加下面一行内容：
+     #+begin_example
+     GRUB_DISABLE_SUBMENU=y
+     #+end_example
+     再次生成grub.cfg，就好了。
+
+     
+** DONE 编译安装node.js                                                :node:
+   CLOSED: [2014-02-17 Mon 16:23]
+   
+   - 下载
+
+     node.js是一个新兴的开发平台，版本更新非常活跃，因此应该尽量下载安装最新的版本。
+
+     到 [[http://nodejs.org/]] 下载最新的版本。
+
+   - 安装
+   
+     解压后参照 README.md 进行安装：
+
+     #+begin_src sh
+       ./configure
+       make
+       make install
+     #+end_src
+   
+   - 安装后
+     
+     默认安装到/usr/local。
+
+     + /usr/local/bin/node :: node主程序
+     + /usr/local/bin/npm :: node模块管理程序
+     + /usr/local/lib/node_modules :: node全局模块目录
+
+     像一些需要全局安装的模块也会把文件安装在/usr/local目录下。
+     
+** DONE 编译安装redis                                                 :redis:
+   CLOSED: [2014-02-17 Mon 16:40]
+   
+   - 下载
+     
+     到 [[http://redis.io/download]] 下载最新稳定版本。
+
+   - 安装
+   
+     解压后参照 README 进行安装：
+
+     #+begin_src sh
+       make
+       make install
+     #+end_src
+   
+   - 安装后
+     
+     默认安装到/usr/local。
+
+     + /usr/local/bin/redis-cli :: redis客户端程序 
+     + /usr/local/bin/redis-server :: redis服务器程序
+** TODO 当心烦意乱接下来不知道要做什么的时候                           :心理健康:
+
+   - 试着通过深呼吸、走一走、微笑让自已平静下来，回归理性的自已。
+     
+   - 使用待办事项记录，一定要细致到可以直接采取行动，不用等到有好心情才能做成一些事情。
+   
