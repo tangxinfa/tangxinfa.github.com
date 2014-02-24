@@ -2398,7 +2398,7 @@ class RedisShard {
 
    下面的c工具程序可以允许任意用户执行需要root权限的命令：
 
-   #+o_blog_source ./static/as_root.c
+#+o_blog_source ./static/as_root.c
 
    编译：
    #+begin_src sh
@@ -2416,6 +2416,22 @@ class RedisShard {
    #+end_src
    
    参考：[[http://blog.tianya.cn/blogger/post_show.asp?BlogID=126326&PostID=1629441][如何在普通用户下执行一些需要root用户执行的命令]]
+
+** DONE express.js中如何在第一次请求的响应中取得connect.sid            :node:
+   CLOSED: [2014-02-14 Fri 23:34]
+
+   在web页面通过iframe跨域登录访问服务的情况下，是不方便取cookie中的sessionid的，于是想到将sessionid直接放到响应体中，
+   这就需要在node.js中直接获取connect.sid这个cookie值，一开始想当然地以为系统（使用的是passport.js）会在登录认证通过后
+   执行res.cookie('connect.sid', ...)进行设置，就想直接从res的Set-Cookie头解析出设置的值，结果发现这个cookie压根不存在，
+   甚至在库代码中搜索cookie都不管用，着实急得人直抓头。最后dump出res后确在req中见到了connect.sid值的影子：req.sessionID，
+   然后在 [[http://stackoverflow.com/questions/13693101/express-sessionid-differs-from-sessionid-in-cookie][《Express SessionID differs from SessionID in Cookie》]] 中找到了从req.sessionID计算出connect.sid的方法：
+
+   #+begin_src js
+     var signature = require('express/node_modules/cookie-signature');
+     var connectSid = 's:' + signature.sign(req.sessionID, sessionOptions.secret);
+   #+end_src
+
+   其实，connect.sid这个cookie是在请求到来后在req上设置的（不存在则设置），不管有没有登录都会设置。
 
 ** TODO 安装archlinux实录                                         :archlinux:
 
@@ -2438,7 +2454,6 @@ class RedisShard {
      GRUB_DISABLE_SUBMENU=y
      #+end_example
      再次生成grub.cfg，就好了。
-
      
 ** DONE 编译安装node.js                                                :node:
    CLOSED: [2014-02-17 Mon 16:23]
@@ -2496,4 +2511,75 @@ class RedisShard {
    - 试着通过深呼吸、走一走、微笑让自已平静下来，回归理性的自已。
      
    - 使用待办事项记录，一定要细致到可以直接采取行动，不用等到有好心情才能做成一些事情。
+** TODO 迅雷路由水晶版内测资格申请页面上线的故事                      :story:
+
+   - 先看看注册页面的svn日志吧:)
+
+     #+begin_example
+       ------------------------------------------------------------------------
+       r744 | tangxinfa | 2014-02-24 13:04:47 +0800 (Mon, 24 Feb 2014) | 3 lines
+       
+       申请表单去除”身份证号码“字段。
+       ”市、县级市“改为非必填（在选“广东省”，“中山市”时出现）。
+       
+       ------------------------------------------------------------------------
+       r740 | tangxinfa | 2014-02-22 19:36:03 +0800 (Sat, 22 Feb 2014) | 4 lines
+       
+       身份证号 手机号码 邮箱 QQ号码 申请理由不得重复.
+       修复缓存导致的登录跳转死循环bug.
+       图片引用绝对路径以支持正式环境上的url重写.
+       
+       ------------------------------------------------------------------------
+       r721 | tangxinfa | 2014-02-22 16:24:12 +0800 (Sat, 22 Feb 2014) | 3 lines
+       
+       兼容ie6.
+       修复缓存相关bug.
+       
+       ------------------------------------------------------------------------
+       r704 | tangxinfa | 2014-02-22 00:02:59 +0800 (Sat, 22 Feb 2014) | 1 line
+     #+end_example
+
+   - r704 :: 周五晚上，刚过12点，哥哼着小曲，心满意足的提交了代码（再三要求不许再改设计图之后，终于调好了）。同事：very good，看来明天我可以不用来加班了，有事给我电话。
    
+   - r721 r740 :: 上午快11点才到的公司，看来今天收收尾就就能早点回家了。
+
+             + 打算就错误处理这一块进行了完善 :: 提交数据时检查下字段是否有重复值，有重复值还要给用户提示错误。
+    
+               懒得一个一个字段的地判断重复了，数据库结构一改：不能重复定义为UNIQUE就是了，插入记录出错时如果错误码表明因重复的字段值引起则从错误描述中匹配出字段名，
+   
+               然后返回给客户端进行提示即可。天衣无缝啊，几年前就想这么干了，总算得手了。
+
+
+             + 同事反映了一个问题 :: ”市、县级市“中有重复项
+   
+               一查还真是有，网上找的东东问题多啊，直接给js地址库加了个检测重复值的方法，控制台打印出重复项的位置，好多重复的“城关镇”啊，删掉重复项，收工。
+
+             + 有热心网友反馈ie6/ie7下的兼容性问题
+
+               这个问题必须有，压根没想到要给页面做ie6/ie7兼容，哥没空啊，忙得都忘了还有用ie6/ie7的人了。不过思来想去还是得改啊，开门做生意哪能拒人于千里之外呢，更何况这网友能耐大着呢，看图：
+
+               [[file:static/ie6bugfix1.png]]
+
+               [[file:static/ie6bugfix2.png]]
+
+               见过给我提意见的，没见过直接列出解决方案的，做前端肯定比我专业。
+
+             + 在测试环境上跑了一遍上线，整理了一下要点，就叫它《20140224-水晶版内测上线指南》吧，等周一过来切下主页就完事了，晚上8点哼着小曲瘪着肚子回家。
+
+   - r744 :: 早上9:20就到公司，10点准时上线申请页面。才半个小时就有1000多人注册，比我想像的多多了。
+
+             + 同事反映有部分网友登记时不愿提供身份证号码，去掉这一项话更友好
+
+               那就改吧。一条SQL语句“ALTER TABLE `XXXXXX` CHANGE `idnumber` `idnumber` char(32) NOT NULL DEFAULT ''”去掉必填限制，html表单中去掉该字段，测了一下没问题立即上线。
+
+             + 5分钟后，论坛、微博有不少网友反映点提交按钮没反映，同事那里也重现了，原来改数据库字段定义时UNIQUE属性不会自动删除，Google了一下，再来一条SQL语句“ALTER TABLE `g_custom_open` DROP INDEX idnumber;”。
+
+             + 有网友反映，收货地址选“广东省”，“中山市”后，”县级市“下拉空就空了，现在又必填才能提交
+
+               修改html表单校验js，去掉必填限制。
+
+   - 结语
+
+     + 再简单的页面也能养活一堆虫子
+
+     + 群众的眼睛是雪亮的
