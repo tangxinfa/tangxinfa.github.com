@@ -5,7 +5,438 @@
   <link href="http://blog.kankanan.com"/>
   <updated>2013-04-09T12:00:00Z</updated>
   <id>http://blog.kankanan.comindex.xml</id>
-  <entry><title type="html">编译安装redis</title><author><name>nil</name></author><link href="http://blog.kankanan.com/posts/2014/02/17_7f168bd15b8988c5redis.html"/><updated>2014-02-17T16:40:00Z</updated><published>2014-02-17T16:40:00Z</published><id>posts/2014/02/17_7f168bd15b8988c5redis.html</id><category scheme="/tags/redis.html" term="redis" label="redis"/><content type="html">&lt;ul&gt;
+  <entry><title type="html">CentOS 6.4下安装redmine</title><author><name>nil</name></author><link href="http://blog.kankanan.com/posts/2014/03/07_centos-62e44e0b5b8988c5redmine.html"/><updated>2014-03-07T14:17:00Z</updated><published>2014-03-07T14:17:00Z</published><id>posts/2014/03/07_centos-62e44e0b5b8988c5redmine.html</id><category scheme="/tags/linux.html" term="linux" label="linux"/><category scheme="/tags/redmine.html" term="redmine" label="redmine"/><content type="html">&lt;div id="outline-container-1" class="outline-3"&gt;
+&lt;h3 id="sec-1"&gt;&#23433;&#35013; &lt;code&gt;ruby&lt;/code&gt;&lt;/h3&gt;
+&lt;div class="outline-text-3" id="text-1"&gt;
+
+
+
+
+
+&lt;pre class="src src-sh"&gt;yum install ruby
+yum install ruby-devel
+yum install rubygems
+&lt;/pre&gt;
+
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;div id="outline-container-2" class="outline-3"&gt;
+&lt;h3 id="sec-2"&gt;&#23433;&#35013; &lt;code&gt;redmine&lt;/code&gt;&lt;/h3&gt;
+&lt;div class="outline-text-3" id="text-2"&gt;
+
+
+
+
+
+&lt;pre class="src src-sh"&gt;wget &lt;span style="color: #ad7fa8; font-style: italic;"&gt;'http://www.redmine.org/releases/redmine-2.5.0.tar.gz'&lt;/span&gt;
+tar xzvf redmine-2.5.0.tar.gz
+gem install bundler
+gem install mysql2.
+yum install ImageMagick ImageMagick-devel
+bundle install --without development test  
+&lt;/pre&gt;
+
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;div id="outline-container-3" class="outline-3"&gt;
+&lt;h3 id="sec-3"&gt;&#37197;&#32622; &lt;code&gt;redmine&lt;/code&gt;&lt;/h3&gt;
+&lt;div class="outline-text-3" id="text-3"&gt;
+
+
+&lt;ul&gt;
+&lt;li&gt;&#20197; root &#29992;&#25143;&#30331;&#24405; &lt;code&gt;mysql&lt;/code&gt;
+
+
+
+
+&lt;pre class="src src-sh"&gt;mysql -uroot -p
+&lt;/pre&gt;
+
+
+&lt;/li&gt;
+&lt;li&gt;&#21019;&#24314; &lt;code&gt;redmine&lt;/code&gt; &#29992;&#25143;&#21450;&#24211;
+
+
+
+
+&lt;pre class="src src-sql"&gt;CREATE DATABASE redmine CHARACTER SET utf8;
+CREATE USER &lt;span style="color: #ad7fa8; font-style: italic;"&gt;'redmine'&lt;/span&gt;@&lt;span style="color: #ad7fa8; font-style: italic;"&gt;'localhost'&lt;/span&gt; IDENTIFIED BY &lt;span style="color: #ad7fa8; font-style: italic;"&gt;'redmine'&lt;/span&gt;;
+GRANT ALL PRIVILEGES ON redmine.* TO &lt;span style="color: #ad7fa8; font-style: italic;"&gt;'redmine'&lt;/span&gt;@&lt;span style="color: #ad7fa8; font-style: italic;"&gt;'localhost'&lt;/span&gt;;
+&lt;/pre&gt;
+
+
+&lt;/li&gt;
+&lt;li&gt;&#20462;&#25913;&#25968;&#25454;&#24211;&#37197;&#32622;&#25991;&#20214;
+
+
+
+
+&lt;pre class="src src-sh"&gt;cp config/database.yml.example config/database.yml
+diff config/database.yml config/database.yml.example
+10,11c10,11
+&amp;lt;   username: redmine
+&amp;lt;   password: &lt;span style="color: #ad7fa8; font-style: italic;"&gt;"redmine"&lt;/span&gt;
+---
+&amp;gt;   username: root
+&amp;gt;   password: &lt;span style="color: #ad7fa8; font-style: italic;"&gt;""&lt;/span&gt;
+&lt;/pre&gt;
+
+
+&lt;/li&gt;
+&lt;li&gt;&#21021;&#22987;&#21270;&#20250;&#35805;&#23384;&#20648;
+
+
+
+
+&lt;pre class="src src-sh"&gt;rake generate_secret_token
+&lt;/pre&gt;
+
+
+&lt;/li&gt;
+&lt;li&gt;&#21019;&#24314;&#25968;&#25454;&#24211;&#34920;&#32467;&#26500;
+
+
+
+
+&lt;pre class="src src-sh"&gt;&lt;span style="color: #eeeeec;"&gt;RAILS_ENV&lt;/span&gt;=production rake db:migrate
+&lt;/pre&gt;
+
+
+&lt;/li&gt;
+&lt;li&gt;&#35299;&#20915;&#19978;&#19968;&#27493;&#21487;&#33021;&#20986;&#29616;&#30340;&#38169;&#35823;
+
+&lt;blockquote&gt;
+
+&lt;p&gt;rake aborted!
+Can't connect to local MySQL server through socket '/var/lib/mysql/mysql.sock' (2)
+&lt;/p&gt;
+&lt;p&gt;
+Tasks: TOP =&amp;gt; db:migrate =&amp;gt; environment
+&lt;/p&gt;
+&lt;/blockquote&gt;
+
+
+
+&lt;p&gt;     
+     &#30830;&#23450; &lt;code&gt;mysql&lt;/code&gt; &#21551;&#21160;&#26102;&#25351;&#23450;&#30340; &lt;code&gt;mysql.sock&lt;/code&gt; &#25991;&#20214;&#30340;&#36335;&#24452;
+&lt;/p&gt;
+
+
+
+&lt;pre class="src src-sh"&gt;ps aux | grep mysql.sock
+&lt;/pre&gt;
+
+
+&lt;p&gt;
+     &#26174;&#31034;&#30340; &lt;code&gt;mysql.sock&lt;/code&gt; &#36335;&#24452;&#21487;&#33021;&#20026;&#8220; &lt;code&gt;--socket=/tmp/mysql.sock&lt;/code&gt; &#8221;
+&lt;/p&gt;
+&lt;p&gt;
+     &#20462;&#25913; &lt;code&gt;redmine&lt;/code&gt; &#25968;&#25454;&#24211;&#37197;&#32622;&#65292;&#22312; &lt;code&gt;production&lt;/code&gt; &#37197;&#32622;&#20013;&#28155;&#21152; &lt;code&gt;socket&lt;/code&gt; &#39033;&#65306;
+&lt;/p&gt;
+
+
+
+&lt;pre class="example"&gt;production:
+  ...
+  socket: /tmp/mysql.sock
+&lt;/pre&gt;
+
+
+&lt;p&gt;
+     &#37325;&#26032;&#36827;&#34892;&#19978;&#19968;&#27493;&#25805;&#20316;&#12290;
+&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;&#21021;&#22987;&#21270;&#25968;&#25454;
+
+
+
+
+&lt;pre class="src src-sh"&gt;&lt;span style="color: #eeeeec;"&gt;RAILS_ENV&lt;/span&gt;=production &lt;span style="color: #eeeeec;"&gt;REDMINE_LANG&lt;/span&gt;=zh rake redmine:load_default_data
+&lt;/pre&gt;
+
+
+&lt;/li&gt;
+&lt;li&gt;&#21019;&#24314;&#30456;&#20851;&#30446;&#24405;
+
+
+
+
+&lt;pre class="src src-sh"&gt;mkdir -p tmp tmp/pdf public/plugin_assets
+sudo chown -R nobody:nobody files log tmp public/plugin_assets
+sudo chmod -R 755 files log tmp public/plugin_assets
+&lt;/pre&gt;
+
+&lt;/li&gt;
+&lt;/ul&gt;
+
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;div id="outline-container-4" class="outline-3"&gt;
+&lt;h3 id="sec-4"&gt;&#35797;&#36816;&#34892; &lt;code&gt;redmine&lt;/code&gt;&lt;/h3&gt;
+&lt;div class="outline-text-3" id="text-4"&gt;
+
+
+
+
+
+&lt;pre class="src src-sh"&gt;ruby script/rails server webrick -e production
+&lt;/pre&gt;
+
+
+&lt;ul&gt;
+&lt;li&gt;&#27983;&#35272;&#22120;&#25171;&#24320;&#39029;&#38754;
+
+&lt;p&gt;     
+     &lt;a href="http://localhost:3000"&gt;http://localhost:3000&lt;/a&gt;
+&lt;/p&gt;
+&lt;p&gt;
+     &#20351;&#29992; &#29992;&#25143;&#21517; &lt;code&gt;admin&lt;/code&gt; &#65292;&#23494;&#30721; &lt;code&gt;admin&lt;/code&gt; &#30331;&#24405;&#21518;&#65292;&#31435;&#21363;&#20462;&#25913;&#23494;&#30721;&#12290;
+&lt;/p&gt;
+&lt;p&gt; 
+     &#20351;&#29992;&#19979;&#38754;&#30340;&#21629;&#20196;&#29983;&#25104;&#38543;&#26426;&#30340;&#23494;&#30721;&#65306;
+&lt;/p&gt;
+
+
+
+&lt;pre class="src src-sh"&gt;cat /dev/urandom | head -1 | md5sum | head -c 8
+&lt;/pre&gt;
+
+&lt;/li&gt;
+&lt;/ul&gt;
+
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;div id="outline-container-5" class="outline-3"&gt;
+&lt;h3 id="sec-5"&gt;&#37197;&#32622; &lt;code&gt;redmine&lt;/code&gt;&lt;/h3&gt;
+&lt;div class="outline-text-3" id="text-5"&gt;
+
+
+&lt;ul&gt;
+&lt;li&gt;&#20462;&#25913; &lt;code&gt;config/settings.yml&lt;/code&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;div id="outline-container-6" class="outline-3"&gt;
+&lt;h3 id="sec-6"&gt;&#20351;&#29992; &lt;code&gt;Nginx&lt;/code&gt; &#21644; &lt;code&gt;passenger&lt;/code&gt; &#26469;&#27491;&#24335;&#36816;&#34892;&#31995;&#32479;&lt;/h3&gt;
+&lt;div class="outline-text-3" id="text-6"&gt;
+
+
+
+
+
+&lt;pre class="src src-sh"&gt;wget &lt;span style="color: #ad7fa8; font-style: italic;"&gt;'http://nginx.org/download/nginx-1.4.6.tar.gz'&lt;/span&gt;
+tar xzvf nginx-1.4.6.tar.gz
+gem install passenger
+yum install pcre-devel
+passenger-install-nginx-module
+&lt;/pre&gt;
+
+
+&lt;ul&gt;
+&lt;li&gt;&#20132;&#20114;&#24335;&#23433;&#35013;&#36807;&#31243;
+
+&lt;ul&gt;
+&lt;li&gt;Automatically download and install Nginx?
+
+&lt;p&gt;       
+       &#36873; 2. No: I want to customize my Nginx installation. (for advanced users)
+&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;Where is your Nginx source code located?
+
+&lt;p&gt;       
+       &#22635;&#35299;&#21387;&#30340; &lt;code&gt;nginx&lt;/code&gt; &#28304;&#30721;&#21253;&#36335;&#24452;
+&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;Where do you want to install Nginx to?
+
+&lt;p&gt; 
+       &#22635; &lt;code&gt;/usr/local/nginx&lt;/code&gt;
+&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;&#20462;&#25913; /usr/local/nginx/conf/nginx.conf
+
+&lt;p&gt; 
+       &#22312;&#26368;&#21518;&#30340; &lt;code&gt;}&lt;/code&gt; &#21069;&#28155;&#21152;&#20197;&#19979;&#37197;&#32622;
+&lt;/p&gt;
+
+
+
+&lt;pre class="example"&gt;include vhosts/*.conf;
+&lt;/pre&gt;
+
+
+&lt;/li&gt;
+&lt;li&gt;&#28155;&#21152;&#31449;&#28857;&#37197;&#32622;&#25991;&#20214; &lt;code&gt;/usr/local/nginx/conf/vhosts/redmine.conf&lt;/code&gt;
+
+
+
+
+&lt;pre class="example"&gt;server {
+  listen  80;
+  server_name &amp;lt;&#22495;&#21517;&amp;gt;;
+  root &amp;lt;redmine&#26681;&#30446;&#24405;&amp;gt;/public;
+  passenger_enabled on;
+  client_max_body_size 10m; # Max attachemnt size
+}
+&lt;/pre&gt;
+
+
+&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;/li&gt;
+&lt;li&gt;&#21551;&#21160; &lt;code&gt;nginx&lt;/code&gt;
+
+
+
+
+&lt;pre class="src src-sh"&gt;/usr/local/nginx/sbin/nginx
+&lt;/pre&gt;
+
+
+&lt;/li&gt;
+&lt;li&gt;&#29616;&#22312;&#21487;&#20197;&#27491;&#24335;&#35775;&#38382;&#31449;&#28857;&#20102;
+
+&lt;p&gt;
+     &lt;a href="http://"&gt;http://&lt;/a&gt;&amp;lt;&#22495;&#21517;&amp;gt;
+&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;div id="outline-container-7" class="outline-3"&gt;
+&lt;h3 id="sec-7"&gt;&#21551;&#29992; &lt;code&gt;OpenID&lt;/code&gt; &#25903;&#25345;&#31532;&#19977;&#26041;&#24080;&#21495;&#30331;&#24405;&lt;/h3&gt;
+&lt;div class="outline-text-3" id="text-7"&gt;
+
+
+&lt;ul&gt;
+&lt;li&gt;&#23433;&#35013; &lt;code&gt;openid&lt;/code&gt; &#24211;
+
+
+
+
+&lt;pre class="src src-sh"&gt;gem install ruby-openid
+&lt;/pre&gt;
+
+
+&lt;/li&gt;
+&lt;li&gt;&#20351;&#29992; &lt;code&gt;admin&lt;/code&gt; &#24080;&#21495;&#30331;&#24405;&#31995;&#32479;&#65292;&#22312;&#8220;&#31649;&#29702; - &#37197;&#32622; - &#35748;&#35777;&#8221;&#20013;&#21246;&#36873;&#19978;&#8220;&#20801;&#35768;&#20351;&#29992;OpenID&#30331;&#24405;&#21644;&#27880;&#20876;&#8221;&#12290; 
+
+&lt;/li&gt;
+&lt;li&gt;&#29992;&#25143;&#27880;&#20876;&#26102;&#8220;&#23494;&#30721;&#8221;&#21487;&#20197;&#30465;&#30053;&#65292; &#22635;&#19978; &lt;code&gt;OpenID URL&lt;/code&gt; &#21363;&#21487;&#12290;
+
+&lt;/li&gt;
+&lt;li&gt;&#22914;&#20309;&#33719;&#24471;Google&#30340;OpenID URL&#65311;
+
+&lt;ul&gt;
+&lt;li&gt;&#20808;&#22312; &lt;code&gt;Google&lt;/code&gt; &#30340;&#31449;&#28857;&#19978;&#30331;&#24405;
+&lt;/li&gt;
+&lt;li&gt;&#25171;&#24320; &lt;a href="https://profiles.google.com"&gt;https://profiles.google.com&lt;/a&gt; &#21518;&#20250;&#36339;&#36716;&#21040;&#31867;&#20284;&#36825;&#26679;&#65288;=&lt;a href="https://plus.google.com/000000000000000000000/posts"&gt;https://plus.google.com/000000000000000000000/posts&lt;/a&gt;= &#65289;&#30340;&#32593;&#39029;
+&lt;/li&gt;
+&lt;li&gt;&#20320;&#30340; &lt;code&gt;OpenID URL&lt;/code&gt; &#20026; &lt;a href="http://profiles.google.com/000000000000000000000"&gt;http://profiles.google.com/000000000000000000000&lt;/a&gt;
+
+&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;     &#19978;&#38754;&#30340; &lt;code&gt;000000000000000000000&lt;/code&gt; &#21487;&#33021;&#20026;&#20219;&#24847;&#30340;&#25968;&#23383;&#20018;
+&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;&#31649;&#29702;&#21592;&#30830;&#35748;&#27880;&#20876;&#21518;&#21363;&#21487;&#22312;&#30331;&#24405;&#30028;&#38754;&#19978;&#36755;&#20837; &lt;code&gt;OpenID URL&lt;/code&gt; &#30452;&#25509;&#30331;&#24405;
+
+&lt;p&gt;     
+     &#19968;&#33324;&#27983;&#35272;&#22120;&#30340;&#36755;&#20837;&#26694;&#26159;&#26377;&#35760;&#24518;&#21151;&#33021;&#30340;&#65292;&#21452;&#20987;&#21518;&#20250;&#20986;&#29616;&#36755;&#20837;&#21382;&#21490;&#19979;&#25289;&#21015;&#34920;&#65292;&#30452;&#25509;&#36873;&#25321;&#21363;&#21487;&#12290;
+&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;&#23433;&#35013;&#25554;&#20214;&#31616;&#21270; &lt;code&gt;OpenID&lt;/code&gt; &#30331;&#24405;
+
+&lt;ul&gt;
+&lt;li&gt;&lt;a href="https://github.com/jorgebg/redmine-openid-selector"&gt;https://github.com/jorgebg/redmine-openid-selector&lt;/a&gt; &#20026;&#21407;&#22987;&#20998;&#26525;&#65292;&#22312; &lt;code&gt;redmine-2.5.0&lt;/code&gt; &#19979;&#19981;&#33021;&#30452;&#25509;&#23433;&#35013;&#20250;&#23548;&#33268;&#31449;&#28857;&#30331;&#24405;&#30028;&#38754;&#20986;&#29616;404&#38169;&#35823;
+
+&lt;p&gt;       
+       &#35299;&#20915;&#26041;&#26696;&#22312; &lt;a href="http://www.redmine.org/boards/3/topics/34327?r=38778#message-38778"&gt;&#36825;&#37324;&lt;/a&gt; &#65292;&#31616;&#32780;&#35328;&#20043;&#23601;&#26159;&#25226;&#25554;&#20214;&#30446;&#24405;&#21517;&#20013;&#30340; &lt;code&gt;-&lt;/code&gt; &#25913;&#20026; &lt;code&gt;_&lt;/code&gt; &#12290;
+&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href="https://github.com/computerminds/redmine_openid_selector"&gt;https://github.com/computerminds/redmine&lt;sub&gt;openid&lt;/sub&gt;&lt;sub&gt;selector&lt;/sub&gt;&lt;/a&gt; &#36825;&#20010;&#20998;&#26525;&#23433;&#35013;&#21518;&#21487;&#29992;&#65292;&#20294;&#30028;&#38754;&#20026;&#33521;&#25991;&#65288;&#20854;&#23454;&#30028;&#38754;&#23601;&#19968;&#21477;&#33521;&#25991;&#65289;&#12290;
+
+&lt;/li&gt;
+&lt;li&gt;&lt;a href="https://github.com/tangxinfa/redmine_openid_selector"&gt;https://github.com/tangxinfa/redmine_openid_selector&lt;/a&gt; &#19978;&#38754;&#30340;&#20998;&#26525;&#20026;&#20102;&#25903;&#25345;&#20013;&#25991;&#25105;&#26032;&#24314;&#30340;&#20998;&#26525;&#12290;
+
+&lt;/li&gt;
+&lt;li&gt;&#36890;&#29992;&#30340;&#25554;&#20214;&#23433;&#35013;&#36807;&#31243;&#65306;
+
+
+
+
+&lt;pre class="src src-sh"&gt;&lt;span style="color: #729fcf;"&gt;cd&lt;/span&gt; plugins
+git clone https://github.com/tangxinfa/redmine_openid_selector.git
+rake redmine:plugins:migrate &lt;span style="color: #eeeeec;"&gt;RAILS_ENV&lt;/span&gt;=production
+touch tmp/restart.txt
+&lt;/pre&gt;
+
+
+&lt;/li&gt;
+&lt;li&gt;&#36890;&#36807;&#30340;&#25554;&#20214;&#21368;&#36733;&#36807;&#31243;&#65306;
+
+
+
+
+&lt;pre class="src src-sh"&gt;rake redmine:plugins:migrate &lt;span style="color: #eeeeec;"&gt;NAME&lt;/span&gt;=redmine-openid-selector &lt;span style="color: #eeeeec;"&gt;VERSION&lt;/span&gt;=0 &lt;span style="color: #eeeeec;"&gt;RAILS_ENV&lt;/span&gt;=production
+rm -rf plugins/redmine-openid-selector
+touch tmp/restart.txt
+&lt;/pre&gt;
+
+
+&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;     &#29616;&#22312;&#22312;&#30331;&#24405;&#21450;&#27880;&#20876;&#39029;&#38754;&#30452;&#25509;&#28857;&#20987;&#31532;&#19977;&#26041;&#31449;&#28857;Logo&#21363;&#21487;&#20351;&#29992;&#31995;&#32479;&#12290;
+&lt;/p&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+
+&lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;div id="outline-container-8" class="outline-3"&gt;
+&lt;h3 id="sec-8"&gt;&#23433;&#35013;&#26356;&#28418;&#20142;&#30340;&#26679;&#24335;&lt;/h3&gt;
+&lt;div class="outline-text-3" id="text-8"&gt;
+
+
+
+
+
+&lt;pre class="src src-sh"&gt;git clone git://github.com/pixel-cookers/redmine-theme.git public/themes/pixel-cookers
+touch tmp/restart.txt
+&lt;/pre&gt;
+
+
+&lt;p&gt;
+   &#29616;&#22312;&#21487;&#20197;&#20351;&#29992; &lt;code&gt;admin&lt;/code&gt; &#30331;&#24405;&#21518;&#21488;&#65292;&#22312;&#8220;&#31649;&#29702; - &#37197;&#32622; - &#26174;&#31034; - &#20027;&#39064;&#8221;&#20013;&#21551;&#29992;&#20027;&#39064; &lt;code&gt;Pixel-cookers&lt;/code&gt; &#12290;
+&lt;/p&gt;&lt;/div&gt;
+&lt;/div&gt;
+</content></entry><entry><title type="html">编译安装redis</title><author><name>nil</name></author><link href="http://blog.kankanan.com/posts/2014/02/17_7f168bd15b8988c5redis.html"/><updated>2014-02-17T16:40:00Z</updated><published>2014-02-17T16:40:00Z</published><id>posts/2014/02/17_7f168bd15b8988c5redis.html</id><category scheme="/tags/redis.html" term="redis" label="redis"/><content type="html">&lt;ul&gt;
 &lt;li&gt;&#19979;&#36733;
 
 &lt;p&gt;    
@@ -76,7 +507,7 @@ make install
 &lt;/dd&gt;
 &lt;dt&gt;/usr/local/bin/npm&lt;/dt&gt;&lt;dd&gt;node&#27169;&#22359;&#31649;&#29702;&#31243;&#24207;
 &lt;/dd&gt;
-&lt;dt&gt;/usr/local/lib/node&lt;sub&gt;modules&lt;/sub&gt;&lt;/dt&gt;&lt;dd&gt;node&#20840;&#23616;&#27169;&#22359;&#30446;&#24405;
+&lt;dt&gt;/usr/local/lib/node_modules&lt;/dt&gt;&lt;dd&gt;node&#20840;&#23616;&#27169;&#22359;&#30446;&#24405;
 
 &lt;/dd&gt;
 &lt;/dl&gt;
@@ -633,90 +1064,5 @@ chicken_ptr-&amp;gt;use();
 &lt;p&gt;   &lt;a href="http://blog.kankanan.com/slides/&#29702;&#35299;Node.js.html"&gt;&#12298;&#29702;&#35299;Node.js&#12299;&lt;/a&gt;
 &lt;/p&gt;&lt;/div&gt;
 &lt;/div&gt;
-</content></entry><entry><title type="html">linux下翻墙访问bitbucket.org仓库</title><author><name>nil</name></author><link href="http://blog.kankanan.com/posts/2013/06/28_linux4e0b7ffb58998bbf95eebitbucket2eorg4ed35e93.html"/><updated>2013-06-28T13:57:00Z</updated><published>2013-06-28T13:57:00Z</published><id>posts/2013/06/28_linux4e0b7ffb58998bbf95eebitbucket2eorg4ed35e93.html</id><category scheme="/tags/linux.html" term="linux" label="linux"/><category scheme="/tags/hg.html" term="hg" label="hg"/><category scheme="/tags/bitbucket.html" term="bitbucket" label="bitbucket"/><content type="html">&lt;p&gt;
-  &#20170;&#22825;&#24448;bitbucket.org push&#26102;&#25165;&#21457;&#29616;bitbucket&#34987;GFW&#20102;&#12290;&#25105;&#30340;&#20179;&#24211;&#20026;Mercurial hg&#65292;hg&#39033;&#30446;&#26681;&#30446;&#24405;&#19979;&#30340; &lt;code&gt;.hg/hgrc&lt;/code&gt; &#37197;&#32622;&#25991;&#20214;&#20013;&#21487;&#25351;&#23450;http_proxy&#65292;&#35797;&#20102;&#19968;&#19979;&#19981;&#25903;&#25345;socks&#20195;&#29702;&#65288;&#25105;&#30340;&#27983;&#35272;&#22120;&#29992;&#23427;&#26469;&#32763;&#22681;&#65289;&#65292;&#26368;&#32456;&#20351;&#29992;tsocks&#36719;&#20214;&#23454;&#29616;&#32763;&#22681;&#35775;&#38382;bitbucket.org&#20179;&#24211;&#12290;
-&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&#21033;&#29992;vps&#24314;&#26412;&#22320;socks&#20195;&#29702;&#30340;&#33050;&#26412; &lt;code&gt;ssh_proxy.sh&lt;/code&gt;
-
-
-
-&lt;pre class="src src-sh"&gt;&lt;span style="color: #888a85;"&gt;#&lt;/span&gt;&lt;span style="color: #888a85;"&gt;!/bin/&lt;/span&gt;&lt;span style="color: #729fcf; font-weight: bold;"&gt;bash&lt;/span&gt;
-
-&lt;span style="color: #eeeeec;"&gt;n&lt;/span&gt;=&lt;span style="color: #fa8072;"&gt;`ps waux | grep 'bash .*/ssh_proxy.sh' | grep -v grep | wc -l`&lt;/span&gt;
-&lt;span style="color: #729fcf; font-weight: bold;"&gt;if&lt;/span&gt; [ $&lt;span style="color: #eeeeec;"&gt;n&lt;/span&gt; -lt 3 ]; &lt;span style="color: #729fcf; font-weight: bold;"&gt;then&lt;/span&gt;
-    &lt;span style="color: #729fcf; font-weight: bold;"&gt;while&lt;/span&gt; [ true ]; &lt;span style="color: #729fcf; font-weight: bold;"&gt;do&lt;/span&gt;
-        &lt;span style="color: #eeeeec;"&gt;n&lt;/span&gt;=&lt;span style="color: #fa8072;"&gt;`ps aux | grep 'ssh' | grep '7070' | grep -v grep | wc -l`&lt;/span&gt;
-        &lt;span style="color: #729fcf; font-weight: bold;"&gt;if&lt;/span&gt; [ $&lt;span style="color: #eeeeec;"&gt;n&lt;/span&gt; -lt 1 ]; &lt;span style="color: #729fcf; font-weight: bold;"&gt;then&lt;/span&gt;
-            &lt;span style="color: #729fcf;"&gt;echo&lt;/span&gt; &lt;span style="color: #ad7fa8; font-style: italic;"&gt;"start ssh connecting"&lt;/span&gt;
-            ssh -qTnNf -D 7070 user@host
-        &lt;span style="color: #729fcf; font-weight: bold;"&gt;fi&lt;/span&gt;
-        &lt;span style="color: #729fcf;"&gt;echo&lt;/span&gt; &lt;span style="color: #ad7fa8; font-style: italic;"&gt;"wait for next checking"&lt;/span&gt;
-        sleep 30
-    &lt;span style="color: #729fcf; font-weight: bold;"&gt;done&lt;/span&gt;
-&lt;span style="color: #729fcf; font-weight: bold;"&gt;fi&lt;/span&gt;
-&lt;span style="color: #729fcf;"&gt;echo&lt;/span&gt; &lt;span style="color: #ad7fa8; font-style: italic;"&gt;"ssh_proxy.sh already running"&lt;/span&gt;
-
-&lt;/pre&gt;
-
-
-&lt;p&gt;
-    &#35831;&#23558;user@host&#25913;&#20026;&#20320;&#30340;vps&#29992;&#25143;&#21450;&#20027;&#26426;&#65292;&#24182;&#37197;&#32622;&#20026;&#20813;&#36755;&#20837;&#23494;&#30721;&#12290;
-&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;&#21551;&#21160;socks&#20195;&#29702;&#33050;&#26412;
-
-
-
-
-&lt;pre class="src src-sh"&gt;nohup bash ./ssh_proxy.sh &amp;amp;
-&lt;/pre&gt;
-
-
-&lt;p&gt;
-    &#27983;&#35272;&#22120;&#20063;&#21487;&#20197;&#21033;&#29992;&#23427;&#26469;&#32763;&#22681;&#12290;
-&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;&#23433;&#35013;tsocks
-
-
-
-&lt;pre class="src src-sh"&gt;yaourt -S tsocks
-&lt;/pre&gt;
-
-
-&lt;/li&gt;
-&lt;li&gt;&#37197;&#32622;tsocks
-
-&lt;p&gt;
-    &lt;code&gt;/etc/tsocks.conf&lt;/code&gt;
-&lt;/p&gt;
-
-
-&lt;pre class="example"&gt;# We can access 192.168.0.* directly
-local = 192.168.0.0/255.255.255.0
-local = 10.0.0.0/255.0.0.0
-
-# Otherwise we use the server
-server = 127.0.0.1
-server_port = 7070
-&lt;/pre&gt;
-
-&lt;p&gt;
-    &#20855;&#20307;&#29992;&#27861; &lt;code&gt;man tsocks.conf&lt;/code&gt;
-&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;&#20351;&#29992;tsocks&#35753;hg&#29992;&#19978;socks&#20195;&#29702;&#21151;&#33021;
-
-
-
-&lt;pre class="src src-sh"&gt;tsocks hg push
-&lt;/pre&gt;
-
-&lt;p&gt;
-    tsocks&#30475;&#36215;&#26469;&#24456;&#36890;&#29992;&#65292;&#24212;&#35813;&#20063;&#21487;&#20197;&#35753;git&#31561;&#36827;&#34892;socks&#20195;&#29702;&#35775;&#38382;&#12290;
-&lt;/p&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
 </content></entry>
 </feed>
