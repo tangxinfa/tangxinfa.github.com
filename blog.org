@@ -2517,6 +2517,11 @@ class RedisShard {
 
      #+begin_example
        ------------------------------------------------------------------------
+       r922 | tangxinfa | 2014-03-03 18:21:31 +0800 (Mon, 03 Mar 2014) | 4 lines
+       
+       修复discuz进行xss检查导致的用户申请丢失的bug。
+       
+       ------------------------------------------------------------------------
        r744 | tangxinfa | 2014-02-24 13:04:47 +0800 (Mon, 24 Feb 2014) | 3 lines
        
        申请表单去除”身份证号码“字段。
@@ -2578,8 +2583,268 @@ class RedisShard {
 
                修改html表单校验js，去掉必填限制。
 
+   - r922 :: 同事给出了选中进行内测的用户id列表，结果在申请数据表中竟然没有申请记录，一开始怀疑是用户有多个迅雷帐号，可能使用的是其它帐号提交的申请，不过很快排除了这种可能，查了一下RTX记录，申请的用户数也一直正常在增长，
+             
+             于是在错误处理进行得更严格了一些，很快用户反映提交出错，在用户的协助下从服务器抓包后发现提交申请的响应竟然是一个html页面：您当前的访问请求当中含有非法字符，已经被系统拒绝。
+             
+             原来，discuz默认情况下会对用户的输入进行检查如果其中包含像"><'()这些符号则会认为是xss攻击，阻止提交。最终通过在这个请求中临时禁用xss检测，解决了这个问题。
+
+             但是粗略估计有1/7的申请丢失，好在挑选内测用户是在论坛所有用户中选取后再获取他们的申请信息，不影响申请结果。
+
    - 结语
 
      + 再简单的页面也能养活一堆虫子
 
+     + 一定要有专业的测试人员来把测试关
+
      + 群众的眼睛是雪亮的
+
+     + 要使用严格的错误检测
+** TODO 选择基于Web的项目管理工具                                  :web:tool:
+
+   - [[http://collabtive.o-dyn.de/index.php][Collabtive]] 使用php开发，可自行安装。界面效果非常棒，中文界面。项目管理及帐号管理也很不错。但功能单一，只支持任务跟踪。
+
+   - [[http://trac.edgewall.org/][Trac]] 使用python开发，可自行安装。界面一般，中文支持较差。项目管理及帐号管理很差。功能较丰富，支持Wiki、任务及Bug跟踪。
+
+   - [[https://trello.com][trello]] 使用node.js开发，不可自行安装。界百效果超棒，不支持中文。项目管理及帐号管理很棒。功能单一，只支持任务跟踪，注重团队交流。
+
+** TODO CentOS 6.4下安装redmine                               :linux:redmine:
+
+*** 安装 =ruby=
+     
+    #+begin_src sh
+      yum install ruby
+      yum install ruby-devel
+      yum install rubygems
+    #+end_src
+
+*** 安装 =redmine=
+    
+    #+begin_src sh
+      wget 'http://www.redmine.org/releases/redmine-2.5.0.tar.gz'
+      tar xzvf redmine-2.5.0.tar.gz
+      gem install bundler
+      gem install mysql2.
+      yum install ImageMagick ImageMagick-devel
+      bundle install --without development test  
+    #+end_src
+
+*** 配置 =redmine=
+
+    - 以 root 用户登录 =mysql=
+
+      #+begin_src sh
+        mysql -uroot -p
+      #+end_src
+
+    - 创建 =redmine= 用户及库
+
+      #+begin_src sql
+        CREATE DATABASE redmine CHARACTER SET utf8;
+        CREATE USER 'redmine'@'localhost' IDENTIFIED BY 'redmine';
+        GRANT ALL PRIVILEGES ON redmine.* TO 'redmine'@'localhost';
+      #+end_src
+    
+    - 修改数据库配置文件
+
+      #+begin_src sh
+        cp config/database.yml.example config/database.yml
+        diff config/database.yml config/database.yml.example
+        10,11c10,11
+        <   username: redmine
+        <   password: "redmine"
+        ---
+        >   username: root
+        >   password: ""
+      #+end_src
+    
+    - 初始化会话存储
+      
+      #+begin_src sh
+        rake generate_secret_token
+      #+end_src
+      
+    - 创建数据库表结构
+    
+      #+begin_src sh
+        RAILS_ENV=production rake db:migrate
+      #+end_src
+
+    - 解决上一步可能出现的错误
+
+      #+BEGIN_QUOTE
+        rake aborted!
+        Can't connect to local MySQL server through socket '/var/lib/mysql/mysql.sock' (2)
+        
+        Tasks: TOP => db:migrate => environment
+      #+END_QUOTE
+      
+      确定 =mysql= 启动时指定的 =mysql.sock= 文件的路径
+
+      #+begin_src sh
+        ps aux | grep mysql.sock
+      #+end_src
+
+      显示的 =mysql.sock= 路径可能为“ =--socket=/tmp/mysql.sock= ”
+
+      修改 =redmine= 数据库配置，在 =production= 配置中添加 =socket= 项：
+
+      #+begin_example
+        production:
+          ...
+          socket: /tmp/mysql.sock
+      #+end_example
+
+      重新进行上一步操作。
+       
+    - 初始化数据
+
+      #+begin_src sh
+        RAILS_ENV=production REDMINE_LANG=zh rake redmine:load_default_data
+      #+end_src
+
+    - 创建相关目录
+
+      #+begin_src sh
+        mkdir -p tmp tmp/pdf public/plugin_assets
+        sudo chown -R nobody:nobody files log tmp public/plugin_assets
+        sudo chmod -R 755 files log tmp public/plugin_assets
+      #+end_src
+
+*** 试运行 =redmine=
+
+    #+begin_src sh
+      ruby script/rails server webrick -e production
+    #+end_src
+
+    - 浏览器打开页面
+      
+      [[http://localhost:3000]]
+
+      使用 用户名 =admin= ，密码 =admin= 登录后，立即修改密码。
+  
+      使用下面的命令生成随机的密码：
+      
+      #+begin_src sh
+        cat /dev/urandom | head -1 | md5sum | head -c 8
+      #+end_src
+
+*** 配置 =redmine=
+
+    - 修改 =config/settings.yml=
+      
+*** 使用 =Nginx= 和 =passenger= 来正式运行系统
+
+    #+begin_src sh
+      wget 'http://nginx.org/download/nginx-1.4.6.tar.gz'
+      tar xzvf nginx-1.4.6.tar.gz
+      gem install passenger
+      yum install pcre-devel
+      passenger-install-nginx-module
+    #+end_src
+
+    - 交互式安装过程
+
+      + Automatically download and install Nginx?
+        
+        选 2. No: I want to customize my Nginx installation. (for advanced users)
+  
+      + Where is your Nginx source code located?
+        
+        填解压的 =nginx= 源码包路径
+  
+      + Where do you want to install Nginx to?
+  
+        填 =/usr/local/nginx=
+  
+      + 修改 /usr/local/nginx/conf/nginx.conf
+  
+        在最后的 =}= 前添加以下配置
+  
+        #+begin_example
+          include vhosts/*.conf;
+        #+end_example
+        
+      + 添加站点配置文件 =/usr/local/nginx/conf/vhosts/redmine.conf=
+  
+        #+begin_example
+          server {
+            listen  80;
+            server_name <域名>;
+            root <redmine根目录>/public;
+            passenger_enabled on;
+            client_max_body_size 10m; # Max attachemnt size
+          }
+        #+end_example
+
+    - 启动 =nginx=
+      
+      #+begin_src sh       
+        /usr/local/nginx/sbin/nginx
+      #+end_src
+
+    - 现在可以正式访问站点了
+
+      http://<域名>
+
+*** 启用 =OpenID= 支持第三方帐号登录
+
+    - 安装 =openid= 库
+
+      #+begin_src sh
+        gem install ruby-openid
+      #+end_src
+
+    - 使用 =admin= 帐号登录系统，在“管理 - 配置 - 认证”中勾选上“允许使用OpenID登录和注册”。 
+
+    - 用户注册时“密码”可以省略， 填上 =OpenID URL= 即可。
+
+    - 如何获得Google的OpenID URL？
+      
+      + 先在 =Google= 的站点上登录
+      + 打开 [[https://profiles.google.com]] 后会跳转到类似这样（=https://plus.google.com/000000000000000000000/posts= ）的网页
+      + 你的 =OpenID URL= 为 http://profiles.google.com/000000000000000000000
+  
+      上面的 =000000000000000000000= 可能为任意的数字串
+    
+    - 管理员确认注册后即可在登录界面上输入 =OpenID URL= 直接登录
+      
+      一般浏览器的输入框是有记忆功能的，双击后会出现输入历史下拉列表，直接选择即可。
+
+    - 安装插件简化 =OpenID= 登录
+      
+      + [[https://github.com/jorgebg/redmine-openid-selector]] 为原始分枝，在 =redmine-2.5.0= 下不能直接安装会导致站点登录界面出现404错误
+        
+        解决方案在 [[http://www.redmine.org/boards/3/topics/34327?r=38778#message-38778][这里]] ，简而言之就是把插件目录名中的 =-= 改为 =_= 。
+        
+      + [[https://github.com/computerminds/redmine_openid_selector]] 这个分枝安装后可用，但界面为英文（其实界面就一句英文）。
+      
+      + https://github.com/tangxinfa/redmine_openid_selector 上面的分枝为了支持中文我新建的分枝。
+    
+      + 通用的插件安装过程：
+
+        #+begin_src sh
+          cd plugins
+          git clone https://github.com/tangxinfa/redmine_openid_selector.git
+          rake redmine:plugins:migrate RAILS_ENV=production
+          touch tmp/restart.txt
+        #+end_src
+
+      + 通过的插件卸载过程：
+      
+        #+begin_src sh
+          rake redmine:plugins:migrate NAME=redmine-openid-selector VERSION=0 RAILS_ENV=production
+          rm -rf plugins/redmine-openid-selector
+          touch tmp/restart.txt
+        #+end_src      
+     
+      现在在登录及注册页面直接点击第三方站点Logo即可使用系统。
+
+*** 安装更漂亮的样式
+
+    #+begin_src sh
+      git clone git://github.com/pixel-cookers/redmine-theme.git public/themes/pixel-cookers
+      touch tmp/restart.txt
+    #+end_src
+
+    现在可以使用 =admin= 登录后台，在“管理 - 配置 - 显示 - 主题”中启用主题 =Pixel-cookers= 。
