@@ -2920,7 +2920,6 @@ class RedisShard {
       import gettext
       gettext.bindtextdomain('messages', './hello.i18n')
       _ = gettext.gettext
-      
       print _('Hello')
     #+end_src
 
@@ -2986,7 +2985,7 @@ class RedisShard {
       #+begin_src sh
         pybabel extract -F hello.babel . -o hello.i18n/messages.pot           # 从源代码中提取可翻译的文本到POT（PO模板）文件
         pybabel update -l zh_CN -d ./hello.i18n -i ./hello.i18n/messages.pot  # 从POT文本更新指定语言的PO文件
-        # 开始翻译指定语言的PO文件
+        # 开始翻译指定语言的PO文件： hello.i18n/zh_CN/LC_MESSAGES/messages.po
         pybabel compile -f -d ./hello.i18n   #编译PO文件为MO文件
     #+end_src
 
@@ -2997,3 +2996,16 @@ class RedisShard {
         喂
         世界
       #+end_example    
+
+    - 强制使用某种语言
+      
+      =hello.cn.py=
+      #+begin_src python
+        import gettext
+        
+        t = gettext.translation('messages', './hello.i18n', languages=['zh_CN'])
+        _ = t.gettext
+        
+        print _('Hello')
+        print _('World')
+      #+end_src
