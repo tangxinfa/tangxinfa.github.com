@@ -2,7 +2,7 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8"/>
-    <title>如何做面试 | 看看俺 - KanKanAn.com</title>
+    <title>python应用国际化：Babel | 看看俺 - KanKanAn.com</title>
     <link rel="shortcut icon" href="/static/favicon.ico" />
     <link rel="stylesheet" type="text/less" href="../../../style/less/o-blog.less"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -58,72 +58,254 @@
     <div class="page-header">
       <div class="row">
 	<div class="date span1">
-	  <div class=" date-d">24</div>
-	  <div class=" date-m"><a href="../../../posts/2012/10/index.html">10月</a></div>
-	  <div class=" date-y"><a href="../../../posts/2012/index.html">2012</a>
+	  <div class=" date-d">09</div>
+	  <div class=" date-m"><a href="../../../posts/2014/03/index.html">3月</a></div>
+	  <div class=" date-y"><a href="../../../posts/2014/index.html">2014</a>
 	  </div>
 	</div>
 	<div class="span1">
 	  <div class="qr-code">
-  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="http://chart.apis.google.com/chart?chs=90x90&cht=qr&chld=|0&chl=http%3A%2F%2Fblog.kankanan.com%2Fposts%2F2012%2F10%2F24_59824f55505a97628bd5.html"
+  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="http://chart.apis.google.com/chart?chs=90x90&cht=qr&chld=|0&chl=http%3A%2F%2Fblog.kankanan.com%2Fposts%2F2014%2F03%2F09_python5e94752856fd96455316ff1ababel.html"
        alt="qr-code" />
 </div>
 
 	</div>
-	<h1 class="offset2">如何做面试</h1>
+	<h1 class="offset2">python应用国际化：Babel</h1>
       </div>
       <nav>
 	<ul class="pager">
-	  <li class="previous"><a href="../../../posts/2012/10/21_mongodb57fa7840.html"><i class="icon-chevron-left"></i>&nbsp;MongoDB基础</a></li><li class="next" style="text-align: right;"><a href="../../../posts/2012/11/12_740689e3nginx7684keepalive5ftimeout914d7f6e9879.html">理解nginx的keepalive_timeout配置项&nbsp;<i class="icon-chevron-right"></i></a></li>
+	  <li class="previous"><a href="../../../index.html"><i class="icon-chevron-left"></i>&nbsp;CentOS 6.4下安装redmine</a></li><li class="next">&nbsp;</li>
 	</ul>
       </nav>
     </div>
 
   </header>
   <div class="article-content">
-    <div id="outline-container-1" class="outline-3">
-<h3 id="sec-1">语言基础</h3>
+    <p>
+  <code>Babel</code> 是 <code>Python</code> 的一个国际化工具包，原本为<a href="#Edgewall.org">Edgewall.org</a>下的一个项目，现在已经转为由<a href="#pocoo.org">pocoo.org</a>维护。
+</p>
+<p>  
+  接下来将通过将对它进行一翻探究。
+</p>
+
+<div id="outline-container-1" class="outline-3">
+<h3 id="sec-1">统一管理 <code>Python</code> 虚拟环境</h3>
 <div class="outline-text-3" id="text-1">
+
+
+
+
+
+<pre class="src src-sh">yaourt -S python-virtualenvwrapper
+mkdir $<span style="color: #eeeeec;">HOME</span>/.virtualenvs
+<span style="color: #729fcf;">echo</span> <span style="color: #ad7fa8; font-style: italic;">'export WORKON_HOME=$HOME/.virtualenvs'</span> &gt;&gt; ~/.bashrc
+<span style="color: #729fcf;">echo</span> <span style="color: #ad7fa8; font-style: italic;">'source virtualenvwrapper.sh &gt;&gt; ~/.bashrc</span>
+<span style="color: #ad7fa8; font-style: italic;">source ~/.bashrc</span>
+</pre>
+
 
 </div>
 
 </div>
 
 <div id="outline-container-2" class="outline-3">
-<h3 id="sec-2">相关技术</h3>
+<h3 id="sec-2">建立折腾 <code>Babel</code> 专用虚拟环境</h3>
 <div class="outline-text-3" id="text-2">
+
+
+
+
+
+<pre class="src src-sh">mkvirtualenv --python=/usr/bin/python2 --no-site-packages LearnBabel
+</pre>
+
 
 </div>
 
 </div>
 
 <div id="outline-container-3" class="outline-3">
-<h3 id="sec-3">性能优化</h3>
+<h3 id="sec-3">编译安装 <code>Babel</code></h3>
 <div class="outline-text-3" id="text-3">
+
+
+
+
+
+<pre class="src src-sh">git clone https://github.com/mitsuhiko/babel.git
+<span style="color: #729fcf;">cd</span> babel
+pip install pytz
+python setup.py import_cldr
+pip install --editable .
+</pre>
+
 
 </div>
 
 </div>
 
 <div id="outline-container-4" class="outline-3">
-<h3 id="sec-4">架构</h3>
+<h3 id="sec-4">常用信息国际化</h3>
 <div class="outline-text-3" id="text-4">
+
+
+
+
+
+<pre class="example">&gt;&gt;&gt; from babel import Locale
+&gt;&gt;&gt; locale = Locale('en', 'US')
+&gt;&gt;&gt; print locale.territories['CN']
+China
+&gt;&gt;&gt; locale = Locale('zh')
+&gt;&gt;&gt; print locale.territories['CN']
+中国
+&gt;&gt;&gt; month_names = locale.months['format']['wide'].items()
+&gt;&gt;&gt; for idx, name in sorted(month_names):
+...   print name
+... 
+一月
+二月
+三月
+四月
+五月
+六月
+七月
+八月
+九月
+十月
+十一月
+十二月
+&gt;&gt;&gt; from datetime import date
+&gt;&gt;&gt; from babel.dates import format_date
+&gt;&gt;&gt; today = date.today()
+&gt;&gt;&gt; print format_date(today, locale='zh')
+2014年3月9日
+</pre>
+
 
 </div>
 
 </div>
 
 <div id="outline-container-5" class="outline-3">
-<h3 id="sec-5">管理</h3>
+<h3 id="sec-5">任意信息国际化</h3>
 <div class="outline-text-3" id="text-5">
 
-</div>
 
-</div>
+<p>
+   <code>hello.py</code>
+</p>
 
-<div id="outline-container-6" class="outline-3">
-<h3 id="sec-6">诉求</h3>
-<div class="outline-text-3" id="text-6">
+
+<pre class="src src-python"><span style="color: #729fcf; font-weight: bold;">import</span> gettext
+gettext.bindtextdomain(<span style="color: #ad7fa8; font-style: italic;">'messages'</span>, <span style="color: #ad7fa8; font-style: italic;">'./hello.i18n'</span>)
+<span style="color: #eeeeec;">_</span> = gettext.gettext
+
+<span style="color: #729fcf; font-weight: bold;">print</span> _(<span style="color: #ad7fa8; font-style: italic;">'Hello'</span>)
+</pre>
+
+
+<p>
+   <code>hello.babel</code>
+</p>
+
+
+<pre class="example">[python: hello.py]
+</pre>
+
+
+
+<pre class="src src-sh">mkdir hello.i18n
+pybabel extract -F hello.babel . -o hello.i18n/messages.pot         <span style="color: #888a85;"># </span><span style="color: #888a85;">&#20174;&#28304;&#20195;&#30721;&#20013;&#25552;&#21462;&#21487;&#32763;&#35793;&#30340;&#25991;&#26412;&#21040;POT&#65288;PO&#27169;&#26495;&#65289;&#25991;&#20214;</span>
+pybabel init -l zh_CN -d ./hello.i18n -i ./hello.i18n/messages.pot  <span style="color: #888a85;"># </span><span style="color: #888a85;">&#23558;POT&#25991;&#26412;&#25335;&#36125;&#20986;&#19968;&#20221;&#25351;&#23450;&#35821;&#35328;&#30340;PO&#25991;&#20214;</span>
+<span style="color: #888a85;"># </span><span style="color: #888a85;">&#24320;&#22987;&#32763;&#35793;&#25351;&#23450;&#35821;&#35328;&#30340;PO&#25991;&#20214;</span>
+pybabel compile -f -d ./hello.i18n   <span style="color: #888a85;">#</span><span style="color: #888a85;">&#32534;&#35793;PO&#25991;&#20214;&#20026;MO&#25991;&#20214;</span>
+</pre>
+
+
+<p>
+   <code>./hello.i18n/zh_CN/LC_MESSAGES/messages.po</code>
+</p>
+
+
+<pre class="example"># Chinese (Simplified, China) translations for PROJECT.
+# Copyright (C) 2014 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR &lt;EMAIL@ADDRESS&gt;, 2014.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2014-03-09 19:08+0800\n"
+"PO-Revision-Date: 2014-03-09 19:12+0800\n"
+"Last-Translator: FULL NAME &lt;EMAIL@ADDRESS&gt;\n"
+"Language-Team: zh_Hans_CN &lt;LL@li.org&gt;\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.0-dev\n"
+
+#: hello.py:1
+msgid "Hello"
+msgstr "喂"
+
+</pre>
+
+
+<ul>
+<li>英文环境下运行
+
+
+
+
+<pre class="example">python ./hello.py
+Hello
+</pre>
+
+
+</li>
+<li>中文环境下运行
+
+
+
+
+<pre class="example">LC_ALL=zh_CN python ./hello.py
+喂
+</pre>
+
+
+</li>
+<li>更新 <code>hello.py</code> ，追加一句“      print <sub>('World')</sub>”
+
+</li>
+<li>再译“World”
+
+
+
+
+<pre class="src src-sh">pybabel extract -F hello.babel . -o hello.i18n/messages.pot           <span style="color: #888a85;"># </span><span style="color: #888a85;">&#20174;&#28304;&#20195;&#30721;&#20013;&#25552;&#21462;&#21487;&#32763;&#35793;&#30340;&#25991;&#26412;&#21040;POT&#65288;PO&#27169;&#26495;&#65289;&#25991;&#20214;</span>
+pybabel update -l zh_CN -d ./hello.i18n -i ./hello.i18n/messages.pot  <span style="color: #888a85;"># </span><span style="color: #888a85;">&#20174;POT&#25991;&#26412;&#26356;&#26032;&#25351;&#23450;&#35821;&#35328;&#30340;PO&#25991;&#20214;</span>
+<span style="color: #888a85;"># </span><span style="color: #888a85;">&#24320;&#22987;&#32763;&#35793;&#25351;&#23450;&#35821;&#35328;&#30340;PO&#25991;&#20214;</span>
+pybabel compile -f -d ./hello.i18n   <span style="color: #888a85;">#</span><span style="color: #888a85;">&#32534;&#35793;PO&#25991;&#20214;&#20026;MO&#25991;&#20214;</span>
+</pre>
+
+
+</li>
+<li>再次运行
+
+
+
+
+<pre class="example">LC_ALL=zh_CN python ./hello.py
+喂
+世界
+</pre>
+
+</li>
+</ul>
 
 </div>
 </div>
@@ -137,7 +319,7 @@
       </ul>
     </nav>
     <span class="muted">
-      发布于 <time datetime="2012-10-24T14:23:00Z"> 2012-10-24 14:23</time>
+      发布于 <time datetime="2014-03-09T19:54:00Z"> 2014-03-09 19:54</time>
     </span>
   </footer>
   </div>
@@ -145,7 +327,7 @@
 <script type="text/javascript">
   /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
   var disqus_shortname = 'kankananblog'; // required: replace example with your forum shortname
-  var disqus_url = 'http://blog.kankanan.com/posts/2012/10/24_59824f55505a97628bd5.html';
+  var disqus_url = 'http://blog.kankanan.com/posts/2014/03/09_python5e94752856fd96455316ff1ababel.html';
 
   /* * * DON'T EDIT BELOW THIS LINE * * */
   (function() {

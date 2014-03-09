@@ -2847,3 +2847,153 @@ class RedisShard {
     #+end_src
 
     现在可以使用 =admin= 登录后台，在“管理 - 配置 - 显示 - 主题”中启用主题 =Pixel-cookers= 。
+** DONE python应用国际化：Babel
+   CLOSED: [2014-03-09 Sun 19:54]
+
+   =Babel= 是 =Python= 的一个国际化工具包，原本为[[Edgewall.org]]下的一个项目，现在已经转为由[[pocoo.org]]维护。
+   
+   接下来将通过将对它进行一翻探究。
+
+*** 统一管理 =Python= 虚拟环境
+    
+    #+begin_src sh
+      yaourt -S python-virtualenvwrapper
+      mkdir $HOME/.virtualenvs
+      echo 'export WORKON_HOME=$HOME/.virtualenvs' >> ~/.bashrc
+      echo 'source virtualenvwrapper.sh >> ~/.bashrc
+      source ~/.bashrc
+    #+end_src
+
+*** 建立折腾 =Babel= 专用虚拟环境
+
+    #+begin_src sh
+      mkvirtualenv --python=/usr/bin/python2 --no-site-packages LearnBabel
+    #+end_src
+
+*** 编译安装 =Babel=
+
+    #+begin_src sh
+      git clone https://github.com/mitsuhiko/babel.git
+      cd babel
+      pip install pytz
+      python setup.py import_cldr
+      pip install --editable .
+    #+end_src
+   
+*** 常用信息国际化
+
+    #+begin_example
+      >>> from babel import Locale
+      >>> locale = Locale('en', 'US')
+      >>> print locale.territories['CN']
+      China
+      >>> locale = Locale('zh')
+      >>> print locale.territories['CN']
+      中国
+      >>> month_names = locale.months['format']['wide'].items()
+      >>> for idx, name in sorted(month_names):
+      ...   print name
+      ... 
+      一月
+      二月
+      三月
+      四月
+      五月
+      六月
+      七月
+      八月
+      九月
+      十月
+      十一月
+      十二月
+      >>> from datetime import date
+      >>> from babel.dates import format_date
+      >>> today = date.today()
+      >>> print format_date(today, locale='zh')
+      2014年3月9日
+    #+end_example
+
+*** 任意信息国际化
+
+    =hello.py=
+    #+begin_src python
+      import gettext
+      gettext.bindtextdomain('messages', './hello.i18n')
+      _ = gettext.gettext
+      
+      print _('Hello')
+    #+end_src
+
+    =hello.babel=
+    #+begin_example
+      [python: hello.py]
+    #+end_example
+
+    #+begin_src sh
+      mkdir hello.i18n
+      pybabel extract -F hello.babel . -o hello.i18n/messages.pot         # 从源代码中提取可翻译的文本到POT（PO模板）文件
+      pybabel init -l zh_CN -d ./hello.i18n -i ./hello.i18n/messages.pot  # 将POT文本拷贝出一份指定语言的PO文件
+      # 开始翻译指定语言的PO文件
+      pybabel compile -f -d ./hello.i18n   #编译PO文件为MO文件
+    #+end_src
+
+    =./hello.i18n/zh_CN/LC_MESSAGES/messages.po=
+    #+begin_example
+      # Chinese (Simplified, China) translations for PROJECT.
+      # Copyright (C) 2014 ORGANIZATION
+      # This file is distributed under the same license as the PROJECT project.
+      # FIRST AUTHOR <EMAIL@ADDRESS>, 2014.
+      #
+      #, fuzzy
+      msgid ""
+      msgstr ""
+      "Project-Id-Version: PROJECT VERSION\n"
+      "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+      "POT-Creation-Date: 2014-03-09 19:08+0800\n"
+      "PO-Revision-Date: 2014-03-09 19:12+0800\n"
+      "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+      "Language-Team: zh_Hans_CN <LL@li.org>\n"
+      "Plural-Forms: nplurals=2; plural=(n != 1)\n"
+      "MIME-Version: 1.0\n"
+      "Content-Type: text/plain; charset=utf-8\n"
+      "Content-Transfer-Encoding: 8bit\n"
+      "Generated-By: Babel 2.0-dev\n"
+      
+      #: hello.py:1
+      msgid "Hello"
+      msgstr "喂"
+
+    #+end_example
+    
+    - 英文环境下运行
+
+      #+begin_example
+        python ./hello.py
+        Hello
+      #+end_example
+
+    - 中文环境下运行
+      
+      #+begin_example
+        LC_ALL=zh_CN python ./hello.py
+        喂
+      #+end_example
+
+    - 更新 =hello.py= ，追加一句“      print _('World')”
+
+    - 再译“World”
+
+      #+begin_src sh
+        pybabel extract -F hello.babel . -o hello.i18n/messages.pot           # 从源代码中提取可翻译的文本到POT（PO模板）文件
+        pybabel update -l zh_CN -d ./hello.i18n -i ./hello.i18n/messages.pot  # 从POT文本更新指定语言的PO文件
+        # 开始翻译指定语言的PO文件
+        pybabel compile -f -d ./hello.i18n   #编译PO文件为MO文件
+    #+end_src
+
+    - 再次运行
+
+      #+begin_example
+        LC_ALL=zh_CN python ./hello.py
+        喂
+        世界
+      #+end_example    
