@@ -2843,7 +2843,7 @@ class RedisShard {
     #+end_src
 
     现在可以使用 =admin= 登录后台，在“管理 - 配置 - 显示 - 主题”中启用主题 =Pixel-cookers= 。
-** DONE python应用国际化：Babel
+** DONE python应用国际化：Babel                                :python:babel:
    CLOSED: [2014-03-09 Sun 19:54]
    :PROPERTIES:
    :PAGE:     index.html
@@ -3017,3 +3017,88 @@ class RedisShard {
           喂
           世界
         #+end_example
+** DONE 开源项目管理系统：trac                                  :python:trac:
+   CLOSED: [2014-03-10 Mon 00:44]
+
+   最近负责为公司搭建项目管理系统，有如下要求：
+   
+   - 支持BUG管理
+
+   - 支持帐号管理
+
+   - 支持WIKI
+
+   - 支持任务分配
+
+   - 支持中文
+
+   由于时间紧迫，感觉 =redmine= 界面更漂亮，相关资料也好找，而且帐号管理、中文支持方面的很不错，所以选择了 =redmine= 。
+
+   其实心里面一直希望选的是基于 =python= 开发的系统，一方面自已喜欢 =python= ，另外团队中对 =python= 熟悉的人比较多，这样后面需要做二次开发时会容易一些。
+
+   =trac= 给人的第一感觉是太过于简单粗糙了。界面朴实简洁尚可接受、演示站点中文化不彻底、自已安装的时候较之 =redmine= 更是磕磕绊绊。
+
+   =trac= 使用 =Babel= 进行多语言支持，当前的trac稳定版（1.0）存在中文支持方面的Bug：[[http://trac.edgewall.org/ticket/10903][Wrong `NullTranslations` class in functional tests]] ，我在安装过程中就遇到了，
+
+   正是这个问题才觉得先研究一下 =Babel= ，于是有了上一篇文章 《[[http://blog.kankanan.com/posts/2014/03/09_python5e94752856fd96455316ff1ababel.html][python应用国际化：Babel]]》， =trac= 下一版（1.1）对这个问题进行了修复。 
+
+   在网络上有很多人对 =trac= 夸赞有加，另外 =trac= 还有持续集成的插件： [[http://bitten.edgewall.org/][Bitten]] ， 在对 =Babel= 有一定了解后，我终于鼓气勇气研究起 [[http://trac.edgewall.org/][trac]] 。
+
+*** 安装最新版 =trac=
+
+    - 使用学习 =Babel= 时建的虚拟环境
+      
+      #+begin_src sh
+        workon LearnBabel
+      #+end_src
+
+    - 从最新源代码安装 =trac=
+      
+      #+begin_src sh
+        svn checkout http://svn.edgewall.org/repos/trac/trunk trac
+        cd trac
+        python ./setup.py install
+      #+end_src
+   
+    - 建一个项目看看效果
+      
+      #+begin_src sh
+        cd ~/Examples/python
+        trac-admin LearnTrac initenv
+        tracd --port 8080 LearnTrac &
+        xdg-open http://localhost:8080
+      #+end_src
+
+    感觉 =trac= 的中文化做得还不够彻底，但是关键的部位都已经中文化，不影响对整个系统的使用，有了 =Babel= 的经验之后对它进行中文化是很容易的，翻译后提交给 =trac= 开发人员，也算是回馈开源社区了。
+
+*** 配置用户
+
+    - 创建帐号文件 =LearnTrac/conf/users.digest=
+
+      #+begin_src sh
+        user=admin
+        realm=localhost
+        password=admin
+        file=LearnTrac/conf/users.digest
+        echo ${user}:${realm}:$(printf "${user}:${realm}:${password}" | md5sum - | sed -e 's/\s\+-//') >> ${file}
+      #+end_src
+
+    - 重新启动服务
+
+      #+begin_src python
+        tracd -p 8080 --auth="LearnTrac,LearnTrac/conf/users.digest,localhost" LearnTrac
+      #+end_src
+
+    现在可以使用 =admin= 帐号登录了
+
+    帐号管理方面 =trac= 比较弱，只能通过 =trac-admin= 命令行工具来管理，小团队使用还是可以接受的，另外仅支持HTTP认证，配上HTTPS布署到外网也算是不错的选择。
+
+*** 配置权限
+
+    - 为 =admin= 用户赋予管理员权限
+
+      #+begin_src python
+        trac-admin LearnTrac permission add admin TRAC_ADMIN
+      #+end_src
+
+    现在可以在WEB界面上看到“管理”标签页了，可以在WEB界面上对权限进行配置。

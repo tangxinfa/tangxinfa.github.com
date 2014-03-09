@@ -2,7 +2,7 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8"/>
-    <title>看看俺 - KanKanAn.com</title>
+    <title>开源项目管理系统：trac | 看看俺 - KanKanAn.com</title>
     <link rel="shortcut icon" href="/static/favicon.ico" />
     <link rel="stylesheet" type="text/less" href="../../../style/less/o-blog.less"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -52,16 +52,219 @@
       <div class="row-fluid">
         <div id="page" class="span9">
 
-<article>
+  <div class="article">
+  <header class="article-header">
+
+    <div class="page-header">
+      <div class="row">
+	<div class="date span1">
+	  <div class=" date-d">10</div>
+	  <div class=" date-m"><a href="../../../posts/2014/03/index.html">3月</a></div>
+	  <div class=" date-y"><a href="../../../posts/2014/index.html">2014</a>
+	  </div>
+	</div>
+	<div class="span1">
+	  <div class="qr-code">
+  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="http://chart.apis.google.com/chart?chs=90x90&cht=qr&chld=|0&chl=http%3A%2F%2Fblog.kankanan.com%2Fposts%2F2014%2F03%2F10_5f006e90987976ee7ba174067cfb7edfff1atrac.html"
+       alt="qr-code" />
+</div>
+
+	</div>
+	<h1 class="offset2">开源项目管理系统：trac</h1>
+      </div>
+      <nav>
+	<ul class="pager">
+	  <li class="previous"><a href="../../../index.html"><i class="icon-chevron-left"></i>&nbsp;python应用国际化：Babel</a></li><li class="next">&nbsp;</li>
+	</ul>
+      </nav>
+    </div>
+
+  </header>
   <div class="article-content">
-    <nav class="archives">
-      <ul class="month 2008 6">
-  <li>17 <a href="../../../posts/2008/06/17_log4cxx4f7f75285fc35f97.html">log4cxx使用心得</a></li>
+    <p>
+  最近负责为公司搭建项目管理系统，有如下要求：
+</p>
+<ul>
+<li>支持BUG管理
+
+</li>
+<li>支持帐号管理
+
+</li>
+<li>支持WIKI
+
+</li>
+<li>支持任务分配
+
+</li>
+<li>支持中文
+</li>
 </ul>
 
-    </nav>
+
+<p>
+  由于时间紧迫，感觉 <code>redmine</code> 界面更漂亮，相关资料也好找，而且帐号管理、中文支持方面的很不错，所以选择了 <code>redmine</code> 。
+</p>
+<p>
+  其实心里面一直希望选的是基于 <code>python</code> 开发的系统，一方面自已喜欢 <code>python</code> ，另外团队中对 <code>python</code> 熟悉的人比较多，这样后面需要做二次开发时会容易一些。
+</p>
+<p>
+  <code>trac</code> 给人的第一感觉是太过于简单粗糙了。界面朴实简洁尚可接受、演示站点中文化不彻底、自已安装的时候较之 <code>redmine</code> 更是磕磕绊绊。
+</p>
+<p>
+  <code>trac</code> 使用 <code>Babel</code> 进行多语言支持，当前的trac稳定版（1.0）存在中文支持方面的Bug：<a href="http://trac.edgewall.org/ticket/10903">Wrong `NullTranslations` class in functional tests</a> ，我在安装过程中就遇到了，
+</p>
+<p>
+  正是这个问题才觉得先研究一下 <code>Babel</code> ，于是有了上一篇文章 《<a href="http://blog.kankanan.com/posts/2014/03/09_python5e94752856fd96455316ff1ababel.html">python应用国际化：Babel</a>》， <code>trac</code> 下一版（1.1）对这个问题进行了修复。 
+</p>
+<p>
+  在网络上有很多人对 <code>trac</code> 夸赞有加，另外 <code>trac</code> 还有持续集成的插件： <a href="http://bitten.edgewall.org/">Bitten</a> ， 在对 <code>Babel</code> 有一定了解后，我终于鼓气勇气研究起 <a href="http://trac.edgewall.org/">trac</a> 。
+</p>
+
+<div id="outline-container-1" class="outline-3">
+<h3 id="sec-1">安装最新版 <code>trac</code></h3>
+<div class="outline-text-3" id="text-1">
+
+
+<ul>
+<li>使用学习 <code>Babel</code> 时建的虚拟环境
+
+
+
+
+<pre class="src src-sh">workon LearnBabel
+</pre>
+
+
+</li>
+<li>从最新源代码安装 <code>trac</code>
+
+
+
+
+<pre class="src src-sh">svn checkout http://svn.edgewall.org/repos/trac/trunk trac
+<span style="color: #729fcf;">cd</span> trac
+python ./setup.py install
+</pre>
+
+
+</li>
+<li>建一个项目看看效果
+
+
+
+
+<pre class="src src-sh"><span style="color: #729fcf;">cd</span> ~/Examples/python
+trac-admin LearnTrac initenv
+tracd --port 8080 LearnTrac &amp;
+xdg-open http://localhost:8080
+</pre>
+
+</li>
+</ul>
+
+
+<p>
+   感觉 <code>trac</code> 的中文化做得还不够彻底，但是关键的部位都已经中文化，不影响对整个系统的使用，有了 <code>Babel</code> 的经验之后对它进行中文化是很容易的，翻译后提交给 <code>trac</code> 开发人员，也算是回馈开源社区了。
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-2" class="outline-3">
+<h3 id="sec-2">配置用户</h3>
+<div class="outline-text-3" id="text-2">
+
+
+<ul>
+<li>创建帐号文件 <code>LearnTrac/conf/users.digest</code>
+
+
+
+
+<pre class="src src-sh"><span style="color: #eeeeec;">user</span>=admin
+<span style="color: #eeeeec;">realm</span>=localhost
+<span style="color: #eeeeec;">password</span>=admin
+<span style="color: #eeeeec;">file</span>=LearnTrac/conf/users.digest
+<span style="color: #729fcf;">echo</span> ${<span style="color: #eeeeec;">user</span>}:${<span style="color: #eeeeec;">realm</span>}:$(<span style="color: #fa8072;">printf</span> <span style="color: #ad7fa8; font-style: italic;">"${user}:${realm}:${password}"</span> | md5sum - | sed -e <span style="color: #ad7fa8; font-style: italic;">'s/\s\+-//'</span>) &gt;&gt; ${<span style="color: #eeeeec;">file</span>}
+</pre>
+
+
+</li>
+<li>重新启动服务
+
+
+
+
+<pre class="src src-python">tracd -p 8080 --<span style="color: #eeeeec;">auth</span>=<span style="color: #ad7fa8; font-style: italic;">"LearnTrac,LearnTrac/conf/users.digest,localhost"</span> LearnTrac
+</pre>
+
+</li>
+</ul>
+
+
+<p>
+   现在可以使用 <code>admin</code> 帐号登录了
+</p>
+<p>
+   帐号管理方面 <code>trac</code> 比较弱，只能通过 <code>trac-admin</code> 命令行工具来管理，小团队使用还是可以接受的，另外仅支持HTTP认证，配上HTTPS布署到外网也算是不错的选择。
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-3" class="outline-3">
+<h3 id="sec-3">配置权限</h3>
+<div class="outline-text-3" id="text-3">
+
+
+<ul>
+<li>为 <code>admin</code> 用户赋予管理员权限
+
+
+
+
+<pre class="src src-python">trac-admin LearnTrac permission add admin TRAC_ADMIN
+</pre>
+
+</li>
+</ul>
+
+
+<p>
+   现在可以在WEB界面上看到“管理”标签页了，可以在WEB界面上对权限进行配置。
+</p></div>
+</div>
+
   </div>
-</article>
+  
+  <footer class="article-footer">
+    <nav class="tag-cloud">
+      <ul>
+	<li class="label label-inverse small"><a href="../../../tags/python.html">python</a></li><li class="label label-inverse small"><a href="../../../tags/trac.html">trac</a></li>
+      </ul>
+    </nav>
+    <span class="muted">
+      发布于 <time datetime="2014-03-10T00:44:00Z"> 2014-03-10 00:44</time>
+    </span>
+  </footer>
+  </div>
+  <div id="disqus_thread"></div>
+<script type="text/javascript">
+  /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+  var disqus_shortname = 'kankananblog'; // required: replace example with your forum shortname
+  var disqus_url = 'http://blog.kankanan.com/posts/2014/03/10_5f006e90987976ee7ba174067cfb7edfff1atrac.html';
+
+  /* * * DON'T EDIT BELOW THIS LINE * * */
+  (function() {
+  var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+  dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
       </div>
       <div id="sidebar" class="span3">
         <h5>最新文章</h5>
