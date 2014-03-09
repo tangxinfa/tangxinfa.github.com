@@ -2606,10 +2606,6 @@ class RedisShard {
 
 ** DONE CentOS 6.4下安装redmine                               :linux:redmine:
    CLOSED: [2014-03-07 Fri 14:17]
-   :PROPERTIES:
-   :PAGE:     index.html
-   :TEMPLATE: blog_static_no_title.html
-   :END:
 
 *** 安装 =ruby=
      
@@ -2849,22 +2845,24 @@ class RedisShard {
     现在可以使用 =admin= 登录后台，在“管理 - 配置 - 显示 - 主题”中启用主题 =Pixel-cookers= 。
 ** DONE python应用国际化：Babel
    CLOSED: [2014-03-09 Sun 19:54]
+   :PROPERTIES:
+   :PAGE:     index.html
+   :TEMPLATE: blog_static_no_title.html
+   :END:
 
-   =Babel= 是 =Python= 的一个国际化工具包，原本为[[Edgewall.org]]下的一个项目，现在已经转为由[[pocoo.org]]维护。
+   =[[http://babel.pocoo.org/][Babel]]= 是 =Python= 的一个国际化工具包，原本为[[Edgewall.org]]下的一个项目，现在已经转为由[[pocoo.org]]维护。
    
-   接下来将通过将对它进行一翻探究。
-
 *** 统一管理 =Python= 虚拟环境
     
     #+begin_src sh
       yaourt -S python-virtualenvwrapper
       mkdir $HOME/.virtualenvs
       echo 'export WORKON_HOME=$HOME/.virtualenvs' >> ~/.bashrc
-      echo 'source virtualenvwrapper.sh >> ~/.bashrc
+      echo 'source virtualenvwrapper.sh' >> ~/.bashrc
       source ~/.bashrc
     #+end_src
 
-*** 建立折腾 =Babel= 专用虚拟环境
+*** 建立学习 =Babel= 专用虚拟环境
 
     #+begin_src sh
       mkvirtualenv --python=/usr/bin/python2 --no-site-packages LearnBabel
@@ -2915,54 +2913,57 @@ class RedisShard {
 
 *** 任意信息国际化
 
-    =hello.py=
-    #+begin_src python
-      import gettext
-      gettext.bindtextdomain('messages', './hello.i18n')
-      _ = gettext.gettext
-      print _('Hello')
-    #+end_src
+    - =hello.py=
 
-    =hello.babel=
-    #+begin_example
-      [python: hello.py]
-    #+end_example
+      #+begin_src python
+        import gettext
+        gettext.bindtextdomain('messages', './hello.i18n')
+        _ = gettext.gettext
+        print _('Hello')
+      #+end_src
+
+    - =hello.babel=
+
+      #+begin_example
+        [python: hello.py]
+      #+end_example
 
     #+begin_src sh
       mkdir hello.i18n
-      pybabel extract -F hello.babel . -o hello.i18n/messages.pot         # 从源代码中提取可翻译的文本到POT（PO模板）文件
-      pybabel init -l zh_CN -d ./hello.i18n -i ./hello.i18n/messages.pot  # 将POT文本拷贝出一份指定语言的PO文件
+      pybabel extract -F hello.babel . -o hello.i18n/messages.pot    # 从源代码中提取可翻译的文本到POT（PO模板）文件
+      pybabel init -l zh_CN -d ./hello.i18n -i ./hello.i18n/messages.pot    # 将POT文本拷贝出一份指定语言的PO文件
       # 开始翻译指定语言的PO文件
-      pybabel compile -f -d ./hello.i18n   #编译PO文件为MO文件
+      pybabel compile -f -d ./hello.i18n    #编译PO文件为MO文件
     #+end_src
 
-    =./hello.i18n/zh_CN/LC_MESSAGES/messages.po=
-    #+begin_example
-      # Chinese (Simplified, China) translations for PROJECT.
-      # Copyright (C) 2014 ORGANIZATION
-      # This file is distributed under the same license as the PROJECT project.
-      # FIRST AUTHOR <EMAIL@ADDRESS>, 2014.
-      #
-      #, fuzzy
-      msgid ""
-      msgstr ""
-      "Project-Id-Version: PROJECT VERSION\n"
-      "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-      "POT-Creation-Date: 2014-03-09 19:08+0800\n"
-      "PO-Revision-Date: 2014-03-09 19:12+0800\n"
-      "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-      "Language-Team: zh_Hans_CN <LL@li.org>\n"
-      "Plural-Forms: nplurals=2; plural=(n != 1)\n"
-      "MIME-Version: 1.0\n"
-      "Content-Type: text/plain; charset=utf-8\n"
-      "Content-Transfer-Encoding: 8bit\n"
-      "Generated-By: Babel 2.0-dev\n"
-      
-      #: hello.py:1
-      msgid "Hello"
-      msgstr "喂"
+    - =./hello.i18n/zh_CN/LC_MESSAGES/messages.po=
 
-    #+end_example
+      #+begin_example
+        # Chinese (Simplified, China) translations for PROJECT.
+        # Copyright (C) 2014 ORGANIZATION
+        # This file is distributed under the same license as the PROJECT project.
+        # FIRST AUTHOR <EMAIL@ADDRESS>, 2014.
+        #
+        #, fuzzy
+        msgid ""
+        msgstr ""
+        "Project-Id-Version: PROJECT VERSION\n"
+        "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+        "POT-Creation-Date: 2014-03-09 19:08+0800\n"
+        "PO-Revision-Date: 2014-03-09 19:12+0800\n"
+        "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+        "Language-Team: zh_Hans_CN <LL@li.org>\n"
+        "Plural-Forms: nplurals=2; plural=(n != 1)\n"
+        "MIME-Version: 1.0\n"
+        "Content-Type: text/plain; charset=utf-8\n"
+        "Content-Transfer-Encoding: 8bit\n"
+        "Generated-By: Babel 2.0-dev\n"
+        
+        #: hello.py:1
+        msgid "Hello"
+        msgstr "喂"
+        
+      #+end_example
     
     - 英文环境下运行
 
@@ -2978,16 +2979,16 @@ class RedisShard {
         喂
       #+end_example
 
-    - 更新 =hello.py= ，追加一句“      print _('World')”
+    - 更新 =hello.py= ，追加一句“      print \_('World')”
 
     - 再译“World”
 
       #+begin_src sh
-        pybabel extract -F hello.babel . -o hello.i18n/messages.pot           # 从源代码中提取可翻译的文本到POT（PO模板）文件
-        pybabel update -l zh_CN -d ./hello.i18n -i ./hello.i18n/messages.pot  # 从POT文本更新指定语言的PO文件
+        pybabel extract -F hello.babel . -o hello.i18n/messages.pot    # 从源代码中提取可翻译的文本到POT（PO模板）文件
+        pybabel update -l zh_CN -d ./hello.i18n -i ./hello.i18n/messages.pot    # 从POT文本更新指定语言的PO文件
         # 开始翻译指定语言的PO文件： hello.i18n/zh_CN/LC_MESSAGES/messages.po
-        pybabel compile -f -d ./hello.i18n   #编译PO文件为MO文件
-    #+end_src
+        pybabel compile -f -d ./hello.i18n    #编译PO文件为MO文件
+      #+end_src
 
     - 再次运行
 
@@ -2999,13 +3000,20 @@ class RedisShard {
 
     - 强制使用某种语言
       
-      =hello.cn.py=
-      #+begin_src python
-        import gettext
-        
-        t = gettext.translation('messages', './hello.i18n', languages=['zh_CN'])
-        _ = t.gettext
-        
-        print _('Hello')
-        print _('World')
-      #+end_src
+      + =hello.cn.py=
+
+        #+begin_src python
+          import gettext
+          
+          t = gettext.translation('messages', './hello.i18n', languages=['zh_CN'])
+          _ = t.gettext
+          
+          print _('Hello')
+          print _('World')
+        #+end_src
+      
+        #+begin_example
+          LC_ALL=en_US python ./hello.py
+          喂
+          世界
+        #+end_example

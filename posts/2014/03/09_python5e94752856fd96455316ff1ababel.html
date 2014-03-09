@@ -82,10 +82,7 @@
   </header>
   <div class="article-content">
     <p>
-  <code>Babel</code> 是 <code>Python</code> 的一个国际化工具包，原本为<a href="#Edgewall.org">Edgewall.org</a>下的一个项目，现在已经转为由<a href="#pocoo.org">pocoo.org</a>维护。
-</p>
-<p>  
-  接下来将通过将对它进行一翻探究。
+  =<a href="http://babel.pocoo.org/">Babel</a>= 是 <code>Python</code> 的一个国际化工具包，原本为<a href="#Edgewall.org">Edgewall.org</a>下的一个项目，现在已经转为由<a href="#pocoo.org">pocoo.org</a>维护。
 </p>
 
 <div id="outline-container-1" class="outline-3">
@@ -99,8 +96,8 @@
 <pre class="src src-sh">yaourt -S python-virtualenvwrapper
 mkdir $<span style="color: #eeeeec;">HOME</span>/.virtualenvs
 <span style="color: #729fcf;">echo</span> <span style="color: #ad7fa8; font-style: italic;">'export WORKON_HOME=$HOME/.virtualenvs'</span> &gt;&gt; ~/.bashrc
-<span style="color: #729fcf;">echo</span> <span style="color: #ad7fa8; font-style: italic;">'source virtualenvwrapper.sh &gt;&gt; ~/.bashrc</span>
-<span style="color: #ad7fa8; font-style: italic;">source ~/.bashrc</span>
+<span style="color: #729fcf;">echo</span> <span style="color: #ad7fa8; font-style: italic;">'source virtualenvwrapper.sh'</span> &gt;&gt; ~/.bashrc
+<span style="color: #729fcf;">source</span> ~/.bashrc
 </pre>
 
 
@@ -109,7 +106,7 @@ mkdir $<span style="color: #eeeeec;">HOME</span>/.virtualenvs
 </div>
 
 <div id="outline-container-2" class="outline-3">
-<h3 id="sec-2">建立折腾 <code>Babel</code> 专用虚拟环境</h3>
+<h3 id="sec-2">建立学习 <code>Babel</code> 专用虚拟环境</h3>
 <div class="outline-text-3" id="text-2">
 
 
@@ -192,9 +189,10 @@ China
 <div class="outline-text-3" id="text-5">
 
 
-<p>
-   <code>hello.py</code>
-</p>
+<ul>
+<li><code>hello.py</code>
+
+
 
 
 <pre class="src src-python"><span style="color: #729fcf; font-weight: bold;">import</span> gettext
@@ -204,27 +202,34 @@ gettext.bindtextdomain(<span style="color: #ad7fa8; font-style: italic;">'messag
 </pre>
 
 
-<p>
-   <code>hello.babel</code>
-</p>
+</li>
+<li><code>hello.babel</code>
+
+
 
 
 <pre class="example">[python: hello.py]
 </pre>
 
+</li>
+</ul>
+
+
+
 
 
 <pre class="src src-sh">mkdir hello.i18n
-pybabel extract -F hello.babel . -o hello.i18n/messages.pot         <span style="color: #888a85;"># </span><span style="color: #888a85;">&#20174;&#28304;&#20195;&#30721;&#20013;&#25552;&#21462;&#21487;&#32763;&#35793;&#30340;&#25991;&#26412;&#21040;POT&#65288;PO&#27169;&#26495;&#65289;&#25991;&#20214;</span>
-pybabel init -l zh_CN -d ./hello.i18n -i ./hello.i18n/messages.pot  <span style="color: #888a85;"># </span><span style="color: #888a85;">&#23558;POT&#25991;&#26412;&#25335;&#36125;&#20986;&#19968;&#20221;&#25351;&#23450;&#35821;&#35328;&#30340;PO&#25991;&#20214;</span>
+pybabel extract -F hello.babel . -o hello.i18n/messages.pot    <span style="color: #888a85;"># </span><span style="color: #888a85;">&#20174;&#28304;&#20195;&#30721;&#20013;&#25552;&#21462;&#21487;&#32763;&#35793;&#30340;&#25991;&#26412;&#21040;POT&#65288;PO&#27169;&#26495;&#65289;&#25991;&#20214;</span>
+pybabel init -l zh_CN -d ./hello.i18n -i ./hello.i18n/messages.pot    <span style="color: #888a85;"># </span><span style="color: #888a85;">&#23558;POT&#25991;&#26412;&#25335;&#36125;&#20986;&#19968;&#20221;&#25351;&#23450;&#35821;&#35328;&#30340;PO&#25991;&#20214;</span>
 <span style="color: #888a85;"># </span><span style="color: #888a85;">&#24320;&#22987;&#32763;&#35793;&#25351;&#23450;&#35821;&#35328;&#30340;PO&#25991;&#20214;</span>
-pybabel compile -f -d ./hello.i18n   <span style="color: #888a85;">#</span><span style="color: #888a85;">&#32534;&#35793;PO&#25991;&#20214;&#20026;MO&#25991;&#20214;</span>
+pybabel compile -f -d ./hello.i18n    <span style="color: #888a85;">#</span><span style="color: #888a85;">&#32534;&#35793;PO&#25991;&#20214;&#20026;MO&#25991;&#20214;</span>
 </pre>
 
 
-<p>
-   <code>./hello.i18n/zh_CN/LC_MESSAGES/messages.po</code>
-</p>
+<ul>
+<li><code>./hello.i18n/zh_CN/LC_MESSAGES/messages.po</code>
+
+
 
 
 <pre class="example"># Chinese (Simplified, China) translations for PROJECT.
@@ -254,7 +259,7 @@ msgstr "喂"
 </pre>
 
 
-<ul>
+</li>
 <li>英文环境下运行
 
 
@@ -277,7 +282,7 @@ Hello
 
 
 </li>
-<li>更新 <code>hello.py</code> ，追加一句“      print <sub>('World')</sub>”
+<li>更新 <code>hello.py</code> ，追加一句“      print _('World')”
 
 </li>
 <li>再译“World”
@@ -285,10 +290,10 @@ Hello
 
 
 
-<pre class="src src-sh">pybabel extract -F hello.babel . -o hello.i18n/messages.pot           <span style="color: #888a85;"># </span><span style="color: #888a85;">&#20174;&#28304;&#20195;&#30721;&#20013;&#25552;&#21462;&#21487;&#32763;&#35793;&#30340;&#25991;&#26412;&#21040;POT&#65288;PO&#27169;&#26495;&#65289;&#25991;&#20214;</span>
-pybabel update -l zh_CN -d ./hello.i18n -i ./hello.i18n/messages.pot  <span style="color: #888a85;"># </span><span style="color: #888a85;">&#20174;POT&#25991;&#26412;&#26356;&#26032;&#25351;&#23450;&#35821;&#35328;&#30340;PO&#25991;&#20214;</span>
+<pre class="src src-sh">pybabel extract -F hello.babel . -o hello.i18n/messages.pot    <span style="color: #888a85;"># </span><span style="color: #888a85;">&#20174;&#28304;&#20195;&#30721;&#20013;&#25552;&#21462;&#21487;&#32763;&#35793;&#30340;&#25991;&#26412;&#21040;POT&#65288;PO&#27169;&#26495;&#65289;&#25991;&#20214;</span>
+pybabel update -l zh_CN -d ./hello.i18n -i ./hello.i18n/messages.pot    <span style="color: #888a85;"># </span><span style="color: #888a85;">&#20174;POT&#25991;&#26412;&#26356;&#26032;&#25351;&#23450;&#35821;&#35328;&#30340;PO&#25991;&#20214;</span>
 <span style="color: #888a85;"># </span><span style="color: #888a85;">&#24320;&#22987;&#32763;&#35793;&#25351;&#23450;&#35821;&#35328;&#30340;PO&#25991;&#20214;&#65306; hello.i18n/zh_CN/LC_MESSAGES/messages.po</span>
-pybabel compile -f -d ./hello.i18n   <span style="color: #888a85;">#</span><span style="color: #888a85;">&#32534;&#35793;PO&#25991;&#20214;&#20026;MO&#25991;&#20214;</span>
+pybabel compile -f -d ./hello.i18n    <span style="color: #888a85;">#</span><span style="color: #888a85;">&#32534;&#35793;PO&#25991;&#20214;&#20026;MO&#25991;&#20214;</span>
 </pre>
 
 
@@ -307,9 +312,10 @@ pybabel compile -f -d ./hello.i18n   <span style="color: #888a85;">#</span><span
 </li>
 <li>强制使用某种语言
 
-<p>     
-     <code>hello.cn.py</code>
-</p>
+<ul>
+<li><code>hello.cn.py</code>
+
+
 
 
 <pre class="src src-python"><span style="color: #729fcf; font-weight: bold;">import</span> gettext
@@ -320,6 +326,18 @@ pybabel compile -f -d ./hello.i18n   <span style="color: #888a85;">#</span><span
 <span style="color: #729fcf; font-weight: bold;">print</span> _(<span style="color: #ad7fa8; font-style: italic;">'Hello'</span>)
 <span style="color: #729fcf; font-weight: bold;">print</span> _(<span style="color: #ad7fa8; font-style: italic;">'World'</span>)
 </pre>
+
+
+
+
+
+<pre class="example">LC_ALL=en_US python ./hello.py
+喂
+世界
+</pre>
+
+</li>
+</ul>
 
 </li>
 </ul>

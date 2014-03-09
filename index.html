@@ -2,7 +2,7 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8"/>
-    <title>CentOS 6.4下安装redmine | 看看俺 - KanKanAn.com</title>
+    <title>python应用国际化：Babel | 看看俺 - KanKanAn.com</title>
     <link rel="shortcut icon" href="/static/favicon.ico" />
     <link rel="stylesheet" type="text/less" href="./style/less/o-blog.less"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -53,19 +53,25 @@
         <div id="page" class="span9">
 
 <article>
-  <h1 style="padding-left: 45px;">CentOS 6.4下安装redmine</h1>
+  <h1 style="padding-left: 45px;">python应用国际化：Babel</h1>
   <div class="article-content">
-    <div id="outline-container-1" class="outline-3">
-<h3 id="sec-1">安装 <code>ruby</code></h3>
+    <p>
+  =<a href="http://babel.pocoo.org/">Babel</a>= 是 <code>Python</code> 的一个国际化工具包，原本为<a href="#Edgewall.org">Edgewall.org</a>下的一个项目，现在已经转为由<a href="#pocoo.org">pocoo.org</a>维护。
+</p>
+
+<div id="outline-container-1" class="outline-3">
+<h3 id="sec-1">统一管理 <code>Python</code> 虚拟环境</h3>
 <div class="outline-text-3" id="text-1">
 
 
 
 
 
-<pre class="src src-sh">yum install ruby
-yum install ruby-devel
-yum install rubygems
+<pre class="src src-sh">yaourt -S python-virtualenvwrapper
+mkdir $<span style="color: #eeeeec;">HOME</span>/.virtualenvs
+<span style="color: #729fcf;">echo</span> <span style="color: #ad7fa8; font-style: italic;">'export WORKON_HOME=$HOME/.virtualenvs'</span> &gt;&gt; ~/.bashrc
+<span style="color: #729fcf;">echo</span> <span style="color: #ad7fa8; font-style: italic;">'source virtualenvwrapper.sh'</span> &gt;&gt; ~/.bashrc
+<span style="color: #729fcf;">source</span> ~/.bashrc
 </pre>
 
 
@@ -74,19 +80,14 @@ yum install rubygems
 </div>
 
 <div id="outline-container-2" class="outline-3">
-<h3 id="sec-2">安装 <code>redmine</code></h3>
+<h3 id="sec-2">建立学习 <code>Babel</code> 专用虚拟环境</h3>
 <div class="outline-text-3" id="text-2">
 
 
 
 
 
-<pre class="src src-sh">wget <span style="color: #ad7fa8; font-style: italic;">'http://www.redmine.org/releases/redmine-2.5.0.tar.gz'</span>
-tar xzvf redmine-2.5.0.tar.gz
-gem install bundler
-gem install mysql2.
-yum install ImageMagick ImageMagick-devel
-bundle install --without development test  
+<pre class="src src-sh">mkvirtualenv --python=/usr/bin/python2 --no-site-packages LearnBabel
 </pre>
 
 
@@ -95,135 +96,19 @@ bundle install --without development test
 </div>
 
 <div id="outline-container-3" class="outline-3">
-<h3 id="sec-3">配置 <code>redmine</code></h3>
+<h3 id="sec-3">编译安装 <code>Babel</code></h3>
 <div class="outline-text-3" id="text-3">
 
 
-<ul>
-<li>以 root 用户登录 <code>mysql</code>
 
 
 
-
-<pre class="src src-sh">mysql -uroot -p
+<pre class="src src-sh">git clone https://github.com/mitsuhiko/babel.git
+<span style="color: #729fcf;">cd</span> babel
+pip install pytz
+python setup.py import_cldr
+pip install --editable .
 </pre>
-
-
-</li>
-<li>创建 <code>redmine</code> 用户及库
-
-
-
-
-<pre class="src src-sql">CREATE DATABASE redmine CHARACTER SET utf8;
-CREATE USER <span style="color: #ad7fa8; font-style: italic;">'redmine'</span>@<span style="color: #ad7fa8; font-style: italic;">'localhost'</span> IDENTIFIED BY <span style="color: #ad7fa8; font-style: italic;">'redmine'</span>;
-GRANT ALL PRIVILEGES ON redmine.* TO <span style="color: #ad7fa8; font-style: italic;">'redmine'</span>@<span style="color: #ad7fa8; font-style: italic;">'localhost'</span>;
-</pre>
-
-
-</li>
-<li>修改数据库配置文件
-
-
-
-
-<pre class="src src-sh">cp config/database.yml.example config/database.yml
-diff config/database.yml config/database.yml.example
-10,11c10,11
-&lt;   username: redmine
-&lt;   password: <span style="color: #ad7fa8; font-style: italic;">"redmine"</span>
----
-&gt;   username: root
-&gt;   password: <span style="color: #ad7fa8; font-style: italic;">""</span>
-</pre>
-
-
-</li>
-<li>初始化会话存储
-
-
-
-
-<pre class="src src-sh">rake generate_secret_token
-</pre>
-
-
-</li>
-<li>创建数据库表结构
-
-
-
-
-<pre class="src src-sh"><span style="color: #eeeeec;">RAILS_ENV</span>=production rake db:migrate
-</pre>
-
-
-</li>
-<li>解决上一步可能出现的错误
-
-<blockquote>
-
-<p>rake aborted!
-Can't connect to local MySQL server through socket '/var/lib/mysql/mysql.sock' (2)
-</p>
-<p>
-Tasks: TOP =&gt; db:migrate =&gt; environment
-</p>
-</blockquote>
-
-
-
-<p>     
-     确定 <code>mysql</code> 启动时指定的 <code>mysql.sock</code> 文件的路径
-</p>
-
-
-
-<pre class="src src-sh">ps aux | grep mysql.sock
-</pre>
-
-
-<p>
-     显示的 <code>mysql.sock</code> 路径可能为“ <code>--socket=/tmp/mysql.sock</code> ”
-</p>
-<p>
-     修改 <code>redmine</code> 数据库配置，在 <code>production</code> 配置中添加 <code>socket</code> 项：
-</p>
-
-
-
-<pre class="example">production:
-  ...
-  socket: /tmp/mysql.sock
-</pre>
-
-
-<p>
-     重新进行上一步操作。
-</p>
-</li>
-<li>初始化数据
-
-
-
-
-<pre class="src src-sh"><span style="color: #eeeeec;">RAILS_ENV</span>=production <span style="color: #eeeeec;">REDMINE_LANG</span>=zh rake redmine:load_default_data
-</pre>
-
-
-</li>
-<li>创建相关目录
-
-
-
-
-<pre class="src src-sh">mkdir -p tmp tmp/pdf public/plugin_assets
-sudo chown -R nobody:nobody files log tmp public/plugin_assets
-sudo chmod -R 755 files log tmp public/plugin_assets
-</pre>
-
-</li>
-</ul>
 
 
 </div>
@@ -231,37 +116,42 @@ sudo chmod -R 755 files log tmp public/plugin_assets
 </div>
 
 <div id="outline-container-4" class="outline-3">
-<h3 id="sec-4">试运行 <code>redmine</code></h3>
+<h3 id="sec-4">常用信息国际化</h3>
 <div class="outline-text-3" id="text-4">
 
 
 
 
 
-<pre class="src src-sh">ruby script/rails server webrick -e production
+<pre class="example">&gt;&gt;&gt; from babel import Locale
+&gt;&gt;&gt; locale = Locale('en', 'US')
+&gt;&gt;&gt; print locale.territories['CN']
+China
+&gt;&gt;&gt; locale = Locale('zh')
+&gt;&gt;&gt; print locale.territories['CN']
+中国
+&gt;&gt;&gt; month_names = locale.months['format']['wide'].items()
+&gt;&gt;&gt; for idx, name in sorted(month_names):
+...   print name
+... 
+一月
+二月
+三月
+四月
+五月
+六月
+七月
+八月
+九月
+十月
+十一月
+十二月
+&gt;&gt;&gt; from datetime import date
+&gt;&gt;&gt; from babel.dates import format_date
+&gt;&gt;&gt; today = date.today()
+&gt;&gt;&gt; print format_date(today, locale='zh')
+2014年3月9日
 </pre>
-
-
-<ul>
-<li>浏览器打开页面
-
-<p>     
-     <a href="http://localhost:3000">http://localhost:3000</a>
-</p>
-<p>
-     使用 用户名 <code>admin</code> ，密码 <code>admin</code> 登录后，立即修改密码。
-</p>
-<p> 
-     使用下面的命令生成随机的密码：
-</p>
-
-
-
-<pre class="src src-sh">cat /dev/urandom | head -1 | md5sum | head -c 8
-</pre>
-
-</li>
-</ul>
 
 
 </div>
@@ -269,219 +159,164 @@ sudo chmod -R 755 files log tmp public/plugin_assets
 </div>
 
 <div id="outline-container-5" class="outline-3">
-<h3 id="sec-5">配置 <code>redmine</code></h3>
+<h3 id="sec-5">任意信息国际化</h3>
 <div class="outline-text-3" id="text-5">
 
 
 <ul>
-<li>修改 <code>config/settings.yml</code>
+<li><code>hello.py</code>
+
+
+
+
+<pre class="src src-python"><span style="color: #729fcf; font-weight: bold;">import</span> gettext
+gettext.bindtextdomain(<span style="color: #ad7fa8; font-style: italic;">'messages'</span>, <span style="color: #ad7fa8; font-style: italic;">'./hello.i18n'</span>)
+<span style="color: #eeeeec;">_</span> = gettext.gettext
+<span style="color: #729fcf; font-weight: bold;">print</span> _(<span style="color: #ad7fa8; font-style: italic;">'Hello'</span>)
+</pre>
+
+
+</li>
+<li><code>hello.babel</code>
+
+
+
+
+<pre class="example">[python: hello.py]
+</pre>
+
 </li>
 </ul>
 
 
-</div>
-
-</div>
-
-<div id="outline-container-6" class="outline-3">
-<h3 id="sec-6">使用 <code>Nginx</code> 和 <code>passenger</code></h3>
-<div class="outline-text-3" id="text-6">
 
 
 
-
-
-<pre class="src src-sh">wget <span style="color: #ad7fa8; font-style: italic;">'http://nginx.org/download/nginx-1.4.6.tar.gz'</span>
-tar xzvf nginx-1.4.6.tar.gz
-gem install passenger
-yum install pcre-devel
-passenger-install-nginx-module
+<pre class="src src-sh">mkdir hello.i18n
+pybabel extract -F hello.babel . -o hello.i18n/messages.pot    <span style="color: #888a85;"># </span><span style="color: #888a85;">&#20174;&#28304;&#20195;&#30721;&#20013;&#25552;&#21462;&#21487;&#32763;&#35793;&#30340;&#25991;&#26412;&#21040;POT&#65288;PO&#27169;&#26495;&#65289;&#25991;&#20214;</span>
+pybabel init -l zh_CN -d ./hello.i18n -i ./hello.i18n/messages.pot    <span style="color: #888a85;"># </span><span style="color: #888a85;">&#23558;POT&#25991;&#26412;&#25335;&#36125;&#20986;&#19968;&#20221;&#25351;&#23450;&#35821;&#35328;&#30340;PO&#25991;&#20214;</span>
+<span style="color: #888a85;"># </span><span style="color: #888a85;">&#24320;&#22987;&#32763;&#35793;&#25351;&#23450;&#35821;&#35328;&#30340;PO&#25991;&#20214;</span>
+pybabel compile -f -d ./hello.i18n    <span style="color: #888a85;">#</span><span style="color: #888a85;">&#32534;&#35793;PO&#25991;&#20214;&#20026;MO&#25991;&#20214;</span>
 </pre>
 
 
 <ul>
-<li>交互式安装过程
+<li><code>./hello.i18n/zh_CN/LC_MESSAGES/messages.po</code>
+
+
+
+
+<pre class="example"># Chinese (Simplified, China) translations for PROJECT.
+# Copyright (C) 2014 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR &lt;EMAIL@ADDRESS&gt;, 2014.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2014-03-09 19:08+0800\n"
+"PO-Revision-Date: 2014-03-09 19:12+0800\n"
+"Last-Translator: FULL NAME &lt;EMAIL@ADDRESS&gt;\n"
+"Language-Team: zh_Hans_CN &lt;LL@li.org&gt;\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.0-dev\n"
+
+#: hello.py:1
+msgid "Hello"
+msgstr "喂"
+
+</pre>
+
+
+</li>
+<li>英文环境下运行
+
+
+
+
+<pre class="example">python ./hello.py
+Hello
+</pre>
+
+
+</li>
+<li>中文环境下运行
+
+
+
+
+<pre class="example">LC_ALL=zh_CN python ./hello.py
+喂
+</pre>
+
+
+</li>
+<li>更新 <code>hello.py</code> ，追加一句“      print _('World')”
+
+</li>
+<li>再译“World”
+
+
+
+
+<pre class="src src-sh">pybabel extract -F hello.babel . -o hello.i18n/messages.pot    <span style="color: #888a85;"># </span><span style="color: #888a85;">&#20174;&#28304;&#20195;&#30721;&#20013;&#25552;&#21462;&#21487;&#32763;&#35793;&#30340;&#25991;&#26412;&#21040;POT&#65288;PO&#27169;&#26495;&#65289;&#25991;&#20214;</span>
+pybabel update -l zh_CN -d ./hello.i18n -i ./hello.i18n/messages.pot    <span style="color: #888a85;"># </span><span style="color: #888a85;">&#20174;POT&#25991;&#26412;&#26356;&#26032;&#25351;&#23450;&#35821;&#35328;&#30340;PO&#25991;&#20214;</span>
+<span style="color: #888a85;"># </span><span style="color: #888a85;">&#24320;&#22987;&#32763;&#35793;&#25351;&#23450;&#35821;&#35328;&#30340;PO&#25991;&#20214;&#65306; hello.i18n/zh_CN/LC_MESSAGES/messages.po</span>
+pybabel compile -f -d ./hello.i18n    <span style="color: #888a85;">#</span><span style="color: #888a85;">&#32534;&#35793;PO&#25991;&#20214;&#20026;MO&#25991;&#20214;</span>
+</pre>
+
+
+</li>
+<li>再次运行
+
+
+
+
+<pre class="example">LC_ALL=zh_CN python ./hello.py
+喂
+世界
+</pre>
+
+
+</li>
+<li>强制使用某种语言
 
 <ul>
-<li>Automatically download and install Nginx?
-
-<p>       
-       选 2. No: I want to customize my Nginx installation. (for advanced users)
-</p>
-</li>
-<li>Where is your Nginx source code located?
-
-<p>       
-       填解压的 <code>nginx</code> 源码包路径
-</p>
-</li>
-<li>Where do you want to install Nginx to?
-
-<p> 
-       填 <code>/usr/local/nginx</code>
-</p>
-</li>
-<li>修改 /usr/local/nginx/conf/nginx.conf
-
-<p> 
-       在最后的 <code>}</code> 前添加以下配置
-</p>
+<li><code>hello.cn.py</code>
 
 
 
-<pre class="example">include vhosts/*.conf;
+
+<pre class="src src-python"><span style="color: #729fcf; font-weight: bold;">import</span> gettext
+
+<span style="color: #eeeeec;">t</span> = gettext.translation(<span style="color: #ad7fa8; font-style: italic;">'messages'</span>, <span style="color: #ad7fa8; font-style: italic;">'./hello.i18n'</span>, languages=[<span style="color: #ad7fa8; font-style: italic;">'zh_CN'</span>])
+<span style="color: #eeeeec;">_</span> = t.gettext
+
+<span style="color: #729fcf; font-weight: bold;">print</span> _(<span style="color: #ad7fa8; font-style: italic;">'Hello'</span>)
+<span style="color: #729fcf; font-weight: bold;">print</span> _(<span style="color: #ad7fa8; font-style: italic;">'World'</span>)
 </pre>
 
 
-</li>
-<li>添加站点配置文件 <code>/usr/local/nginx/conf/vhosts/redmine.conf</code>
 
 
 
-
-<pre class="example">server {
-  listen  80;
-  server_name &lt;域名&gt;;
-  root &lt;redmine根目录&gt;/public;
-  passenger_enabled on;
-  client_max_body_size 10m; # Max attachemnt size
-}
+<pre class="example">LC_ALL=en_US python ./hello.py
+喂
+世界
 </pre>
-
 
 </li>
 </ul>
 
 </li>
-<li>启动 <code>nginx</code>
-
-
-
-
-<pre class="src src-sh">/usr/local/nginx/sbin/nginx
-</pre>
-
-
-</li>
-<li>现在可以正式访问站点了
-
-<p>
-     <a href="http://">http://</a>&lt;域名&gt;
-</p></li>
 </ul>
-
 
 </div>
-
-</div>
-
-<div id="outline-container-7" class="outline-3">
-<h3 id="sec-7">支持 <code>OpenID</code> 第三方帐号登录</h3>
-<div class="outline-text-3" id="text-7">
-
-
-<ul>
-<li>安装 <code>openid</code> 库
-
-
-
-
-<pre class="src src-sh">gem install ruby-openid
-</pre>
-
-
-</li>
-<li>使用 <code>admin</code> 帐号登录系统，在“管理 - 配置 - 认证”中勾选上“允许使用OpenID登录和注册”。 
-
-</li>
-<li>用户注册时“密码”可以省略， 填上 <code>OpenID URL</code> 即可。
-
-</li>
-<li>如何获得Google的OpenID URL？
-
-<ul>
-<li>先在 <code>Google</code> 的站点上登录
-</li>
-<li>打开 <a href="https://profiles.google.com">https://profiles.google.com</a> 后会跳转到类似这样（ <code>https://plus.google.com/000000000000000000000/posts</code> ）的网页
-</li>
-<li>你的 <code>OpenID URL</code> 为 <a href="http://profiles.google.com/000000000000000000000">http://profiles.google.com/000000000000000000000</a>
-
-</li>
-</ul>
-
-<p>     上面的 <code>000000000000000000000</code> 可能为任意的数字串
-</p>
-</li>
-<li>管理员确认注册后即可在登录界面上输入 <code>OpenID URL</code> 直接登录
-
-<p>     
-     一般浏览器的输入框是有记忆功能的，双击后会出现输入历史下拉列表，直接选择即可。
-</p>
-</li>
-<li>安装插件简化 <code>OpenID</code> 登录
-
-<ul>
-<li><a href="https://github.com/jorgebg/redmine-openid-selector">https://github.com/jorgebg/redmine-openid-selector</a> （不推荐） 为原始分枝，在 <code>redmine-2.5.0</code> 下不能直接安装会导致站点登录界面出现404错误，解决方案在 <a href="http://www.redmine.org/boards/3/topics/34327?r=38778#message-38778">这里</a> ，简而言之就是把插件目录名中的 <code>-</code> 改为 <code>_</code> 。
-
-</li>
-<li><a href="https://github.com/computerminds/redmine\_openid\_selector">https://github.com/computerminds/redmine_openid_selector</a> （不推荐） 这个分枝安装后可用，但界面为英文（其实界面就一句英文）。
-
-</li>
-<li><a href="https://github.com/tangxinfa/redmine\_openid\_selector">https://github.com/tangxinfa/redmine_openid_selector</a> （推荐） 为支持中文我fork了上一个分枝。
-
-</li>
-<li>通用的插件安装过程：
-
-
-
-
-<pre class="src src-sh"><span style="color: #729fcf;">cd</span> plugins
-git clone https://github.com/tangxinfa/redmine_openid_selector.git
-rake redmine:plugins:migrate <span style="color: #eeeeec;">RAILS_ENV</span>=production
-touch tmp/restart.txt
-</pre>
-
-
-</li>
-<li>通用的插件卸载过程：
-
-
-
-
-<pre class="src src-sh">rake redmine:plugins:migrate <span style="color: #eeeeec;">NAME</span>=redmine-openid-selector <span style="color: #eeeeec;">VERSION</span>=0 <span style="color: #eeeeec;">RAILS_ENV</span>=production
-rm -rf plugins/redmine-openid-selector
-touch tmp/restart.txt
-</pre>
-
-
-</li>
-</ul>
-
-<p>     现在在登录及注册页面直接点击第三方站点Logo即可。
-</p></li>
-</ul>
-
-
-</div>
-
-</div>
-
-<div id="outline-container-8" class="outline-3">
-<h3 id="sec-8">样式美化</h3>
-<div class="outline-text-3" id="text-8">
-
-
-
-
-
-<pre class="src src-sh">git clone git://github.com/pixel-cookers/redmine-theme.git public/themes/pixel-cookers
-touch tmp/restart.txt
-</pre>
-
-
-<p>
-   现在可以使用 <code>admin</code> 登录后台，在“管理 - 配置 - 显示 - 主题”中启用主题 <code>Pixel-cookers</code> 。
-</p></div>
 </div>
 
   </div>
@@ -490,7 +325,7 @@ touch tmp/restart.txt
 <script type="text/javascript">
   /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
   var disqus_shortname = 'kankananblog'; // required: replace example with your forum shortname
-  var disqus_url = 'http://blog.kankanan.com/posts/2014/03/07_centos-62e44e0b5b8988c5redmine.html';
+  var disqus_url = 'http://blog.kankanan.com/posts/2014/03/09_python5e94752856fd96455316ff1ababel.html';
 
   /* * * DON'T EDIT BELOW THIS LINE * * */
   (function() {
@@ -507,7 +342,7 @@ touch tmp/restart.txt
         <h5>最新文章</h5>
         <div id="recent-posts">
           <ul>
-            <li><a href="./posts/2014/03/09_python5e94752856fd96455316ff1ababel.html">python应用国际化：Babel</a></li> <li><a href="./index.html">CentOS 6.4下安装redmine</a></li> <li><a href="./posts/2014/02/17_7f168bd15b8988c5redis.html">编译安装redis</a></li> <li><a href="./posts/2014/02/17_7f168bd15b8988c5node2ejs.html">编译安装node.js</a></li> <li><a href="./posts/2014/02/14_express2ejs4e2d59824f5557287b2c4e006b218bf76c42768454cd5e944e2d53d65f97connect2esid.html">express.js中如何在第一次请求的响应中取得connect.sid</a></li> <li><a href="./posts/2013/12/26_linux4e0b51418bb8666e901a752862376267884c97008981root674396507684547d4ee4.html">linux下允许普通用户执行需要root权限的命令</a></li> <li><a href="./posts/2013/12/20_4e3a4ec04e484e0d80fd57286784902051fd65704e2d8c037528shared5ffrom5fthis.html">为什么不能在构造函数中调用shared_from_this</a></li> <li><a href="./posts/2013/12/20_discuz8bbf95ee63a85e7f4efb52a153cd4f5c5f0a.html">Discuz访问推广任务反作弊</a></li> <li><a href="./posts/2013/10/11_node2ejs4e0b8bbf95eemysql6ce8610f4e8b9879.html">node.js下访问mysql注意事项</a></li> <li><a href="./posts/2013/07/08_4f7f7528756a83045de54f5c6cd57684611f53d7.html">使用番茄工作法的感受</a></li> 
+            <li><a href="./index.html">python应用国际化：Babel</a></li> <li><a href="./posts/2014/03/07_centos-62e44e0b5b8988c5redmine.html">CentOS 6.4下安装redmine</a></li> <li><a href="./posts/2014/02/17_7f168bd15b8988c5redis.html">编译安装redis</a></li> <li><a href="./posts/2014/02/17_7f168bd15b8988c5node2ejs.html">编译安装node.js</a></li> <li><a href="./posts/2014/02/14_express2ejs4e2d59824f5557287b2c4e006b218bf76c42768454cd5e944e2d53d65f97connect2esid.html">express.js中如何在第一次请求的响应中取得connect.sid</a></li> <li><a href="./posts/2013/12/26_linux4e0b51418bb8666e901a752862376267884c97008981root674396507684547d4ee4.html">linux下允许普通用户执行需要root权限的命令</a></li> <li><a href="./posts/2013/12/20_4e3a4ec04e484e0d80fd57286784902051fd65704e2d8c037528shared5ffrom5fthis.html">为什么不能在构造函数中调用shared_from_this</a></li> <li><a href="./posts/2013/12/20_discuz8bbf95ee63a85e7f4efb52a153cd4f5c5f0a.html">Discuz访问推广任务反作弊</a></li> <li><a href="./posts/2013/10/11_node2ejs4e0b8bbf95eemysql6ce8610f4e8b9879.html">node.js下访问mysql注意事项</a></li> <li><a href="./posts/2013/07/08_4f7f7528756a83045de54f5c6cd57684611f53d7.html">使用番茄工作法的感受</a></li> 
           </ul>
         </div>
 	    <h5>标签</h5>
