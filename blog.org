@@ -2913,7 +2913,7 @@ class RedisShard {
 
 *** 任意信息国际化
 
-    - =hello.py=
+    - 创建python程序： =hello.py=
 
       #+begin_src python
         import gettext
@@ -2922,21 +2922,21 @@ class RedisShard {
         print _('Hello')
       #+end_src
 
-    - =hello.babel=
+    - 创建Babel配置文件： =hello.babel=
 
       #+begin_example
         [python: hello.py]
       #+end_example
 
-    #+begin_src sh
-      mkdir hello.i18n
-      pybabel extract -F hello.babel . -o hello.i18n/messages.pot    # 从源代码中提取可翻译的文本到POT（PO模板）文件
-      pybabel init -l zh_CN -d ./hello.i18n -i ./hello.i18n/messages.pot    # 将POT文本拷贝出一份指定语言的PO文件
-      # 开始翻译指定语言的PO文件
-      pybabel compile -f -d ./hello.i18n    #编译PO文件为MO文件
-    #+end_src
+    - 准备翻译成中文
 
-    - =./hello.i18n/zh_CN/LC_MESSAGES/messages.po=
+      #+begin_src sh
+        mkdir hello.i18n
+        pybabel extract -F hello.babel . -o hello.i18n/messages.pot    # 从源代码中提取可翻译的文本到POT（PO模板）文件
+        pybabel init -l zh_CN -d ./hello.i18n -i ./hello.i18n/messages.pot    # 将POT文本拷贝出一份指定语言的PO文件
+      #+end_src
+
+    - 译成中文后的PO文件： =./hello.i18n/zh_CN/LC_MESSAGES/messages.po=
 
       #+begin_example
         # Chinese (Simplified, China) translations for PROJECT.
@@ -2964,15 +2964,21 @@ class RedisShard {
         msgstr "喂"
         
       #+end_example
+
+    - 编译翻译结果
+
+      #+begin_src sh
+        pybabel compile -f -d ./hello.i18n    #编译PO文件为MO文件
+      #+end_src
     
-    - 英文环境下运行
+    - 英文环境下运行程序
 
       #+begin_example
         python ./hello.py
         Hello
       #+end_example
 
-    - 中文环境下运行
+    - 中文环境下运行程序
       
       #+begin_example
         LC_ALL=zh_CN python ./hello.py
@@ -2981,7 +2987,7 @@ class RedisShard {
 
     - 更新 =hello.py= ，追加一句“      print \_('World')”
 
-    - 再译“World”
+    - 将“World”翻译成中文
 
       #+begin_src sh
         pybabel extract -F hello.babel . -o hello.i18n/messages.pot    # 从源代码中提取可翻译的文本到POT（PO模板）文件
@@ -2998,25 +3004,26 @@ class RedisShard {
         世界
       #+end_example    
 
-    - 强制使用某种语言
+    - 程序中强制使用中文语言： =hello.cn.py=
       
-      + =hello.cn.py=
+      #+begin_src python
+        import gettext
+        
+        t = gettext.translation('messages', './hello.i18n', languages=['zh_CN'])
+        _ = t.gettext
+        
+        print _('Hello')
+        print _('World')
+      #+end_src
+     
+    - 即使是在英文环境下也输出中文
 
-        #+begin_src python
-          import gettext
-          
-          t = gettext.translation('messages', './hello.i18n', languages=['zh_CN'])
-          _ = t.gettext
-          
-          print _('Hello')
-          print _('World')
-        #+end_src
-      
-        #+begin_example
-          LC_ALL=en_US python ./hello.py
-          喂
-          世界
-        #+end_example
+      #+begin_example
+        LC_ALL=en_US python ./hello.py
+        喂
+        世界
+      #+end_example
+
 ** DONE 开源项目管理系统：trac                                  :python:trac:
    CLOSED: [2014-03-10 Mon 00:44]
 
