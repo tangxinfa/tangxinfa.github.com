@@ -70,7 +70,7 @@
 </div>
 
 	</div>
-	<h1 class="offset3">linux下允许普通用户执行需要root权限的命令</h1>
+	<h1 class="offset2">linux下允许普通用户执行需要root权限的命令</h1>
       </div>
       <nav>
 	<ul class="pager">
@@ -90,58 +90,58 @@
 
 
 <div class="o-blog-source"><a class="btn btn-info" data-toggle="modal" data-target="#as5froot2ec" ><i class="icon-file icon-white"></i>&nbsp;as_root.c</a></div><div class="modal fade hide" id="as5froot2ec"><div class="modal-header"><a class="close" data-dismiss="modal">×</a><h3>as_root.c</h3></div><div class="modal-body"><pre>
-<span style="color: #729fcf;">#include</span> <span style="color: #ad7fa8; font-style: italic;">&lt;stdio.h&gt;</span>
-<span style="color: #729fcf;">#include</span> <span style="color: #ad7fa8; font-style: italic;">&lt;sys/types.h&gt;</span>
-<span style="color: #729fcf;">#include</span> <span style="color: #ad7fa8; font-style: italic;">&lt;unistd.h&gt;</span>
-<span style="color: #729fcf;">#include</span> <span style="color: #ad7fa8; font-style: italic;">&lt;stdlib.h&gt;</span>
-<span style="color: #729fcf;">#include</span> <span style="color: #ad7fa8; font-style: italic;">&lt;signal.h&gt;</span>
+#include &lt;stdio.h&gt;
+#include &lt;sys/types.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;signal.h&gt;
 
-<span style="color: #8ae234; font-weight: bold;">void</span> <span style="color: #edd400; font-weight: bold; font-style: italic;">daemon_init</span>() {
-    <span style="color: #8ae234; font-weight: bold;">int</span> <span style="color: #eeeeec;">i</span>;
-    <span style="color: #8ae234; font-weight: bold;">pid_t</span> <span style="color: #eeeeec;">pid</span>;
-    
-    <span style="color: #729fcf; font-weight: bold;">if</span> (pid = fork()) {
-        <span style="color: #8ae234; font-weight: bold;">int</span> <span style="color: #eeeeec;">status</span> = EXIT_FAILURE;
-        waitpid(pid, &amp;status, 0);
-        status = WEXITSTATUS(status);
-        exit(status);
-    }
+void daemon_init() {
+<span style="background-color: #404040;"> </span>   int i;
+<span style="background-color: #404040;"> </span>   pid_t pid;
+<span style="color: #ffff00; background-color: #ff0000; font-weight: bold;">    </span>
+<span style="background-color: #404040;"> </span>   if (pid = fork()) {
+<span style="background-color: #404040;"> </span>   <span style="background-color: #404040;"> </span>   int status = EXIT_FAILURE;
+<span style="background-color: #404040;"> </span>   <span style="background-color: #404040;"> </span>   waitpid(pid, &amp;status, 0);
+<span style="background-color: #404040;"> </span>   <span style="background-color: #404040;"> </span>   status = WEXITSTATUS(status);
+<span style="background-color: #404040;"> </span>   <span style="background-color: #404040;"> </span>   exit(status);
+<span style="background-color: #404040;"> </span>   }
 
-    setsid();
-    signal(SIGHUP, SIG_IGN);
+<span style="background-color: #404040;"> </span>   setsid();
+<span style="background-color: #404040;"> </span>   signal(SIGHUP, SIG_IGN);
 
-    <span style="color: #729fcf; font-weight: bold;">if</span> (pid = fork()) {
-        <span style="color: #8ae234; font-weight: bold;">int</span> <span style="color: #eeeeec;">status</span> = EXIT_FAILURE;
-        waitpid(pid, &amp;status, 0);
-        status = WEXITSTATUS(status);
-        exit(status);
-    }
+<span style="background-color: #404040;"> </span>   if (pid = fork()) {
+<span style="background-color: #404040;"> </span>   <span style="background-color: #404040;"> </span>   int status = EXIT_FAILURE;
+<span style="background-color: #404040;"> </span>   <span style="background-color: #404040;"> </span>   waitpid(pid, &amp;status, 0);
+<span style="background-color: #404040;"> </span>   <span style="background-color: #404040;"> </span>   status = WEXITSTATUS(status);
+<span style="background-color: #404040;"> </span>   <span style="background-color: #404040;"> </span>   exit(status);
+<span style="background-color: #404040;"> </span>   }
 
-    umask(0);
+<span style="background-color: #404040;"> </span>   umask(0);
 }
 
-<span style="color: #8ae234; font-weight: bold;">int</span> <span style="color: #edd400; font-weight: bold; font-style: italic;">main</span>(<span style="color: #8ae234; font-weight: bold;">int</span> <span style="color: #eeeeec;">argc</span>, <span style="color: #8ae234; font-weight: bold;">char</span>* <span style="color: #eeeeec;">argv</span>[]) {
-    <span style="color: #729fcf; font-weight: bold;">if</span> (setuid(0) == -1) {
-        perror(<span style="color: #ad7fa8; font-style: italic;">"setuid"</span>);
-        fprintf(stderr, <span style="color: #ad7fa8; font-style: italic;">"config: chown root:root %s; chmod 4755 %s\n"</span>, argv[0], argv[0]);
-        <span style="color: #729fcf; font-weight: bold;">return</span> EXIT_FAILURE;
-    }
+int main(int argc, char* argv[]) {
+<span style="background-color: #404040;"> </span>   if (setuid(0) == -1) {
+<span style="background-color: #404040;"> </span>   <span style="background-color: #404040;"> </span>   perror(<span style="color: #ad7fa8; font-style: italic;">"setuid"</span>);
+<span style="background-color: #404040;"> </span>   <span style="background-color: #404040;"> </span>   fprintf(stderr, <span style="color: #ad7fa8; font-style: italic;">"config: chown root:root %s; chmod 4755 %s\n"</span>, argv[0], <span style="text-decoration: underline;">argv[0]);</span>
+<span style="background-color: #404040;"> </span>   <span style="background-color: #404040;"> </span>   return EXIT_FAILURE;
+<span style="background-color: #404040;"> </span>   }
 
-    daemon_init();
+<span style="background-color: #404040;"> </span>   daemon_init();
 
-    <span style="color: #8ae234; font-weight: bold;">FILE</span>* <span style="color: #eeeeec;">fp</span> = popen(argv[1], <span style="color: #ad7fa8; font-style: italic;">"r"</span>);
-    <span style="color: #729fcf; font-weight: bold;">if</span> (<span style="color: #8ae234;">NULL</span> == fp) {
-        fprintf(stderr, <span style="color: #ad7fa8; font-style: italic;">"popen failed\n"</span>);
-        <span style="color: #729fcf; font-weight: bold;">return</span> EXIT_FAILURE;
-    }
-    <span style="color: #8ae234; font-weight: bold;">int</span> <span style="color: #eeeeec;">status</span> = pclose(fp);
-    <span style="color: #729fcf; font-weight: bold;">if</span> (-1 == status) {
-        fprintf(stderr, <span style="color: #ad7fa8; font-style: italic;">"pclose failed\n"</span>);
-        <span style="color: #729fcf; font-weight: bold;">return</span> EXIT_FAILURE;
-    }
+<span style="background-color: #404040;"> </span>   FILE* fp = popen(argv[1], <span style="color: #ad7fa8; font-style: italic;">"r"</span>);
+<span style="background-color: #404040;"> </span>   if (NULL == fp) {
+<span style="background-color: #404040;"> </span>   <span style="background-color: #404040;"> </span>   fprintf(stderr, <span style="color: #ad7fa8; font-style: italic;">"popen failed\n"</span>);
+<span style="background-color: #404040;"> </span>   <span style="background-color: #404040;"> </span>   return EXIT_FAILURE;
+<span style="background-color: #404040;"> </span>   }
+<span style="background-color: #404040;"> </span>   int status = pclose(fp);
+<span style="background-color: #404040;"> </span>   if (-1 == status) {
+<span style="background-color: #404040;"> </span>   <span style="background-color: #404040;"> </span>   fprintf(stderr, <span style="color: #ad7fa8; font-style: italic;">"pclose failed\n"</span>);
+<span style="background-color: #404040;"> </span>   <span style="background-color: #404040;"> </span>   return EXIT_FAILURE;
+<span style="background-color: #404040;"> </span>   }
 
-    status = WEXITSTATUS(status);
-    <span style="color: #729fcf; font-weight: bold;">return</span> status;
+<span style="background-color: #404040;"> </span>   status = WEXITSTATUS(status);
+<span style="background-color: #404040;"> </span>   return status;
 }
 </pre></div></div>
 
@@ -210,13 +210,13 @@
         <h5>最新文章</h5>
         <div id="recent-posts">
           <ul>
-            <li><a href="../../../posts/2014/03/10_5f006e90987976ee7ba174067cfb7edfff1atrac.html">开源项目管理系统：trac</a></li> <li><a href="../../../index.html">python应用国际化：Babel</a></li> <li><a href="../../../posts/2014/03/07_centos-62e44e0b5b8988c5redmine.html">CentOS 6.4下安装redmine</a></li> <li><a href="../../../posts/2014/02/17_7f168bd15b8988c5redis.html">编译安装redis</a></li> <li><a href="../../../posts/2014/02/17_7f168bd15b8988c5node2ejs.html">编译安装node.js</a></li> <li><a href="../../../posts/2014/02/14_express2ejs4e2d59824f5557287b2c4e006b218bf76c42768454cd5e944e2d53d65f97connect2esid.html">express.js中如何在第一次请求的响应中取得connect.sid</a></li> <li><a href="../../../posts/2013/12/26_linux4e0b51418bb8666e901a752862376267884c97008981root674396507684547d4ee4.html">linux下允许普通用户执行需要root权限的命令</a></li> <li><a href="../../../posts/2013/12/20_4e3a4ec04e484e0d80fd57286784902051fd65704e2d8c037528shared5ffrom5fthis.html">为什么不能在构造函数中调用shared_from_this</a></li> <li><a href="../../../posts/2013/12/20_discuz8bbf95ee63a85e7f4efb52a153cd4f5c5f0a.html">Discuz访问推广任务反作弊</a></li> <li><a href="../../../posts/2013/10/11_node2ejs4e0b8bbf95eemysql6ce8610f4e8b9879.html">node.js下访问mysql注意事项</a></li> 
+            <li><a href="../../../posts/2014/04/01_8bba575b88ab6302669794fe95ee9898520667904e0e89e351b3.html">论坛被挂暗链问题分析与解决</a></li> <li><a href="../../../posts/2014/03/12_archlinux7f517edc63a553e34e0a51fa73b04e244e2aip.html">Archlinux网络接口上出现两个IP</a></li> <li><a href="../../../posts/2014/03/10_5f006e90987976ee7ba174067cfb7edfff1atrac.html">开源项目管理系统：trac</a></li> <li><a href="../../../index.html">python应用国际化：Babel</a></li> <li><a href="../../../posts/2014/03/07_centos-62e44e0b5b8988c5redmine.html">CentOS 6.4下安装redmine</a></li> <li><a href="../../../posts/2014/02/17_7f168bd15b8988c5redis.html">编译安装redis</a></li> <li><a href="../../../posts/2014/02/17_7f168bd15b8988c5node2ejs.html">编译安装node.js</a></li> <li><a href="../../../posts/2014/02/14_express2ejs4e2d59824f5557287b2c4e006b218bf76c42768454cd5e944e2d53d65f97connect2esid.html">express.js中如何在第一次请求的响应中取得connect.sid</a></li> <li><a href="../../../posts/2013/12/26_linux4e0b51418bb8666e901a752862376267884c97008981root674396507684547d4ee4.html">linux下允许普通用户执行需要root权限的命令</a></li> <li><a href="../../../posts/2013/12/20_4e3a4ec04e484e0d80fd57286784902051fd65704e2d8c037528shared5ffrom5fthis.html">为什么不能在构造函数中调用shared_from_this</a></li> 
           </ul>
         </div>
 	    <h5>标签</h5>
         <div id="tags">
 	      <ul>
-  <li style="font-size: 185.00%;"><a href="../../../tags/archlinux.html">archlinux</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/babel.html">babel</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/bitbucket.html">bitbucket</a></li> <li style="font-size: 115.00%;"><a href="../../../tags/c.html">c</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/chosen.html">chosen</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/comet.html">comet</a></li> <li style="font-size: 115.00%;"><a href="../../../tags/cpp.html">cpp</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/discuz.html">discuz</a></li> <li style="font-size: 115.00%;"><a href="../../../tags/emacs.html">emacs</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/english.html">english</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/fcitx.html">fcitx</a></li> <li style="font-size: 115.00%;"><a href="../../../tags/hash.html">hash</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/hg.html">hg</a></li> <li style="font-size: 115.00%;"><a href="../../../tags/http.html">http</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/jabber.html">jabber</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/jquery.html">jquery</a></li> <li style="font-size: 220.00%;"><a href="../../../tags/linux.html">linux</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/log4cxx.html">log4cxx</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/log4php.html">log4php</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/memcached.html">memcached</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/mongodb.html">mongodb</a></li> <li style="font-size: 150.00%;"><a href="../../../tags/mysql.html">mysql</a></li> <li style="font-size: 150.00%;"><a href="../../../tags/nginx.html">nginx</a></li> <li style="font-size: 185.00%;"><a href="../../../tags/node.html">node</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/o-blog.html">o-blog</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/openssl.html">openssl</a></li> <li style="font-size: 185.00%;"><a href="../../../tags/php.html">php</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/pomodoro.html">pomodoro</a></li> <li style="font-size: 220.00%;"><a href="../../../tags/python.html">python</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/qrcode.html">qrcode</a></li> <li style="font-size: 220.00%;"><a href="../../../tags/redis.html">redis</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/redmine.html">redmine</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/spdy.html">spdy</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/trac.html">trac</a></li> <li style="font-size: 150.00%;"><a href="../../../tags/web.html">web</a></li> 
+  <li style="font-size: 220.00%;"><a href="../../../tags/archlinux.html">archlinux</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/babel.html">babel</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/bitbucket.html">bitbucket</a></li> <li style="font-size: 115.00%;"><a href="../../../tags/c.html">c</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/chosen.html">chosen</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/comet.html">comet</a></li> <li style="font-size: 115.00%;"><a href="../../../tags/cpp.html">cpp</a></li> <li style="font-size: 115.00%;"><a href="../../../tags/discuz.html">discuz</a></li> <li style="font-size: 115.00%;"><a href="../../../tags/emacs.html">emacs</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/english.html">english</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/fcitx.html">fcitx</a></li> <li style="font-size: 115.00%;"><a href="../../../tags/hash.html">hash</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/hg.html">hg</a></li> <li style="font-size: 115.00%;"><a href="../../../tags/http.html">http</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/jabber.html">jabber</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/jquery.html">jquery</a></li> <li style="font-size: 220.00%;"><a href="../../../tags/linux.html">linux</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/log4cxx.html">log4cxx</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/log4php.html">log4php</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/memcached.html">memcached</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/mongodb.html">mongodb</a></li> <li style="font-size: 150.00%;"><a href="../../../tags/mysql.html">mysql</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/network.html">network</a></li> <li style="font-size: 150.00%;"><a href="../../../tags/nginx.html">nginx</a></li> <li style="font-size: 185.00%;"><a href="../../../tags/node.html">node</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/o-blog.html">o-blog</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/openssl.html">openssl</a></li> <li style="font-size: 185.00%;"><a href="../../../tags/php.html">php</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/pomodoro.html">pomodoro</a></li> <li style="font-size: 220.00%;"><a href="../../../tags/python.html">python</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/qrcode.html">qrcode</a></li> <li style="font-size: 220.00%;"><a href="../../../tags/redis.html">redis</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/redmine.html">redmine</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/security.html">security</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/spdy.html">spdy</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/trac.html">trac</a></li> <li style="font-size: 185.00%;"><a href="../../../tags/web.html">web</a></li> 
 </ul>
 
         </div>
