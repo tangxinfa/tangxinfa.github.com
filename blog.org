@@ -2099,6 +2099,7 @@ class RedisShard {
     | 字段      | 意义               |
     |-----------+--------------------|
     | id        | 任务标识符         |
+    | parent    | 主任务标识符       |
     | name      | 名称               |
     | priority  | 优先级             |
     | pomodoros | 关联的番茄标识列表 |
@@ -5727,10 +5728,29 @@ class RedisShard {
 
    - mysql_query进行update返回true表示记录更新成功吗？
      
-** TODO linux挂载远程文件夹                                           :linux:
+** TODO 在linux挂载其它linux上的文件夹                                :linux:
 
-   - 挂载nfs文件夹
+   下面的IP地址以及工作目录需按实际情况进行修改。
+
+   - 在本地机器上允许目录被远程挂载
+     
+     #+begin_src sh
+       echo '/home/tangxinfa/workdir *(rw,sync,no_root_squash)' >> /etc/exports
+       sudo exportfs -arv
+     #+end_src
+
+   - 在远程机器上挂载本地机器上的文件夹
 
      #+begin_src sh
        mkdir /tmp/Projects; mount -t nfs -o nolock 192.168.111.100:/home/tangxinfa/Projects /tmp/Projects
      #+end_src
+
+** TODO buildbot使用中遇到的问题                            :python:buildbot:
+
+*** public_html目录下编译出的APK包用浏览器无法直接下载
+    
+    配置APK的mime类型即可。
+
+    #+begin_src sh
+      echo "application/vnd.android.package-archive   apk" >> /etc/mime.types 
+    #+end_src
