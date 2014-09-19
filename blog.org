@@ -5754,3 +5754,48 @@ class RedisShard {
     #+begin_src sh
       echo "application/vnd.android.package-archive   apk" >> /etc/mime.types 
     #+end_src
+** DONE linux下修改键位映射                                  :linux:keyboard:
+   CLOSED: [2014-09-19 Fri 14:07]
+
+   在linux下会大量使用ctrl和alt键，但是普通键盘上这两个键所在位置太偏，按起来非常吃力，交换键位可以很好的解决这个问题。
+
+   - 通过gnome-tweak-tool进行修改
+
+     Typing页可以完成常用的修改，如：交换Caps Lock和Ctrl，交换左Ctrl和Alt。但是在我的笔记本上设置好后有时候会失效.
+
+   - 通过setxkbmap命令进行修改
+
+     Caps Lock改为Ctrl：setxkbmap -option ctrl:nocaps
+
+     可以查看/usr/share/X11/xkb/rules/evdev.lst查看支持的交换方式。Ctrl和Alt交换试了一下没有效果。
+
+     将setxkbmap设置命令放到~/.xprofile中即可开机生效。
+
+
+   - 通过配置~/.Xmodmap进行修改
+
+     可以完成任意的键盘映射。
+
+     如下所示：Caps Lock改为Ctrl，左Ctrl改为Alt：
+     
+     #+begin_example
+       keycode 66 = Control_L
+       clear Lock
+       add control = Control_L
+       
+       clear control
+       clear mod1
+       keycode 37 = Alt_L Meta_L
+       add control = Control_L Control_R
+       add mod1 = Alt_L Meta_L
+     #+end_example
+
+     参考
+
+     + [[http://earthviaradio.wordpress.com/2012/02/06/swapping-the-left-alt-and-ctrl-keys-in-ubuntu-11-10/][Swapping the left Alt and Ctrl keys in Ubuntu 11.10]]
+
+     + [[http://efod.se/writings/linuxbook/html/caps-lock-to-ctrl.html][Changing your caps lock into Ctrl in X]]
+
+   - 换hhkb pro2键盘
+
+     linux用户必备，ctrl和alt键已经放置到最优位置，而且后面的跳线开关支持常用的键位交换，即使是linux文本模式下也可用。
