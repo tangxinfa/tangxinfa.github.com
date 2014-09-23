@@ -5728,7 +5728,8 @@ class RedisShard {
 
    - mysql_query进行update返回true表示记录更新成功吗？
      
-** TODO 在linux挂载其它linux上的文件夹                                :linux:
+** DONE 在linux使用nfs挂载其它linux机器上的文件夹                 :linux:nfs:
+   CLOSED: [2014-09-23 Tue 16:52]
 
    下面的IP地址以及工作目录需按实际情况进行修改。
 
@@ -5744,6 +5745,23 @@ class RedisShard {
      #+begin_src sh
        mkdir /tmp/Projects; mount -t nfs -o nolock 192.168.111.100:/home/tangxinfa/Projects /tmp/Projects
      #+end_src
+
+   问题诊断
+
+   - mount: RPC: Unable to receive; errno = Connection refused
+
+     需要启动nfs-server服务：
+
+     #+begin_src sh
+       sudo systemctl enable nfs-server.service
+       sudo systemctl start nfs-server.service
+     #+end_src
+
+     另外，如果刚刚做了linux内核更新而没有重启系统也可能导致这个问题，重启一下再试。
+
+   - mount: 192.168.111.100:/home/tangxinfa/Projects failed, reason given by server: Permission denied
+
+     在/etc/exports文件中允许目录被远程挂载即可。
 
 ** TODO buildbot使用中遇到的问题                            :python:buildbot:
 
@@ -5811,3 +5829,6 @@ class RedisShard {
      将上面的命令放到~/.xprofile中，以便重启后仍然生效。
 
    参考：[[https://blog.lnx.cx/2014/03/20/fedora-20-and-the-thinkpad-t440s-touchpad/][Fedora 20 and the ThinkPad T440s touchpad | Technitribe]]
+
+
+   
