@@ -29,20 +29,18 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </a>
-	  <a class="brand" href="../../../index.html">看看俺 - KanKanAn.com</a>
+	  <a class="brand" href="../../../index.html" style="line-height:100%;">看看俺 - KanKanAn.com</a>
 	  <div class="nav-collapse collapse">
-	    <ul>
+	    <ul class="org-ul">
 <li><a href="../../../archives.html"><i>icon-list icon-white</i> 归档</a>
-
 </li>
+
 <li><a href="../../../tags.html"><i>icon-tags icon-white</i> 标签</a>
-
 </li>
+
 <li><a href="../../../index.xml"><i>icon-rss icon-white</i> 订阅</a>
 </li>
 </ul>
-
-
 
 	  </div>
 	</div>
@@ -82,24 +80,26 @@
   </header>
   <div class="article-content">
     <p>
-  在通过sqlalchemy使用sqlite3数据库的过程中，发现日期时间字段默认值为CURRENT_TIMESTAMP，但是查出的值少了8个小时。很明显是遇到时区问题了。
+在通过sqlalchemy使用sqlite3数据库的过程中，发现日期时间字段默认值为CURRENT\<sub>TIMESTAMP，但是查出的值少了8个小时。很明显是遇到时区问题了。</sub>
 </p>
+
 <p>
-  mysql的TIMESTAMP字段类型和sqlite3一样使用UTC时间保存，因为在存取时自动进行了本地时间与UTC时间互转，所以不会遇到时区问题。但是sqlite3没有自动进行这一转换，需要在sql中自行转换:
+mysql的TIMESTAMP字段类型和sqlite3一样使用UTC时间保存，因为在存取时自动进行了本地时间与UTC时间互转，所以不会遇到时区问题。但是sqlite3没有自动进行这一转换，需要在sql中自行转换:
 </p>
+<div class="org-src-container">
 
-
-<pre class="src src-sql">select datetime(CURRENT_TIMESTAMP, <span style="color: #ad7fa8; font-style: italic;">'localtime'</span>)
+<pre class="src src-sql"><span style="color: #729fcf; font-weight: bold;">select</span> datetime(<span style="color: #729fcf;">CURRENT_TIMESTAMP</span>, <span style="color: #ad7fa8; font-style: italic;">'localtime'</span>)
 </pre>
-
+</div>
 
 <p>
-  进一步google后，找到了这篇文章：《<a href="http://lucumr.pocoo.org/2011/7/15/eppur-si-muove/">Dealing with Timezones in Python</a>》，文章大意是python中的datetime库默认不携带时区信息，而加上时区后又与不带时区的datetime对象无法一起工作（如：比较），另外像datetime.datetime.utcnow()返回的utc时间和datetime.datetime.now()返回的本地时间也是不携带时区信息的（tzinfo属性为None），容易引起混淆，因此处理的简单性，内部最好统一使用UTC标准时间，和用户交互时再转换为本地时间。
-</p>
-<p>
-  下面是互转的算法：
+进一步google后，找到了这篇文章：《<a href="http://lucumr.pocoo.org/2011/7/15/eppur-si-muove/">Dealing with Timezones in Python</a>》，文章大意是python中的datetime库默认不携带时区信息，而加上时区后又与不带时区的datetime对象无法一起工作（如：比较），另外像datetime.datetime.utcnow()返回的utc时间和datetime.datetime.now()返回的本地时间也是不携带时区信息的（tzinfo属性为None），容易引起混淆，因此处理的简单性，内部最好统一使用UTC标准时间，和用户交互时再转换为本地时间。
 </p>
 
+<p>
+下面是互转的算法：
+</p>
+<div class="org-src-container">
 
 <pre class="src src-python"><span style="color: #888a85;">#</span><span style="color: #888a85;">/usr/bin/env python</span>
 
@@ -124,11 +124,11 @@
 <span style="background-color: #404040;"> </span>   <span style="color: #729fcf; font-weight: bold;">return</span> dt.replace(tzinfo=utctimezone).astimezone(localtimezone).strftime(fmt)
 
 <span style="color: #729fcf; font-weight: bold;">if</span> <span style="color: #729fcf;">__name__</span> == <span style="color: #ad7fa8; font-style: italic;">'__main__'</span>:
-<span style="background-color: #404040;"> </span>   input_local_datetime = <span style="color: #ad7fa8; font-style: italic;">'2012-01-02 03:04:05'</span>
-<span style="background-color: #404040;"> </span>   parsed_utc_datetime = parsedatetime(input_local_datetime)
+<span style="background-color: #404040;"> </span>   <span style="color: #eeeeec;">input_local_datetime</span> = <span style="color: #ad7fa8; font-style: italic;">'2012-01-02 03:04:05'</span>
+<span style="background-color: #404040;"> </span>   <span style="color: #eeeeec;">parsed_utc_datetime</span> = parsedatetime(input_local_datetime)
 <span style="background-color: #404040;"> </span>   <span style="color: #729fcf; font-weight: bold;">assert</span>(formatdatetime(parsed_utc_datetime) == input_local_datetime)
 </pre>
-
+</div>
 
   </div>
   
@@ -164,13 +164,13 @@
         <h5>最新文章</h5>
         <div id="recent-posts">
           <ul>
-            <li><a href="../../../posts/2014/09/23_5728linux4f7f7528nfs63028f7d51765b83linux673a56684e0a768465874ef65939.html">在linux使用nfs挂载其它linux机器上的文件夹</a></li> <li><a href="../../../posts/2014/09/22_thinkpad-t540p4fee590dlinux4e0b89e66478677f63094e0b65f6514968074f4d7f6e79fb52a895ee9898.html">Thinkpad T540p修复linux下触摸板按下时光标位置移动问题</a></li> <li><a href="../../../posts/2014/09/19_linux4e0b4fee6539952e4f4d66205c04.html">linux下修改键位映射</a></li> <li><a href="../../../posts/2014/04/01_8bba575b88ab6302669794fe95ee9898520667904e0e89e351b3.html">论坛被挂暗链问题分析与解决</a></li> <li><a href="../../../posts/2014/03/12_archlinux7f517edc63a553e34e0a51fa73b04e244e2aip.html">Archlinux网络接口上出现两个IP</a></li> <li><a href="../../../posts/2014/03/10_5f006e90987976ee7ba174067cfb7edfff1atrac.html">开源项目管理系统：trac</a></li> <li><a href="../../../index.html">python应用国际化：Babel</a></li> <li><a href="../../../posts/2014/03/07_centos-62e44e0b5b8988c5redmine.html">CentOS 6.4下安装redmine</a></li> <li><a href="../../../posts/2014/02/17_7f168bd15b8988c5redis.html">编译安装redis</a></li> <li><a href="../../../posts/2014/02/17_7f168bd15b8988c5node2ejs.html">编译安装node.js</a></li> 
+            <li><a href="../../../posts/2014/12/09_740689e3node2ejs4e2d7684error5bf98c61.html">理解node.js中的Error对象</a></li> <li><a href="../../../posts/2014/09/23_5728linux4f7f7528nfs63028f7d51765b83linux673a56684e0a768465874ef65939.html">在linux使用nfs挂载其它linux机器上的文件夹</a></li> <li><a href="../../../posts/2014/09/22_thinkpad-t540p4fee590dlinux4e0b89e66478677f63094e0b65f6514968074f4d7f6e79fb52a895ee9898.html">Thinkpad T540p修复linux下触摸板按下时光标位置移动问题</a></li> <li><a href="../../../posts/2014/09/19_linux4e0b4fee6539952e4f4d66205c04.html">linux下修改键位映射</a></li> <li><a href="../../../posts/2014/04/01_8bba575b88ab6302669794fe95ee9898520667904e0e89e351b3.html">论坛被挂暗链问题分析与解决</a></li> <li><a href="../../../posts/2014/03/12_archlinux7f517edc63a553e34e0a51fa73b04e244e2aip.html">Archlinux网络接口上出现两个IP</a></li> <li><a href="../../../posts/2014/03/10_5f006e90987976ee7ba174067cfb7edfff1atrac.html">开源项目管理系统：trac</a></li> <li><a href="../../../index.html">python应用国际化：Babel</a></li> <li><a href="../../../posts/2014/03/07_centos-62e44e0b5b8988c5redmine.html">CentOS 6.4下安装redmine</a></li> <li><a href="../../../posts/2014/02/17_7f168bd15b8988c5redis.html">编译安装redis</a></li> 
           </ul>
         </div>
 	    <h5>标签</h5>
         <div id="tags">
 	      <ul>
-  <li style="font-size: 160.00%;"><a href="../../../tags/archlinux.html">archlinux</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/babel.html">babel</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/bitbucket.html">bitbucket</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/c.html">c</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/chosen.html">chosen</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/comet.html">comet</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/cpp.html">cpp</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/discuz.html">discuz</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/emacs.html">emacs</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/english.html">english</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/fcitx.html">fcitx</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/hash.html">hash</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/hg.html">hg</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/http.html">http</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/jabber.html">jabber</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/jquery.html">jquery</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/keyboard.html">keyboard</a></li> <li style="font-size: 220.00%;"><a href="../../../tags/linux.html">linux</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/log4cxx.html">log4cxx</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/log4php.html">log4php</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/memcached.html">memcached</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/mongodb.html">mongodb</a></li> <li style="font-size: 120.00%;"><a href="../../../tags/mysql.html">mysql</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/network.html">network</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/nfs.html">nfs</a></li> <li style="font-size: 120.00%;"><a href="../../../tags/nginx.html">nginx</a></li> <li style="font-size: 140.00%;"><a href="../../../tags/node.html">node</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/o-blog.html">o-blog</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/openssl.html">openssl</a></li> <li style="font-size: 140.00%;"><a href="../../../tags/php.html">php</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/pomodoro.html">pomodoro</a></li> <li style="font-size: 160.00%;"><a href="../../../tags/python.html">python</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/qrcode.html">qrcode</a></li> <li style="font-size: 160.00%;"><a href="../../../tags/redis.html">redis</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/redmine.html">redmine</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/security.html">security</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/spdy.html">spdy</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/thinkpad.html">thinkpad</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/trac.html">trac</a></li> <li style="font-size: 140.00%;"><a href="../../../tags/web.html">web</a></li> 
+  <li style="font-size: 160.00%;"><a href="../../../tags/archlinux.html">archlinux</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/babel.html">babel</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/bitbucket.html">bitbucket</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/c.html">c</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/chosen.html">chosen</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/comet.html">comet</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/cpp.html">cpp</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/discuz.html">discuz</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/emacs.html">emacs</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/english.html">english</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/fcitx.html">fcitx</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/hash.html">hash</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/hg.html">hg</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/http.html">http</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/jabber.html">jabber</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/jquery.html">jquery</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/keyboard.html">keyboard</a></li> <li style="font-size: 220.00%;"><a href="../../../tags/linux.html">linux</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/log4cxx.html">log4cxx</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/log4php.html">log4php</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/memcached.html">memcached</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/mongodb.html">mongodb</a></li> <li style="font-size: 120.00%;"><a href="../../../tags/mysql.html">mysql</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/network.html">network</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/nfs.html">nfs</a></li> <li style="font-size: 120.00%;"><a href="../../../tags/nginx.html">nginx</a></li> <li style="font-size: 160.00%;"><a href="../../../tags/node.html">node</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/o-blog.html">o-blog</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/openssl.html">openssl</a></li> <li style="font-size: 140.00%;"><a href="../../../tags/php.html">php</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/pomodoro.html">pomodoro</a></li> <li style="font-size: 160.00%;"><a href="../../../tags/python.html">python</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/qrcode.html">qrcode</a></li> <li style="font-size: 160.00%;"><a href="../../../tags/redis.html">redis</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/redmine.html">redmine</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/security.html">security</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/spdy.html">spdy</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/thinkpad.html">thinkpad</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/trac.html">trac</a></li> <li style="font-size: 140.00%;"><a href="../../../tags/web.html">web</a></li> 
 </ul>
 
         </div>
@@ -186,6 +186,7 @@
 	  <p>
 版权所有 © 2011-2013 看看俺 – KanKanAn.com
 </p>
+
 	  <p>Powered by <a href="https://github.com/renard/o-blog">o-blog</a>.</p>
 	</div>
   </div>

@@ -29,20 +29,18 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </a>
-	  <a class="brand" href="../../../index.html">看看俺 - KanKanAn.com</a>
+	  <a class="brand" href="../../../index.html" style="line-height:100%;">看看俺 - KanKanAn.com</a>
 	  <div class="nav-collapse collapse">
-	    <ul>
+	    <ul class="org-ul">
 <li><a href="../../../archives.html"><i>icon-list icon-white</i> 归档</a>
-
 </li>
+
 <li><a href="../../../tags.html"><i>icon-tags icon-white</i> 标签</a>
-
 </li>
+
 <li><a href="../../../index.xml"><i>icon-rss icon-white</i> 订阅</a>
 </li>
 </ul>
-
-
 
 	  </div>
 	</div>
@@ -81,19 +79,19 @@
 
   </header>
   <div class="article-content">
-    <ul>
+    <ul class="org-ul">
 <li>识别作弊
 
 <p>
-    发贴、回复较少的用户具有偏高的积分、等级通常就是潜在的作弊对象。在后台查看该用户的积分历史，如果来历不明，那么很可能是通过访问推广作弊获得的。
+发贴、回复较少的用户具有偏高的积分、等级通常就是潜在的作弊对象。在后台查看该用户的积分历史，如果来历不明，那么很可能是通过访问推广作弊获得的。
 </p>
+
 <p>
-    在我们的例子里就发现有一个用户金钱数过高，先查看该用户的积分表：
+在我们的例子里就发现有一个用户金钱数过高，先查看该用户的积分表：
 </p>
 
-
-
-<pre class="example">mysql&gt; SELECT total, cyclenum, extcredits2 FROM g_common_credit_rule_log WHERE rid=8 and uid=119;
+<pre class="example">
+mysql&gt; SELECT total, cyclenum, extcredits2 FROM g_common_credit_rule_log WHERE rid=8 and uid=119;
 +-------+----------+-------------+
 | total | cyclenum | extcredits2 |
 +-------+----------+-------------+
@@ -102,59 +100,59 @@
 1 row in set (0.00 sec)
 </pre>
 
-
-<p>    
-    相关字段说明
-</p><dl>
-<dt>total</dt><dd>策略被执行总次数
+<p>
+相关字段说明
+</p>
+<dl class="org-dl">
+<dt> total </dt><dd>策略被执行总次数
 </dd>
-<dt>cyclenum</dt><dd>周期被执行次数 
+<dt> cyclenum </dt><dd>周期被执行次数 
 </dd>
-<dt>extcredits2</dt><dd>我们的系统里对应金钱数
+<dt> extcredits2 </dt><dd>我们的系统里对应金钱数
 </dd>
-<dt>rid</dt><dd>值8为访问推广任务类型
+<dt> rid </dt><dd>值8为访问推广任务类型
 </dd>
-<dt>uid</dt><dd>值119为作弊用户id
-
+<dt> uid </dt><dd>值119为作弊用户id
 </dd>
 </dl>
-
-<p>    从上面可以看出该用户完成了3454次任务， 接下来就需要确认这些任务是通过作弊完成的了。
-</p>
-<p>    
-    搜索该用户推广链接在web服务器中留下的访问日志：
+<p>
+从上面可以看出该用户完成了3454次任务， 接下来就需要确认这些任务是通过作弊完成的了。
 </p>
 
-
-<pre class="example">logs# grep 'fromuid=119' /usr/local/nginx/logs/access.log*
+<p>
+搜索该用户推广链接在web服务器中留下的访问日志：
+</p>
+<pre class="example">
+logs# grep 'fromuid=119' /usr/local/nginx/logs/access.log*
 "GET /?fromuid=119.jpg HTTP/1.1" 301 6243 "http://xxxx.org/details.php?id=178668"
 ...
 </pre>
 
-
 <p>
-    可以初步断定，该用户通过在其它论坛中发布信息并将推广url注入到图片的url中，这样我们的站点在访问量没有任何增长的情况下该用户的推广数却瞬间彪升了。
+可以初步断定，该用户通过在其它论坛中发布信息并将推广url注入到图片的url中，这样我们的站点在访问量没有任何增长的情况下该用户的推广数却瞬间彪升了。
 </p>
 </li>
+
 <li>阻止作弊
 
 <p>
-    通过使用引用页中的用户标识进行记录来解决这个问题，这样只有当用户来到论坛并进行了相关操作才算推荐有效。
-</p>
-<p>
-    修改source/class/discuz/discuz_application.php文件，将下面的内容：
+通过使用引用页中的用户标识进行记录来解决这个问题，这样只有当用户来到论坛并进行了相关操作才算推荐有效。
 </p>
 
+<p>
+修改source/class/discuz/discuz\<sub>application</sub>.php文件，将下面的内容：
+</p>
+<div class="org-src-container">
 
 <pre class="src src-php"><span style="color: #729fcf; font-weight: bold;">if</span>((!<span style="color: #eeeeec; background-color: #2e3436;">empty(</span>$<span style="color: #8ae234;">_GET</span>[<span style="color: #ad7fa8; font-style: italic;">'fromuid'</span>]) || !<span style="color: #eeeeec; background-color: #2e3436;">empty(</span>$<span style="color: #8ae234;">_GET</span>[<span style="color: #ad7fa8; font-style: italic;">'fromuser'</span>])) &amp;&amp; ($<span style="color: #8ae234;">this</span>-&gt;<span style="color: #eeeeec;">var</span>[<span style="color: #ad7fa8; font-style: italic;">'setting'</span>][<span style="color: #ad7fa8; font-style: italic;">'creditspolicy'</span>][<span style="color: #ad7fa8; font-style: italic;">'promotion_visit'</span>] || $<span style="color: #8ae234;">this</span>-&gt;<span style="color: #eeeeec;">var</span>[<span style="color: #ad7fa8; font-style: italic;">'setting'</span>][<span style="color: #ad7fa8; font-style: italic;">'creditspolicy'</span>][<span style="color: #ad7fa8; font-style: italic;">'promotion_register'</span>])) {
 <span style="background-color: #404040;"> </span> <span style="background-color: #404040;"> </span> <span style="color: #729fcf; font-weight: bold;">require_once</span> <span style="color: #eeeeec; background-color: #2e3436;">libfile(</span><span style="color: #ad7fa8; font-style: italic;">'misc/promotion'</span>, <span style="color: #ad7fa8; font-style: italic;">'include'</span>);
 }
 </pre>
-
+</div>
 <p>
-    改为：
+改为：
 </p>
-
+<div class="org-src-container">
 
 <pre class="src src-php"><span style="color: #729fcf; font-weight: bold;">if</span> (<span style="color: #eeeeec; background-color: #2e3436;">isset(</span>$<span style="color: #8ae234;">_SERVER</span>[<span style="color: #ad7fa8; font-style: italic;">'HTTP_REFERER'</span>]) &amp;&amp; <span style="color: #eeeeec; background-color: #2e3436;">strpos(</span>$<span style="color: #8ae234;">_SERVER</span>[<span style="color: #ad7fa8; font-style: italic;">'HTTP_REFERER'</span>], <span style="color: #ad7fa8; font-style: italic;">'http://XXX.com/'</span>) === <span style="color: #eeeeec; background-color: #2e3436;">0</span>) {
 <span style="background-color: #404040;"> </span> <span style="background-color: #404040;"> </span> $<span style="color: #eeeeec;">referer_query</span> = <span style="color: #eeeeec; background-color: #2e3436;">parse_url(</span>$<span style="color: #8ae234;">_SERVER</span>[<span style="color: #ad7fa8; font-style: italic;">'HTTP_REFERER'</span>], <span style="color: #f57900; font-weight: bold;">PHP_URL_QUERY</span>);
@@ -166,12 +164,12 @@
 <span style="background-color: #404040;"> </span> <span style="background-color: #404040;"> </span> }
 }
 </pre>
-
+</div>
 
 <p>
-    修改source/include/misc/misc_promotion.php文件，将下面的内容：
+修改source/include/misc/misc\<sub>promotion</sub>.php文件，将下面的内容：
 </p>
-
+<div class="org-src-container">
 
 <pre class="src src-php"><span style="color: #729fcf; font-weight: bold;">if</span>(!<span style="color: #eeeeec; background-color: #2e3436;">empty(</span>$<span style="color: #8ae234;">_GET</span>[<span style="color: #ad7fa8; font-style: italic;">'fromuid'</span>])) {
 <span style="background-color: #404040;"> </span> <span style="background-color: #404040;"> </span> $<span style="color: #eeeeec;">fromuid</span> = <span style="color: #eeeeec; background-color: #2e3436;">intval(</span>$<span style="color: #8ae234;">_GET</span>[<span style="color: #ad7fa8; font-style: italic;">'fromuid'</span>]);
@@ -181,11 +179,11 @@
 <span style="background-color: #404040;"> </span> <span style="background-color: #404040;"> </span> $<span style="color: #eeeeec;">fromuid</span> = <span style="color: #ad7fa8; font-style: italic;">''</span>;
 }
 </pre>
-
+</div>
 <p>
-    改为：
+改为：
 </p>
-
+<div class="org-src-container">
 
 <pre class="src src-php"><span style="color: #729fcf; font-weight: bold;">if</span>(!<span style="color: #eeeeec; background-color: #2e3436;">empty(</span>$<span style="color: #eeeeec;">referer_get</span>[<span style="color: #ad7fa8; font-style: italic;">'fromuid'</span>])) {
 <span style="background-color: #404040;"> </span> <span style="background-color: #404040;"> </span> $<span style="color: #eeeeec;">fromuid</span> = <span style="color: #eeeeec; background-color: #2e3436;">intval(</span>$<span style="color: #eeeeec;">referer_get</span>[<span style="color: #ad7fa8; font-style: italic;">'fromuid'</span>]);
@@ -195,10 +193,9 @@
 <span style="background-color: #404040;"> </span> <span style="background-color: #404040;"> </span> $<span style="color: #eeeeec;">fromuid</span> = <span style="color: #ad7fa8; font-style: italic;">''</span>;
 }
 </pre>
-
+</div>
 </li>
 </ul>
-
 
   </div>
   
@@ -234,13 +231,13 @@
         <h5>最新文章</h5>
         <div id="recent-posts">
           <ul>
-            <li><a href="../../../posts/2014/09/23_5728linux4f7f7528nfs63028f7d51765b83linux673a56684e0a768465874ef65939.html">在linux使用nfs挂载其它linux机器上的文件夹</a></li> <li><a href="../../../posts/2014/09/22_thinkpad-t540p4fee590dlinux4e0b89e66478677f63094e0b65f6514968074f4d7f6e79fb52a895ee9898.html">Thinkpad T540p修复linux下触摸板按下时光标位置移动问题</a></li> <li><a href="../../../posts/2014/09/19_linux4e0b4fee6539952e4f4d66205c04.html">linux下修改键位映射</a></li> <li><a href="../../../posts/2014/04/01_8bba575b88ab6302669794fe95ee9898520667904e0e89e351b3.html">论坛被挂暗链问题分析与解决</a></li> <li><a href="../../../posts/2014/03/12_archlinux7f517edc63a553e34e0a51fa73b04e244e2aip.html">Archlinux网络接口上出现两个IP</a></li> <li><a href="../../../posts/2014/03/10_5f006e90987976ee7ba174067cfb7edfff1atrac.html">开源项目管理系统：trac</a></li> <li><a href="../../../index.html">python应用国际化：Babel</a></li> <li><a href="../../../posts/2014/03/07_centos-62e44e0b5b8988c5redmine.html">CentOS 6.4下安装redmine</a></li> <li><a href="../../../posts/2014/02/17_7f168bd15b8988c5redis.html">编译安装redis</a></li> <li><a href="../../../posts/2014/02/17_7f168bd15b8988c5node2ejs.html">编译安装node.js</a></li> 
+            <li><a href="../../../posts/2014/12/09_740689e3node2ejs4e2d7684error5bf98c61.html">理解node.js中的Error对象</a></li> <li><a href="../../../posts/2014/09/23_5728linux4f7f7528nfs63028f7d51765b83linux673a56684e0a768465874ef65939.html">在linux使用nfs挂载其它linux机器上的文件夹</a></li> <li><a href="../../../posts/2014/09/22_thinkpad-t540p4fee590dlinux4e0b89e66478677f63094e0b65f6514968074f4d7f6e79fb52a895ee9898.html">Thinkpad T540p修复linux下触摸板按下时光标位置移动问题</a></li> <li><a href="../../../posts/2014/09/19_linux4e0b4fee6539952e4f4d66205c04.html">linux下修改键位映射</a></li> <li><a href="../../../posts/2014/04/01_8bba575b88ab6302669794fe95ee9898520667904e0e89e351b3.html">论坛被挂暗链问题分析与解决</a></li> <li><a href="../../../posts/2014/03/12_archlinux7f517edc63a553e34e0a51fa73b04e244e2aip.html">Archlinux网络接口上出现两个IP</a></li> <li><a href="../../../posts/2014/03/10_5f006e90987976ee7ba174067cfb7edfff1atrac.html">开源项目管理系统：trac</a></li> <li><a href="../../../index.html">python应用国际化：Babel</a></li> <li><a href="../../../posts/2014/03/07_centos-62e44e0b5b8988c5redmine.html">CentOS 6.4下安装redmine</a></li> <li><a href="../../../posts/2014/02/17_7f168bd15b8988c5redis.html">编译安装redis</a></li> 
           </ul>
         </div>
 	    <h5>标签</h5>
         <div id="tags">
 	      <ul>
-  <li style="font-size: 160.00%;"><a href="../../../tags/archlinux.html">archlinux</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/babel.html">babel</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/bitbucket.html">bitbucket</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/c.html">c</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/chosen.html">chosen</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/comet.html">comet</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/cpp.html">cpp</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/discuz.html">discuz</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/emacs.html">emacs</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/english.html">english</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/fcitx.html">fcitx</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/hash.html">hash</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/hg.html">hg</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/http.html">http</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/jabber.html">jabber</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/jquery.html">jquery</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/keyboard.html">keyboard</a></li> <li style="font-size: 220.00%;"><a href="../../../tags/linux.html">linux</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/log4cxx.html">log4cxx</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/log4php.html">log4php</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/memcached.html">memcached</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/mongodb.html">mongodb</a></li> <li style="font-size: 120.00%;"><a href="../../../tags/mysql.html">mysql</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/network.html">network</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/nfs.html">nfs</a></li> <li style="font-size: 120.00%;"><a href="../../../tags/nginx.html">nginx</a></li> <li style="font-size: 140.00%;"><a href="../../../tags/node.html">node</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/o-blog.html">o-blog</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/openssl.html">openssl</a></li> <li style="font-size: 140.00%;"><a href="../../../tags/php.html">php</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/pomodoro.html">pomodoro</a></li> <li style="font-size: 160.00%;"><a href="../../../tags/python.html">python</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/qrcode.html">qrcode</a></li> <li style="font-size: 160.00%;"><a href="../../../tags/redis.html">redis</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/redmine.html">redmine</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/security.html">security</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/spdy.html">spdy</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/thinkpad.html">thinkpad</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/trac.html">trac</a></li> <li style="font-size: 140.00%;"><a href="../../../tags/web.html">web</a></li> 
+  <li style="font-size: 160.00%;"><a href="../../../tags/archlinux.html">archlinux</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/babel.html">babel</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/bitbucket.html">bitbucket</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/c.html">c</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/chosen.html">chosen</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/comet.html">comet</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/cpp.html">cpp</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/discuz.html">discuz</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/emacs.html">emacs</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/english.html">english</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/fcitx.html">fcitx</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/hash.html">hash</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/hg.html">hg</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/http.html">http</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/jabber.html">jabber</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/jquery.html">jquery</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/keyboard.html">keyboard</a></li> <li style="font-size: 220.00%;"><a href="../../../tags/linux.html">linux</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/log4cxx.html">log4cxx</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/log4php.html">log4php</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/memcached.html">memcached</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/mongodb.html">mongodb</a></li> <li style="font-size: 120.00%;"><a href="../../../tags/mysql.html">mysql</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/network.html">network</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/nfs.html">nfs</a></li> <li style="font-size: 120.00%;"><a href="../../../tags/nginx.html">nginx</a></li> <li style="font-size: 160.00%;"><a href="../../../tags/node.html">node</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/o-blog.html">o-blog</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/openssl.html">openssl</a></li> <li style="font-size: 140.00%;"><a href="../../../tags/php.html">php</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/pomodoro.html">pomodoro</a></li> <li style="font-size: 160.00%;"><a href="../../../tags/python.html">python</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/qrcode.html">qrcode</a></li> <li style="font-size: 160.00%;"><a href="../../../tags/redis.html">redis</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/redmine.html">redmine</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/security.html">security</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/spdy.html">spdy</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/thinkpad.html">thinkpad</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/trac.html">trac</a></li> <li style="font-size: 140.00%;"><a href="../../../tags/web.html">web</a></li> 
 </ul>
 
         </div>
@@ -256,6 +253,7 @@
 	  <p>
 版权所有 © 2011-2013 看看俺 – KanKanAn.com
 </p>
+
 	  <p>Powered by <a href="https://github.com/renard/o-blog">o-blog</a>.</p>
 	</div>
   </div>

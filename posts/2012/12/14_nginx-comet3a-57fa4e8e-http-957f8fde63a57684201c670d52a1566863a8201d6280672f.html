@@ -29,20 +29,18 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </a>
-	  <a class="brand" href="../../../index.html">看看俺 - KanKanAn.com</a>
+	  <a class="brand" href="../../../index.html" style="line-height:100%;">看看俺 - KanKanAn.com</a>
 	  <div class="nav-collapse collapse">
-	    <ul>
+	    <ul class="org-ul">
 <li><a href="../../../archives.html"><i>icon-list icon-white</i> 归档</a>
-
 </li>
+
 <li><a href="../../../tags.html"><i>icon-tags icon-white</i> 标签</a>
-
 </li>
+
 <li><a href="../../../index.xml"><i>icon-rss icon-white</i> 订阅</a>
 </li>
 </ul>
-
-
 
 	  </div>
 	</div>
@@ -81,37 +79,37 @@
 
   </header>
   <div class="article-content">
-    <div id="outline-container-1" class="outline-3">
-<h3 id="sec-1">简介</h3>
-<div class="outline-text-3" id="text-1">
+    
 
-<p>   可参考这篇文章：<a href="http://www.ibm.com/developerworks/cn/web/wa-lo-comet/">Comet：基于 HTTP 长连接的“服务器推”技术</a>
-</p>
-</div>
-
-</div>
-
-<div id="outline-container-2" class="outline-3">
-<h3 id="sec-2"><a href="https://github.com/slact/nginx_http_push_module">nginx_http_push_module</a> （不建议使用）</h3>
-<div class="outline-text-3" id="text-2">
-
-<p>  这个模块功能上没有问题，网上介绍的文章相对比较多，但是存在严重的内存泄露问题，而且发现使用kill -HUP的方式优雅重启nginx虽会释放一部分内存，但nginx错误日志显示有共享内存锁相关的冲突，我们不得不每小时彻底重启一次nginx。简单说一下就是它使用一个全局的内存池来分配订阅者及响应需要的内存空间，但是从nginx内存池分配的小内存块（&lt; pagesize，4096）是不会释放的也不会归还到池中进行重用，具体可查看nginx源码的ngx_palloc和ngx_pfree函数进行验证。
-</p>
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">简介</h2>
+<div class="outline-text-2" id="text-1">
 <p>
-  可google "nginx中mod_push模块内存分配改造"，在作者的<a href="http://http://blog.lifeibo.com/">网站</a>正在改版暂时找不到该文章。
+可参考这篇文章：<a href="http://www.ibm.com/developerworks/cn/web/wa-lo-comet/">Comet：基于 HTTP 长连接的“服务器推”技术</a>
 </p>
-<p>  
-  <a href="http://bsd.ee/~hadara/blog/?p=215=1">这里</a>也有人<a href="https://github.com/slact/nginx_http_push_module/pull/60">指出</a>该问题，同时该文作者也fork了一个分枝，但是我试了一下，除了不支持push_channel_timeout特性外，还是一样有内存泄露。
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><a href="https://github.com/slact/nginx_http_push_module">nginx\<sub>http\</sub><sub>push\</sub><sub>module</sub></a> （不建议使用）</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+这个模块功能上没有问题，网上介绍的文章相对比较多，但是存在严重的内存泄露问题，而且发现使用kill -HUP的方式优雅重启nginx虽会释放一部分内存，但nginx错误日志显示有共享内存锁相关的冲突，我们不得不每小时彻底重启一次nginx。简单说一下就是它使用一个全局的内存池来分配订阅者及响应需要的内存空间，但是从nginx内存池分配的小内存块（&lt; pagesize，4096）是不会释放的也不会归还到池中进行重用，具体可查看nginx源码的ngx\<sub>palloc和ngx\</sub><sub>pfree函数进行验证。</sub>
 </p>
-<dl>
-<dt>参考配置</dt><dd>
-</dd>
+
+<p>
+可google "nginx中mod\<sub>push模块内存分配改造</sub>"，在作者的<a href="http://http://blog.lifeibo.com/">网站</a>正在改版暂时找不到该文章。
+</p>
+
+<p>
+<a href="http://bsd.ee/~hadara/blog/?p=215=1">这里</a>也有人<a href="https://github.com/slact/nginx_http_push_module/pull/60">指出</a>该问题，同时该文作者也fork了一个分枝，但是我试了一下，除了不支持push\<sub>channel\</sub><sub>timeout特性外，还是一样有内存泄露。</sub>
+</p>
+
+<dl class="org-dl">
+<dt> 参考配置 </dt><dd></dd>
 </dl>
-
-
-
-
-<pre class="example">location ~ ^/publish$ {
+<pre class="example">
+location ~ ^/publish$ {
     allow 127.0.0.1;
     deny all;
     set $push_channel_id $arg_id;
@@ -145,43 +143,35 @@ location ~ ^/activity_jsonp$ {
     echo_after_body ")";
 }
 </pre>
-
-
+</div>
 </div>
 
-</div>
-
-<div id="outline-container-3" class="outline-3">
-<h3 id="sec-3"><a href="https://github.com/wandenberg/nginx-push-stream-module">nginx-push-stream-module</a> （建议使用）</h3>
-<div class="outline-text-3" id="text-3">
-
-<p>  由于 <a href="https://github.com/slact/nginx_http_push_module">nginx_http_push_module</a> 存在内存泄露问题，同时没有人进行正式的修复，我们决定尝试一下<a href="https://github.com/wandenberg/nginx-push-stream-module">nginx-push-stream-module</a>，这个模块功能更强大同时文档更完整，看起来也更活跃。
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3"><a href="https://github.com/wandenberg/nginx-push-stream-module">nginx-push-stream-module</a> （建议使用）</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+由于 <a href="https://github.com/slact/nginx_http_push_module">nginx\<sub>http\</sub><sub>push\</sub><sub>module</sub></a> 存在内存泄露问题，同时没有人进行正式的修复，我们决定尝试一下<a href="https://github.com/wandenberg/nginx-push-stream-module">nginx-push-stream-module</a>，这个模块功能更强大同时文档更完整，看起来也更活跃。
 </p>
-<dl>
-<dt>优点</dt><dd>
-<ul>
+
+<dl class="org-dl">
+<dt> 优点 </dt><dd><ul class="org-ul">
 <li>更成熟
-      有内存消耗说明文档，便于决定共享内存容量配置。
-      有统计功能。
-      可对响应内容进行再处理。
+有内存消耗说明文档，便于决定共享内存容量配置。
+有统计功能。
+可对响应内容进行再处理。
 </li>
 <li>测试中未发现明显的内存泄露
 </li>
 <li>内置支持jsonp
-      返回的jsonp是这样的格式callback([text])，可以通过修改ngx_http_push_stream_module_utils.h中定义的NGX_HTTP_PUSH_STREAM_CALLBACK_INIT_CHUNK和NGX_HTTP_PUSH_STREAM_CALLBACK_END_CHUNK去除多余的中括号。
-
+返回的jsonp是这样的格式callback([text])，可以通过修改ngx\<sub>http\</sub><sub>push\</sub><sub>stream\</sub><sub>module\</sub><sub>utils</sub>.h中定义的NGX\<sub>HTTP\</sub><sub>PUSH\</sub><sub>STREAM\</sub><sub>CALLBACK\</sub><sub>INIT\</sub><sub>CHUNK和NGX\</sub><sub>HTTP\</sub><sub>PUSH\</sub><sub>STREAM\</sub><sub>CALLBACK\</sub><sub>END\</sub><sub>CHUNK去除多余的中括号。</sub>
 </li>
 </ul>
+</dd>
 
-</dd>
-<dt>参考配置</dt><dd>
-</dd>
+<dt> 参考配置 </dt><dd></dd>
 </dl>
-
-
-
-
-<pre class="example">push_stream_store_messages off;
+<pre class="example">
+push_stream_store_messages off;
 push_stream_max_subscribers_per_channel 1;
 push_stream_subscriber_connection_ttl 60s;
 push_stream_longpolling_connection_ttl 60s;
@@ -208,9 +198,7 @@ server {
 
     ...
 }
-
 </pre>
-
 </div>
 </div>
 
@@ -248,13 +236,13 @@ server {
         <h5>最新文章</h5>
         <div id="recent-posts">
           <ul>
-            <li><a href="../../../posts/2014/09/23_5728linux4f7f7528nfs63028f7d51765b83linux673a56684e0a768465874ef65939.html">在linux使用nfs挂载其它linux机器上的文件夹</a></li> <li><a href="../../../posts/2014/09/22_thinkpad-t540p4fee590dlinux4e0b89e66478677f63094e0b65f6514968074f4d7f6e79fb52a895ee9898.html">Thinkpad T540p修复linux下触摸板按下时光标位置移动问题</a></li> <li><a href="../../../posts/2014/09/19_linux4e0b4fee6539952e4f4d66205c04.html">linux下修改键位映射</a></li> <li><a href="../../../posts/2014/04/01_8bba575b88ab6302669794fe95ee9898520667904e0e89e351b3.html">论坛被挂暗链问题分析与解决</a></li> <li><a href="../../../posts/2014/03/12_archlinux7f517edc63a553e34e0a51fa73b04e244e2aip.html">Archlinux网络接口上出现两个IP</a></li> <li><a href="../../../posts/2014/03/10_5f006e90987976ee7ba174067cfb7edfff1atrac.html">开源项目管理系统：trac</a></li> <li><a href="../../../index.html">python应用国际化：Babel</a></li> <li><a href="../../../posts/2014/03/07_centos-62e44e0b5b8988c5redmine.html">CentOS 6.4下安装redmine</a></li> <li><a href="../../../posts/2014/02/17_7f168bd15b8988c5redis.html">编译安装redis</a></li> <li><a href="../../../posts/2014/02/17_7f168bd15b8988c5node2ejs.html">编译安装node.js</a></li> 
+            <li><a href="../../../posts/2014/12/09_740689e3node2ejs4e2d7684error5bf98c61.html">理解node.js中的Error对象</a></li> <li><a href="../../../posts/2014/09/23_5728linux4f7f7528nfs63028f7d51765b83linux673a56684e0a768465874ef65939.html">在linux使用nfs挂载其它linux机器上的文件夹</a></li> <li><a href="../../../posts/2014/09/22_thinkpad-t540p4fee590dlinux4e0b89e66478677f63094e0b65f6514968074f4d7f6e79fb52a895ee9898.html">Thinkpad T540p修复linux下触摸板按下时光标位置移动问题</a></li> <li><a href="../../../posts/2014/09/19_linux4e0b4fee6539952e4f4d66205c04.html">linux下修改键位映射</a></li> <li><a href="../../../posts/2014/04/01_8bba575b88ab6302669794fe95ee9898520667904e0e89e351b3.html">论坛被挂暗链问题分析与解决</a></li> <li><a href="../../../posts/2014/03/12_archlinux7f517edc63a553e34e0a51fa73b04e244e2aip.html">Archlinux网络接口上出现两个IP</a></li> <li><a href="../../../posts/2014/03/10_5f006e90987976ee7ba174067cfb7edfff1atrac.html">开源项目管理系统：trac</a></li> <li><a href="../../../index.html">python应用国际化：Babel</a></li> <li><a href="../../../posts/2014/03/07_centos-62e44e0b5b8988c5redmine.html">CentOS 6.4下安装redmine</a></li> <li><a href="../../../posts/2014/02/17_7f168bd15b8988c5redis.html">编译安装redis</a></li> 
           </ul>
         </div>
 	    <h5>标签</h5>
         <div id="tags">
 	      <ul>
-  <li style="font-size: 160.00%;"><a href="../../../tags/archlinux.html">archlinux</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/babel.html">babel</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/bitbucket.html">bitbucket</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/c.html">c</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/chosen.html">chosen</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/comet.html">comet</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/cpp.html">cpp</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/discuz.html">discuz</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/emacs.html">emacs</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/english.html">english</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/fcitx.html">fcitx</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/hash.html">hash</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/hg.html">hg</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/http.html">http</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/jabber.html">jabber</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/jquery.html">jquery</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/keyboard.html">keyboard</a></li> <li style="font-size: 220.00%;"><a href="../../../tags/linux.html">linux</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/log4cxx.html">log4cxx</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/log4php.html">log4php</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/memcached.html">memcached</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/mongodb.html">mongodb</a></li> <li style="font-size: 120.00%;"><a href="../../../tags/mysql.html">mysql</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/network.html">network</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/nfs.html">nfs</a></li> <li style="font-size: 120.00%;"><a href="../../../tags/nginx.html">nginx</a></li> <li style="font-size: 140.00%;"><a href="../../../tags/node.html">node</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/o-blog.html">o-blog</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/openssl.html">openssl</a></li> <li style="font-size: 140.00%;"><a href="../../../tags/php.html">php</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/pomodoro.html">pomodoro</a></li> <li style="font-size: 160.00%;"><a href="../../../tags/python.html">python</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/qrcode.html">qrcode</a></li> <li style="font-size: 160.00%;"><a href="../../../tags/redis.html">redis</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/redmine.html">redmine</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/security.html">security</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/spdy.html">spdy</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/thinkpad.html">thinkpad</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/trac.html">trac</a></li> <li style="font-size: 140.00%;"><a href="../../../tags/web.html">web</a></li> 
+  <li style="font-size: 160.00%;"><a href="../../../tags/archlinux.html">archlinux</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/babel.html">babel</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/bitbucket.html">bitbucket</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/c.html">c</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/chosen.html">chosen</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/comet.html">comet</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/cpp.html">cpp</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/discuz.html">discuz</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/emacs.html">emacs</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/english.html">english</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/fcitx.html">fcitx</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/hash.html">hash</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/hg.html">hg</a></li> <li style="font-size: 100.00%;"><a href="../../../tags/http.html">http</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/jabber.html">jabber</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/jquery.html">jquery</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/keyboard.html">keyboard</a></li> <li style="font-size: 220.00%;"><a href="../../../tags/linux.html">linux</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/log4cxx.html">log4cxx</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/log4php.html">log4php</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/memcached.html">memcached</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/mongodb.html">mongodb</a></li> <li style="font-size: 120.00%;"><a href="../../../tags/mysql.html">mysql</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/network.html">network</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/nfs.html">nfs</a></li> <li style="font-size: 120.00%;"><a href="../../../tags/nginx.html">nginx</a></li> <li style="font-size: 160.00%;"><a href="../../../tags/node.html">node</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/o-blog.html">o-blog</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/openssl.html">openssl</a></li> <li style="font-size: 140.00%;"><a href="../../../tags/php.html">php</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/pomodoro.html">pomodoro</a></li> <li style="font-size: 160.00%;"><a href="../../../tags/python.html">python</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/qrcode.html">qrcode</a></li> <li style="font-size: 160.00%;"><a href="../../../tags/redis.html">redis</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/redmine.html">redmine</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/security.html">security</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/spdy.html">spdy</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/thinkpad.html">thinkpad</a></li> <li style="font-size: 80.00%;"><a href="../../../tags/trac.html">trac</a></li> <li style="font-size: 140.00%;"><a href="../../../tags/web.html">web</a></li> 
 </ul>
 
         </div>
@@ -270,6 +258,7 @@ server {
 	  <p>
 版权所有 © 2011-2013 看看俺 – KanKanAn.com
 </p>
+
 	  <p>Powered by <a href="https://github.com/renard/o-blog">o-blog</a>.</p>
 	</div>
   </div>

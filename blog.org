@@ -2508,13 +2508,55 @@ class RedisShard {
        make
        make install
      #+end_src
-   
-   - 安装后
-     
+
      默认安装到/usr/local。
 
+     指定位置安装： 
+
+     #+begin_src sh
+       make PREFIX=/usr/local/redis install
+     #+end_src
+
+   - 安装后
+     
      + /usr/local/bin/redis-cli :: redis客户端程序 
      + /usr/local/bin/redis-server :: redis服务器程序
+
+   - 配置
+
+     将源码包附带的配置文件 =redis.conf= 拷贝到安装位置:
+
+     #+begin_src sh
+       mkdir /usr/local/redis/etc/
+       cp ./redis.conf /usr/local/redis/etc/
+     #+end_src
+
+     修改配置文件 =redis.conf= :
+
+     #+begin_example
+       daemonize yes
+       pidfile /usr/local/redis/var/redis.pid
+       logfile /usr/local/redis/var/redis.log
+       dir /usr/local/redis/data
+       stop-writes-on-bgsave-error no
+       bind 127.0.0.1
+     #+end_example
+
+   - 启动
+
+     #+begin_src sh
+       /usr/local/redis/bin/redis-server /usr/local/redis/etc/redis.conf
+     #+end_src
+
+   - 停止
+
+     使用redis客户端中执行shutdown命令
+
+     #+begin_src sh
+       redis-cli
+       shutdown
+     #+end_src
+
 ** TODO 当心烦意乱接下来不知道要做什么的时候                           :心理健康:
 
    - 试着通过深呼吸、走一走、微笑让自已平静下来，回归理性的自已。
@@ -5853,5 +5895,148 @@ class RedisShard {
 
    参考：[[https://blog.lnx.cx/2014/03/20/fedora-20-and-the-thinkpad-t440s-touchpad/][Fedora 20 and the ThinkPad T440s touchpad | Technitribe]]
 
+** TODO 生成gtk库的pdf手册                              :archlinux:linux:gtk:
 
-   
+   [[http://www.gtk.org][gtk官网]] 上只有html格式的手册供下载，但这样就无法在kindle上阅读了，其实gtk采用的文档工具gtk-doc是支持生成pdf的。
+
+   - 安装依赖的工具
+
+     #+begin_src sh
+       yaourt -S gtk-doc dblatex
+     #+end_src
+
+     如果忘记安装dblatex，则下面的编译不会出错但是不会有pdf文档产生。
+
+   - 从源代码生成pdf文档
+
+     #+begin_src sh
+       wget http://ftp.gnome.org/pub/gnome/sources/gtk+/3.10/gtk+-3.10.9.tar.xz
+       xz -d gtk+-3.10.9.tar.xz
+       tar xvf gtk+-3.10.9.tar
+       cd gtk+-3.10.9
+       ./configure  --enable-gtk-doc --enable-gtk-doc-pdf
+       make
+     #+end_src
+** DONE 理解node.js中的Error对象                                        :node:
+   CLOSED: [2014-12-09 Tue 13:38]
+
+   Error对象在 [[http://nodejs.org][node.js]] 程序中无处不在，但是关于它在 [[http://nodejs.org/docs/latest/api/all.html][node.js文档]] （写这篇文章时node.js的最新版本为v0.10.33）中却找不到描述资料，只在以下部分提及：
+
+   - [[http://nodejs.org/docs/latest/api/all.html#all_util_iserror_object][util.isError(object)]] :: 判断对象是否为Error对象.
+
+   - [[http://nodejs.org/docs/latest/api/all.html#all_additions_to_error_objects][Domain: Additions to Error objects]] :: 在Error对象上附加额外的字段.
+
+*** Error到底是何方神圣？
+    
+    Error对象是在ECMAScript 5.1（于2011年7月发布）中 [[http://www.ecma-international.org/ecma-262/5.1/#sec-15.11][定义]] 的，是一个比较新的特性：
+
+    #+begin_quote
+    Instances of Error objects are thrown as exceptions when runtime errors occur. The Error objects may also serve as base objects for user-defined exception classes.
+    #+end_quote
+
+    它只有两个属性：
+
+    - name :: 错误名称，默认为"Error"
+    
+    - message :: 错误消息，默认为""
+
+    V8实现了一个扩展属性：
+
+    - stack :: 错误描述及调用堆栈 
+    
+    它只有一个方法：
+    
+    - toString :: 转成字符串形式，通常为 "name: message"
+      
+    构造一个Error实例：
+
+    new Error(message) 或者 Error(message)，两者是一样的。
+
+    示例：显示错误消息
+
+    #+begin_src js
+      console.log(err);
+      console.log(err.toString());
+      console.log(err.message);
+    #+end_src
+
+    需要注意的是console.log(JSON.stringify(err))显示的是空对象{}.
+
+    示例：显示错误消息及调用堆栈
+     
+    #+begin_src js
+      console.log(err.stack);
+    #+end_src
+
+    示例：显示错误名称
+
+    #+begin_src js
+      console.log(err.name);
+    #+end_src
+
+*** 如何自定义Error类型？
+
+     #+begin_src js
+       function MyError(message) {
+         this.message = message || '';
+       }
+
+       MyError.prototype = new Error();
+       MyError.prototype.constructor = MyError;
+       MyError.prototype.name = 'MyError';
+     #+end_src
+
+     Error实例类型判断
+
+     #+begin_src js
+        var err = new Error("this is error");
+        var myerr = new MyError("this is my error");
+        err instanceof Error /*true*/
+        err instanceof MyError /*false*/
+        myerr instanceof MyError /*true*/
+        myerr instanceof Error /*true*/
+     #+end_src
+
+     stack输出有问题：自定义的错误描述没了
+     
+     #+begin_src js
+       err.stack /*'Error: this is error\n    at repl:1:11 ...*/
+       myerr.stack /*'MyError\n    at repl:1:21 ...*/
+     #+end_src
+
+     修复node.js下MyError的stack不正确的问题
+
+     #+begin_src js
+        function MyError(message) {
+          Error.captureStackTrace(this, this.constructor)
+          this.message = message || '';
+        }
+
+        MyError.prototype = new Error();
+        MyError.prototype.constructor = MyError;
+        MyError.prototype.name = 'MyError';
+      #+end_src
+
+      *最终版：更node.js化一些*
+
+      #+begin_src js
+        function MyError(message) {
+            if (!(this instanceof MyError)) {
+                return new MyError(message);
+            }
+            Error.captureStackTrace(this, this.constructor)
+            this.message = message || '';
+        }
+
+        util.inherits(MyError, Error)
+        MyError.prototype.name = 'MyError';
+      #+end_src
+
+*** 参考
+   - [[https://docs.nodejitsu.com/articles/errors/what-is-the-error-object][What is the error object?]] :: 对Error对象的成员有所提及，但与当前的node.js版本不一致。
+
+   - [[https://cnodejs.org/topic/52090bc944e76d216af25f6f][Node.js下自定义错误类型]] :: 教你如何自定义错误类型。
+
+   - [[http://stackoverflow.com/questions/10624873/what-properties-does-nodejs-expresss-error-object-exposes][What properties does nodejs express's Error object exposes?]]
+    
+   - [[https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error][MDN > Web technology for developers > JavaScript > JavaScript reference > Standard built-in objects > Error]]
