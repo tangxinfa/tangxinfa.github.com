@@ -2,7 +2,7 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8"/>
-    <title>解决保存快照失败后redis无法写入的问题 | 看看俺 - KanKanAn.com</title>
+    <title>SSL_read及SSL_write支持超时 | 看看俺 - KanKanAn.com</title>
     <link rel="shortcut icon" href="/static/favicon.ico" />
     <link rel="stylesheet" type="text/less" href="../../../style/less/o-blog.less"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -56,61 +56,92 @@
     <div class="page-header">
       <div class="row">
 	<div class="date span1">
-	  <div class=" date-d">16</div>
-	  <div class=" date-m"><a href="../../../posts/2012/12/index.html">12月</a></div>
-	  <div class=" date-y"><a href="../../../posts/2012/index.html">2012</a>
+	  <div class=" date-d">27</div>
+	  <div class=" date-m"><a href="../../../posts/2015/01/index.html">1月</a></div>
+	  <div class=" date-y"><a href="../../../posts/2015/index.html">2015</a>
 	  </div>
 	</div>
 	<div class="span1">
 	  <div class="qr-code">
-  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="http://chart.apis.google.com/chart?chs=90x90&cht=qr&chld=|0&chl=http%3A%2F%2Fblog.kankanan.com%2Fposts%2F2012%2F12%2F16_89e351b34fdd5b585feb716759318d25540eredis65e06cd551995165768495ee9898.html"
+  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="http://chart.apis.google.com/chart?chs=90x90&cht=qr&chld=|0&chl=http%3A%2F%2Fblog.kankanan.com%2Fposts%2F2015%2F01%2F27_ssl5fread53cassl5fwrite652f63018d8565f6.html"
        alt="qr-code" />
 </div>
 
 	</div>
-	<h1 class="offset2">解决保存快照失败后redis无法写入的问题</h1>
+	<h1 class="offset2">SSL_read及SSL_write支持超时</h1>
       </div>
       <nav>
 	<ul class="pager">
-	  <li class="previous"><a href="../../../posts/2012/12/16_4f7f7528hash88687ed3678451cf5c11redis51855b5853607528.html"><i class="icon-chevron-left"></i>&nbsp;使用hash表结构减少redis内存占用</a></li><li class="next" style="text-align: right;"><a href="../../../posts/2013/02/28_web6a21578b521d63a2.html">Web模型初探&nbsp;<i class="icon-chevron-right"></i></a></li>
+	  <li class="previous"><a href="../../../posts/2014/12/09_740689e3node2ejs4e2d7684error5bf98c61.html"><i class="icon-chevron-left"></i>&nbsp;理解node.js中的Error对象</a></li><li class="next">&nbsp;</li>
 	</ul>
       </nav>
     </div>
 
   </header>
   <div class="article-content">
-    <p>
-用命令行工具连上后执行“set test 0”出现以下错误提示：
-</p>
-<pre class="example">
-MISCONF Redis is configured to save RDB snapshots, but is currently not able to persist on disk. Commands that may modify the data set are disabled. Please check Redis logs for details about the error.
+    <ul class="org-ul">
+<li>在底层socket上设置超时
+
+<div class="org-src-container">
+
+<pre class="src src-c"><span style="color: #729fcf; font-weight: bold;">struct</span> <span style="color: #8ae234; font-weight: bold;">timeval</span> <span style="color: #eeeeec;">tv</span>;
+tv.tv_sec  = 10;
+tv.tv_usec = 0;
+setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (<span style="color: #8ae234; font-weight: bold;">char</span>*)&amp;tv, <span style="color: #729fcf; font-weight: bold;">sizeof</span>(<span style="color: #729fcf; font-weight: bold;">struct</span> <span style="color: #8ae234; font-weight: bold;">timeval</span>));
+setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (<span style="color: #8ae234; font-weight: bold;">char</span>*)&amp;tv, <span style="color: #729fcf; font-weight: bold;">sizeof</span>(<span style="color: #729fcf; font-weight: bold;">struct</span> <span style="color: #8ae234; font-weight: bold;">timeval</span>));
 </pre>
+</div>
+</li>
+
+<li>启用自动重新握手
+
 <p>
-这个应该是之前强制停止redis快照导致的，查看redis快照状态证实了这一点：
+SSL<sub>read或SSL</sub><sub>write可能因为SSL需要重新握手而提前返回（此时SSL错误码为SSL</sub><sub>ERROR</sub><sub>WANT</sub><sub>READ或SSL</sub><sub>ERROR</sub><sub>WANT</sub><sub>WRITE），也可能因上面的socket超时设置而提前返回，通过启用自动重新握手，消除第一种情况。</sub>
 </p>
-<pre class="example">
-redis 127.0.0.1:6379&gt; info
-...
-rdb_last_bgsave_status:err
-...
+
+<div class="org-src-container">
+
+<pre class="src src-c">SSL_CTX_set_mode(ctx, SSL_MODE_AUTO_RETRY);
 </pre>
-<p>
-通过关闭配置项stop-writes-on-bgsave-error解决该问题。
-</p>
-<pre class="example">
-redis 127.0.0.1:6379&gt; config set stop-writes-on-bgsave-error no
+</div>
+</li>
+
+<li>SSL<sub>read和SSL</sub><sub>write判断是否超时出错</sub>
+
+<div class="org-src-container">
+
+<pre class="src src-c"><span style="color: #8ae234; font-weight: bold;">int</span> <span style="color: #eeeeec;">readed</span> = SSL_read(ssl, data, size);
+<span style="color: #729fcf; font-weight: bold;">if</span> (readed &lt;= 0) {
+<span style="background-color: #404040;"> </span>   <span style="color: #729fcf; font-weight: bold;">if</span> (SSL_get_error(ssl, readed) == SSL_ERROR_WANT_READ) {
+<span style="background-color: #404040;"> </span>   <span style="background-color: #404040;"> </span>   <span style="color: #888a85;">// </span><span style="color: #888a85;">timeout</span>
+<span style="background-color: #404040;"> </span>   } <span style="color: #729fcf; font-weight: bold;">else</span> {
+<span style="background-color: #404040;"> </span>   <span style="background-color: #404040;"> </span>   <span style="color: #888a85;">// </span><span style="color: #888a85;">error</span>
+<span style="background-color: #404040;"> </span>   }
+}
+
+<span style="color: #8ae234; font-weight: bold;">int</span> <span style="color: #eeeeec;">writed</span> = SSL_write(ssl, data, size);
+<span style="color: #729fcf; font-weight: bold;">if</span> (writed &lt;= 0) {
+<span style="background-color: #404040;"> </span>   <span style="color: #729fcf; font-weight: bold;">if</span> (SSL_get_error(ssl, writed) == SSL_ERROR_WANT_WRITE) {
+<span style="background-color: #404040;"> </span>   <span style="background-color: #404040;"> </span>   <span style="color: #888a85;">// </span><span style="color: #888a85;">timeout</span>
+<span style="background-color: #404040;"> </span>   } <span style="color: #729fcf; font-weight: bold;">else</span> {
+<span style="background-color: #404040;"> </span>   <span style="background-color: #404040;"> </span>   <span style="color: #888a85;">// </span><span style="color: #888a85;">error</span>
+<span style="background-color: #404040;"> </span>   }
+}
 </pre>
+</div>
+</li>
+</ul>
 
   </div>
   
   <footer class="article-footer">
     <nav class="tag-cloud">
       <ul>
-	<li class="label label-inverse small"><a href="../../../tags/redis.html">redis</a></li>
+	<li class="label label-inverse small"><a href="../../../tags/openssl.html">openssl</a></li><li class="label label-inverse small"><a href="../../../tags/c.html">c</a></li>
       </ul>
     </nav>
     <span class="muted">
-      发布于 <time datetime="2012-12-16T15:14:00Z"> 2012-12-16 15:14</time>
+      发布于 <time datetime="2015-01-27T14:29:00Z"> 2015-01-27 14:29</time>
     </span>
   </footer>
   </div>
@@ -118,7 +149,7 @@ redis 127.0.0.1:6379&gt; config set stop-writes-on-bgsave-error no
 <script type="text/javascript">
   /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
   var disqus_shortname = 'kankananblog'; // required: replace example with your forum shortname
-  var disqus_url = 'http://blog.kankanan.com/posts/2012/12/16_89e351b34fdd5b585feb716759318d25540eredis65e06cd551995165768495ee9898.html';
+  var disqus_url = 'http://blog.kankanan.com/posts/2015/01/27_ssl5fread53cassl5fwrite652f63018d8565f6.html';
 
   /* * * DON'T EDIT BELOW THIS LINE * * */
   (function() {

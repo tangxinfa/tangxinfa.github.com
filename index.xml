@@ -5,7 +5,59 @@
   <link href="http://blog.kankanan.com"/>
   <updated>2013-04-09T12:00:00Z</updated>
   <id>http://blog.kankanan.comindex.xml</id>
-  <entry><title type="html">理解node.js中的Error对象</title><author><name>nil</name></author><link href="http://blog.kankanan.com/posts/2014/12/09_740689e3node2ejs4e2d7684error5bf98c61.html"/><updated>2014-12-09T13:38:00Z</updated><published>2014-12-09T13:38:00Z</published><id>posts/2014/12/09_740689e3node2ejs4e2d7684error5bf98c61.html</id><category scheme="/tags/node.html" term="node" label="node"/><content type="html">&lt;p&gt;
+  <entry><title type="html">SSL_read及SSL_write支持超时</title><author><name>nil</name></author><link href="http://blog.kankanan.com/posts/2015/01/27_ssl5fread53cassl5fwrite652f63018d8565f6.html"/><updated>2015-01-27T14:29:00Z</updated><published>2015-01-27T14:29:00Z</published><id>posts/2015/01/27_ssl5fread53cassl5fwrite652f63018d8565f6.html</id><category scheme="/tags/openssl.html" term="openssl" label="openssl"/><category scheme="/tags/c.html" term="c" label="c"/><content type="html">&lt;ul class="org-ul"&gt;
+&lt;li&gt;&#22312;&#24213;&#23618;socket&#19978;&#35774;&#32622;&#36229;&#26102;
+
+&lt;div class="org-src-container"&gt;
+
+&lt;pre class="src src-c"&gt;&lt;span style="color: #729fcf; font-weight: bold;"&gt;struct&lt;/span&gt; &lt;span style="color: #8ae234; font-weight: bold;"&gt;timeval&lt;/span&gt; &lt;span style="color: #eeeeec;"&gt;tv&lt;/span&gt;;
+tv.tv_sec  = 10;
+tv.tv_usec = 0;
+setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (&lt;span style="color: #8ae234; font-weight: bold;"&gt;char&lt;/span&gt;*)&amp;amp;tv, &lt;span style="color: #729fcf; font-weight: bold;"&gt;sizeof&lt;/span&gt;(&lt;span style="color: #729fcf; font-weight: bold;"&gt;struct&lt;/span&gt; &lt;span style="color: #8ae234; font-weight: bold;"&gt;timeval&lt;/span&gt;));
+setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (&lt;span style="color: #8ae234; font-weight: bold;"&gt;char&lt;/span&gt;*)&amp;amp;tv, &lt;span style="color: #729fcf; font-weight: bold;"&gt;sizeof&lt;/span&gt;(&lt;span style="color: #729fcf; font-weight: bold;"&gt;struct&lt;/span&gt; &lt;span style="color: #8ae234; font-weight: bold;"&gt;timeval&lt;/span&gt;));
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/li&gt;
+
+&lt;li&gt;&#21551;&#29992;&#33258;&#21160;&#37325;&#26032;&#25569;&#25163;
+
+&lt;p&gt;
+SSL&lt;sub&gt;read&#25110;SSL&lt;/sub&gt;&lt;sub&gt;write&#21487;&#33021;&#22240;&#20026;SSL&#38656;&#35201;&#37325;&#26032;&#25569;&#25163;&#32780;&#25552;&#21069;&#36820;&#22238;&#65288;&#27492;&#26102;SSL&#38169;&#35823;&#30721;&#20026;SSL&lt;/sub&gt;&lt;sub&gt;ERROR&lt;/sub&gt;&lt;sub&gt;WANT&lt;/sub&gt;&lt;sub&gt;READ&#25110;SSL&lt;/sub&gt;&lt;sub&gt;ERROR&lt;/sub&gt;&lt;sub&gt;WANT&lt;/sub&gt;&lt;sub&gt;WRITE&#65289;&#65292;&#20063;&#21487;&#33021;&#22240;&#19978;&#38754;&#30340;socket&#36229;&#26102;&#35774;&#32622;&#32780;&#25552;&#21069;&#36820;&#22238;&#65292;&#36890;&#36807;&#21551;&#29992;&#33258;&#21160;&#37325;&#26032;&#25569;&#25163;&#65292;&#28040;&#38500;&#31532;&#19968;&#31181;&#24773;&#20917;&#12290;&lt;/sub&gt;
+&lt;/p&gt;
+
+&lt;div class="org-src-container"&gt;
+
+&lt;pre class="src src-c"&gt;SSL_CTX_set_mode(ctx, SSL_MODE_AUTO_RETRY);
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/li&gt;
+
+&lt;li&gt;SSL&lt;sub&gt;read&#21644;SSL&lt;/sub&gt;&lt;sub&gt;write&#21028;&#26029;&#26159;&#21542;&#36229;&#26102;&#20986;&#38169;&lt;/sub&gt;
+
+&lt;div class="org-src-container"&gt;
+
+&lt;pre class="src src-c"&gt;&lt;span style="color: #8ae234; font-weight: bold;"&gt;int&lt;/span&gt; &lt;span style="color: #eeeeec;"&gt;readed&lt;/span&gt; = SSL_read(ssl, data, size);
+&lt;span style="color: #729fcf; font-weight: bold;"&gt;if&lt;/span&gt; (readed &amp;lt;= 0) {
+&lt;span style="background-color: #404040;"&gt; &lt;/span&gt;   &lt;span style="color: #729fcf; font-weight: bold;"&gt;if&lt;/span&gt; (SSL_get_error(ssl, readed) == SSL_ERROR_WANT_READ) {
+&lt;span style="background-color: #404040;"&gt; &lt;/span&gt;   &lt;span style="background-color: #404040;"&gt; &lt;/span&gt;   &lt;span style="color: #888a85;"&gt;// &lt;/span&gt;&lt;span style="color: #888a85;"&gt;timeout&lt;/span&gt;
+&lt;span style="background-color: #404040;"&gt; &lt;/span&gt;   } &lt;span style="color: #729fcf; font-weight: bold;"&gt;else&lt;/span&gt; {
+&lt;span style="background-color: #404040;"&gt; &lt;/span&gt;   &lt;span style="background-color: #404040;"&gt; &lt;/span&gt;   &lt;span style="color: #888a85;"&gt;// &lt;/span&gt;&lt;span style="color: #888a85;"&gt;error&lt;/span&gt;
+&lt;span style="background-color: #404040;"&gt; &lt;/span&gt;   }
+}
+
+&lt;span style="color: #8ae234; font-weight: bold;"&gt;int&lt;/span&gt; &lt;span style="color: #eeeeec;"&gt;writed&lt;/span&gt; = SSL_write(ssl, data, size);
+&lt;span style="color: #729fcf; font-weight: bold;"&gt;if&lt;/span&gt; (writed &amp;lt;= 0) {
+&lt;span style="background-color: #404040;"&gt; &lt;/span&gt;   &lt;span style="color: #729fcf; font-weight: bold;"&gt;if&lt;/span&gt; (SSL_get_error(ssl, writed) == SSL_ERROR_WANT_WRITE) {
+&lt;span style="background-color: #404040;"&gt; &lt;/span&gt;   &lt;span style="background-color: #404040;"&gt; &lt;/span&gt;   &lt;span style="color: #888a85;"&gt;// &lt;/span&gt;&lt;span style="color: #888a85;"&gt;timeout&lt;/span&gt;
+&lt;span style="background-color: #404040;"&gt; &lt;/span&gt;   } &lt;span style="color: #729fcf; font-weight: bold;"&gt;else&lt;/span&gt; {
+&lt;span style="background-color: #404040;"&gt; &lt;/span&gt;   &lt;span style="background-color: #404040;"&gt; &lt;/span&gt;   &lt;span style="color: #888a85;"&gt;// &lt;/span&gt;&lt;span style="color: #888a85;"&gt;error&lt;/span&gt;
+&lt;span style="background-color: #404040;"&gt; &lt;/span&gt;   }
+}
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+</content></entry><entry><title type="html">理解node.js中的Error对象</title><author><name>nil</name></author><link href="http://blog.kankanan.com/posts/2014/12/09_740689e3node2ejs4e2d7684error5bf98c61.html"/><updated>2014-12-09T13:38:00Z</updated><published>2014-12-09T13:38:00Z</published><id>posts/2014/12/09_740689e3node2ejs4e2d7684error5bf98c61.html</id><category scheme="/tags/node.html" term="node" label="node"/><content type="html">&lt;p&gt;
 Error&#23545;&#35937;&#22312; &lt;a href="http://nodejs.org"&gt;node.js&lt;/a&gt; &#31243;&#24207;&#20013;&#26080;&#22788;&#19981;&#22312;&#65292;&#20294;&#26159;&#20851;&#20110;&#23427;&#22312; &lt;a href="http://nodejs.org/docs/latest/api/all.html"&gt;node.js&#25991;&#26723;&lt;/a&gt; &#65288;&#20889;&#36825;&#31687;&#25991;&#31456;&#26102;node.js&#30340;&#26368;&#26032;&#29256;&#26412;&#20026;v0.10.33&#65289;&#20013;&#21364;&#25214;&#19981;&#21040;&#25551;&#36848;&#36164;&#26009;&#65292;&#21482;&#22312;&#20197;&#19979;&#37096;&#20998;&#25552;&#21450;&#65306;
 &lt;/p&gt;
 
@@ -201,7 +253,7 @@ MyError.&lt;span style="color: #8ae234;"&gt;prototype&lt;/span&gt;.name = &lt;sp
 &lt;dt&gt; &lt;a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error"&gt;MDN &amp;gt; Web technology for developers &amp;gt; JavaScript &amp;gt; JavaScript reference &amp;gt; Standard built-in objects &amp;gt; Error&lt;/a&gt; &lt;/dt&gt;&lt;dd&gt;Error&#23545;&#35937;&#21442;&#32771;&#25991;&#26723;
 &lt;/dd&gt;
 
-&lt;dt&gt; &lt;a href="http://www.ecma-international.org/ecma-262/5.1/#sec-15.11"&gt;Error Objects&lt;/a&gt; &lt;/dt&gt;&lt;dd&gt;Error&#23545;&#35937;&#26631;&#20934;&#25991;&#26723;   
+&lt;dt&gt; &lt;a href="http://www.ecma-international.org/ecma-262/5.1/#sec-15.11"&gt;Error Objects&lt;/a&gt; &lt;/dt&gt;&lt;dd&gt;Error&#23545;&#35937;&#26631;&#20934;&#25991;&#26723;
 &lt;/dd&gt;
 &lt;/dl&gt;
 &lt;/div&gt;
@@ -3608,101 +3660,5 @@ touch tmp/restart.txt
 &lt;/p&gt;
 &lt;/div&gt;
 &lt;/div&gt;
-</content></entry><entry><title type="html">编译安装redis</title><author><name>nil</name></author><link href="http://blog.kankanan.com/posts/2014/02/17_7f168bd15b8988c5redis.html"/><updated>2014-02-17T16:40:00Z</updated><published>2014-02-17T16:40:00Z</published><id>posts/2014/02/17_7f168bd15b8988c5redis.html</id><category scheme="/tags/redis.html" term="redis" label="redis"/><content type="html">&lt;ul class="org-ul"&gt;
-&lt;li&gt;&#19979;&#36733;
-
-&lt;p&gt;
-&#21040; &lt;a href="http://redis.io/download"&gt;http://redis.io/download&lt;/a&gt; &#19979;&#36733;&#26368;&#26032;&#31283;&#23450;&#29256;&#26412;&#12290;
-&lt;/p&gt;
-&lt;/li&gt;
-
-&lt;li&gt;&#23433;&#35013;
-
-&lt;p&gt;
-&#35299;&#21387;&#21518;&#21442;&#29031; README &#36827;&#34892;&#23433;&#35013;&#65306;
-&lt;/p&gt;
-
-&lt;div class="org-src-container"&gt;
-
-&lt;pre class="src src-sh"&gt;make
-make install
-&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;p&gt;
-&#40664;&#35748;&#23433;&#35013;&#21040;/usr/local&#12290;
-&lt;/p&gt;
-
-&lt;p&gt;
-&#25351;&#23450;&#20301;&#32622;&#23433;&#35013;&#65306; 
-&lt;/p&gt;
-
-&lt;div class="org-src-container"&gt;
-
-&lt;pre class="src src-sh"&gt;make &lt;span style="color: #eeeeec;"&gt;PREFIX&lt;/span&gt;=/usr/local/redis install
-&lt;/pre&gt;
-&lt;/div&gt;
-&lt;/li&gt;
-
-&lt;li&gt;&#23433;&#35013;&#21518;
-
-&lt;dl class="org-dl"&gt;
-&lt;dt&gt; /usr/local/bin/redis-cli &lt;/dt&gt;&lt;dd&gt;redis&#23458;&#25143;&#31471;&#31243;&#24207; 
-&lt;/dd&gt;
-&lt;dt&gt; /usr/local/bin/redis-server &lt;/dt&gt;&lt;dd&gt;redis&#26381;&#21153;&#22120;&#31243;&#24207;
-&lt;/dd&gt;
-&lt;/dl&gt;
-&lt;/li&gt;
-
-&lt;li&gt;&#37197;&#32622;
-
-&lt;p&gt;
-&#23558;&#28304;&#30721;&#21253;&#38468;&#24102;&#30340;&#37197;&#32622;&#25991;&#20214; &lt;code&gt;redis.conf&lt;/code&gt; &#25335;&#36125;&#21040;&#23433;&#35013;&#20301;&#32622;:
-&lt;/p&gt;
-
-&lt;div class="org-src-container"&gt;
-
-&lt;pre class="src src-sh"&gt;mkdir /usr/local/redis/etc/
-cp ./redis.conf /usr/local/redis/etc/
-&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;p&gt;
-&#20462;&#25913;&#37197;&#32622;&#25991;&#20214; &lt;code&gt;redis.conf&lt;/code&gt; :
-&lt;/p&gt;
-
-&lt;pre class="example"&gt;
-daemonize yes
-pidfile /usr/local/redis/var/redis.pid
-logfile /usr/local/redis/var/redis.log
-dir /usr/local/redis/data
-stop-writes-on-bgsave-error no
-bind 127.0.0.1
-&lt;/pre&gt;
-&lt;/li&gt;
-
-&lt;li&gt;&#21551;&#21160;
-
-&lt;div class="org-src-container"&gt;
-
-&lt;pre class="src src-sh"&gt;/usr/local/redis/bin/redis-server /usr/local/redis/etc/redis.conf
-&lt;/pre&gt;
-&lt;/div&gt;
-&lt;/li&gt;
-
-&lt;li&gt;&#20572;&#27490;
-
-&lt;p&gt;
-&#20351;&#29992;redis&#23458;&#25143;&#31471;&#20013;&#25191;&#34892;shutdown&#21629;&#20196;
-&lt;/p&gt;
-
-&lt;div class="org-src-container"&gt;
-
-&lt;pre class="src src-sh"&gt;redis-cli
-shutdown
-&lt;/pre&gt;
-&lt;/div&gt;
-&lt;/li&gt;
-&lt;/ul&gt;
 </content></entry>
 </feed>

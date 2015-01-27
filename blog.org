@@ -6042,4 +6042,47 @@ class RedisShard {
     
    - [[https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error][MDN > Web technology for developers > JavaScript > JavaScript reference > Standard built-in objects > Error]] :: Error对象参考文档
 
-   - [[http://www.ecma-international.org/ecma-262/5.1/#sec-15.11][Error Objects]] :: Error对象标准文档   
+   - [[http://www.ecma-international.org/ecma-262/5.1/#sec-15.11][Error Objects]] :: Error对象标准文档
+
+** DONE SSL_read及SSL_write支持超时                                   :openssl:c:
+   CLOSED: [2015-01-27 Tue 14:29]
+
+   - 在底层socket上设置超时
+
+     #+begin_src c
+       struct timeval tv;
+       tv.tv_sec  = 10;
+       tv.tv_usec = 0;
+       setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (char*)&tv, sizeof(struct timeval));
+       setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (char*)&tv, sizeof(struct timeval));
+     #+end_src
+
+   - 启用自动重新握手
+
+     SSL_read或SSL_write可能因为SSL需要重新握手而提前返回（此时SSL错误码为SSL_ERROR_WANT_READ或SSL_ERROR_WANT_WRITE），也可能因上面的socket超时设置而提前返回，通过启用自动重新握手，消除第一种情况。
+
+     #+begin_src c
+       SSL_CTX_set_mode(ctx, SSL_MODE_AUTO_RETRY);
+     #+end_src
+
+   - SSL_read和SSL_write判断是否超时出错
+
+     #+begin_src c
+       int readed = SSL_read(ssl, data, size);
+       if (readed <= 0) {
+           if (SSL_get_error(ssl, readed) == SSL_ERROR_WANT_READ) {
+               // timeout
+           } else {
+               // error
+           }
+       }
+
+       int writed = SSL_write(ssl, data, size);
+       if (writed <= 0) {
+           if (SSL_get_error(ssl, writed) == SSL_ERROR_WANT_WRITE) {
+               // timeout
+           } else {
+               // error
+           }
+       }
+     #+end_src
