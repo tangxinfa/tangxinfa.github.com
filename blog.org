@@ -435,15 +435,15 @@ sudo systemctl start cups
       sh setuptools-0.6c11-py2.4.egg
       #+end_src
 
-    - mysql\_config: command not found
+    - mysql_config: command not found
       #+name: edit-site.cfg 
       #+begin_src sh
       sed --in-place -e "s/#mysql_config = \/usr\/local\/bin\/mysql_config/\
       mysql_config = \/usr\/local\/mysql\/bin\/mysql_config/g" site.cfg
       #+end_src
 
-    - ImportError: \dots{} \_mysql.so: undefined symbol: compress
-      #+name: edit-setup\_posix.py
+    - ImportError: \dots{} _mysql.so: undefined symbol: compress
+      #+name: edit-setup_posix.py
       #+begin_src sh
       sed --in-place -e "s/libs = mysql_config(\"libs_r\")/libs = mysql_config(\"libs_r\")\n\
       libs.append('-lz')\n        print libs/g" setup_posix.py
@@ -506,7 +506,7 @@ sudo systemctl start cups
 ** DONE 解决mysql_connect慢的问题                                     :mysql:
    CLOSED: <2012-12-06 四 10:25>
 
-  压测时发现mysql\_connect耗时超过30秒，登录mysql后执行show processlist，显示超过800个连接状态如下：
+  压测时发现mysql_connect耗时超过30秒，登录mysql后执行show processlist，显示超过800个连接状态如下：
 
   #+BEGIN_EXAMPLE
    unauthenticated user | XXXX.XXX.XXX.XXX:XXXX  | NULL | Connect     |  NULL | login    
@@ -524,12 +524,12 @@ sudo systemctl start cups
 *** 简介
     可参考这篇文章：[[http://www.ibm.com/developerworks/cn/web/wa-lo-comet/][Comet：基于 HTTP 长连接的“服务器推”技术]]
 
-*** [[https://github.com/slact/nginx_http_push_module][nginx\_http\_push\_module]] （不建议使用）
-  这个模块功能上没有问题，网上介绍的文章相对比较多，但是存在严重的内存泄露问题，而且发现使用kill -HUP的方式优雅重启nginx虽会释放一部分内存，但nginx错误日志显示有共享内存锁相关的冲突，我们不得不每小时彻底重启一次nginx。简单说一下就是它使用一个全局的内存池来分配订阅者及响应需要的内存空间，但是从nginx内存池分配的小内存块（< pagesize，4096）是不会释放的也不会归还到池中进行重用，具体可查看nginx源码的ngx\_palloc和ngx\_pfree函数进行验证。
+*** [[https://github.com/slact/nginx_http_push_module][nginx_http_push_module]] （不建议使用）
+  这个模块功能上没有问题，网上介绍的文章相对比较多，但是存在严重的内存泄露问题，而且发现使用kill -HUP的方式优雅重启nginx虽会释放一部分内存，但nginx错误日志显示有共享内存锁相关的冲突，我们不得不每小时彻底重启一次nginx。简单说一下就是它使用一个全局的内存池来分配订阅者及响应需要的内存空间，但是从nginx内存池分配的小内存块（< pagesize，4096）是不会释放的也不会归还到池中进行重用，具体可查看nginx源码的ngx_palloc和ngx_pfree函数进行验证。
 
-  可google "nginx中mod\_push模块内存分配改造"，在作者的[[http://http://blog.lifeibo.com/][网站]]正在改版暂时找不到该文章。
+  可google "nginx中mod_push模块内存分配改造"，在作者的[[http://http://blog.lifeibo.com/][网站]]正在改版暂时找不到该文章。
   
-  [[http://bsd.ee/~hadara/blog/?p=215=1][这里]]也有人[[https://github.com/slact/nginx_http_push_module/pull/60][指出]]该问题，同时该文作者也fork了一个分枝，但是我试了一下，除了不支持push\_channel\_timeout特性外，还是一样有内存泄露。
+  [[http://bsd.ee/~hadara/blog/?p=215=1][这里]]也有人[[https://github.com/slact/nginx_http_push_module/pull/60][指出]]该问题，同时该文作者也fork了一个分枝，但是我试了一下，除了不支持push_channel_timeout特性外，还是一样有内存泄露。
 
   - 参考配置 ::
 #+BEGIN_EXAMPLE
@@ -569,7 +569,7 @@ sudo systemctl start cups
 #+END_EXAMPLE
 
 *** [[https://github.com/wandenberg/nginx-push-stream-module][nginx-push-stream-module]] （建议使用）
-  由于 [[https://github.com/slact/nginx_http_push_module][nginx\_http\_push\_module]] 存在内存泄露问题，同时没有人进行正式的修复，我们决定尝试一下[[https://github.com/wandenberg/nginx-push-stream-module][nginx-push-stream-module]]，这个模块功能更强大同时文档更完整，看起来也更活跃。
+  由于 [[https://github.com/slact/nginx_http_push_module][nginx_http_push_module]] 存在内存泄露问题，同时没有人进行正式的修复，我们决定尝试一下[[https://github.com/wandenberg/nginx-push-stream-module][nginx-push-stream-module]]，这个模块功能更强大同时文档更完整，看起来也更活跃。
 
   - 优点 ::
     + 更成熟
@@ -578,7 +578,7 @@ sudo systemctl start cups
       可对响应内容进行再处理。
     + 测试中未发现明显的内存泄露
     + 内置支持jsonp
-      返回的jsonp是这样的格式callback([text])，可以通过修改ngx\_http\_push\_stream\_module\_utils.h中定义的NGX\_HTTP\_PUSH\_STREAM\_CALLBACK\_INIT\_CHUNK和NGX\_HTTP\_PUSH\_STREAM\_CALLBACK\_END\_CHUNK去除多余的中括号。
+      返回的jsonp是这样的格式callback([text])，可以通过修改ngx_http_push_stream_module_utils.h中定义的NGX_HTTP_PUSH_STREAM_CALLBACK_INIT_CHUNK和NGX_HTTP_PUSH_STREAM_CALLBACK_END_CHUNK去除多余的中括号。
   
 - 参考配置 ::
 #+BEGIN_EXAMPLE
@@ -642,7 +642,7 @@ server {
           }
        #+END_EXAMPLE
 **** 配置php
-     在open\_basedir中添加：/usr/share/nginx/html
+     在open_basedir中添加：/usr/share/nginx/html
 **** 配置php-fpm.conf
      启用以下listen配置：
      listen = 127.0.0.1:9000
@@ -810,7 +810,7 @@ class RedisShard {
 ** DONE python中的UTC与本地时区处理                                  :python:
    CLOSED: <2013-03-20 三 17:29>
 
-   在通过sqlalchemy使用sqlite3数据库的过程中，发现日期时间字段默认值为CURRENT\_TIMESTAMP，但是查出的值少了8个小时。很明显是遇到时区问题了。
+   在通过sqlalchemy使用sqlite3数据库的过程中，发现日期时间字段默认值为CURRENT_TIMESTAMP，但是查出的值少了8个小时。很明显是遇到时区问题了。
 
    mysql的TIMESTAMP字段类型和sqlite3一样使用UTC时间保存，因为在存取时自动进行了本地时间与UTC时间互转，所以不会遇到时区问题。但是sqlite3没有自动进行这一转换，需要在sql中自行转换:
    #+begin_src sql
@@ -853,7 +853,7 @@ class RedisShard {
    CLOSED: <2013-03-30 六 11:21>
 
 *** 介绍
-    - [[http://www.itsc.org.sg/pdf/synthesis08/Three_QR_Code.pdf][Three\_QR\_Code.pdf]] ::
+    - [[http://www.itsc.org.sg/pdf/synthesis08/Three_QR_Code.pdf][Three_QR_Code.pdf]] ::
       RFC式的文档
 
     - [[http://suflow.iteye.com/blog/1100678][二维码 编码原理简介]] ::
@@ -876,10 +876,10 @@ class RedisShard {
       
 *** nginx的相关扩展
 **** 基本的二维码
-     [[https://github.com/dcshi/ngx_http_qrcode_module][ngx\_http\_qrcode\_module]]
+     [[https://github.com/dcshi/ngx_http_qrcode_module][ngx_http_qrcode_module]]
     
 **** 二维码个性化水印
-   nginx\_http\_image\_filter加上[[http://forum.nginx.org/read.php?21,235958][水印补丁]]即可。
+   nginx_http_image_filter加上[[http://forum.nginx.org/read.php?21,235958][水印补丁]]即可。
 
    下面的是经过修改后的 =nginx image filter= 模块代码，加入居中的水印效果:
 
@@ -954,8 +954,8 @@ class RedisShard {
    参考: [[http://lethain.com/notes-on-redis-memory-usage/][Notes on Redis Memory Usage]]
 
    - 测试环境
-     - redis版本 :: redis\_version:2.4.4
-     - 操作系统（uname -a） :: Linux CentOS 2.6.32-220.13.1.el6.x86\_64 #1 SMP Tue Apr 17 23:56:34 BST 2012 x86\_64 x86\_64 x86\_64 GNU/Linux
+     - redis版本 :: redis_version:2.4.4
+     - 操作系统（uname -a） :: Linux CentOS 2.6.32-220.13.1.el6.x86_64 #1 SMP Tue Apr 17 23:56:34 BST 2012 x86_64 x86_64 x86_64 GNU/Linux
      - python版本（python --version） :: Python 2.6.6
 
 *** Strings
@@ -1039,7 +1039,7 @@ class RedisShard {
    CLOSED: <2013-03-09 六 15:11>
 
 *** 问题
-    在web开发中，以典型的php-fpm为例，对于到外部系统的连接（如：mysql、redis）等都提供了持久连接接口（pconnect），但是受限于多进程模型，事实上是每个php-fpm进程都有单独的一个连接池的（参见：《[[file:php_meet_redis.org][当php遇上redis]]》），大量空闲连接的存在不仅对系统资源造成了浪费（不单指fd空间，像mysql的每连接一线程会附带大量内存空间：sort\_buffer、read\_buffer等），而且整个系统将无法横向扩展（如：mysql连接数限制）。如果可以在进程间共享文件描述符，将可以大大提升系统性能，促进多进程模型的应用。
+    在web开发中，以典型的php-fpm为例，对于到外部系统的连接（如：mysql、redis）等都提供了持久连接接口（pconnect），但是受限于多进程模型，事实上是每个php-fpm进程都有单独的一个连接池的（参见：《[[file:php_meet_redis.org][当php遇上redis]]》），大量空闲连接的存在不仅对系统资源造成了浪费（不单指fd空间，像mysql的每连接一线程会附带大量内存空间：sort_buffer、read_buffer等），而且整个系统将无法横向扩展（如：mysql连接数限制）。如果可以在进程间共享文件描述符，将可以大大提升系统性能，促进多进程模型的应用。
 
 *** 方案
     在linux平台下，sendmsg、recvmsg可以将一个进程的文件描述符传递给另一进程使用，这使得实现系统级的连接池成为可能。
@@ -1069,7 +1069,7 @@ class RedisShard {
     
     - 附录
 
-      Web服务器可重用到服务程序的连接进一步提升性能（如：nginx的[[http://nginx.org/en/docs/http/ngx_http_upstream_module.html#keepalive][upstream\_keepalive]]）。
+      Web服务器可重用到服务程序的连接进一步提升性能（如：nginx的[[http://nginx.org/en/docs/http/ngx_http_upstream_module.html#keepalive][upstream_keepalive]]）。
       
 *** WSGI
 
@@ -1869,7 +1869,7 @@ class RedisShard {
 ** DONE linux下翻墙访问bitbucket.org仓库                    :linux:hg:bitbucket:
    CLOSED: [2013-06-28 Fri 13:57]
    
-   今天往bitbucket.org push时才发现bitbucket被GFW了。我的仓库为Mercurial hg，hg项目根目录下的 =.hg/hgrc= 配置文件中可指定http\_proxy，试了一下不支持socks代理（我的浏览器用它来翻墙），最终使用tsocks软件实现翻墙访问bitbucket.org仓库。
+   今天往bitbucket.org push时才发现bitbucket被GFW了。我的仓库为Mercurial hg，hg项目根目录下的 =.hg/hgrc= 配置文件中可指定http_proxy，试了一下不支持socks代理（我的浏览器用它来翻墙），最终使用tsocks软件实现翻墙访问bitbucket.org仓库。
 
    - 利用vps建本地socks代理的脚本 =ssh_proxy.sh=
      #+begin_src sh
@@ -2252,7 +2252,7 @@ class RedisShard {
      };
    #+end_src
 
-   再看shared\_from\_this()的行为：
+   再看shared_from_this()的行为：
    #+begin_src c++
      return _weak_ptr->lock();
    #+end_src
@@ -2317,7 +2317,7 @@ class RedisShard {
 
 
 
-   参考：《[[http://hi.baidu.com/cpuramdisk/item/7c2f8d77385e0f29d7a89cf0][shared\_from\_this 几个值得注意的地方]]》
+   参考：《[[http://hi.baidu.com/cpuramdisk/item/7c2f8d77385e0f29d7a89cf0][shared_from_this 几个值得注意的地方]]》
 
 ** DONE Discuz访问推广任务反作弊                                 :php:discuz:
    CLOSED: [2013-12-20 Fri 01:02]
@@ -2360,7 +2360,7 @@ class RedisShard {
 
      通过使用引用页中的用户标识进行记录来解决这个问题，这样只有当用户来到论坛并进行了相关操作才算推荐有效。
 
-     修改source/class/discuz/discuz\_application.php文件，将下面的内容：
+     修改source/class/discuz/discuz_application.php文件，将下面的内容：
      #+begin_src php
        if((!empty($_GET['fromuid']) || !empty($_GET['fromuser'])) && ($this->var['setting']['creditspolicy']['promotion_visit'] || $this->var['setting']['creditspolicy']['promotion_register'])) {
            require_once libfile('misc/promotion', 'include');
@@ -2379,7 +2379,7 @@ class RedisShard {
        }
      #+end_src
 
-     修改source/include/misc/misc\_promotion.php文件，将下面的内容：
+     修改source/include/misc/misc_promotion.php文件，将下面的内容：
      #+begin_src php
        if(!empty($_GET['fromuid'])) {
            $fromuid = intval($_GET['fromuid']);
@@ -2489,7 +2489,7 @@ class RedisShard {
 
      + /usr/local/bin/node :: node主程序
      + /usr/local/bin/npm :: node模块管理程序
-     + /usr/local/lib/node\_modules :: node全局模块目录
+     + /usr/local/lib/node_modules :: node全局模块目录
 
      像一些需要全局安装的模块也会把文件安装在/usr/local目录下。
      
@@ -2869,9 +2869,9 @@ class RedisShard {
       
       + [[https://github.com/jorgebg/redmine-openid-selector]] （不推荐） 为原始分枝，在 =redmine-2.5.0= 下不能直接安装会导致站点登录界面出现404错误，解决方案在 [[http://www.redmine.org/boards/3/topics/34327?r=38778#message-38778][这里]] ，简而言之就是把插件目录名中的 =-= 改为 =_= 。
         
-      + [[https://github.com/computerminds/redmine\_openid\_selector]] （不推荐） 这个分枝安装后可用，但界面为英文（其实界面就一句英文）。
+      + [[https://github.com/computerminds/redmine_openid_selector]] （不推荐） 这个分枝安装后可用，但界面为英文（其实界面就一句英文）。
       
-      + https://github.com/tangxinfa/redmine\_openid\_selector （推荐） 为支持中文我fork了上一个分枝。
+      + https://github.com/tangxinfa/redmine_openid_selector （推荐） 为支持中文我fork了上一个分枝。
     
       + 通用的插件安装过程：
 
@@ -5518,7 +5518,7 @@ class RedisShard {
         喂
       #+end_example
 
-    - 更新 =hello.py= ，追加一句“      print \_('World')”
+    - 更新 =hello.py= ，追加一句“      print _('World')”
 
     - 将“World”翻译成中文
 
