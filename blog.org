@@ -6088,3 +6088,27 @@ class RedisShard {
            }
        }
      #+end_src
+
+** DONE Archlinux安装文本语音合成（TTS）                      :archlinux:tts:
+   CLOSED: [2015-04-15 Wed 20:21]
+
+- 安装 =festival=
+
+#+begin_src sh
+  yaourt -S festival festival-english festival-us
+#+end_src
+
+- 测试运行
+
+#+begin_src sh
+  echo "This is an example. Arch is the best." | festival --tts
+#+end_src
+
++ 修复错误 =Linux: can't open /dev/dsp=
+  
+参考 [[https://wiki.archlinux.org/index.php/Festival#Can.27t_open_.2Fdev.2Fdsp][这里]] 将以下内容添加到 =~/.festivalrc=
+
+#+begin_src lisp
+  (Parameter.set 'Audio_Method 'Audio_Command)
+  (Parameter.set 'Audio_Command "aplay -q -c 1 -t raw -f s16 -r $SR $FILE")
+#+end_src
