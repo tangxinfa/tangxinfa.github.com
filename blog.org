@@ -6126,7 +6126,7 @@ class RedisShard {
 
    TCP死连接症状是这样的：通信双方从一方系统上看已经断开（不存在），但是另一方系统上看却是连接中（ESTABLISHED状态）。
 
-   TCP死连接一般在一方（或中间线程上的设备）断电、死机后出现，此时由于另一方收不到断开连接的IP报文，会认为连接仍然存在，日积月累会耗光文件描述符空间从而导致性能下降，最终拒绝服务。
+   TCP死连接一般在一方（或中间线路上的设备）断电、死机后出现，此时由于另一方收不到断开连接的IP报文，会认为连接仍然存在，日积月累会耗光文件描述符空间从而导致性能下降，最终拒绝服务。
 
    对付这种问题，一般需要双方都进行连接心跳检测。比如：连接空闲一段时间后一方发一个心跳请求，另一端回个心跳响应，心跳请求发送方一段时间后还收不到响应则认为连接已断开，心跳请求接收方一段时间内没有收到心跳请求也认为连接已断开。
 
@@ -6156,10 +6156,18 @@ class RedisShard {
      socket.destroy();
    #+end_src
 
-   除了常见的断电、死机引起TCP长连接外，这里还有一个论坛帖子论坛其它原因：《[[http://serverfault.com/questions/504187/too-many-established-connections-left-open][Too many established connections left open]]》。
+   除了常见的断电、死机引起TCP死连接外，这里还有一个论坛帖子论坛其它原因：《[[http://serverfault.com/questions/504187/too-many-established-connections-left-open][Too many established connections left open]]》。
 
-   另外还有 linux 内核的 tcp keepalive机制作为辅助解决方案：《[[http://machael.blog.51cto.com/829462/211989/][linux下使用TCP存活(keepalive)定时器]]》。
+   另外还有 linux 内核的 tcp keepalive机制作为心跳解决方案：《[[http://machael.blog.51cto.com/829462/211989/][linux下使用TCP存活(keepalive)定时器]]》。
 
    谨记：除了主动通过连接发送数据外，其它情况下操作系统可能不会告诉你连接已经关闭了。
 
    要彻底解决这个问题，除了要避免泄露（或忘记关闭）TCP连接外，要有心跳机制，还需要从代码层面进行防御性编程，如：对于读写操作设置超时时间，一旦超时主动关闭连接。
+** DONE linux下通过HTTP同步系统时间                                   :linux:
+   CLOSED: [2015-04-21 Tue 11:54]
+
+   在 =NTP= 被禁用的网络环境下，可以通过 =HTTP= 协议从公开的网站（如：www.baidu.com）同步时间，因为HTTP响应通常会带一个Date字段，这是WEB服务器的系统时间，可以用它来设置本机时间。
+
+   #+begin_src sh
+     sudo date --rfc-2822 -s "`curl -s -i -X HEAD --header "Connection: close" http://www.baidu.com | grep -E '^Date: ' | awk -F ': ' '{print $2}'`"
+   #+end_src
