@@ -6171,3 +6171,95 @@ class RedisShard {
    #+begin_src sh
      sudo date --rfc-2822 -s "`curl -s -i -X HEAD --header "Connection: close" http://www.baidu.com | grep -E '^Date: ' | awk -F ': ' '{print $2}'`"
    #+end_src
+** DONE 在Archlinux上使用FlashCache                    :archlinux:flashcache:
+   CLOSED: [2015-04-23 Thu 20:16]
+
+   [[https://github.com/facebook/flashcache/][Flashcache]] 是 [[https://www.facebook.com][Facebook]] 的一个开源项目，通过将固态硬盘（SSD）做为机械硬盘（HDD）的缓存层，提升磁盘I/O性能。
+
+   [[https://github.com/facebook/flashcache/][Flashcache]] 位于磁盘驱动层与文件系统层之间，是一个 =linux= 内核模块。
+
+*** 编译安装
+
+    由于Archlinux总是使用最新的linux内核，最好从最新的 [[https://github.com/facebook/flashcache/][Flashcache]] 源代码进行编译安装。
+
+    #+begin_src sh
+      git clone https://github.com/facebook/flashcache.git
+      cd flashcache
+      make
+      sudo make install
+    #+end_src
+
+*** 挂载模块
+
+    #+begin_src sh
+      sudo insmod /lib/modules/3.19.3-3-ARCH/extra/flashcache/flashcache.ko
+    #+end_src
+
+    - 修复挂载错误
+
+      #+begin_quote
+        insmod: ERROR: could not insert module src/flashcache.ko: Unknown symbol in module
+      #+end_quote
+
+      通过 =dmesg | grep flashcache= 可以看到以下错误信息：
+
+      #+begin_quote
+        [ 2130.514615] flashcache: Unknown symbol dm_put_device (err 0)
+        [ 2130.514654] flashcache: Unknown symbol dm_io_client_create (err 0)
+        [ 2130.514693] flashcache: Unknown symbol dm_kcopyd_client_create (err 0)
+        [ 2130.514738] flashcache: Unknown symbol dm_unregister_target (err 0)
+        [ 2130.514774] flashcache: Unknown symbol dm_io_client_destroy (err 0)
+        [ 2130.514798] flashcache: Unknown symbol dm_kcopyd_copy (err 0)
+        [ 2130.514821] flashcache: Unknown symbol dm_register_target (err 0)
+        [ 2130.514846] flashcache: Unknown symbol dm_kcopyd_client_destroy (err 0)
+        [ 2130.514870] flashcache: Unknown symbol dm_table_get_mode (err 0)
+        [ 2130.514895] flashcache: Unknown symbol dm_io (err 0)
+        [ 2130.514915] flashcache: Unknown symbol dm_get_device (err 0)      
+      #+end_quote
+
+      挂载 =dm-mod= 模块 再挂载 =flashcache= 模块即可：
+
+      #+begin_src sh
+        sudo modprobe dm-mod
+        sudo insmod /lib/modules/3.19.3-3-ARCH/extra/flashcache/flashcache.ko
+      #+end_src
+
+      参考：[[https://bbs.archlinux.org/viewtopic.php?id=30478][No entry for device-mapper found]]
+
+*** 模拟实验
+
+    参考：[[http://my.oschina.net/renguijiayi/blog/303747][flashcache的实现与用法]]
+
+    - 创建SSD模拟设备
+    
+      使用内存文件模拟块设备（200MB）
+
+      #+begin_src sh
+        dd if=/dev/zero of=/dev/shm/ssd.img bs=1024k count=200
+        sudo losetup /dev/loop1 /dev/shm/ssd.img
+      #+end_src
+
+    - 创建HDD模拟设备
+
+      使用普通磁盘文件模拟块设备（1G）
+
+      #+begin_src sh
+        dd if=/dev/zero of=/tmp/hdd.img bs=1024k count=1024
+        sudo losetup /dev/loop2 /tmp/hdd.img
+      #+end_src
+
+    - 创建Flashcache混合设备
+      
+      #+begin_src sh
+        sudo flashcache_create -p around cachedev /dev/loop1 /dev/loop2
+        sudo mkfs.ext4 /dev/mapper/cachedev
+      #+end_src
+      
+    - 挂载Flashcache混合设备
+
+      #+begin_src sh
+        mkdir /tmp/cachedev
+        sudo mount /dev/mapper/cachedev /tmp/cachedev
+      #+end_src
+
+    现在可以试试在/tmp/cachedev目录下读写数据，感受Flashcache的效果。
