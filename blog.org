@@ -1560,9 +1560,9 @@ class RedisShard {
     
     - 引用[[http://nodejs.org/docs/latest/][原文]] ::
 
-      #begin_example
+      #+begin_example
         Node.js is a platform built on Chrome's JavaScript runtime for easily building fast, scalable network applications. Node.js uses an event-driven, non-blocking I/O model that makes it lightweight and efficient, perfect for data-intensive real-time applications that run across distributed devices.
-      #end_example
+      #+end_example
     
     - 可以归结如下 ::
 
@@ -6198,32 +6198,22 @@ class RedisShard {
     - 修复挂载错误
 
       #+begin_quote
-        insmod: ERROR: could not insert module src/flashcache.ko: Unknown symbol in module
+        insmod: ERROR: could not insert module /lib/modules/3.19.3-3-ARCH/extra/flashcache/flashcache.ko: Unknown symbol in module
       #+end_quote
 
       通过 =dmesg | grep flashcache= 可以看到以下错误信息：
 
       #+begin_quote
-        [ 2130.514615] flashcache: Unknown symbol dm_put_device (err 0)
-
-        [ 2130.514654] flashcache: Unknown symbol dm_io_client_create (err 0)
-      
-        [ 2130.514693] flashcache: Unknown symbol dm_kcopyd_client_create (err 0)
-      
-        [ 2130.514738] flashcache: Unknown symbol dm_unregister_target (err 0)
-      
-        [ 2130.514774] flashcache: Unknown symbol dm_io_client_destroy (err 0)
-      
-        [ 2130.514798] flashcache: Unknown symbol dm_kcopyd_copy (err 0)
-      
-        [ 2130.514821] flashcache: Unknown symbol dm_register_target (err 0)
-      
-        [ 2130.514846] flashcache: Unknown symbol dm_kcopyd_client_destroy (err 0)
-      
-        [ 2130.514870] flashcache: Unknown symbol dm_table_get_mode (err 0)
-      
-        [ 2130.514895] flashcache: Unknown symbol dm_io (err 0)
-      
+        [ 2130.514615] flashcache: Unknown symbol dm_put_device (err 0)\\
+        [ 2130.514654] flashcache: Unknown symbol dm_io_client_create (err 0)\\
+        [ 2130.514693] flashcache: Unknown symbol dm_kcopyd_client_create (err 0)\\
+        [ 2130.514738] flashcache: Unknown symbol dm_unregister_target (err 0)\\
+        [ 2130.514774] flashcache: Unknown symbol dm_io_client_destroy (err 0)\\
+        [ 2130.514798] flashcache: Unknown symbol dm_kcopyd_copy (err 0)\\
+        [ 2130.514821] flashcache: Unknown symbol dm_register_target (err 0)\\
+        [ 2130.514846] flashcache: Unknown symbol dm_kcopyd_client_destroy (err 0)\\
+        [ 2130.514870] flashcache: Unknown symbol dm_table_get_mode (err 0)\\
+        [ 2130.514895] flashcache: Unknown symbol dm_io (err 0)\\
         [ 2130.514915] flashcache: Unknown symbol dm_get_device (err 0)
       #+end_quote
 
@@ -6242,20 +6232,20 @@ class RedisShard {
 
     - 创建SSD模拟设备
     
-      使用内存文件模拟块设备（200MB）
+      使用内存文件模拟块设备（1G）
 
       #+begin_src sh
-        dd if=/dev/zero of=/dev/shm/ssd.img bs=1024k count=200
+        dd if=/dev/zero of=/dev/shm/ssd.img bs=1024k count=1024
         sudo losetup /dev/loop1 /dev/shm/ssd.img
       #+end_src
 
     - 创建HDD模拟设备
 
-      使用普通磁盘文件模拟块设备（1G）
+      使用普通磁盘文件模拟块设备（5G）
 
       #+begin_src sh
-        dd if=/dev/zero of=/tmp/hdd.img bs=1024k count=1024
-        sudo losetup /dev/loop2 /tmp/hdd.img
+        sudo dd if=/dev/zero of=/hdd.img bs=1024k count=5120
+        sudo losetup /dev/loop2 /hdd.img
       #+end_src
 
     - 创建Flashcache混合设备
@@ -6268,8 +6258,112 @@ class RedisShard {
     - 挂载Flashcache混合设备
 
       #+begin_src sh
-        mkdir /tmp/cachedev
-        sudo mount /dev/mapper/cachedev /tmp/cachedev
+        sudo mkdir /data
+        sudo mount /dev/mapper/cachedev /data
       #+end_src
 
-    现在可以试试在/tmp/cachedev目录下读写数据，感受Flashcache的效果。
+    /data目录下的数据读写就已经在使用Flashcache了。
+
+    - 创建用来测试的数据文件（1G）
+
+      #+begin_src sh
+        dd if=/dev/urandom of=/dev/shm/test.dat bs=1024k count=1024
+      #+end_src
+
+    - 测算使用HDD写耗时
+      
+      #+begin_src sh
+        sudo sh -c 'echo 1 > /proc/sys/vm/drop_caches; time cp /dev/shm/test.dat /'
+      #+end_src
+
+      输出：
+
+      #+begin_example
+        real    0m4.751s
+        user    0m0.000s
+        sys 0m0.600s
+      #+end_example
+
+    - 测算使用HDD读耗时
+
+      #+begin_src sh
+        sudo sh -c 'echo 1 > /proc/sys/vm/drop_caches; time cp /test.dat /dev/shm/
+      #+end_src
+      
+      输出：
+
+      #+begin_example
+        real    0m10.580s
+        user    0m0.010s
+        sys 0m0.727s
+      #+end_example
+
+    - 测算使用Flashcache写耗时
+
+      #+begin_src sh
+        sudo sh -c 'echo 1 > /proc/sys/vm/drop_caches; time cp /dev/shm/test.dat /data/'
+      #+end_src
+
+      输出：
+
+      #+begin_example
+        real    0m7.363s
+        user    0m0.000s
+        sys 0m0.760s
+      #+end_example
+
+    - 测算使用Flashcache读耗时
+
+      第一轮测试（缓存预热）
+
+      #+begin_src sh
+        sudo sh -c 'echo 1 > /proc/sys/vm/drop_caches; time cp /data/test.dat /dev/shm/'
+      #+end_src
+
+      输出：
+
+      #+begin_example
+        real    0m9.557s
+        user    0m0.013s
+        sys 0m1.157s
+      #+end_example
+
+      第二轮测试（缓存生效）
+
+      #+begin_src sh
+        sudo sh -c 'echo 1 > /proc/sys/vm/drop_caches; time cp /data/test.dat /dev/shm/'
+      #+end_src
+
+      输出：
+
+      #+begin_example
+        real    0m3.107s
+        user    0m0.000s
+        sys 0m0.850s
+      #+end_example
+
+    - 清除测试数据
+
+      #+begin_src sh
+        sudo rm /test.dat /dev/shm/test.dat /data/test.dat
+      #+end_src
+      
+    - 结果分析
+
+      + Flashcache读性能： *提升70%*
+
+      + Flashcache写性能： *降低55%*
+
+      因为使用了 =Write-Around= 方式，所以提升了读性能，降低了写性能。
+
+    - 清除模拟环境
+
+      #+begin_src sh
+        sudo umount /data
+        sudo dmsetup remove cachedev
+        sudo losetup -d /dev/loop1
+        sudo rm /dev/shm/ssd.img
+        sudo losetup -d /dev/loop2
+        sudo rm /hdd.img
+        sudo rmdir /data
+      #+end_src
