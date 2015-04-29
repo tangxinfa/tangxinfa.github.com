@@ -6217,7 +6217,7 @@ class RedisShard {
         [ 2130.514915] flashcache: Unknown symbol dm_get_device (err 0)
       #+end_quote
 
-      挂载 =dm-mod= 模块 再挂载 =flashcache= 模块即可：
+      先挂载 =dm-mod= 模块再挂载 =flashcache= 模块即可：
 
       #+begin_src sh
         sudo modprobe dm-mod
@@ -6367,3 +6367,195 @@ class RedisShard {
         sudo rm /hdd.img
         sudo rmdir /data
       #+end_src
+
+** TODO FlashCache多盘方案实战                    :linux:flashcache:RAID:
+
+   目标系统为单SSD+多HDD，将多HDD创建为RAID5逻辑盘，然后使用FlashCache将SSD做为RAID5逻辑盘的缓存。
+
+*** 系统信息
+
+    - OS
+      
+      CentOS release 6.5 (Final) x86_64
+
+    - CPU
+
+      8
+
+      Intel(R) Atom(TM) CPU  C2750  @ 2.40GHz
+
+    - MEMORY
+
+      4
+
+      TOTAL 16G
+    
+    - HDD
+
+      4
+
+      WDC WD4000FYYZ-0 4TB 7200转
+
+      /dev/sdc /dev/sdd /dev/sde /dev/sdf
+
+    - SSD
+
+      1
+
+      INTEL SSDSC2BB30 300GB
+
+      /dev/sdb
+
+*** 卸载HDD及SSD盘
+
+    #+begin_src sh
+      umount /dev/sdc /dev/sdd /dev/sde /dev/sdf /dev/sdb
+    #+end_src
+
+    确保系统重启后不会自动挂载将这些盘。
+
+*** 将多HDD创建为RAID5逻辑盘
+
+    - 格式化HDD盘
+
+      #+begin_src sh
+        gparted /dev/sdc
+        (parted) mklabel gpt
+        (parted) unit TB
+        (parted) mkpart primary 0.00TB 4.00TB
+        (parted) print
+      #+end_src
+
+      其它HDD盘也做如上处理.
+
+    - 创建RAID5逻辑分区
+
+      #+begin_src sh
+        mdadm --create /dev/md0 --level=raid5 --raid-devices=4 /dev/sd[c-f]1
+        parted /dev/md0
+        (parted) mklabel gpt
+        (parted) unit TB
+        (parted) mkpart primary 0.00TB 12.00TB
+        (parted) print
+        (parted) quit
+      #+end_src
+
+*** 安装Flashcache
+    
+    #+begin_src sh
+      wget https://github.com/facebook/flashcache/archive/stable_v3.1.3.zip -O flashcache_stable_v3.1.3.zip
+      unzip flashcache_stable_v3.1.3.zip
+      cd flashcache-stable_v3.1.3
+      make
+      make install
+      modprobe flashcache
+    #+end_src
+
+*** 创建Flashcache混合设备
+
+    #+begin_src sh
+      flashcache_create -p around cachedev /dev/sdb /dev/md0p1
+      mkfs.ext4 /dev/mapper/cachedev
+    #+end_src
+
+*** 挂载Flashcache混合设备
+
+    #+begin_src sh
+      mkdir /data
+      mount /dev/mapper/cachedev /data
+    #+end_src
+
+*** 写入速度测试
+
+    循环创建60MiB大小的文件，测得的磁盘写入速度为 *35.6MiB* ，磁盘读取速度为 *2.1MiB* 。
+
+*** 读取速度测试
+
+    - 500并发120G文件每次读取32KB顺序读取
+
+      + 请求处理速度
+        
+        2107
+        
+      + 传输速度
+        
+        132.35MiB/s
+
+    - 500并发500G文件每次读取32KB顺序读取
+
+      + 请求处理速度
+        
+        1937
+        
+      + 传输速度
+        
+        61.09MiB
+
+    - 500并发1T文件每次读取32KB顺序读取
+
+      + 请求处理速度
+        
+        1574
+        
+      + 传输速度
+        
+        49.64MiB/s
+
+    - 500并发120G文件每次读取64KB顺序读取
+
+      + 请求处理速度
+        
+        5006
+        
+      + 传输速度
+        
+        157.88MiB/s
+
+    - 500并发500G文件每次读取64KB顺序读取
+
+      + 请求处理速度
+        
+        897
+        
+      + 传输速度
+        
+        56.37MiB/s
+
+    - 500并发1T文件每次读取64KB顺序读取
+
+      + 请求处理速度
+        
+        782
+        
+      + 传输速度
+        
+        49.10MiB/s
+
+*** 注意事项
+
+    - 重建（rebuild）
+
+      当一块盘坏掉后，如果配置了热备盘（Hot spare disk），会自动重建，请将坏盘换掉并配置成热备盘；\
+      如果未配置热备盘，读性能会下降（坏盘中的数据需要全部通过计算重现），请将坏盘换掉系统会自动进行重建。
+
+*** 潜在的优化选项
+
+    - 开启写Cache
+
+    - 禁用文件、目录访问时间戳
+
+      noatime,nodiratime
+      
+*** 相关参考
+
+   - 《[[http://lzw.me/a/linux-lvm.html][Linux LVM逻辑卷管理详细介绍]]》 :: 非常好的LVM入门文章
+
+   - 《[[http://www.linux-mag.com/id/7582/][Pick Your Pleasure: RAID-0 mdadm Striping or LVM Striping?]]》 :: LVM与RAID-0的比较
+     
+   - 《[[http://www.tecmint.com/create-raid0-in-linux/][Creating Software RAID0 (Stripe) on ‘Two Devices’ Using ‘mdadm’ Tool in Linux – Part 2]]》 :: 构建RAID-0教程
+
+   - 《[[http://zengrong.net/post/2014.htm][在CentOS 6.1上配置 4TB硬盘+RAID1]]》 :: 使用 =parted= 代替 =fdisk= 对大于2TB的硬盘进行分区
+     
+   - 《[[http://wiki.mikejung.biz/Software_RAID][Software RAID - How to Optimize Software RAID on Linux using Mdadm]]》 :: 优化RAID
+
+   - 《[[http://sysadmin.blog.51cto.com/83876/236802][RAID5单盘故障读写分析]]》 :: RAID5一块盘坏掉后的情形分析
