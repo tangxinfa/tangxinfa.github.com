@@ -6413,7 +6413,7 @@ class RedisShard {
       umount /dev/sdc /dev/sdd /dev/sde /dev/sdf /dev/sdb
     #+end_src
 
-    确保系统重启后不会自动挂载将这些盘。
+    确保系统重启后不会自动挂载这些盘。
 
 *** 将多HDD创建为RAID5逻辑盘
 
@@ -6440,6 +6440,14 @@ class RedisShard {
         (parted) print
         (parted) quit
       #+end_src
+
+    - 保存RAID5配置
+
+      #+begin_src sh
+        mdadm --detail --scan > /etc/mdadm.conf
+      #+end_src
+
+      参考：[[https://raid.wiki.kernel.org/index.php/RAID_setup#Saving_your_RAID_configuration][Saving your RAID configuration]]
 
 *** 安装Flashcache
     
@@ -6546,7 +6554,13 @@ class RedisShard {
     - 禁用文件、目录访问时间戳
 
       noatime,nodiratime
+
+*** Q&A
+
+    - 重新调整 Flashcache 选项会不会删除数据？
       
+      =writethrough= 、 =writearound= 模式不会，其它的会。
+
 *** 相关参考
 
    - 《[[http://lzw.me/a/linux-lvm.html][Linux LVM逻辑卷管理详细介绍]]》 :: 非常好的LVM入门文章
