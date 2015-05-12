@@ -6474,6 +6474,15 @@ class RedisShard {
       mount /dev/mapper/cachedev /data
     #+end_src
 
+*** 系统重启后需要重新创建并挂载Flashcache设备
+
+    #+begin_src sh
+      flashcache_create -p around cachedev /dev/sdb /dev/md0p1
+      mount /dev/mapper/cachedev /data
+    #+end_src
+
+    注意：使用除 =writethrough= 和 =writearound= 以外的模式需要使用 =flashcache_load= 重新创建设备。
+
 *** 写入速度测试
 
     循环创建60MiB大小的文件，测得的磁盘写入速度为 *35.6MiB* ，磁盘读取速度为 *2.1MiB* 。
