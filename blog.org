@@ -6065,7 +6065,7 @@ class RedisShard {
    但是在 =SSL= 编程中对底层socket调用 =select= 以及使用 =errno= 行为是未定义的。
 
    使用 =setsockopt= 在底层的socket上设置读写后， =SSL_read= 、 =SSL_write= 出错会返回ssl错误码 =SSL_ERROR_WANT_READ= 或 =SSL_ERROR_WANT_WRITE= ，
-   但是被信号中断或者底层SSL需要重新握手也会导致=SSL_read= 、 =SSL_write= 返回同样的ssl错误码。
+   但是被信号中断或者底层SSL需要重新握手也会导致 =SSL_read= 、 =SSL_write= 返回同样的ssl错误码。
 
    如果能够将信号屏蔽掉，并启用SSL自动重新握手，就能够实现 =SSL_read= 、 =SSL_write= 超时检测。
        
@@ -6625,7 +6625,8 @@ class RedisShard {
 
    - 《[[http://sysadmin.blog.51cto.com/83876/236802][RAID5单盘故障读写分析]]》 :: RAID5一块盘坏掉后的情形分析
 
-** TODO FlashCache优化                                           :flashcache:
+** DONE Flashcache优化                                           :flashcache:
+   CLOSED: [2015-05-22 Fri 18:12]
 
 - 调整 dev.flashcache.<cache name>.dirty_thresh_pct
 
@@ -6657,4 +6658,20 @@ class RedisShard {
 
     #+begin_src sh
       sysctl -w dev.flashcache.<cache name>.zero_stats=1
+    #+end_src
+
+  + 快速停止
+
+    Flashcache在停止时会将SSD中的脏数据写回到HDD中，这是非常耗时的，会导致关机慢。
+
+    手工快速停止
+
+    #+begin_src sh
+      service flashcache forcestop
+    #+end_src
+
+    总是快速停止
+
+    #+begin_src sh
+      sysctl -w dev.flashcache.sdb+sdc1.fast_remove=1
     #+end_src

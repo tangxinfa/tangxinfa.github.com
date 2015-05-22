@@ -5,7 +5,91 @@
   <link href="http://blog.kankanan.com"/>
   <updated>2013-04-09T12:00:00Z</updated>
   <id>http://blog.kankanan.comindex.xml</id>
-  <entry><title type="html">FlashCache多盘方案实战</title><author><name>nil</name></author><link href="http://blog.kankanan.com/posts/2015/04/29_flashcache591a76d865b968485b9e6218.html"/><updated>2015-04-29T17:38:00Z</updated><published>2015-04-29T17:38:00Z</published><id>posts/2015/04/29_flashcache591a76d865b968485b9e6218.html</id><category scheme="/tags/linux.html" term="linux" label="linux"/><category scheme="/tags/flashcache.html" term="flashcache" label="flashcache"/><category scheme="/tags/raid.html" term="RAID" label="RAID"/><content type="html">&lt;p&gt;
+  <entry><title type="html">Flashcache优化</title><author><name>nil</name></author><link href="http://blog.kankanan.com/posts/2015/05/22_flashcache4f185316.html"/><updated>2015-05-22T18:12:00Z</updated><published>2015-05-22T18:12:00Z</published><id>posts/2015/05/22_flashcache4f185316.html</id><category scheme="/tags/flashcache.html" term="flashcache" label="flashcache"/><content type="html">&lt;ul class="org-ul"&gt;
+&lt;li&gt;&#35843;&#25972; dev.flashcache.&amp;lt;cache name&amp;gt;.dirty_thresh_pct
+
+&lt;p&gt;
+&#33039;&#32531;&#23384;&#22238;&#20889;&#38408;&#20540;&#65288;&#30334;&#20998;&#27604;&#65289;&#65292;&#40664;&#35748; &lt;code&gt;20&lt;/code&gt; &#12290;
+&lt;/p&gt;
+
+&lt;p&gt;
+&#20165; &lt;code&gt;Write-Back&lt;/code&gt; &#27169;&#24335;&#19979;&#26377;&#25928;&#12290;
+&lt;/p&gt;
+
+&lt;p&gt;
+&#35843;&#22823;&#35813;&#20540;&#21487;&#20197;&#20943;&#36731;&#20889;&#21387;&#21147;&#65288;&#32531;&#23384;&#25968;&#25454;&#20889;&#20837;HDD&#21450;&#20803;&#25968;&#25454;&#20889;&#20837;SSD&#65289;&#65292;&#32531;&#23384;&#24050;&#28385;&#26102;&#35813;&#32531;&#23384;&#22359;&#19981;&#33021;&#34987;&#28120;&#27760;&#65292;&#20943;&#23569;&#20102;&#21487;&#29992;&#32531;&#23384;&#31354;&#38388;&#12290;
+&lt;/p&gt;
+
+&lt;p&gt;
+&#22914;&#26524;&#26368;&#36817;&#20889;&#20837;&#30340;&#25968;&#25454;&#24456;&#21487;&#33021;&#26159;&#28909;&#25968;&#25454;&#65292;&#21487;&#20197;&#32771;&#34385;&#35843;&#22823;&#35813;&#20540;&#65292;&#24314;&#35758;&#35843;&#21040; &lt;code&gt;90&lt;/code&gt; &#65306;
+&lt;/p&gt;
+
+&lt;div class="org-src-container"&gt;
+
+&lt;pre class="src src-sh"&gt;sysctl -w dev.flashcache.&amp;lt;cache name&amp;gt;.dirty_thresh_pct=90
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/li&gt;
+
+&lt;li&gt;&#35843;&#25972; dev.flashcache.reclaim_policy
+
+&lt;p&gt;
+&#32531;&#23384;&#31354;&#38388;&#22238;&#25910;&#31574;&#30053;&#65292;&#40664;&#35748; &lt;code&gt;FIFO(0)&lt;/code&gt; &#12290;
+&lt;/p&gt;
+
+&lt;p&gt;
+&#25913;&#20026; &lt;code&gt;LRU(1)&lt;/code&gt; :
+&lt;/p&gt;
+
+&lt;div class="org-src-container"&gt;
+
+&lt;pre class="src src-sh"&gt;sysctl -w dev.flashcache.&amp;lt;cache name&amp;gt;.reclaim_policy=1
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/li&gt;
+
+&lt;li&gt;&#36741;&#21161;&#35843;&#35797;
+
+&lt;ul class="org-ul"&gt;
+&lt;li&gt;&#32479;&#35745;&#28165;&#38646;
+
+&lt;div class="org-src-container"&gt;
+
+&lt;pre class="src src-sh"&gt;sysctl -w dev.flashcache.&amp;lt;cache name&amp;gt;.zero_stats=1
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/li&gt;
+
+&lt;li&gt;&#24555;&#36895;&#20572;&#27490;
+
+&lt;p&gt;
+Flashcache&#22312;&#20572;&#27490;&#26102;&#20250;&#23558;SSD&#20013;&#30340;&#33039;&#25968;&#25454;&#20889;&#22238;&#21040;HDD&#20013;&#65292;&#36825;&#26159;&#38750;&#24120;&#32791;&#26102;&#30340;&#65292;&#20250;&#23548;&#33268;&#20851;&#26426;&#24930;&#12290;
+&lt;/p&gt;
+
+&lt;p&gt;
+&#25163;&#24037;&#24555;&#36895;&#20572;&#27490;
+&lt;/p&gt;
+
+&lt;div class="org-src-container"&gt;
+
+&lt;pre class="src src-sh"&gt;service flashcache forcestop
+&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;
+&#24635;&#26159;&#24555;&#36895;&#20572;&#27490;
+&lt;/p&gt;
+
+&lt;div class="org-src-container"&gt;
+
+&lt;pre class="src src-sh"&gt;sysctl -w dev.flashcache.sdb+sdc1.fast_remove=1
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+</content></entry><entry><title type="html">FlashCache多盘方案实战</title><author><name>nil</name></author><link href="http://blog.kankanan.com/posts/2015/04/29_flashcache591a76d865b968485b9e6218.html"/><updated>2015-04-29T17:38:00Z</updated><published>2015-04-29T17:38:00Z</published><id>posts/2015/04/29_flashcache591a76d865b968485b9e6218.html</id><category scheme="/tags/linux.html" term="linux" label="linux"/><category scheme="/tags/flashcache.html" term="flashcache" label="flashcache"/><category scheme="/tags/raid.html" term="RAID" label="RAID"/><content type="html">&lt;p&gt;
 &#30446;&#26631;&#31995;&#32479;&#20026;&#21333;SSD+&#22810;HDD&#65292;&#23558;&#22810;HDD&#21019;&#24314;&#20026;RAID5&#36923;&#36753;&#30424;&#65292;&#28982;&#21518;&#20351;&#29992;FlashCache&#23558;SSD&#20570;&#20026;RAID5&#36923;&#36753;&#30424;&#30340;&#32531;&#23384;&#12290;
 &lt;/p&gt;
 
@@ -849,7 +933,7 @@ tlsServer.on(&lt;span style="color: #ad7fa8; font-style: italic;"&gt;'clientErro
 
 &lt;p&gt;
 &#20351;&#29992; &lt;code&gt;setsockopt&lt;/code&gt; &#22312;&#24213;&#23618;&#30340;socket&#19978;&#35774;&#32622;&#35835;&#20889;&#21518;&#65292; &lt;code&gt;SSL_read&lt;/code&gt; &#12289; &lt;code&gt;SSL_write&lt;/code&gt; &#20986;&#38169;&#20250;&#36820;&#22238;ssl&#38169;&#35823;&#30721; &lt;code&gt;SSL_ERROR_WANT_READ&lt;/code&gt; &#25110; &lt;code&gt;SSL_ERROR_WANT_WRITE&lt;/code&gt; &#65292;
-&#20294;&#26159;&#34987;&#20449;&#21495;&#20013;&#26029;&#25110;&#32773;&#24213;&#23618;SSL&#38656;&#35201;&#37325;&#26032;&#25569;&#25163;&#20063;&#20250;&#23548;&#33268;=SSL_read= &#12289; &lt;code&gt;SSL_write&lt;/code&gt; &#36820;&#22238;&#21516;&#26679;&#30340;ssl&#38169;&#35823;&#30721;&#12290;
+&#20294;&#26159;&#34987;&#20449;&#21495;&#20013;&#26029;&#25110;&#32773;&#24213;&#23618;SSL&#38656;&#35201;&#37325;&#26032;&#25569;&#25163;&#20063;&#20250;&#23548;&#33268; &lt;code&gt;SSL_read&lt;/code&gt; &#12289; &lt;code&gt;SSL_write&lt;/code&gt; &#36820;&#22238;&#21516;&#26679;&#30340;ssl&#38169;&#35823;&#30721;&#12290;
 &lt;/p&gt;
 
 &lt;p&gt;
@@ -1192,111 +1276,5 @@ sudo systemctl start nfs-server.service
 &lt;p&gt;
 &#21442;&#32771;&#65306;&lt;a href="https://blog.lnx.cx/2014/03/20/fedora-20-and-the-thinkpad-t440s-touchpad/"&gt;Fedora 20 and the ThinkPad T440s touchpad | Technitribe&lt;/a&gt;
 &lt;/p&gt;
-</content></entry><entry><title type="html">linux下修改键位映射</title><author><name>nil</name></author><link href="http://blog.kankanan.com/posts/2014/09/19_linux4e0b4fee6539952e4f4d66205c04.html"/><updated>2014-09-19T14:07:00Z</updated><published>2014-09-19T14:07:00Z</published><id>posts/2014/09/19_linux4e0b4fee6539952e4f4d66205c04.html</id><category scheme="/tags/linux.html" term="linux" label="linux"/><category scheme="/tags/keyboard.html" term="keyboard" label="keyboard"/><content type="html">&lt;p&gt;
-&#22312;linux&#19979;&#20250;&#22823;&#37327;&#20351;&#29992;ctrl&#21644;alt&#38190;&#65292;&#20294;&#26159;&#26222;&#36890;&#38190;&#30424;&#19978;&#36825;&#20004;&#20010;&#38190;&#25152;&#22312;&#20301;&#32622;&#22826;&#20559;&#65292;&#25353;&#36215;&#26469;&#38750;&#24120;&#21507;&#21147;&#65292;&#20132;&#25442;&#38190;&#20301;&#21487;&#20197;&#24456;&#22909;&#30340;&#35299;&#20915;&#36825;&#20010;&#38382;&#39064;&#12290;
-&lt;/p&gt;
-
-&lt;ul class="org-ul"&gt;
-&lt;li&gt;&#36890;&#36807;gnome-tweak-tool&#36827;&#34892;&#20462;&#25913;
-
-&lt;p&gt;
-Typing&#39029;&#21487;&#20197;&#23436;&#25104;&#24120;&#29992;&#30340;&#20462;&#25913;&#65292;&#22914;&#65306;&#20132;&#25442;Caps Lock&#21644;Ctrl&#65292;&#20132;&#25442;&#24038;Ctrl&#21644;Alt&#12290;&#20294;&#26159;&#22312;&#25105;&#30340;&#31508;&#35760;&#26412;&#19978;&#35774;&#32622;&#22909;&#21518;&#26377;&#26102;&#20505;&#20250;&#22833;&#25928;.
-&lt;/p&gt;
-&lt;/li&gt;
-
-&lt;li&gt;&#36890;&#36807;setxkbmap&#21629;&#20196;&#36827;&#34892;&#20462;&#25913;
-
-&lt;p&gt;
-Caps Lock&#25913;&#20026;Ctrl&#65306;setxkbmap -option ctrl:nocaps
-&lt;/p&gt;
-
-&lt;p&gt;
-&#21487;&#20197;&#26597;&#30475;/usr/share/X11/xkb/rules/evdev.lst&#26597;&#30475;&#25903;&#25345;&#30340;&#20132;&#25442;&#26041;&#24335;&#12290;Ctrl&#21644;Alt&#20132;&#25442;&#35797;&#20102;&#19968;&#19979;&#27809;&#26377;&#25928;&#26524;&#12290;
-&lt;/p&gt;
-
-&lt;p&gt;
-&#23558;setxkbmap&#35774;&#32622;&#21629;&#20196;&#25918;&#21040;~/.xprofile&#20013;&#21363;&#21487;&#24320;&#26426;&#29983;&#25928;&#12290;
-&lt;/p&gt;
-&lt;/li&gt;
-&lt;/ul&gt;
-
-
-&lt;ul class="org-ul"&gt;
-&lt;li&gt;&#36890;&#36807;&#37197;&#32622;~/.Xmodmap&#36827;&#34892;&#20462;&#25913;
-
-&lt;p&gt;
-&#21487;&#20197;&#23436;&#25104;&#20219;&#24847;&#30340;&#38190;&#30424;&#26144;&#23556;&#12290;
-&lt;/p&gt;
-
-&lt;p&gt;
-&#22914;&#19979;&#25152;&#31034;&#65306;Caps Lock&#25913;&#20026;Ctrl&#65292;&#24038;Ctrl&#25913;&#20026;Alt&#65306;
-&lt;/p&gt;
-
-&lt;pre class="example"&gt;
-keycode 66 = Control_L
-clear Lock
-add control = Control_L
-
-clear control
-clear mod1
-keycode 37 = Alt_L Meta_L
-add control = Control_L Control_R
-add mod1 = Alt_L Meta_L
-&lt;/pre&gt;
-
-&lt;p&gt;
-&#21551;&#29992;&#35774;&#32622;&#65306;
-&lt;/p&gt;
-
-&lt;div class="org-src-container"&gt;
-
-&lt;pre class="src src-sh"&gt;xmodmap ~/.Xmodmap
-&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;p&gt;
-&#22312;~/.xprofile&#20013;&#28155;&#21152;&#20197;&#19978;&#25351;&#20196;&#20197;&#20415;&#24320;&#26426;&#29983;&#25928;&#65306;
-&lt;/p&gt;
-
-&lt;div class="org-src-container"&gt;
-
-&lt;pre class="src src-sh"&gt;&lt;span style="color: #729fcf; font-weight: bold;"&gt;if&lt;/span&gt; [ -f $&lt;span style="color: #eeeeec;"&gt;HOME&lt;/span&gt;/.Xmodmap ]; &lt;span style="color: #729fcf; font-weight: bold;"&gt;then&lt;/span&gt;
-    /usr/bin/xmodmap $&lt;span style="color: #eeeeec;"&gt;HOME&lt;/span&gt;/.Xmodmap
-&lt;span style="color: #729fcf; font-weight: bold;"&gt;fi&lt;/span&gt;
-&lt;/pre&gt;
-&lt;/div&gt;
-
-&lt;p&gt;
-&#21442;&#32771;&#65306;
-&lt;/p&gt;
-
-&lt;ul class="org-ul"&gt;
-&lt;li&gt;&lt;a href="http://earthviaradio.wordpress.com/2012/02/06/swapping-the-left-alt-and-ctrl-keys-in-ubuntu-11-10/"&gt;Swapping the left Alt and Ctrl keys in Ubuntu 11.10&lt;/a&gt;
-&lt;/li&gt;
-
-&lt;li&gt;&lt;a href="http://efod.se/writings/linuxbook/html/caps-lock-to-ctrl.html"&gt;Changing your caps lock into Ctrl in X&lt;/a&gt;
-&lt;/li&gt;
-
-&lt;li&gt;&lt;a href="https://wiki.archlinux.org/index.php/Xmodmap_(%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87)"&gt;Xmodmap (&#31616;&#20307;&#20013;&#25991;)&lt;/a&gt;
-&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-
-&lt;li&gt;&#28165;&#38500;xmodmap&#20197;&#21450;setxkbmap&#30340;&#37197;&#32622;
-
-&lt;div class="org-src-container"&gt;
-
-&lt;pre class="src src-sh"&gt;setxkbmap -layout us
-&lt;/pre&gt;
-&lt;/div&gt;
-&lt;/li&gt;
-
-&lt;li&gt;&#25442;hhkb pro2&#38190;&#30424;
-
-&lt;p&gt;
-linux&#29992;&#25143;&#24517;&#22791;&#65292;ctrl&#21644;alt&#38190;&#24050;&#32463;&#25918;&#32622;&#21040;&#26368;&#20248;&#20301;&#32622;&#65292;&#32780;&#19988;&#21518;&#38754;&#30340;&#36339;&#32447;&#24320;&#20851;&#25903;&#25345;&#24120;&#29992;&#30340;&#38190;&#20301;&#20132;&#25442;&#65292;&#21363;&#20351;&#26159;linux&#25991;&#26412;&#27169;&#24335;&#19979;&#20063;&#21487;&#29992;&#12290;
-&lt;/p&gt;
-&lt;/li&gt;
-&lt;/ul&gt;
 </content></entry>
 </feed>
