@@ -873,7 +873,18 @@ class RedisShard {
       使用nginx的扩展性能会更好一点，参考后面[[nginx的相关扩展]].
     - [[http://trac.koka-in.org/libdecodeqr][libdecodeqr]] ::
       二维码解码库
+
+*** 二维码生成工具
+
+    - [[https://launchpad.net/qr-code-creator/][qr-code-creator]] ::
+      linux下的GUI程序。
+
+    - [[https://npmjs.org/package/qrcode-terminal][qrcode-terminal]] ::
+      linux终端下生成并展示二维码，是一个node.js模块，带命令行工具程序，方便使用，介绍文章：[[http://blog.michaelbrooks.ca/qrcode-terminal/][QR Code Terminal]]
       
+    - [[https://github.com/lincolnloop/python-qrcode][python-qrcode]] ::
+      linux终端下生成并展示二维码，是一个python包，带命令行工具程序，方便使用。
+
 *** nginx的相关扩展
 **** 基本的二维码
      [[https://github.com/dcshi/ngx_http_qrcode_module][ngx_http_qrcode_module]]
@@ -6049,6 +6060,24 @@ class RedisShard {
 ** DONE SSL_read及SSL_write支持超时                                   :openssl:c:
    CLOSED: [2015-01-27 Tue 14:29]
 
+   原始的socket编程中 =read= 、 =write= 支持超时是很容易实现的，如使用 =select= 或者 =setsockopt= 设置读写超时并在 =read= 和 =write= 出错后根据 =errno= 判断是否为超时引起。
+
+   但是在 =SSL= 编程中对底层socket调用 =select= 以及使用 =errno= 行为是未定义的。
+
+   使用 =setsockopt= 在底层的socket上设置读写后， =SSL_read= 、 =SSL_write= 出错会返回ssl错误码 =SSL_ERROR_WANT_READ= 或 =SSL_ERROR_WANT_WRITE= ，
+   但是被信号中断或者底层SSL需要重新握手也会导致=SSL_read= 、 =SSL_write= 返回同样的ssl错误码。
+
+   如果能够将信号屏蔽掉，并启用SSL自动重新握手，就能够实现 =SSL_read= 、 =SSL_write= 超时检测。
+       
+   - 屏蔽信号
+
+     忽略应用产生的信号，如：
+
+     #+begin_src c
+       signal(SIGPIPE, SIG_IGN);
+       signal(SIGCHLD, SIG_IGN);
+     #+end_src
+   
    - 在底层socket上设置超时
 
      #+begin_src c
@@ -6060,8 +6089,6 @@ class RedisShard {
      #+end_src
 
    - 启用自动重新握手
-
-     =SSL_read= 或 =SSL_write= 可能因为SSL需要重新握手而提前返回（此时SSL错误码为 =SSL_ERROR_WANT_READ= 或 =SSL_ERROR_WANT_WRITE= ），也可能因上面的socket超时设置而提前返回，通过启用自动重新握手，消除第一种情况。
 
      #+begin_src c
        SSL_CTX_set_mode(ctx, SSL_MODE_AUTO_RETRY);
@@ -6420,7 +6447,7 @@ class RedisShard {
     - 格式化HDD盘
 
       #+begin_src sh
-        gparted /dev/sdc
+        parted /dev/sdc
         (parted) mklabel gpt
         (parted) unit TB
         (parted) mkpart primary 0.00TB 4.00TB
@@ -6597,3 +6624,37 @@ class RedisShard {
    - 《[[http://wiki.mikejung.biz/Software_RAID][Software RAID - How to Optimize Software RAID on Linux using Mdadm]]》 :: 优化RAID
 
    - 《[[http://sysadmin.blog.51cto.com/83876/236802][RAID5单盘故障读写分析]]》 :: RAID5一块盘坏掉后的情形分析
+
+** TODO FlashCache优化                                           :flashcache:
+
+- 调整 dev.flashcache.<cache name>.dirty_thresh_pct
+
+  脏缓存回写阈值（百分比），默认 =20= 。
+  
+  仅 =Write-Back= 模式下有效。
+
+  调大该值可以减轻写压力（缓存数据写入HDD及元数据写入SSD），缓存已满时该缓存块不能被淘汰，减少了可用缓存空间。
+
+  如果最近写入的数据很可能是热数据，可以考虑调大该值，建议调到 =90= ：
+
+  #+begin_src sh
+    sysctl -w dev.flashcache.<cache name>.dirty_thresh_pct=90
+  #+end_src
+
+- 调整 dev.flashcache.reclaim_policy
+
+  缓存空间回收策略，默认 =FIFO(0)= 。
+
+  改为 =LRU(1)= :
+
+  #+begin_src sh
+    sysctl -w dev.flashcache.<cache name>.reclaim_policy=1
+  #+end_src
+
+- 辅助调试
+
+  + 统计清零
+
+    #+begin_src sh
+      sysctl -w dev.flashcache.<cache name>.zero_stats=1
+    #+end_src

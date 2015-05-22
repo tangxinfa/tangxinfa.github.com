@@ -79,7 +79,38 @@
 
   </header>
   <div class="article-content">
-    <ul class="org-ul">
+    <p>
+原始的socket编程中 <code>read</code> 、 <code>write</code> 支持超时是很容易实现的，如使用 <code>select</code> 或者 <code>setsockopt</code> 设置读写超时并在 <code>read</code> 和 <code>write</code> 出错后根据 <code>errno</code> 判断是否为超时引起。
+</p>
+
+<p>
+但是在 <code>SSL</code> 编程中对底层socket调用 <code>select</code> 以及使用 <code>errno</code> 行为是未定义的。
+</p>
+
+<p>
+使用 <code>setsockopt</code> 在底层的socket上设置读写后， <code>SSL_read</code> 、 <code>SSL_write</code> 出错会返回ssl错误码 <code>SSL_ERROR_WANT_READ</code> 或 <code>SSL_ERROR_WANT_WRITE</code> ，
+但是被信号中断或者底层SSL需要重新握手也会导致=SSL_read= 、 <code>SSL_write</code> 返回同样的ssl错误码。
+</p>
+
+<p>
+如果能够将信号屏蔽掉，并启用SSL自动重新握手，就能够实现 <code>SSL_read</code> 、 <code>SSL_write</code> 超时检测。
+</p>
+
+<ul class="org-ul">
+<li>屏蔽信号
+
+<p>
+忽略应用产生的信号，如：
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-c">signal(SIGPIPE, SIG_IGN);
+signal(SIGCHLD, SIG_IGN);
+</pre>
+</div>
+</li>
+
 <li>在底层socket上设置超时
 
 <div class="org-src-container">
@@ -94,10 +125,6 @@ setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (<span style="color: #8ae234; font-wei
 </li>
 
 <li>启用自动重新握手
-
-<p>
-<code>SSL_read</code> 或 <code>SSL_write</code> 可能因为SSL需要重新握手而提前返回（此时SSL错误码为 <code>SSL_ERROR_WANT_READ</code> 或 <code>SSL_ERROR_WANT_WRITE</code> ），也可能因上面的socket超时设置而提前返回，通过启用自动重新握手，消除第一种情况。
-</p>
 
 <div class="org-src-container">
 

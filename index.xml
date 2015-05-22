@@ -98,7 +98,7 @@ INTEL SSDSC2BB30 300GB
 
 &lt;div class="org-src-container"&gt;
 
-&lt;pre class="src src-sh"&gt;gparted /dev/sdc
+&lt;pre class="src src-sh"&gt;parted /dev/sdc
 (parted) mklabel gpt
 (parted) unit TB
 (parted) mkpart primary 0.00TB 4.00TB
@@ -839,7 +839,38 @@ tlsServer.on(&lt;span style="color: #ad7fa8; font-style: italic;"&gt;'clientErro
 &lt;/p&gt;
 &lt;/div&gt;
 &lt;/div&gt;
-</content></entry><entry><title type="html">SSL_read及SSL_write支持超时</title><author><name>nil</name></author><link href="http://blog.kankanan.com/posts/2015/01/27_ssl5fread53cassl5fwrite652f63018d8565f6.html"/><updated>2015-01-27T14:29:00Z</updated><published>2015-01-27T14:29:00Z</published><id>posts/2015/01/27_ssl5fread53cassl5fwrite652f63018d8565f6.html</id><category scheme="/tags/openssl.html" term="openssl" label="openssl"/><category scheme="/tags/c.html" term="c" label="c"/><content type="html">&lt;ul class="org-ul"&gt;
+</content></entry><entry><title type="html">SSL_read及SSL_write支持超时</title><author><name>nil</name></author><link href="http://blog.kankanan.com/posts/2015/01/27_ssl5fread53cassl5fwrite652f63018d8565f6.html"/><updated>2015-01-27T14:29:00Z</updated><published>2015-01-27T14:29:00Z</published><id>posts/2015/01/27_ssl5fread53cassl5fwrite652f63018d8565f6.html</id><category scheme="/tags/openssl.html" term="openssl" label="openssl"/><category scheme="/tags/c.html" term="c" label="c"/><content type="html">&lt;p&gt;
+&#21407;&#22987;&#30340;socket&#32534;&#31243;&#20013; &lt;code&gt;read&lt;/code&gt; &#12289; &lt;code&gt;write&lt;/code&gt; &#25903;&#25345;&#36229;&#26102;&#26159;&#24456;&#23481;&#26131;&#23454;&#29616;&#30340;&#65292;&#22914;&#20351;&#29992; &lt;code&gt;select&lt;/code&gt; &#25110;&#32773; &lt;code&gt;setsockopt&lt;/code&gt; &#35774;&#32622;&#35835;&#20889;&#36229;&#26102;&#24182;&#22312; &lt;code&gt;read&lt;/code&gt; &#21644; &lt;code&gt;write&lt;/code&gt; &#20986;&#38169;&#21518;&#26681;&#25454; &lt;code&gt;errno&lt;/code&gt; &#21028;&#26029;&#26159;&#21542;&#20026;&#36229;&#26102;&#24341;&#36215;&#12290;
+&lt;/p&gt;
+
+&lt;p&gt;
+&#20294;&#26159;&#22312; &lt;code&gt;SSL&lt;/code&gt; &#32534;&#31243;&#20013;&#23545;&#24213;&#23618;socket&#35843;&#29992; &lt;code&gt;select&lt;/code&gt; &#20197;&#21450;&#20351;&#29992; &lt;code&gt;errno&lt;/code&gt; &#34892;&#20026;&#26159;&#26410;&#23450;&#20041;&#30340;&#12290;
+&lt;/p&gt;
+
+&lt;p&gt;
+&#20351;&#29992; &lt;code&gt;setsockopt&lt;/code&gt; &#22312;&#24213;&#23618;&#30340;socket&#19978;&#35774;&#32622;&#35835;&#20889;&#21518;&#65292; &lt;code&gt;SSL_read&lt;/code&gt; &#12289; &lt;code&gt;SSL_write&lt;/code&gt; &#20986;&#38169;&#20250;&#36820;&#22238;ssl&#38169;&#35823;&#30721; &lt;code&gt;SSL_ERROR_WANT_READ&lt;/code&gt; &#25110; &lt;code&gt;SSL_ERROR_WANT_WRITE&lt;/code&gt; &#65292;
+&#20294;&#26159;&#34987;&#20449;&#21495;&#20013;&#26029;&#25110;&#32773;&#24213;&#23618;SSL&#38656;&#35201;&#37325;&#26032;&#25569;&#25163;&#20063;&#20250;&#23548;&#33268;=SSL_read= &#12289; &lt;code&gt;SSL_write&lt;/code&gt; &#36820;&#22238;&#21516;&#26679;&#30340;ssl&#38169;&#35823;&#30721;&#12290;
+&lt;/p&gt;
+
+&lt;p&gt;
+&#22914;&#26524;&#33021;&#22815;&#23558;&#20449;&#21495;&#23631;&#34109;&#25481;&#65292;&#24182;&#21551;&#29992;SSL&#33258;&#21160;&#37325;&#26032;&#25569;&#25163;&#65292;&#23601;&#33021;&#22815;&#23454;&#29616; &lt;code&gt;SSL_read&lt;/code&gt; &#12289; &lt;code&gt;SSL_write&lt;/code&gt; &#36229;&#26102;&#26816;&#27979;&#12290;
+&lt;/p&gt;
+
+&lt;ul class="org-ul"&gt;
+&lt;li&gt;&#23631;&#34109;&#20449;&#21495;
+
+&lt;p&gt;
+&#24573;&#30053;&#24212;&#29992;&#20135;&#29983;&#30340;&#20449;&#21495;&#65292;&#22914;&#65306;
+&lt;/p&gt;
+
+&lt;div class="org-src-container"&gt;
+
+&lt;pre class="src src-c"&gt;signal(SIGPIPE, SIG_IGN);
+signal(SIGCHLD, SIG_IGN);
+&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/li&gt;
+
 &lt;li&gt;&#22312;&#24213;&#23618;socket&#19978;&#35774;&#32622;&#36229;&#26102;
 
 &lt;div class="org-src-container"&gt;
@@ -854,10 +885,6 @@ setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (&lt;span style="color: #8ae234; font-
 &lt;/li&gt;
 
 &lt;li&gt;&#21551;&#29992;&#33258;&#21160;&#37325;&#26032;&#25569;&#25163;
-
-&lt;p&gt;
-&lt;code&gt;SSL_read&lt;/code&gt; &#25110; &lt;code&gt;SSL_write&lt;/code&gt; &#21487;&#33021;&#22240;&#20026;SSL&#38656;&#35201;&#37325;&#26032;&#25569;&#25163;&#32780;&#25552;&#21069;&#36820;&#22238;&#65288;&#27492;&#26102;SSL&#38169;&#35823;&#30721;&#20026; &lt;code&gt;SSL_ERROR_WANT_READ&lt;/code&gt; &#25110; &lt;code&gt;SSL_ERROR_WANT_WRITE&lt;/code&gt; &#65289;&#65292;&#20063;&#21487;&#33021;&#22240;&#19978;&#38754;&#30340;socket&#36229;&#26102;&#35774;&#32622;&#32780;&#25552;&#21069;&#36820;&#22238;&#65292;&#36890;&#36807;&#21551;&#29992;&#33258;&#21160;&#37325;&#26032;&#25569;&#25163;&#65292;&#28040;&#38500;&#31532;&#19968;&#31181;&#24773;&#20917;&#12290;
-&lt;/p&gt;
 
 &lt;div class="org-src-container"&gt;
 
