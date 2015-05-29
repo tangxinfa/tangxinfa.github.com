@@ -6219,7 +6219,7 @@ class RedisShard {
 *** 挂载模块
 
     #+begin_src sh
-      sudo insmod /lib/modules/3.19.3-3-ARCH/extra/flashcache/flashcache.ko
+      sudo insmod /lib/modules/`uname -r`/extra/flashcache/flashcache.ko
     #+end_src
 
     - 修复挂载错误
@@ -6248,7 +6248,7 @@ class RedisShard {
 
       #+begin_src sh
         sudo modprobe dm-mod
-        sudo insmod /lib/modules/3.19.3-3-ARCH/extra/flashcache/flashcache.ko
+        sudo insmod /lib/modules/`uname -r`/extra/flashcache/flashcache.ko
       #+end_src
 
       参考：[[https://bbs.archlinux.org/viewtopic.php?id=30478][No entry for device-mapper found]]
@@ -6675,3 +6675,85 @@ class RedisShard {
     #+begin_src sh
       sysctl -w dev.flashcache.sdb+sdc1.fast_remove=1
     #+end_src
+** DONE emacs启动速度优化                                             :emacs:
+   CLOSED: [2015-05-24 Sun 11:17]
+
+   emacs装了很多插件后，启动越来越慢了，最近发现启动一次要25秒，赶得上操作系统启动时间了，是时候优化一下启动速度了。
+
+   - 裸启动emacs
+     
+     #+begin_src sh
+       emacs --quick
+     #+end_src
+
+     尽然耗时10秒，网上查了一下这个问题常见于 =archlinux= ，是网络配置引起: [[https://wiki.archlinux.org/index.php/Emacs#Incorrect_network_configuration][Emacs - Slow startup - Incorrect network configuration]]
+     
+     解决方案就是将主机名（ =hostname= 命令输出）加到 =/etc/hosts= 中：
+
+     #+begin_example
+       127.0.0.1   localhost.localdomain   localhost <hostame>
+       ::1     localhost.localdomain   localhost  <hostname>
+     #+end_example
+
+     再试，emacs瞬间启动。
+
+   - 不加载个人配置文件启动emacs
+
+     #+begin_src sh
+       emacs --no-init-file
+     #+end_src
+     
+     emacs瞬间启动。
+     
+   - 不加载最近保存的桌面启动emacs
+     
+     #+begin_src sh
+       emacs --no-desktop
+     #+end_src
+     
+     耗时15秒，看来是个人配置的问题了
+
+   - 从前面开始一块一块反注释emacs配置，看是卡在哪里
+     
+     #+begin_src lisp
+       (require 'anything-config)
+     #+end_src
+
+     这一句耗时11秒，注释掉，现在启时时间为5秒，可以接受了。
+** DONE Zabbix添加Flashcache监控                          :flashcache:zabbix:
+   CLOSED: [2015-05-29 Fri 16:27]
+
+*** 下载 =Zabbix= 的 =Flashcache= 开源模板
+
+    #+begin_src sh
+      git clone https://github.com/lesovsky/zabbix-extensions.git
+    #+end_src
+
+*** 设置 =zabbix_agentd=
+
+    #+begin_src sh
+      # 安装配置文件
+      cp zabbix-extensions/files/flashcache/flashcache.conf /usr/local/etc/zabbix_agentd.conf.d/
+      # 安装脚本
+      mkdir /usr/local/etc/zabbix_scripts
+      cp zabbix-extensions/files/flashcache/scripts/* /usr/local/etc/zabbix_scripts/
+      # 修改配置文件中引用的脚本路径
+      sed --in-place -e 's/\/usr\/libexec\/zabbix-extensions\//\/usr\/local\/etc\/zabbix_/g' /usr/local/etc/zabbix_agentd.conf.d/flashcache.conf
+      # 包含配置文件目录
+      sed --in-place -e 's/# Include=\/usr\/local\/etc\/zabbix_agentd\.conf\.d\//Include=\/usr\/local\/etc\/zabbix_agentd\.conf\.d\//g' /usr/local/etc/zabbix_agentd.conf
+    #+end_src
+
+    重启 =zabbix_agentd= 生效配置。
+
+*** 设置 =Zabbix= 后台
+
+    - 导入 =Flashcache= 模板
+      
+      Configuration -> Templates -> Import -> Import file 选择之前下载的 =zabbix-extensions/files/flashcache/flashcache-template.xml=
+      
+    - 应用 =Flashcache= 模板
+      
+      Configuration -> Hosts 下选择要应用到的主机 -> Templates -> Link new templates 选择 =Flashcache-Template=
+
+
+    
