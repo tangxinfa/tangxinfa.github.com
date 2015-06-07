@@ -1,0 +1,346 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+    <channel>
+        <title>cpp - 看看俺 – KanKanAn.com</title>
+        <description>记我所思，忆我所为。</description>
+        <link>http://blog.kankanan.com/tag/cpp.xml</link>
+        <lastBuildDate>Sun, 07 Jun 2015 13:03:33 GMT</lastBuildDate>
+        <docs>http://blogs.law.harvard.edu/tech/rss</docs>
+        <image>
+            <title>cpp - 看看俺 – KanKanAn.com</title>
+            <url>http://blog.kankanan.com/static/favicon.ico</url>
+            <link>http://blog.kankanan.com/tag/cpp.xml</link>
+        </image>
+        <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
+        <generator>Feed for Node.js</generator>
+        <category>技术</category>
+        <item>
+            <title><![CDATA[为什么不能在构造函数中调用shared_from_this]]></title>
+            <link>/article/4e3a4ec04e484e0d80fd57286784902051fd65704e2d8c037528-shared_from_this.html</link>
+            <guid>/article/4e3a4ec04e484e0d80fd57286784902051fd65704e2d8c037528-shared_from_this.html</guid>
+            <pubDate>Thu, 19 Dec 2013 17:02:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+先看示例代码：
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-c++"><span style="color: #b9ca4a;">class</span> <span style="color: #7aa6da;">Chicken</span> : <span style="color: #b9ca4a;">public</span> <span style="color: #7aa6da;">enable_shared_from_this</span>&lt;<span style="color: #7aa6da;">Chicken</span>&gt;
+{
+<span style="color: #b9ca4a;">public</span>:
+<span style="background-color: #424242;"> </span>   <span style="color: #e78c45;">Chicken</span>()
+<span style="background-color: #424242;"> </span>   {
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #7aa6da;">shared_ptr</span>&lt;<span style="color: #7aa6da;">Chicken</span>&gt; <span style="color: #e7c547;">chicken_ptr</span> = shared_from_this();    <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">throw std::ba</span><span style="color: #969896; font-style: italic; text-decoration: underline;">d_weak_ptr</span>
+<span style="background-color: #424242;"> </span>   }
+};
+</pre>
+</div>
+
+<p>
+再看shared<sub>from</sub><sub>this</sub>()的行为：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-c++"><span style="color: #b9ca4a;">return</span> _weak_ptr-&gt;lock();
+</pre>
+</div>
+
+<p>
+<code>_weak_ptr</code> 为父类（ <code>enable_shared_from_this</code> &lt;Chicken&gt;）的成员变量，需要一个 <code>shared_ptr</code> &lt;Chicken&gt;对象来初始化它，而 <code>shared_ptr</code> &lt;Chicken&gt;需要一个Chicken对象来创建，但此时Chicken对象正在构造中，这是个鸡与蛋的无解问题。
+</p>
+
+<p>
+其实 <code>_weak_ptr</code> 成员变量是在 <code>shared_ptr</code> 的构造函数中延迟初始化的，不只是在构造函数中不能调用 <code>shared_from_this</code> ，像下面的使用方式同样不行：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-c++"><span style="color: #7aa6da;">Chicken</span>* <span style="color: #e7c547;">chicken</span> = <span style="color: #b9ca4a;">new</span> <span style="color: #7aa6da;">Chicken</span>();
+<span style="color: #7aa6da;">shared_ptr</span>&lt;<span style="color: #7aa6da;">Chicken</span>&gt; <span style="color: #e7c547;">chicken_ptr</span> = chicken-&gt;shared_from_this();  <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">throw std::bad</span><span style="color: #969896; font-style: italic; text-decoration: underline;">_weak_ptr</span>
+</pre>
+</div>
+
+<p>
+<code>enable_shared_from_this</code> 不是从this祼指针变出智能指针的魔法，它只是一个辅助类，为一个只使用 <code>shared_ptr</code> 管理对象生命周期的类添加一个自身的智能指针成员变量供内部使用。
+</p>
+
+<p>
+而“不能在构造函数中调用 <code>shared_from_this</code> ”这个问题仅仅是标准实现上的一个漏洞。
+</p>
+
+<p>
+你应该像下面这样用：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-c++"><span style="color: #b9ca4a;">class</span> <span style="color: #7aa6da;">Chicken</span> : <span style="color: #b9ca4a;">public</span> <span style="color: #7aa6da;">enable_shared_from_this</span>&lt;<span style="color: #7aa6da;">Chicken</span>&gt;
+{
+<span style="color: #b9ca4a;">public</span>:
+<span style="background-color: #424242;"> </span>   <span style="color: #e78c45;">Chicken</span>()
+<span style="background-color: #424242;"> </span>   {
+<span style="background-color: #424242;"> </span>   }
+
+<span style="background-color: #424242;"> </span>   <span style="color: #7aa6da;">void</span> <span style="color: #e78c45;">use</span>()
+<span style="background-color: #424242;"> </span>   {
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #7aa6da;">shared_ptr</span>&lt;<span style="color: #7aa6da;">Chicken</span>&gt; <span style="color: #e7c547;">chicken_ptr</span> = shared_from_this();
+<span style="background-color: #424242;"> </span>   }
+};
+
+<span style="color: #7aa6da;">shared_ptr</span>&lt;<span style="color: #7aa6da;">Chicken</span>&gt; <span style="color: #e78c45;">chicken_ptr</span>(<span style="color: #b9ca4a;">new</span> <span style="color: #7aa6da;">Chicken</span>);
+chicken_ptr-&gt;use();
+</pre>
+</div>
+
+<p>
+突然想起一段对话：
+</p>
+<blockquote>
+<p>
+阿漆：闻西，事情进行的怎么样了，闻西？
+</p>
+
+<p>
+达闻西： 最近我发明了些东西，相信能帮得到你。
+</p>
+
+<p>
+达闻西拿出手电筒。
+</p>
+
+<p>
+阿漆：手电筒？
+</p>
+
+<p>
+达闻西：错，这支不是一只普通的手电筒，这支是一支不需要电池的太阳能手电筒，在有光的时候他就会亮。
+</p>
+
+<p>
+司令：那如果没有光呢？
+</p>
+
+<p>
+达闻西：绝对不亮。
+</p>
+
+<p>
+阿漆：有没有可能没光的时候它也会亮？
+</p>
+
+<p>
+达闻西：问的好，关灯。
+</p>
+
+<p>
+达闻西：你拿另一只手电筒照它呢，它就会亮。
+</p>
+
+<p>
+达闻西：哈哈，怎么样啊？
+</p>
+
+<p>
+阿漆：这个发明还真有创意啊。
+</p>
+</blockquote>
+
+
+
+<p>
+参考：《<a href="http://hi.baidu.com/cpuramdisk/item/7c2f8d77385e0f29d7a89cf0">shared<sub>from</sub><sub>this</sub> 几个值得注意的地方</a>》</p>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[C++的函数、闭包与协程]]></title>
+            <link>/article/c-768451fd6570300195ed53054e0e534f7a0b.html</link>
+            <guid>/article/c-768451fd6570300195ed53054e0e534f7a0b.html</guid>
+            <pubDate>Fri, 15 Mar 2013 02:04:00 GMT</pubDate>
+            <content:encoded><![CDATA[
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">实现序号生成器</h2>
+<div class="outline-text-2" id="text-1">
+</div><div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1">函数（Function）</h3>
+<div class="outline-text-3" id="text-1-1">
+<div class="org-src-container">
+
+<pre class="src src-c++"><span style="color: #c397d8;">#include</span> <span style="color: #70c0b1;">&lt;cassert&gt;</span>
+
+<span style="color: #7aa6da;">int</span> <span style="color: #e78c45;">id_generator</span>(<span style="color: #7aa6da;">int</span>&amp; <span style="color: #e7c547;">base</span>, <span style="color: #7aa6da;">int</span> <span style="color: #e7c547;">step</span>)
+{
+<span style="background-color: #424242;"> </span>   <span style="color: #7aa6da;">int</span> <span style="color: #e7c547;">result</span> = *base;
+<span style="background-color: #424242;"> </span>   *base += step;
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">return</span> result;
+}
+
+<span style="color: #7aa6da;">int</span> <span style="color: #e78c45;">main</span>(<span style="color: #7aa6da;">int</span> <span style="color: #e7c547;">argc</span>, <span style="color: #7aa6da;">char</span> *<span style="color: #e7c547;">argv</span>[])
+{
+<span style="background-color: #424242;"> </span>   <span style="color: #7aa6da;">int</span> <span style="color: #e7c547;">odd_base</span> = 1;
+<span style="background-color: #424242;"> </span>   <span style="color: #7aa6da;">int</span> <span style="color: #e7c547;">even_base</span> = 0;<span style="color: #d54e53; background-color: #424242;">    </span>
+<span style="background-color: #424242;"> </span>   assert(id_generator(odd_base, 2) == 1);
+<span style="background-color: #424242;"> </span>   assert(id_generator(odd_base, 2) == 3);
+<span style="background-color: #424242;"> </span>   assert(id_generator(odd_base, 2) == 5);
+<span style="background-color: #424242;"> </span>   assert(id_generator(even_base, 2) == 0);
+<span style="background-color: #424242;"> </span>   assert(id_generator(even_base, 2) == 2);
+<span style="background-color: #424242;"> </span>   assert(id_generator(even_base, 2) == 4);<span style="color: #d54e53; background-color: #424242;">        </span>
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">return</span> 0;
+}
+</pre>
+</div>
+
+<dl class="org-dl">
+<dt> 编译 </dt><dd><pre class="example">
+g++ -g add.cpp -o add
+</pre>
+</dd>
+</dl>
+</div>
+</div>
+
+<div id="outline-container-sec-1-2" class="outline-3">
+<h3 id="sec-1-2">闭包（Closure）</h3>
+<div class="outline-text-3" id="text-1-2">
+<div class="org-src-container">
+
+<pre class="src src-c++"><span style="color: #c397d8;">#include</span> <span style="color: #70c0b1;">&lt;cassert&gt;</span>
+
+<span style="color: #7aa6da;">int</span> <span style="color: #e78c45;">main</span>(<span style="color: #7aa6da;">int</span> <span style="color: #e7c547;">argc</span>, <span style="color: #7aa6da;">char</span> *<span style="color: #e7c547;">argv</span>[])
+{
+<span style="background-color: #424242;"> </span>   <span style="color: #7aa6da;">int</span> <span style="color: #e7c547;">base</span> = 1;
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">auto</span> <span style="color: #7aa6da;">id_generator_odd</span> = [=]() <span style="color: #b9ca4a;">mutable</span> { <span style="color: #7aa6da;">int</span> <span style="color: #e7c547;">result</span> = base; base += 2; <span style="color: #b9ca4a;">return</span><span style="text-decoration: underline;"> result; };</span>
+<span style="background-color: #424242;"> </span>   base = 0;
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">auto</span> <span style="color: #7aa6da;">id_generator_even</span> = [=]() <span style="color: #b9ca4a;">mutable</span> { <span style="color: #7aa6da;">int</span> <span style="color: #e7c547;">result</span> = base; base += 2; <span style="color: #b9ca4a;">retur</span><span style="color: #b9ca4a; text-decoration: underline;">n</span><span style="text-decoration: underline;"> result; };</span>
+<span style="background-color: #424242;"> </span>   assert(id_generator_odd() == 1);
+<span style="background-color: #424242;"> </span>   assert(id_generator_odd() == 3);
+<span style="background-color: #424242;"> </span>   assert(id_generator_odd() == 5);
+<span style="background-color: #424242;"> </span>   assert(id_generator_even() == 0);
+<span style="background-color: #424242;"> </span>   assert(id_generator_even() == 2);
+<span style="background-color: #424242;"> </span>   assert(id_generator_even() == 4);
+<span style="background-color: #424242;"> </span>   assert(base == 0);
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">return</span> 0;
+}
+</pre>
+</div>
+
+<dl class="org-dl">
+<dt> 编译 </dt><dd><pre class="example">
+g++ -g closure.cpp -o closure -std=c++0x
+</pre>
+</dd>
+</dl>
+</div>
+</div>
+
+<div id="outline-container-sec-1-3" class="outline-3">
+<h3 id="sec-1-3">协程（Coroutine）</h3>
+<div class="outline-text-3" id="text-1-3">
+<div class="org-src-container">
+
+<pre class="src src-c++"><span style="color: #c397d8;">#include</span> <span style="color: #70c0b1;">&lt;boost/bind.hpp&gt;</span>
+<span style="color: #c397d8;">#include</span> <span style="color: #70c0b1;">&lt;boost/coroutine/all.hpp&gt;</span>
+
+<span style="color: #b9ca4a;">typedef</span> <span style="color: #7aa6da;">boost</span>::<span style="color: #7aa6da;">coroutines</span>::<span style="color: #7aa6da;">coroutine</span>&lt; <span style="color: #7aa6da;">int</span>(<span style="color: #7aa6da;">void</span>) &gt; <span style="color: #7aa6da;">IDGenerator</span>;
+
+<span style="color: #7aa6da;">void</span> <span style="color: #e78c45;">idGenerator</span>(<span style="color: #7aa6da;">IDGenerator</span>::<span style="color: #7aa6da;">caller_type</span>&amp; <span style="color: #e7c547;">ca</span>, <span style="color: #7aa6da;">int</span> <span style="color: #e7c547;">base</span>, <span style="color: #7aa6da;">int</span> <span style="color: #e7c547;">step</span>)
+{
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">do</span>{
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   ca(base);
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   base += step;
+<span style="background-color: #424242;"> </span>   }<span style="color: #b9ca4a;">while</span>(<span style="color: #7aa6da;">true</span>);
+}
+
+<span style="color: #7aa6da;">int</span> <span style="color: #e78c45;">main</span>(<span style="color: #7aa6da;">int</span> <span style="color: #e7c547;">argc</span>, <span style="color: #7aa6da;">char</span> *<span style="color: #e7c547;">argv</span>[])
+{
+<span style="background-color: #424242;"> </span>   <span style="color: #7aa6da;">IDGenerator</span> <span style="color: #e7c547;">id_generator_odd</span>(<span style="color: #7aa6da;">boost</span>::bind(idGenerator, _1, 1, 2));
+<span style="background-color: #424242;"> </span>   <span style="color: #7aa6da;">IDGenerator</span> <span style="color: #e7c547;">id_generator_even</span>(<span style="color: #7aa6da;">boost</span>::bind(idGenerator, _1, 0, 2));
+<span style="background-color: #424242;"> </span>   assert(id_generator_odd.get() == 1);
+<span style="background-color: #424242;"> </span>   assert(id_generator_odd().get() == 3);
+<span style="background-color: #424242;"> </span>   assert(id_generator_odd().get() == 5);
+<span style="background-color: #424242;"> </span>   assert(id_generator_even.get() == 0);
+<span style="background-color: #424242;"> </span>   assert(id_generator_even().get() == 2);
+<span style="background-color: #424242;"> </span>   assert(id_generator_even().get() == 4);
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">return</span> 0;
+}
+</pre>
+</div>
+
+<dl class="org-dl">
+<dt> 编译 </dt><dd><pre class="example">
+g++ -g coroutine.cpp -lboost_context -o coroutine -std=c++0x
+</pre>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">特性比较</h2>
+<div class="outline-text-2" id="text-2">
+</div><div id="outline-container-sec-2-1" class="outline-3">
+<h3 id="sec-2-1">函数（Function）</h3>
+<div class="outline-text-3" id="text-2-1">
+<ul class="org-ul">
+<li>无状态
+</li>
+<li>需要独立定义执行体
+</li>
+<li>调用过程中从头到尾执行体内所有代码
+</li>
+<li>在输入相同的情况下，能够保证输出也相同
+</li>
+<li>没有副作用，多线程安全
+</li>
+<li>要借助外部变量保存状态
+</li>
+<li>调用比较麻烦，需要传入保存状态的参数
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-2-2" class="outline-3">
+<h3 id="sec-2-2">闭包（Closure）</h3>
+<div class="outline-text-3" id="text-2-2">
+<ul class="org-ul">
+<li>有状态，内部直接保存
+</li>
+<li>直接内联定义执行体
+</li>
+<li>调用过程中从头到尾执行体内所有代码
+</li>
+<li>输入相同的情况下，输出可能不同
+</li>
+<li>有副作用，非多线程安全
+</li>
+<li>定义时可以多种方式安全地引用外部变量
+</li>
+<li>调用简单，不需要传入保存状态的参数
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-2-3" class="outline-3">
+<h3 id="sec-2-3">协程（Coroutine）</h3>
+<div class="outline-text-3" id="text-2-3">
+<ul class="org-ul">
+<li>有状态，内部直接保存
+</li>
+<li>需要独立定义执行体
+</li>
+<li>调用过程中直接从上次的运行状态继续运行
+</li>
+<li>输入相同的情况下，输出可能不同
+</li>
+<li>严禁多线程访问
+</li>
+<li>调用简单，不需要传入保存状态的参数    
+</li>
+</ul>
+</div>
+</div>
+</div>
+]]></content:encoded>
+        </item>
+    </channel>
+</rss>

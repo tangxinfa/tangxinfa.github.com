@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+    <channel>
+        <title>mysql - 看看俺 – KanKanAn.com</title>
+        <description>记我所思，忆我所为。</description>
+        <link>http://blog.kankanan.com/tag/mysql.xml</link>
+        <lastBuildDate>Sun, 07 Jun 2015 13:03:33 GMT</lastBuildDate>
+        <docs>http://blogs.law.harvard.edu/tech/rss</docs>
+        <image>
+            <title>mysql - 看看俺 – KanKanAn.com</title>
+            <url>http://blog.kankanan.com/static/favicon.ico</url>
+            <link>http://blog.kankanan.com/tag/mysql.xml</link>
+        </image>
+        <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
+        <generator>Feed for Node.js</generator>
+        <category>技术</category>
+        <item>
+            <title><![CDATA[node.js下访问mysql注意事项]]></title>
+            <link>/article/node-js-4e0b8bbf95ee-mysql-6ce8610f4e8b9879.html</link>
+            <guid>/article/node-js-4e0b8bbf95ee-mysql-6ce8610f4e8b9879.html</guid>
+            <pubDate>Fri, 11 Oct 2013 02:45:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+本文仅针对 <a href="https://github.com/felixge/node-mysql">node-mysql</a> 模块。
+</p>
+
+<ul class="org-ul">
+<li>Connection 对象为一个到mysql的连接，在其上的query是串行进行的。
+
+<p>
+由于mysql协议类似http是串行的，在一个mysql连接上的多个query必须依次进行。
+</p>
+
+<p>
+<a href="https://github.com/felixge/node-mysql">node-mysql</a> 的 Connection对象上同时发起的多个query会队列化，
+</p>
+
+<p>
+处理完一个query再进行下一query的处理，传递给回调函数的query结果不会错乱。
+</p>
+
+<p>
+在有一定访问量的服务中应该总是使用 <code>连接池</code> 。
+</p>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>处理Connection对象的重连。
+
+<p>
+mysql连接空闲一段时间后（默认8小时）会自动关闭，
+</p>
+
+<p>
+可以在Connection对象的 <code>error</code> 事件中检测后连接断开时进行重连。
+</p>
+
+<p>
+使用 <code>连接池</code> 不会有问题，连接断开后会默认从连接池中剔除。</p>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[解决mysql_connect慢的问题]]></title>
+            <link>/article/89e351b3-mysql_connect-6162768495ee9898.html</link>
+            <guid>/article/89e351b3-mysql_connect-6162768495ee9898.html</guid>
+            <pubDate>Thu, 06 Dec 2012 02:25:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+压测时发现mysql<sub>connect耗时超过30秒，登录mysql后执行show</sub> processlist，显示超过800个连接状态如下：
+</p>
+
+<pre class="example">
+unauthenticated user | XXXX.XXX.XXX.XXX:XXXX  | NULL | Connect     |  NULL | login
+</pre>
+
+<p>
+经求教运维，在my.cnf中的“[mysqld]”下添加以下配置行即可：
+</p>
+
+<pre class="example">
+skip-name-resolve
+</pre>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[python中MySQLdb使用utf-8字符集]]></title>
+            <link>/article/python-4e2d-mysqldb-4f7f7528-utf-5b577b2696c6.html</link>
+            <guid>/article/python-4e2d-mysqldb-4f7f7528-utf-5b577b2696c6.html</guid>
+            <pubDate>Thu, 28 Apr 2011 17:22:00 GMT</pubDate>
+            <content:encoded><![CDATA[<dl class="org-dl">
+<dt> 要避免乱码需要做好以下几点 </dt><dd><ul class="org-ul">
+<li>python源代码保存为utf-8
+</li>
+<li>数据库建成utf-8
+</li>
+<li>mysql连接设置为utf-8
+</li>
+<li>查询結果中的文本字段是unicode的，转回utf-8
+</li>
+</ul>
+</dd>
+
+<dt> 总结性的示例代码 </dt><dd><div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/usr/bin/env python</span>
+<span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">-*- coding: utf-8 -*-</span>
+
+<span style="color: #b9ca4a;">import</span> MySQLdb
+
+<span style="color: #b9ca4a;">if</span> <span style="color: #c397d8;">__name__</span> == <span style="color: #70c0b1;">'__main__'</span>:
+<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">mysql</span> = MySQLdb.connect(host=<span style="color: #70c0b1;">'localhost'</span>, user=<span style="color: #70c0b1;">'root'</span>, passwd=<span style="color: #70c0b1;">'123456'</span>, char<span style="text-decoration: underline;">set=</span><span style="color: #70c0b1; text-decoration: underline;">'utf8'</span><span style="text-decoration: underline;">)</span>
+<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">cursor</span> = mysql.cursor()
+<span style="background-color: #424242;"> </span>   cursor.execute(<span style="color: #70c0b1;">'SET NAMES UTF8'</span>)
+<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">sql</span> = <span style="color: #70c0b1;">'DROP DATABASE IF EXISTS mysqldb_utf8_test'</span>
+<span style="background-color: #424242;"> </span>   cursor.execute(sql)
+<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">sql</span> = <span style="color: #70c0b1;">'CREATE DATABASE mysqldb_utf8_test DEFAULT CHARACTER SET utf8 COLLATE </span><span style="color: #70c0b1; text-decoration: underline;">utf8_general_ci'</span>
+<span style="background-color: #424242;"> </span>   cursor.execute(sql)
+<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">mysql</span> = MySQLdb.connect(host=<span style="color: #70c0b1;">'localhost'</span>, user=<span style="color: #70c0b1;">'root'</span>, passwd=<span style="color: #70c0b1;">'123456'</span>, db=<span style="color: #70c0b1;">'</span><span style="color: #70c0b1; text-decoration: underline;">mysqldb_utf8_test'</span><span style="text-decoration: underline;">, charset=</span><span style="color: #70c0b1; text-decoration: underline;">'utf8'</span><span style="text-decoration: underline;">)</span>
+<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">cursor</span> = mysql.cursor()
+<span style="background-color: #424242;"> </span>   cursor.execute(<span style="color: #70c0b1;">'SET NAMES UTF8'</span>)
+<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">sql</span> = <span style="color: #70c0b1;">'CREATE TABLE utf8_table(key_field VARCHAR(32) NOT NULL, value_field V</span><span style="color: #70c0b1; text-decoration: underline;">ARCHAR(255) NOT NULL)'</span>
+<span style="background-color: #424242;"> </span>   cursor.execute(sql)
+<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">key</span> = <span style="color: #70c0b1;">'tangxinfa'</span>
+<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">value</span> = <span style="color: #70c0b1;">'&#22909;&#20154;&#19968;&#20010;'</span>
+<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">sql</span> = <span style="color: #70c0b1;">'INSERT INTO utf8_table VALUES("%s", "%s")'</span>%(key, value)
+<span style="background-color: #424242;"> </span>   cursor.execute(sql)       <span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">&#27880;&#24847;&#26576;&#20123;&#26087;&#29256;&#26412;&#30340;mysql&#65288;&#22914;4.1.22&#20197;&#19979;&#65289;&#65292;mysql.character_set_name</span><span style="color: #969896; font-style: italic; text-decoration: underline;">()&#24635;&#26159;&#36820;&#22238;latin1&#65292;&#20250;&#24341;&#36215;&#20081;&#30721;&#65292;&#38656;&#35201;&#25913;&#20026;cursor.execute('INSERT INTO utf8_table VALUES("%s", "%s")', (key, value))</span>
+<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">sql</span> = <span style="color: #70c0b1;">'select * from utf8_table'</span>
+<span style="background-color: #424242;"> </span>   cursor.execute(sql)
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">for</span> record <span style="color: #b9ca4a;">in</span> cursor.fetchall():
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">for</span> item <span style="color: #b9ca4a;">in</span> record:
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">print</span> item.encode(<span style="color: #70c0b1;">'utf8'</span>)
+</pre>
+</div>
+</dd>
+
+<dt> 参考 </dt><dd><ul class="org-ul">
+<li><a href="http://mysql-python.sourceforge.net/MySQLdb.html">http://mysql-python.sourceforge.net/MySQLdb.html</a>
+</li>
+<li><a href="http://bbs.phpchina.com/viewthread.php?tid=13861">http://bbs.phpchina.com/viewthread.php?tid=13861</a>
+</li>
+<li><a href="http://hi.baidu.com/ak456/blog/item/c318502394aa20569922ed7b.html">http://hi.baidu.com/ak456/blog/item/c318502394aa20569922ed7b.html</a>
+</li>
+</ul>
+</dd>
+</dl>
+]]></content:encoded>
+        </item>
+    </channel>
+</rss>

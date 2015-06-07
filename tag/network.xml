@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+    <channel>
+        <title>network - 看看俺 – KanKanAn.com</title>
+        <description>记我所思，忆我所为。</description>
+        <link>http://blog.kankanan.com/tag/network.xml</link>
+        <lastBuildDate>Sun, 07 Jun 2015 13:03:33 GMT</lastBuildDate>
+        <docs>http://blogs.law.harvard.edu/tech/rss</docs>
+        <image>
+            <title>network - 看看俺 – KanKanAn.com</title>
+            <url>http://blog.kankanan.com/static/favicon.ico</url>
+            <link>http://blog.kankanan.com/tag/network.xml</link>
+        </image>
+        <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
+        <generator>Feed for Node.js</generator>
+        <category>技术</category>
+        <item>
+            <title><![CDATA[Node.js服务器TCP死连接问题诊断]]></title>
+            <link>/article/node-js-670d52a15668-tcp-6b7b8fde63a595ee98988bca65ad.html</link>
+            <guid>/article/node-js-670d52a15668-tcp-6b7b8fde63a595ee98988bca65ad.html</guid>
+            <pubDate>Thu, 16 Apr 2015 12:29:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+最近一段时间，由于开发工作开始跟嵌入式相关，开始遇到一个问题：TCP死连接。
+</p>
+
+<p>
+TCP死连接症状是这样的：通信双方从一方系统上看已经断开（不存在），但是另一方系统上看却是连接中（ESTABLISHED状态）。
+</p>
+
+<p>
+TCP死连接一般在一方（或中间线路上的设备）断电、死机后出现，此时由于另一方收不到断开连接的IP报文，会认为连接仍然存在，日积月累会耗光文件描述符空间从而导致性能下降，最终拒绝服务。
+</p>
+
+<p>
+对付这种问题，一般需要双方都进行连接心跳检测。比如：连接空闲一段时间后一方发一个心跳请求，另一端回个心跳响应，心跳请求发送方一段时间后还收不到响应则认为连接已断开，心跳请求接收方一段时间内没有收到心跳请求也认为连接已断开。
+</p>
+
+<p>
+需要注意到的是node.js的tls服务器端握手超时处理不当可能会导致TCP死连接出现，有问题的代码示例如下：
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-js"><span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">options</span> = {
+<span style="background-color: #424242;"> </span>   key: <span style="color: #70c0b1;">"..."</span>,
+<span style="background-color: #424242;"> </span>   cert: <span style="color: #70c0b1;">"..."</span>,
+<span style="background-color: #424242;"> </span>   handshakeTimeout: 10*1000,
+<span style="background-color: #424242;"> </span>   plain: <span style="color: #7aa6da;">true</span>,
+<span style="background-color: #424242;"> </span>   ssl: <span style="color: #7aa6da;">true</span>
+};
+
+<span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">tlsServer</span> = tls.createServer(options, app).listen(5433, 8192, <span style="color: #b9ca4a;">function</span>(){
+<span style="background-color: #424242;"> </span>   logger.log(<span style="color: #70c0b1;">'tls server listening on port 5433'</span>);
+});
+
+tlsServer.on(<span style="color: #70c0b1;">'clientError'</span>, <span style="color: #b9ca4a;">function</span> (<span style="color: #e7c547;">exception</span>, <span style="color: #e7c547;">socket</span>) {
+<span style="background-color: #424242;"> </span>   logger.warn(<span style="color: #70c0b1;">'tls server client('</span> + socket.remoteAddress + <span style="color: #70c0b1;">':'</span> + socket.remot<span style="text-decoration: underline;">ePort +</span><span style="color: #70c0b1; text-decoration: underline;">') error('</span><span style="text-decoration: underline;"> + exception + </span><span style="color: #70c0b1; text-decoration: underline;">')'</span><span style="text-decoration: underline;">);</span>
+});
+</pre>
+</div>
+
+<p>
+上面的代码通过指定 <code>handshakeTimeout</code> 使用指定SSL握手超时时间，但是并未关闭底层的TCP连接，从而导致TCP连接泄露，在 <code>clientError</code> 事件处理函数中添加以下释放语句即可：
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-js">socket.destroy();
+</pre>
+</div>
+
+<p>
+除了常见的断电、死机引起TCP死连接外，这里还有一个论坛帖子论坛其它原因：《<a href="http://serverfault.com/questions/504187/too-many-established-connections-left-open">Too many established connections left open</a>》。
+</p>
+
+<p>
+另外还有 linux 内核的 tcp keepalive机制作为心跳解决方案：《<a href="http://machael.blog.51cto.com/829462/211989/">linux下使用TCP存活(keepalive)定时器</a>》。
+</p>
+
+<p>
+谨记：除了主动通过连接发送数据外，其它情况下操作系统可能不会告诉你连接已经关闭了。
+</p>
+
+<p>
+要彻底解决这个问题，除了要避免泄露（或忘记关闭）TCP连接外，要有心跳机制，还需要从代码层面进行防御性编程，如：对于读写操作设置超时时间，一旦超时主动关闭连接。</p>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Archlinux网络接口上出现两个IP]]></title>
+            <link>/article/archlinux-7f517edc63a553e34e0a51fa73b04e244e2a-ip.html</link>
+            <guid>/article/archlinux-7f517edc63a553e34e0a51fa73b04e244e2a-ip.html</guid>
+            <pubDate>Wed, 12 Mar 2014 03:32:00 GMT</pubDate>
+            <content:encoded><![CDATA[<ul class="org-ul">
+<li>发现两个IP
+
+<p>
+我的电脑是直接连到公司的墙上的网口上网的，在测试路由器的时候，我把路由器的WAN口接墙上的网口，然后电脑连到路由器的LAN口上，上网正常。查看分配到的IP为192.168.111.2，路由器的IP为192.168.111.1， 想到我一直用 <code>192.168.90.73</code> 这个IP，有些配置也依赖这个IP，所以还想分到这个IP，所以把路由器的DHCP做了设置，路由器IP改为192.168.90.74，分配的IP范围为192.168.90.71-192.168.90.73，再次重连电脑分配的IP为192.168.90.71，然后发现上不了网了，浏览器上输入路由器的IP（192.168.90.74）竟然打开了我机器（192.168.90.71）上建的WEB服务，其他人连这个网络却可以通过192.168.90.74这个IP正常打开路由器界面，最终通过“ip address show”这个命令发现我的网口上有两个IP（192.168.90.71、192.168.90.74）， <code>ipconfig</code> 和其它GUI工具只能看到第一个IP。
+</p>
+</li>
+
+<li>第二个IP是怎么来的？
+
+<p>
+抓包分析了一下DHCP网络包，只给分配了192.168.90.71这个IP，看来192.168.90.74这个IP是我机器上配置的，于是搜索/etc、/var下的文件，最后在/var/log/journal/*/system.journal中找到了日志：
+</p>
+
+<pre class="example">
+NetworkManager[375]: &lt;debug&gt; [1394509845.924245] [nm-system.c:280] sync_addresses(): (eno1): adding address '192.168.90.74/24'
+</pre>
+
+<p>
+然后在NetworkManager的配置文件 <code>/etc/NetworkManager/system-connections/Profile 1</code> 中找到了相关配置：
+</p>
+
+<pre class="example">
+[ipv4]
+method=auto
+address1=192.168.90.74/24,192.168.90.2
+</pre>
+
+<p>
+删除掉 <code>address1</code> 后，再重连网络，就只有一个IP了。
+</p>
+
+<p>
+这应该是 <code>NetworkManager</code> 的一个 <a href="https://bugs.archlinux.org/task/41395">BUG</a> ，当手动设置IP后切回DHCP自动获取IP方式时不清除手动设置的时会出现。</p>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
+    </channel>
+</rss>

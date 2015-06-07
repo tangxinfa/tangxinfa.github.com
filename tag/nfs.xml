@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+    <channel>
+        <title>nfs - 看看俺 – KanKanAn.com</title>
+        <description>记我所思，忆我所为。</description>
+        <link>http://blog.kankanan.com/tag/nfs.xml</link>
+        <lastBuildDate>Sun, 07 Jun 2015 13:03:33 GMT</lastBuildDate>
+        <docs>http://blogs.law.harvard.edu/tech/rss</docs>
+        <image>
+            <title>nfs - 看看俺 – KanKanAn.com</title>
+            <url>http://blog.kankanan.com/static/favicon.ico</url>
+            <link>http://blog.kankanan.com/tag/nfs.xml</link>
+        </image>
+        <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
+        <generator>Feed for Node.js</generator>
+        <category>技术</category>
+        <item>
+            <title><![CDATA[在linux使用nfs挂载其它linux机器上的文件夹]]></title>
+            <link>/article/5728-linux-4f7f7528-nfs-63028f7d51765b83-linux-673a56684e0a768465874ef65939.html</link>
+            <guid>/article/5728-linux-4f7f7528-nfs-63028f7d51765b83-linux-673a56684e0a768465874ef65939.html</guid>
+            <pubDate>Tue, 23 Sep 2014 08:52:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+下面的IP地址以及工作目录需按实际情况进行修改。
+</p>
+
+<ul class="org-ul">
+<li>在本地机器上允许目录被远程挂载
+
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #c397d8;">echo</span> <span style="color: #70c0b1;">'/home/tangxinfa/workdir *(rw,sync,no_root_squash)'</span> &gt;&gt; /etc/exports
+sudo exportfs -arv
+</pre>
+</div>
+</li>
+
+<li>在远程机器上挂载本地机器上的文件夹
+
+<div class="org-src-container">
+
+<pre class="src src-sh">mkdir /tmp/Projects; mount -t nfs -o nolock 192.168.111.100:/home/tangxinfa/Proj<span style="text-decoration: underline;">ects /tmp/Projects</span>
+</pre>
+</div>
+</li>
+</ul>
+
+<p>
+问题诊断
+</p>
+
+<ul class="org-ul">
+<li>mount: RPC: Unable to receive; errno = Connection refused
+
+<p>
+需要启动nfs-server服务：
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo systemctl enable nfs-server.service
+sudo systemctl start nfs-server.service
+</pre>
+</div>
+
+<p>
+另外，如果刚刚做了linux内核更新而没有重启系统也可能导致这个问题，重启一下再试。
+</p>
+</li>
+
+<li>mount: 192.168.111.100:/home/tangxinfa/Projects failed, reason given by server: Permission denied
+
+<p>
+在/etc/exports文件中允许目录被远程挂载即可。</p>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
+    </channel>
+</rss>

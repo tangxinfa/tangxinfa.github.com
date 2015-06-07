@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+    <channel>
+        <title>hg - 看看俺 – KanKanAn.com</title>
+        <description>记我所思，忆我所为。</description>
+        <link>http://blog.kankanan.com/tag/hg.xml</link>
+        <lastBuildDate>Sun, 07 Jun 2015 13:03:33 GMT</lastBuildDate>
+        <docs>http://blogs.law.harvard.edu/tech/rss</docs>
+        <image>
+            <title>hg - 看看俺 – KanKanAn.com</title>
+            <url>http://blog.kankanan.com/static/favicon.ico</url>
+            <link>http://blog.kankanan.com/tag/hg.xml</link>
+        </image>
+        <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
+        <generator>Feed for Node.js</generator>
+        <category>技术</category>
+        <item>
+            <title><![CDATA[linux下翻墙访问bitbucket.org仓库]]></title>
+            <link>/article/linux-4e0b7ffb58998bbf95ee-bitbucket-org-4ed35e93.html</link>
+            <guid>/article/linux-4e0b7ffb58998bbf95ee-bitbucket-org-4ed35e93.html</guid>
+            <pubDate>Fri, 28 Jun 2013 05:57:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+今天往bitbucket.org push时才发现bitbucket被GFW了。我的仓库为Mercurial hg，hg项目根目录下的 <code>.hg/hgrc</code> 配置文件中可指定http<sub>proxy，试了一下不支持socks代理（我的浏览器用它来翻墙），最终使用tsocks软件实现翻墙访问bitbucket</sub>.org仓库。
+</p>
+
+<ul class="org-ul">
+<li>利用vps建本地socks代理的脚本 <code>ssh_proxy.sh</code>
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/</span><span style="color: #b9ca4a;">bash</span>
+
+<span style="color: #e7c547;">n</span>=<span style="color: #c397d8;">`ps waux | grep 'bash .*/ssh_proxy.sh' | grep -v grep | wc -l`</span>
+<span style="color: #b9ca4a;">if</span> [ $<span style="color: #e7c547;">n</span> -lt 3 ]; <span style="color: #b9ca4a;">then</span>
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">while</span> [ true ]; <span style="color: #b9ca4a;">do</span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">n</span>=<span style="color: #c397d8;">`ps aux | grep 'ssh' | grep '7070' | grep -v grep | wc -l`</span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span> [ $<span style="color: #e7c547;">n</span> -lt 1 ]; <span style="color: #b9ca4a;">then</span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #c397d8;">echo</span> <span style="color: #70c0b1;">"start ssh connecting"</span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   ssh -qTnNf -D 7070 user@host
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">fi</span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #c397d8;">echo</span> <span style="color: #70c0b1;">"wait for next checking"</span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   sleep 30
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">done</span>
+<span style="color: #b9ca4a;">fi</span>
+<span style="color: #c397d8;">echo</span> <span style="color: #70c0b1;">"ssh_proxy.sh already running"</span>
+</pre>
+</div>
+
+<p>
+请将user@host改为你的vps用户及主机，并配置为免输入密码。
+</p>
+</li>
+
+<li>启动socks代理脚本
+
+<div class="org-src-container">
+
+<pre class="src src-sh">nohup bash ./ssh_proxy.sh &amp;
+</pre>
+</div>
+
+<p>
+浏览器也可以利用它来翻墙。
+</p>
+</li>
+
+<li>安装tsocks
+<div class="org-src-container">
+
+<pre class="src src-sh">yaourt -S tsocks
+</pre>
+</div>
+</li>
+
+<li>配置tsocks
+
+<p>
+<code>/etc/tsocks.conf</code>
+</p>
+<pre class="example">
+# We can access 192.168.0.* directly
+local = 192.168.0.0/255.255.255.0
+local = 10.0.0.0/255.0.0.0
+
+# Otherwise we use the server
+server = 127.0.0.1
+server_port = 7070
+</pre>
+<p>
+具体用法 <code>man tsocks.conf</code>
+</p>
+</li>
+
+<li>使用tsocks让hg用上socks代理功能
+<div class="org-src-container">
+
+<pre class="src src-sh">tsocks hg push
+</pre>
+</div>
+<p>
+tsocks看起来很通用，应该也可以让git等进行socks代理访问。</p>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
+    </channel>
+</rss>

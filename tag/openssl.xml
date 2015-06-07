@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+    <channel>
+        <title>openssl - 看看俺 – KanKanAn.com</title>
+        <description>记我所思，忆我所为。</description>
+        <link>http://blog.kankanan.com/tag/openssl.xml</link>
+        <lastBuildDate>Sun, 07 Jun 2015 13:03:33 GMT</lastBuildDate>
+        <docs>http://blogs.law.harvard.edu/tech/rss</docs>
+        <image>
+            <title>openssl - 看看俺 – KanKanAn.com</title>
+            <url>http://blog.kankanan.com/static/favicon.ico</url>
+            <link>http://blog.kankanan.com/tag/openssl.xml</link>
+        </image>
+        <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
+        <generator>Feed for Node.js</generator>
+        <category>技术</category>
+        <item>
+            <title><![CDATA[SSL_read及SSL_write支持超时]]></title>
+            <link>/article/ssl_read-53ca-ssl_write-652f63018d8565f6.html</link>
+            <guid>/article/ssl_read-53ca-ssl_write-652f63018d8565f6.html</guid>
+            <pubDate>Tue, 27 Jan 2015 06:29:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+原始的socket编程中 <code>read</code> 、 <code>write</code> 支持超时是很容易实现的，如使用 <code>select</code> 或者 <code>setsockopt</code> 设置读写超时并在 <code>read</code> 和 <code>write</code> 出错后根据 <code>errno</code> 判断是否为超时引起。
+</p>
+
+<p>
+但是在 <code>SSL</code> 编程中对底层socket调用 <code>select</code> 以及使用 <code>errno</code> 行为是未定义的。
+</p>
+
+<p>
+使用 <code>setsockopt</code> 在底层的socket上设置读写后， <code>SSL_read</code> 、 <code>SSL_write</code> 出错会返回ssl错误码 <code>SSL_ERROR_WANT_READ</code> 或 <code>SSL_ERROR_WANT_WRITE</code> ，
+但是被信号中断或者底层SSL需要重新握手也会导致 <code>SSL_read</code> 、 <code>SSL_write</code> 返回同样的ssl错误码。
+</p>
+
+<p>
+如果能够将信号屏蔽掉，并启用SSL自动重新握手，就能够实现 <code>SSL_read</code> 、 <code>SSL_write</code> 超时检测。
+</p>
+
+<ul class="org-ul">
+<li>屏蔽信号
+
+<p>
+忽略应用产生的信号，如：
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-c">signal(SIGPIPE, SIG_IGN);
+signal(SIGCHLD, SIG_IGN);
+</pre>
+</div>
+</li>
+
+<li>在底层socket上设置超时
+
+<div class="org-src-container">
+
+<pre class="src src-c"><span style="color: #b9ca4a;">struct</span> <span style="color: #7aa6da;">timeval</span> <span style="color: #e7c547;">tv</span>;
+tv.tv_sec  = 10;
+tv.tv_usec = 0;
+setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (<span style="color: #7aa6da;">char</span>*)&amp;tv, <span style="color: #b9ca4a;">sizeof</span>(<span style="color: #b9ca4a;">struct</span> <span style="color: #7aa6da;">timeval</span>));
+setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (<span style="color: #7aa6da;">char</span>*)&amp;tv, <span style="color: #b9ca4a;">sizeof</span>(<span style="color: #b9ca4a;">struct</span> <span style="color: #7aa6da;">timeval</span>));
+</pre>
+</div>
+</li>
+
+<li>启用自动重新握手
+
+<div class="org-src-container">
+
+<pre class="src src-c">SSL_CTX_set_mode(ctx, SSL_MODE_AUTO_RETRY);
+</pre>
+</div>
+</li>
+
+<li><code>SSL_read</code> 和 <code>SSL_write</code> 判断是否超时出错
+
+<div class="org-src-container">
+
+<pre class="src src-c"><span style="color: #7aa6da;">int</span> <span style="color: #e7c547;">readed</span> = SSL_read(ssl, data, size);
+<span style="color: #b9ca4a;">if</span> (readed &lt;= 0) {
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span> (SSL_get_error(ssl, readed) == SSL_ERROR_WANT_READ) {
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">timeout</span>
+<span style="background-color: #424242;"> </span>   } <span style="color: #b9ca4a;">else</span> {
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">error</span>
+<span style="background-color: #424242;"> </span>   }
+}
+
+<span style="color: #7aa6da;">int</span> <span style="color: #e7c547;">writed</span> = SSL_write(ssl, data, size);
+<span style="color: #b9ca4a;">if</span> (writed &lt;= 0) {
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span> (SSL_get_error(ssl, writed) == SSL_ERROR_WANT_WRITE) {
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">timeout</span>
+<span style="background-color: #424242;"> </span>   } <span style="color: #b9ca4a;">else</span> {
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">error</span>
+<span style="background-color: #424242;"> </span>   }
+}
+</pre>
+</div>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[SSL双方系统时间不一致导致的SSL连接失败及其解决方案]]></title>
+            <link>/article/ssl-53cc65b97cfb7edf65f695f44e0d4e0081f45bfc81f47684-ssl-8fde63a559318d2553ca517689e351b365b96848.html</link>
+            <guid>/article/ssl-53cc65b97cfb7edf65f695f44e0d4e0081f45bfc81f47684-ssl-8fde63a559318d2553ca517689e351b365b96848.html</guid>
+            <pubDate>Fri, 25 Jul 2008 09:45:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+在产品使用中，实施人员常常报告服务器与客户端无法连接，最终查明原因是双方的时间设置不一致。OpenSSL证书有一个有效时间段，当客户端或服务器的系统时间不在这个时间段内时SSL会因证书验证失败而无法连接。在实施中系统时间错误是很常见的，因不能上网而未开时间自动同步、bios没电了、客户疏忽等原因都会导致系统时间设置错误。如果连接失败后再查看系统时间设置进行故障排查终归是一件麻烦的事情。
+</p>
+
+<p>
+解决这个问题有以下几个办法：
+</p>
+
+<ul class="org-ul">
+<li>将证书的有效期设置得够大（如：1970-2099）
+
+<p>
+这样估计可以在一定程度上解决这个问题，不过这也是个馊主意，一般申请的证书总会有一个合理的有效期。
+</p>
+</li>
+
+<li>检测及必要时自动同步客户端与服务器的时间
+
+<p>
+通过用wireshake抓包分析SSL建立连接的过程，发现在SSL握手过程中，会向对方传送本机的系统时间。因此一个显而易见的办法就是，当连接过程中检测到证书过期，将客户端的时间同步为服务器端的时间，再重连即可。
+</p>
+
+<p>
+下面是具体的示例代码：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-c"><span style="color: #c397d8;">#include</span> <span style="color: #70c0b1;">&lt;openssl/ssl.h&gt;</span>
+<span style="color: #c397d8;">#include</span> <span style="color: #70c0b1;">&lt;openssl/bio.h&gt;</span>
+<span style="color: #c397d8;">#include</span> <span style="color: #70c0b1;">&lt;openssl/err.h&gt;</span>
+<span style="color: #c397d8;">#include</span> <span style="color: #70c0b1;">&lt;winsock2.h&gt;</span>
+<span style="color: #c397d8;">#include</span> <span style="color: #70c0b1;">&lt;stdio.h&gt;</span>
+<span style="color: #c397d8;">#include</span> <span style="color: #70c0b1;">&lt;string.h&gt;</span>
+<span style="color: #c397d8;">#include</span> <span style="color: #70c0b1;">&lt;time.h&gt;</span>
+
+<span style="color: #b9ca4a;">typedef</span> <span style="color: #b9ca4a;">struct</span> <span style="color: #7aa6da;">_TimeInfo</span>
+{
+<span style="background-color: #424242;"> </span>   <span style="color: #7aa6da;">time_t</span> <span style="color: #e7c547;">client</span>;  <span style="color: #969896; font-style: italic;">/*</span><span style="color: #969896; font-style: italic;">&#23458;&#25143;&#31471;&#30340;&#26102;&#38388;</span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="background-color: #424242;"> </span>   <span style="color: #7aa6da;">time_t</span> <span style="color: #e7c547;">server</span>;  <span style="color: #969896; font-style: italic;">/*</span><span style="color: #969896; font-style: italic;">&#26381;&#21153;&#22120;&#30340;&#26102;&#38388;</span><span style="color: #969896; font-style: italic;">*/</span>
+} <span style="color: #7aa6da;">TimeInfo</span>;
+
+<span style="color: #c397d8;">/**</span>
+<span style="color: #c397d8; background-color: #424242;"> </span><span style="color: #c397d8;">* &#21516;&#27493;&#31995;&#32479;&#26102;&#38388;.</span>
+<span style="color: #c397d8; background-color: #424242;"> </span><span style="color: #c397d8;">*/</span>
+<span style="color: #7aa6da;">BOOL</span> <span style="color: #e78c45;">syncSystemTime</span>(<span style="color: #7aa6da;">time_t</span> <span style="color: #e7c547;">t</span>)
+{
+<span style="background-color: #424242;"> </span>   <span style="color: #7aa6da;">SYSTEMTIME</span> <span style="color: #e7c547;">st</span>;
+<span style="background-color: #424242;"> </span>   <span style="color: #7aa6da;">FILETIME</span>   <span style="color: #e7c547;">ft</span>;<span style="color: #d54e53; background-color: #424242;">  </span>
+<span style="background-color: #424242;"> </span>   <span style="color: #7aa6da;">LONGLONG</span>   <span style="color: #e7c547;">ll</span>;<span style="color: #d54e53; background-color: #424242;">  </span>
+
+<span style="background-color: #424242;"> </span>   ll = Int32x32To64(t, 10000000) + 116444736000000000; <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">1970.01.01</span><span style="color: #d54e53; background-color: #424242;">  </span>
+
+<span style="background-color: #424242;"> </span>   ft.dwLowDateTime  = (<span style="color: #7aa6da;">DWORD</span>)ll;<span style="color: #d54e53; background-color: #424242;">  </span>
+<span style="background-color: #424242;"> </span>   ft.dwHighDateTime = (<span style="color: #7aa6da;">DWORD</span>)(ll &gt;&gt; 32);<span style="color: #d54e53; background-color: #424242;">  </span>
+
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">return</span> FileTimeToSystemTime(&amp;ft, &amp;st) &amp;&amp; SetSystemTime(&amp;st);
+}
+
+<span style="color: #c397d8;">/**</span>
+<span style="color: #c397d8; background-color: #424242;"> </span><span style="color: #c397d8;">* &#33719;&#21462;SSL&#25569;&#25163;&#36807;&#31243;&#20013;&#26381;&#21153;&#22120;&#19982;&#23458;&#25143;&#31471;&#21452;&#26041;&#30340;&#31995;&#32479;&#26102;&#38388;.</span>
+<span style="color: #c397d8; background-color: #424242;"> </span><span style="color: #c397d8;">*/</span>
+<span style="color: #7aa6da;">void</span> <span style="color: #e78c45;">getSSLHandleShakeTimeInfo</span>(<span style="color: #7aa6da;">int</span> <span style="color: #e7c547;">write_p</span>,
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>  <span style="color: #7aa6da;">int</span> <span style="color: #e7c547;">version</span>,
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>  <span style="color: #7aa6da;">int</span> <span style="color: #e7c547;">content_type</span>,
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>  <span style="color: #b9ca4a;">const</span> <span style="color: #7aa6da;">unsigned</span> <span style="color: #7aa6da;">char</span>* <span style="color: #e7c547;">buf</span>,
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>  <span style="color: #7aa6da;">size_t</span> <span style="color: #e7c547;">len</span>,
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>  <span style="color: #7aa6da;">SSL</span> *<span style="color: #e7c547;">ssl</span>,
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>  <span style="color: #7aa6da;">TimeInfo</span> *<span style="color: #e7c547;">ti</span>)
+{
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span>(content_type != 22)   <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">require handshake message</span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">return</span>;
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span>(len &lt; 42)
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">return</span>;
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span>(buf[0] == 1)          <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">ClientHello Message send from client to server</span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   ti-&gt;client = htonl(*((<span style="color: #7aa6da;">u_long</span>*)(buf + 6)));
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">else</span> <span style="color: #b9ca4a;">if</span>(buf[0] == 2)     <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">ServerHello Message send from server to client</span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   ti-&gt;server = htonl(*((<span style="color: #7aa6da;">u_long</span>*)(buf + 6)));
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">else</span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">return</span>;
+}
+
+<span style="color: #7aa6da;">int</span> <span style="color: #e78c45;">main</span>()
+{
+<span style="background-color: #424242;"> </span>   <span style="color: #7aa6da;">BIO</span> * <span style="color: #e7c547;">bio</span>;
+<span style="background-color: #424242;"> </span>   <span style="color: #7aa6da;">SSL</span> * <span style="color: #e7c547;">ssl</span>;
+<span style="background-color: #424242;"> </span>   <span style="color: #7aa6da;">SSL_CTX</span> * <span style="color: #e7c547;">ctx</span>;
+<span style="background-color: #424242;"> </span>   <span style="color: #7aa6da;">TimeInfo</span> <span style="color: #e7c547;">timeInfo</span> = {-1, -1};
+<span style="background-color: #424242;"> </span>   <span style="color: #7aa6da;">BOOL</span> <span style="color: #e7c547;">timeSynced</span> = FALSE;
+<span style="background-color: #424242;"> </span>   <span style="color: #7aa6da;">long</span> <span style="color: #e7c547;">result</span>;
+
+<span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">Set up the library </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="background-color: #424242;"> </span>   SSL_library_init();
+<span style="background-color: #424242;"> </span>   ERR_load_BIO_strings();
+<span style="background-color: #424242;"> </span>   SSL_load_error_strings();
+
+<span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">Set up the SSL context </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="background-color: #424242;"> </span>   ctx = SSL_CTX_new(SSLv3_client_method());
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span>(ctx == <span style="color: #7aa6da;">NULL</span>)
+<span style="background-color: #424242;"> </span>   {
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   fprintf(stderr, <span style="color: #70c0b1;">"Error new SSL_CTX\n"</span>);
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   ERR_print_errors_fp(stderr);
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   SSL_CTX_free(ctx);
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">return</span> 0;
+<span style="background-color: #424242;"> </span>   }
+
+<span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">Get Server and Client system time via SSL Handshake </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="background-color: #424242;"> </span>   SSL_CTX_set_msg_callback(ctx, getSSLHandleShakeTimeInfo);
+<span style="background-color: #424242;"> </span>   SSL_CTX_set_msg_callback_arg(ctx, &amp;timeInfo);
+
+<span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">Load the trust store </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span>(<span style="color: #7aa6da;">!</span> SSL_CTX_load_verify_locations(ctx, <span style="color: #70c0b1;">".\\certs\\cacert.pem"</span>, <span style="color: #7aa6da;">NULL</span>))
+<span style="background-color: #424242;"> </span>   {
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   fprintf(stderr, <span style="color: #70c0b1;">"Error loading trust store\n"</span>);
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   ERR_print_errors_fp(stderr);
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   SSL_CTX_free(ctx);
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">return</span> 0;
+<span style="background-color: #424242;"> </span>   }
+
+<span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">Setup the connection </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="background-color: #424242;"> </span>   bio = BIO_new_ssl_connect(ctx);
+
+<span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">Set the SSL_MODE_AUTO_RETRY flag </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="background-color: #424242;"> </span>   BIO_get_ssl(bio, &amp; ssl);
+<span style="background-color: #424242;"> </span>   SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
+
+<span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">Create and setup the connection </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="background-color: #424242;"> </span>   BIO_set_conn_hostname(bio, <span style="color: #70c0b1;">"192.168.1.5:5555"</span>);
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span>(BIO_do_connect(bio) &lt;= 0)
+<span style="background-color: #424242;"> </span>   {
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   fprintf(stderr, <span style="color: #70c0b1;">"Error attempting to connect\n"</span>);
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   ERR_print_errors_fp(stderr);
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   BIO_free_all(bio);
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   SSL_CTX_free(ctx);
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">return</span> 0;
+<span style="background-color: #424242;"> </span>   }
+
+<span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">Check the certificate </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">switch</span>(SSL_get_verify_result(ssl))
+<span style="background-color: #424242;"> </span>   {
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">case</span> X509_V_OK:
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">break</span>;
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">case</span> X509_V_ERR_CERT_NOT_YET_VALID:
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">case</span> X509_V_ERR_CERT_HAS_EXPIRED:
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span>(timeInfo.server != -1 &amp;&amp; timeInfo.client != -1)
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   {
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   printf(<span style="color: #70c0b1;">"&#24403;&#21069;&#23458;&#25143;&#31471;&#26102;&#38388;: %s"</span>, ctime(&amp;timeInfo.client));
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   printf(<span style="color: #70c0b1;">"&#24403;&#21069;&#26381;&#21153;&#22120;&#26102;&#38388;: %s"</span>, ctime(&amp;timeInfo.server));
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   printf(<span style="color: #70c0b1;">"&#23581;&#35797;&#19982;&#26381;&#21153;&#22120;&#26102;&#38388;&#21516;&#27493;"</span>);
+
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span>(syncSystemTime(timeInfo.server))
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   printf(<span style="color: #70c0b1;">"&#25104;&#21151;\n"</span>);
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">else</span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   printf(<span style="color: #70c0b1;">"&#22833;&#36133;\n"</span>);
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   printf(<span style="color: #70c0b1;">"&#35831;&#37325;&#35797;&#36830;&#25509;&#26381;&#21153;&#22120;&#65281;\n"</span>);
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   }
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">default</span>:
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   fprintf(stderr, <span style="color: #70c0b1;">"Certificate verification error: %i\n"</span>, SSL_get_verify_r<span style="text-decoration: underline;">esult(ssl));</span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   BIO_free_all(bio);
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   SSL_CTX_free(ctx);
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">return</span> 0;
+<span style="background-color: #424242;"> </span>   }
+
+<span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">Close the connection and free the context </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="background-color: #424242;"> </span>   BIO_free_all(bio);
+<span style="background-color: #424242;"> </span>   SSL_CTX_free(ctx);
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">return</span> 0;
+}
+</pre>
+</div>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
+    </channel>
+</rss>

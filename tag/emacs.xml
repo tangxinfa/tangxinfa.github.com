@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+    <channel>
+        <title>emacs - 看看俺 – KanKanAn.com</title>
+        <description>记我所思，忆我所为。</description>
+        <link>http://blog.kankanan.com/tag/emacs.xml</link>
+        <lastBuildDate>Sun, 07 Jun 2015 13:03:33 GMT</lastBuildDate>
+        <docs>http://blogs.law.harvard.edu/tech/rss</docs>
+        <image>
+            <title>emacs - 看看俺 – KanKanAn.com</title>
+            <url>http://blog.kankanan.com/static/favicon.ico</url>
+            <link>http://blog.kankanan.com/tag/emacs.xml</link>
+        </image>
+        <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
+        <generator>Feed for Node.js</generator>
+        <category>技术</category>
+        <item>
+            <title><![CDATA[emacs启动速度优化]]></title>
+            <link>/article/emacs-542f52a8901f5ea64f185316.html</link>
+            <guid>/article/emacs-542f52a8901f5ea64f185316.html</guid>
+            <pubDate>Sun, 24 May 2015 03:17:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+emacs装了很多插件后，启动越来越慢了，最近发现启动一次要25秒，赶得上操作系统启动时间了，是时候优化一下启动速度了。
+</p>
+
+<ul class="org-ul">
+<li>裸启动emacs
+
+<div class="org-src-container">
+
+<pre class="src src-sh">emacs --quick
+</pre>
+</div>
+
+<p>
+尽然耗时10秒，网上查了一下这个问题常见于 <code>archlinux</code> ，是网络配置引起: <a href="https://wiki.archlinux.org/index.php/Emacs#Incorrect_network_configuration">Emacs - Slow startup - Incorrect network configuration</a>
+</p>
+
+<p>
+解决方案就是将主机名（ <code>hostname</code> 命令输出）加到 <code>/etc/hosts</code> 中：
+</p>
+
+<pre class="example">
+127.0.0.1   localhost.localdomain   localhost &lt;hostame&gt;
+::1     localhost.localdomain   localhost  &lt;hostname&gt;
+</pre>
+
+<p>
+再试，emacs瞬间启动。
+</p>
+</li>
+
+<li>不加载个人配置文件启动emacs
+
+<div class="org-src-container">
+
+<pre class="src src-sh">emacs --no-init-file
+</pre>
+</div>
+
+<p>
+emacs瞬间启动。
+</p>
+</li>
+
+<li>不加载最近保存的桌面启动emacs
+
+<div class="org-src-container">
+
+<pre class="src src-sh">emacs --no-desktop
+</pre>
+</div>
+
+<p>
+耗时15秒，看来是个人配置的问题了
+</p>
+</li>
+
+<li>从前面开始一块一块反注释emacs配置，看是卡在哪里
+
+<div class="org-src-container">
+
+<pre class="src src-lisp">(<span style="color: #b9ca4a;">require</span> '<span style="color: #7aa6da;">anything-config</span>)
+</pre>
+</div>
+
+<p>
+这一句耗时11秒，注释掉，现在启时时间为5秒，可以接受了。</p>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[在emacs中如何以root权限使用gdb调试程序]]></title>
+            <link>/article/5728-emacs-4e2d59824f554ee5-root-674396504f7f7528-gdb-8c038bd57a0b5e8f.html</link>
+            <guid>/article/5728-emacs-4e2d59824f554ee5-root-674396504f7f7528-gdb-8c038bd57a0b5e8f.html</guid>
+            <pubDate>Sat, 30 Mar 2013 06:21:00 GMT</pubDate>
+            <content:encoded><![CDATA[<ul class="org-ul">
+<li>由于M-x命令中使用sudo输入密码无效，需要配置为允许用户sudo gdb免密码
+</li>
+</ul>
+<pre class="example">
+visudo
+# Allow user to sudo gdb without password
+用户 ALL=NOPASSWD: /usr/bin/gdb
+</pre>
+
+<ul class="org-ul">
+<li>使用root权限启动gdb
+</li>
+</ul>
+<pre class="example">
+M-x gdb
+sudo gdb &lt;program&gt; &lt;pid&gt; --annotate=3
+</pre>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[在emacs模式行上显示图片的尺寸]]></title>
+            <link>/article/5728-emacs-6a215f0f884c4e0a663e793a56fe724776845c3a5bf8.html</link>
+            <guid>/article/5728-emacs-6a215f0f884c4e0a663e793a56fe724776845c3a5bf8.html</guid>
+            <pubDate>Fri, 03 Aug 2012 00:55:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+下面的lisp代码用于在emacs模式行上显示图片的尺寸：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-lisp">(add-hook 'image-mode-hook (<span style="color: #b9ca4a;">lambda</span> ()
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span> <span style="color: #c397d8;">"display image size on mode line."</span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span> (setq mode-name (format <span style="color: #70c0b1;">"Image[%s](%s*%s)"</span><span style="color: #d54e53; background-color: #424242;"> </span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span> image-type<span style="color: #d54e53; background-color: #424242;"> </span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span> (car (image-size (image-get-di<span style="text-decoration: underline;">splay-property) t))</span><span style="color: #d54e53; background-color: #424242; text-decoration: underline;"> </span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span> (cdr (image-size (image-get-di<span style="text-decoration: underline;">splay-property) t))))))</span>
+</pre>
+</div>
+
+<dl class="org-dl">
+<dt> 效果如下 </dt><dd></dd>
+</dl>
+<pre class="example">
+[(Image[png](181*415))]
+</pre>
+]]></content:encoded>
+        </item>
+    </channel>
+</rss>

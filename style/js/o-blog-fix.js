@@ -27,11 +27,11 @@ $(document).ready(
 	});
 
 	/* Compute page min height */
-	$('div#page').css('min-height', $(window).innerHeight() -
-			  $('#footer').outerHeight() -
-			  $('div.navbar-fixed-top.navbar').outerHeight() -
-			  parseInt($('div#page').css('padding-top')) -
-			  parseInt($('div#page').css('padding-bottom')));
+	// $('div#page').css('min-height', $(window).innerHeight() -
+	// 		  $('#footer').outerHeight() -
+	// 		  $('div.navbar-fixed-top.navbar').outerHeight() -
+	// 		  parseInt($('div#page').css('padding-top')) -
+	// 		  parseInt($('div#page').css('padding-bottom')));
 
 
 	/*
