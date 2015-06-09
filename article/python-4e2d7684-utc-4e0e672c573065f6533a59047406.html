@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh_CN">
+<html lang="zh-cn">
   <head>
     <meta charset="utf-8"/>
     <title>python中的UTC与本地时区处理 | 看看俺 – KanKanAn.com</title>
@@ -26,7 +26,7 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </a>
-          <a class="brand" href="/" style="line-height:100%;">看看俺 - KanKanAn.com</a>
+          <a class="brand" href="/" style="line-height:100%;">看看俺 – KanKanAn.com</a>
 	      <div class="nav-collapse collapse">
             <ul class="org-ul">
               <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
@@ -62,7 +62,7 @@ mysql的TIMESTAMP字段类型和sqlite3一样使用UTC时间保存，因为在�
 </p>
 <div class="org-src-container">
 
-<pre class="src src-sql"><span style="color: #b5bd68;">select</span> datetime(<span style="color: #b294bb;">CURRENT_TIMESTAMP</span>, <span style="color: #8abeb7;">'localtime'</span>)
+<pre class="src src-sql"><span style="color: #99cc99;">select</span> datetime(<span style="color: #cc99cc;">CURRENT_TIMESTAMP</span>, <span style="color: #66cccc;">'localtime'</span>)
 </pre>
 </div>
 
@@ -75,32 +75,32 @@ mysql的TIMESTAMP字段类型和sqlite3一样使用UTC时间保存，因为在�
 </p>
 <div class="org-src-container">
 
-<pre class="src src-python"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">/usr/bin/env python</span>
+<pre class="src src-python"><span style="color: #999999; font-style: italic;">#</span><span style="color: #999999; font-style: italic;">/usr/bin/env python</span>
 
-<span style="color: #b5bd68;">import</span> datetime
-<span style="color: #b5bd68;">import</span> time
-<span style="color: #b5bd68;">import</span> sys
+<span style="color: #99cc99;">import</span> datetime
+<span style="color: #99cc99;">import</span> time
+<span style="color: #99cc99;">import</span> sys
 
-<span style="color: #b5bd68;">if</span> sys.version &gt;= <span style="color: #8abeb7;">'3.2.'</span>:
-<span style="background-color: #373b41;"> </span>   <span style="color: #f0c674;">localtimezone</span> = datetime.timezone(datetime.timedelta(seconds=-time.timezone)<span style="text-decoration: underline;">, time.tzname[0])</span>
-<span style="background-color: #373b41;"> </span>   <span style="color: #f0c674;">utctimezone</span> = datetime.timezone.utc
-<span style="color: #b5bd68;">else</span>:
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">from</span> dateutil <span style="color: #b5bd68;">import</span> tz
-<span style="background-color: #373b41;"> </span>   <span style="color: #f0c674;">localtimezone</span> = tz.tzlocal()
-<span style="background-color: #373b41;"> </span>   <span style="color: #f0c674;">utctimezone</span> = tz.gettz(<span style="color: #8abeb7;">'UTC'</span>)
+<span style="color: #99cc99;">if</span> sys.version &gt;= <span style="color: #66cccc;">'3.2.'</span>:
+<span style="background-color: #515151;"> </span>   <span style="color: #ffcc66;">localtimezone</span> = datetime.timezone(datetime.timedelta(seconds=-time.timezone)<span style="text-decoration: underline;">, time.tzname[0])</span>
+<span style="background-color: #515151;"> </span>   <span style="color: #ffcc66;">utctimezone</span> = datetime.timezone.utc
+<span style="color: #99cc99;">else</span>:
+<span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">from</span> dateutil <span style="color: #99cc99;">import</span> tz
+<span style="background-color: #515151;"> </span>   <span style="color: #ffcc66;">localtimezone</span> = tz.tzlocal()
+<span style="background-color: #515151;"> </span>   <span style="color: #ffcc66;">utctimezone</span> = tz.gettz(<span style="color: #66cccc;">'UTC'</span>)
 
-<span style="color: #b5bd68;">def</span> <span style="color: #de935f;">parsedatetime</span>(dt, fmt=<span style="color: #8abeb7;">"%Y-%m-%d %H:%M:%S"</span>):
-<span style="background-color: #373b41;"> </span>   <span style="color: #8abeb7;">"""parse local datetime string as utc datetime object"""</span>
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> datetime.datetime.strptime(dt, fmt).replace(tzinfo=localtimezone).ast<span style="text-decoration: underline;">imezone(utctimezone)</span>
+<span style="color: #99cc99;">def</span> <span style="color: #f99157;">parsedatetime</span>(dt, fmt=<span style="color: #66cccc;">"%Y-%m-%d %H:%M:%S"</span>):
+<span style="background-color: #515151;"> </span>   <span style="color: #66cccc;">"""parse local datetime string as utc datetime object"""</span>
+<span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> datetime.datetime.strptime(dt, fmt).replace(tzinfo=localtimezone).ast<span style="text-decoration: underline;">imezone(utctimezone)</span>
 
-<span style="color: #b5bd68;">def</span> <span style="color: #de935f;">formatdatetime</span>(dt, fmt=<span style="color: #8abeb7;">"%Y-%m-%d %H:%M:%S"</span>):
-<span style="background-color: #373b41;"> </span>   <span style="color: #8abeb7;">"""format utc datetime object as local datetime string"""</span>
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> dt.replace(tzinfo=utctimezone).astimezone(localtimezone).strftime(fmt<span style="text-decoration: underline;">)</span>
+<span style="color: #99cc99;">def</span> <span style="color: #f99157;">formatdatetime</span>(dt, fmt=<span style="color: #66cccc;">"%Y-%m-%d %H:%M:%S"</span>):
+<span style="background-color: #515151;"> </span>   <span style="color: #66cccc;">"""format utc datetime object as local datetime string"""</span>
+<span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> dt.replace(tzinfo=utctimezone).astimezone(localtimezone).strftime(fmt<span style="text-decoration: underline;">)</span>
 
-<span style="color: #b5bd68;">if</span> <span style="color: #b294bb;">__name__</span> == <span style="color: #8abeb7;">'__main__'</span>:
-<span style="background-color: #373b41;"> </span>   <span style="color: #f0c674;">input_local_datetime</span> = <span style="color: #8abeb7;">'2012-01-02 03:04:05'</span>
-<span style="background-color: #373b41;"> </span>   <span style="color: #f0c674;">parsed_utc_datetime</span> = parsedatetime(input_local_datetime)
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">assert</span>(formatdatetime(parsed_utc_datetime) == input_local_datetime)
+<span style="color: #99cc99;">if</span> <span style="color: #cc99cc;">__name__</span> == <span style="color: #66cccc;">'__main__'</span>:
+<span style="background-color: #515151;"> </span>   <span style="color: #ffcc66;">input_local_datetime</span> = <span style="color: #66cccc;">'2012-01-02 03:04:05'</span>
+<span style="background-color: #515151;"> </span>   <span style="color: #ffcc66;">parsed_utc_datetime</span> = parsedatetime(input_local_datetime)
+<span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">assert</span>(formatdatetime(parsed_utc_datetime) == input_local_datetime)
 </pre>
 </div>
 
@@ -109,7 +109,7 @@ mysql的TIMESTAMP字段类型和sqlite3一样使用UTC时间保存，因为在�
         <footer class="article-footer">
           <a class="tag" href="/tag/python/0.html"><i class="icon-tag icon-white"></i> python</a>
           <span class="muted">
-            <i class="icon-time icon-white"></i> <time datetime="2013-03-20T17:29:00+0800">2013年3月20日5时</time>
+            <i class="icon-time icon-white"></i> <time datetime="2013-03-20T17:29:00+0800">2013年3月20日 17时</time>
           </span>
         </footer>
       </div>
