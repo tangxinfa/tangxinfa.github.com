@@ -6734,3 +6734,30 @@ class RedisShard {
     按照文章 [[https://research.linagora.com/blog/?p=37][A strategy for i18n in node.js server templates]] 的建议，选用 [[https://github.com/mashpie/i18n-node][i18n-node]] 做为国际化方案，顺利完成英文及中文简体的支持。
 
   接下来要简化安装配置，并提供相关文档。
+
+* DONE linux非交互方式修改用户密码                                    :linux:
+  CLOSED: [2015-06-16 Tue 17:35]
+
+  linux下的 =passwd= 命令是交互式运行的（密码需要由用户使用键盘输入），后台程序如果要改用户密码需要一定的技巧。
+
+  如：以下命令可以将 =root= 帐号的密码改为 =123456=
+
+  #+begin_src sh
+    (echo '123456'; sleep 1; echo '123456') | passwd 'root' > /dev/null
+  #+end_src
+
+  但是，此时也不好判断密码是否改成功了，需要验证一下。
+
+  参考文章《[[http://www.xinotes.net/notes/note/1833/][Check Linux user password in C]] 》编写了以下程序用于非交互式修改密码：
+
+  [[file:../static/change_password.c][change_password.c]]
+
+  编译：
+  #+begin_src sh
+    gcc -g change_password.c -o change_password -lcrypt
+  #+end_src
+
+  运行：
+  #+begin_src sh
+    ./change_password root 123456
+  #+end_src

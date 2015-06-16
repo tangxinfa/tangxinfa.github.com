@@ -4,7 +4,7 @@
         <title>linux - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/linux.xml</link>
-        <lastBuildDate>Tue, 16 Jun 2015 08:53:02 GMT</lastBuildDate>
+        <lastBuildDate>Tue, 16 Jun 2015 09:36:25 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>linux - 看看俺 – KanKanAn.com</title>
@@ -14,6 +14,56 @@
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <generator>Feed for Node.js</generator>
         <category>技术</category>
+        <item>
+            <title><![CDATA[linux非交互方式修改用户密码]]></title>
+            <link>/article/linux-975e4ea44e9265b95f0f4fee6539752862375bc67801.html</link>
+            <guid>/article/linux-975e4ea44e9265b95f0f4fee6539752862375bc67801.html</guid>
+            <pubDate>Tue, 16 Jun 2015 09:35:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+linux下的 <code>passwd</code> 命令是交互式运行的（密码需要由用户使用键盘输入），后台程序如果要改用户密码需要一定的技巧。
+</p>
+
+<p>
+如：以下命令可以将 <code>root</code> 帐号的密码改为 <code>123456</code>
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">(<span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">'123456'</span>; sleep 1; <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">'123456'</span>) | passwd <span style="color: #8abeb7;">'root'</span> &gt; /dev/null
+</pre>
+</div>
+
+<p>
+但是，此时也不好判断密码是否改成功了，需要验证一下。
+</p>
+
+<p>
+参考文章《<a href="http://www.xinotes.net/notes/note/1833/">Check Linux user password in C</a> 》编写了以下程序用于非交互式修改密码：
+</p>
+
+<p>
+<a href="../static/change_password.c">change_password.c</a>
+</p>
+
+<p>
+编译：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">gcc -g change_password.c -o change_password -lcrypt
+</pre>
+</div>
+
+<p>
+运行：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">./change_password root 123456
+</pre>
+</div>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[linux下创建另一个root帐号]]></title>
             <link>/article/linux-4e0b521b5efa53e64e004e2a-root-5e1053f7.html</link>
