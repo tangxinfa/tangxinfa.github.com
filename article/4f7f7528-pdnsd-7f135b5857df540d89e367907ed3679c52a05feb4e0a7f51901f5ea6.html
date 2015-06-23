@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+  <head>
+    <meta charset="utf-8"/>
+    <title>使用Pdnsd缓存域名解析结果加快上网速度 | 看看俺 – KanKanAn.com</title>
+    <link rel="shortcut icon" href="/static/favicon.ico" />
+    <link rel="stylesheet" type="text/less" href="/style/less/o-blog.less"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="generator" content="o-blog"/>
+    <script src="/style/js/less-1.3.0.min.js" type="text/javascript"></script>
+    <script src="/style/js/jquery-1.7.1.min.js" type="text/javascript"></script>
+    <script src="/style/bootstrap/js/bootstrap-modal.js" type="text/javascript"></script>
+    <script src="/style/bootstrap/js/bootstrap-transition.js" type="text/javascript"></script>
+    <script src="/style/bootstrap/js/bootstrap-dropdown.js" type="text/javascript"></script>
+    <script src="/style/bootstrap/js/bootstrap-collapse.js" type="text/javascript"></script>
+    <script src="/style/js/prettify.js" type="text/javascript"></script>
+    <script src="/style/js/o-blog.linenumber.js" type="text/javascript"></script>
+    <script src="/style/js/o-blog-fix.js" type="text/javascript"></script>
+  </head>
+  <body>
+    <div class="navbar navbar-fixed-top" id="header">
+      <div class="navbar-inner">
+	    <div class="container">
+	      <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="/" style="line-height:100%;">看看俺 – KanKanAn.com</a>
+	      <div class="nav-collapse collapse">
+            <ul class="org-ul">
+              <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
+                
+                <li><a href="/index.html"><i class="icon-folder-close icon-white"></i> 技术</a></li>
+                <li><a href="/category/life/0.html"><i class="icon-folder-close icon-white"></i> 生活</a></li>
+            </ul>
+	      </div>
+	    </div>
+      </div>
+    </div>
+
+    <div class="container container-fluid" id="page">
+      <div class="push-header"></div>
+
+      <div class="article">
+        <header class="article-header">
+          <h1>使用Pdnsd缓存域名解析结果加快上网速度</h1>
+      	<div class="qr-code">
+      	  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="" alt="" id="qr-code" />
+      	  <script>
+      	    document.getElementById("qr-code").src = "http://chart.apis.google.com/chart?chs=90x90&cht=qr&chld=|0&chl=" + encodeURIComponent(document.location.href);
+      	  </script>
+      	</div>
+        </header>
+      
+        <div class="article-content">
+          <ul class="org-ul">
+<li>频繁的域名解析会容易导致超时出错
+
+<p>
+在执行 <code>opkg-cl update</code> 或 <code>yaourt -Syua</code> 命令更新系统软件信息时，容易因为频繁的域名解析而导致更新速度奇慢甚至是超时出错，通过将要访问的域名添加到 <code>/etc/hosts</code> 中，可以立即解决这个问题。考虑到服务器IP可能会换，使用 <code>/etc/hosts</code> 非长久之计。
+</p>
+</li>
+
+<li>缓存域名解析结果
+
+<p>
+更好的办法是缓存域名解析结果，一般来说后台服务程序可以通过缓存域名解析结果加快后继请求的处理，但是对于像 <code>opkg-cl</code> 、 <code>yaourt</code> 之类的工具程序，由于运行一次就退出了，要实现缓存域名解析结果就显得有点小题大作了，最好是在系统底层来实现，而不是每个应用程序都实现这个功能。
+</p>
+
+<p>
+<a href="http://members.home.nl/p.a.rombouts/pdnsd/">Pdnsd</a> 就是这样一款开源DNS代理服务程序，它安装在客户机上，对于客户端应用程序来说，它是DNS服务程序，对于真正的DNS服务来说它是DNS客户端程序。
+</p>
+</li>
+
+<li><a href="http://members.home.nl/p.a.rombouts/pdnsd/">Pdnsd</a> 安装
+
+<div class="org-src-container">
+
+<pre class="src src-sh">yaourt -S pdnsd
+</pre>
+</div>
+</li>
+
+<li><a href="http://members.home.nl/p.a.rombouts/pdnsd/">Pdnsd</a> 运行
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo systemctl enable pdnsd
+sudo systemctl start pdnsd
+</pre>
+</div>
+</li>
+
+<li>客户机DNS设置
+
+<p>
+修改 <code>/etc/resolv.conf</code> 为如下内容：
+</p>
+
+<pre class="example">
+nameserver 127.0.0.1
+</pre>
+</li>
+
+<li>看看效果
+
+<p>
+多次执行下面的命令，可以感觉到后几次明显比第一次快，这就是DNS缓存在起作用。
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">nslookup www.google.com
+</pre>
+</div>
+</li>
+
+<li>适合国内环境的配置（仅供参考）
+
+<p>
+将 <code>/etc/pdnsd.conf</code> 配置文件修改为以下内容：
+</p>
+
+<pre class="example">
+global {
+    perm_cache=1024;
+    cache_dir="/var/cache/pdnsd";
+    pid_file = /var/run/pdnsd.pid;
+    run_as="pdnsd";
+    server_ip = 127.0.0.1;
+    status_ctl = on;
+    query_method=udp_tcp;
+    min_ttl=15m;
+    max_ttl=1d;
+    timeout=10;
+    neg_domain_pol=on;
+    udpbufsize=1024;
+}
+
+server {
+    label = "root-servers";
+    root_server = discover;
+    randomize_servers = on;
+    ip = 114.114.114.114,
+         223.5.5.5,
+         114.114.115.115,
+         223.6.6.6;
+    timeout = 5;
+    uptest = query;
+    interval = 30m;
+    ping_timeout = 50;
+    purge_cache = off;
+    exclude = .localdomain;
+    policy = included;
+    preset = off;
+}
+
+source {
+    owner=localhost;
+    serve_aliases=on;
+    file="/etc/hosts";
+}
+
+rr {
+    name=localhost;
+    reverse=on;
+    a=127.0.0.1;
+    owner=localhost;
+    soa=localhost,root.localhost,42,86400,900,86400,86400;
+}
+</pre>
+
+<p>
+重启 <a href="http://members.home.nl/p.a.rombouts/pdnsd/">Pdnsd</a> 生效配置：
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo systemctl restart pdnsd
+</pre>
+</div>
+</li>
+</ul>
+
+        </div>
+        <br />
+        <footer class="article-footer">
+          <a class="tag" href="/tag/web/0.html"><i class="icon-tag icon-white"></i> web</a>
+          <a class="tag" href="/tag/dns/0.html"><i class="icon-tag icon-white"></i> dns</a>
+          <span class="muted">
+            <i class="icon-time icon-white"></i> <time datetime="2015-06-23T18:56:00+0800">2015年6月23日 18时</time>
+          </span>
+        </footer>
+      </div>
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+  /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+  var disqus_shortname = 'kankananblog';
+
+  /* * * DON'T EDIT BELOW THIS LINE * * */
+  (function() {
+  var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+  dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+      <div class="push-footer"></div>
+    </div>
+
+    <div id="footer">
+  	  <div class="copyright" style="text-align: center;">
+  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
+  	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
+  	  </div>
+    </div>
+  </body>
+</html>

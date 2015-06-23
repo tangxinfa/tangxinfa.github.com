@@ -6770,3 +6770,104 @@ class RedisShard {
   现在肚子有饿的感觉，但是又感觉肚子有点涨，搞不清楚自已到底是不是真饿了。
 
   现在刚好70公斤，希望慢慢瘦下来吧，过了今天明天就解放了。
+
+* DONE 使用Pdnsd缓存域名解析结果加快上网速度                        :web:dns:
+  CLOSED: [2015-06-23 Tue 18:56]
+
+  - 频繁的域名解析会容易导致超时出错
+
+    在执行 =opkg-cl update= 或 =yaourt -Syua= 命令更新系统软件信息时，容易因为频繁的域名解析而导致更新速度奇慢甚至是超时出错，通过将要访问的域名添加到 =/etc/hosts= 中，可以立即解决这个问题。考虑到服务器IP可能会换，使用 =/etc/hosts= 非长久之计。
+
+  - 缓存域名解析结果
+
+    更好的办法是缓存域名解析结果，一般来说后台服务程序可以通过缓存域名解析结果加快后继请求的处理，但是对于像 =opkg-cl= 、 =yaourt= 之类的工具程序，由于运行一次就退出了，要实现缓存域名解析结果就显得有点小题大作了，最好是在系统底层来实现，而不是每个应用程序都实现这个功能。
+
+    [[http://members.home.nl/p.a.rombouts/pdnsd/][Pdnsd]] 就是这样一款开源DNS代理服务程序，它安装在客户机上，对于客户端应用程序来说，它是DNS服务程序，对于真正的DNS服务来说它是DNS客户端程序。
+
+  - [[http://members.home.nl/p.a.rombouts/pdnsd/][Pdnsd]] 安装
+    
+    #+begin_src sh
+      yaourt -S pdnsd
+    #+end_src
+    
+  - [[http://members.home.nl/p.a.rombouts/pdnsd/][Pdnsd]] 运行
+
+    #+begin_src sh
+      sudo systemctl enable pdnsd
+      sudo systemctl start pdnsd
+    #+end_src
+
+  - 客户机DNS设置
+
+    修改 =/etc/resolv.conf= 为如下内容：
+
+    #+begin_example
+      nameserver 127.0.0.1
+    #+end_example
+    
+  - 看看效果
+    
+    多次执行下面的命令，可以感觉到后几次明显比第一次快，这就是DNS缓存在起作用。
+
+    #+begin_src sh
+      nslookup www.google.com
+    #+end_src
+
+  - 适合国内环境的配置（仅供参考）
+
+    将 =/etc/pdnsd.conf= 配置文件修改为以下内容：
+
+    #+begin_example
+      global {
+          perm_cache=1024;
+          cache_dir="/var/cache/pdnsd";
+          pid_file = /var/run/pdnsd.pid;
+          run_as="pdnsd";
+          server_ip = 127.0.0.1;
+          status_ctl = on;
+          query_method=udp_tcp;
+          min_ttl=15m;
+          max_ttl=1d;
+          timeout=10;
+          neg_domain_pol=on;
+          udpbufsize=1024;
+      }
+
+      server {
+          label = "root-servers";
+          root_server = discover;
+          randomize_servers = on;
+          ip = 114.114.114.114,
+               223.5.5.5,
+               114.114.115.115,
+               223.6.6.6;
+          timeout = 5;
+          uptest = query;
+          interval = 30m;
+          ping_timeout = 50;
+          purge_cache = off;
+          exclude = .localdomain;
+          policy = included;
+          preset = off;
+      }
+
+      source {
+          owner=localhost;
+          serve_aliases=on;
+          file="/etc/hosts";
+      }
+
+      rr {
+          name=localhost;
+          reverse=on;
+          a=127.0.0.1;
+          owner=localhost;
+          soa=localhost,root.localhost,42,86400,900,86400,86400;
+      }
+    #+end_example
+
+    重启 [[http://members.home.nl/p.a.rombouts/pdnsd/][Pdnsd]] 生效配置：
+
+    #+begin_src sh
+      sudo systemctl restart pdnsd
+    #+end_src
