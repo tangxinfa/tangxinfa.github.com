@@ -6774,7 +6774,7 @@ class RedisShard {
 * DONE 使用Pdnsd缓存域名解析结果加快上网速度                        :web:dns:
   CLOSED: [2015-06-23 Tue 18:56]
 
-  - 频繁的域名解析会容易导致超时出错
+  - 频繁的域名解析容易导致超时出错
 
     在执行 =opkg-cl update= 或 =yaourt -Syua= 命令更新系统软件信息时，容易因为频繁的域名解析而导致更新速度奇慢甚至是超时出错，通过将要访问的域名添加到 =/etc/hosts= 中，可以立即解决这个问题。考虑到服务器IP可能会换，使用 =/etc/hosts= 非长久之计。
 
@@ -6804,6 +6804,16 @@ class RedisShard {
     #+begin_example
       nameserver 127.0.0.1
     #+end_example
+
+    对于 Archlinux =/etc/resolv.conf= 是由 =resolvconf= 工具生成，直接修改后随时可能被覆盖，可以修改 =/etc/resolvconf.conf= 将以下配置行取消注释：
+    #+begin_example
+      # name_servers=127.0.0.1
+    #+end_example
+
+    然后重新生成 =/etc/resolv.conf= 配置文件：
+    #+begin_src sh
+      sudo resolvconf -u
+    #+end_src
     
   - 看看效果
     
@@ -6870,4 +6880,127 @@ class RedisShard {
 
     #+begin_src sh
       sudo systemctl restart pdnsd
+    #+end_src
+
+  - 参考
+
+    《[[http://venmos-com.qiniudn.com/blog/2013/06/19/pdnsd/][用Pdnsd快速打造无污染高速缓存DNS服务器]]》
+* DONE 使用node.js的对象模式验证模块joi引入强类型                      :node:
+  CLOSED: [2015-07-13 Mon 18:44]
+
+  - 弱类型的Javascript
+
+    Javascript是一门弱类型的语言，定义变量不需要指定类型，可以为同一个变量赋任意类型类型的值。程序中误用类型程序不报错而是意外的结果：
+
+    #+begin_example
+      > "1" + 1
+      '11'
+      > if ("false") { console.log("yes") } else { console.log("no"); }
+      yes
+      undefined
+      > 
+    #+end_example
+    
+    redis中很多数据结构取出时都是字符串值（如：set、hash），调用方需要自行将它转换成正确的类型（如：Boolean、Date、Number），如果仍然使用字符串类型会导致很多的冗长的代码，如Boolean类型：
+
+    #+begin_src js
+      if ((String(model.stoped) == 'true')) {
+          // Do something when stoped.
+      }
+    #+end_src
+    
+  - 对象模式验证模块joi
+
+    有很多的ORM（ Object Relational Mapping 对象关系映射）库都能够实现强类型的数据模型，但是它们都相当的复杂，支持各种各样的数据库后端，支持一对一、一对多、多对多等数据关系，但是很少支持分表分库，我们的系统一般都要数据模型简单但要考虑用户量大了后如何横向扩展，所以从一开始就是分表分库的，不会使用重型的ORM。
+
+    一个单纯的对象模式验证模块能够满足需要并且适用范围更广。而今天要提的就是 [[https://github.com/hapijs/joi#anydefaultvalue-description][joi]] ： Object schema description language and validator for JavaScript objects。
+
+  - joi的用法示例
+
+    #+begin_src js
+      var joi = require('joi');
+      var redis = require('redis');
+
+      var client = redis.createClient(6379, '127.0.0.1');
+
+      var User = function (options) {
+          if (! options) {
+              options = {};
+          }
+
+          this.id = options.id || 0;
+          this.name = options.name || '';
+          this.male = options.male || true;
+          this.birthday = options.birthday;
+      };
+
+      User.schema = joi.object().keys({
+          id: joi.number().integer().min(1),
+          name: joi.string().required(),
+          male: joi.boolean().default(true),
+          birthday: joi.date().required()
+      });
+
+      User.find = function (id, callback) {
+          client.hgetall("user:" + id, function (err, value) {
+              if (err) {
+                  return callback(err);
+              } else if (! value) {
+                  return callback(new Error("User not found"));
+              }
+
+              joi.validate(value, User.schema, callback);
+          });
+      };
+
+      User.prototype.save = function (callback) {
+          var value = {};
+          for(var fieldName in this) {
+              if (typeof(this[fieldName]) != 'function') {
+                  value[fieldName] = this[fieldName];
+              }
+          }
+          joi.validate(value, User.schema, function (err, validatedValue) {
+              if (err) {
+                  return callback(err);
+              }
+
+              client.hmset("user:" + validatedValue.id, validatedValue, callback);
+          });
+      };
+
+
+      var user = new User({
+          id: 1,
+          name: "txf",
+          male: true,
+          birthday: new Date("1983-03-22")
+      });
+
+      user.save(function (err) {
+          if (err) {
+              console.error("user save error(" + err.toString() + ")");
+              client.quit();
+              return;
+          }
+
+          console.info("user saved");
+
+          User.find(user.id, function (err, user) {
+              client.quit();
+              if (err) {
+                  console.error("user find error(" + err.toString() + ")");
+                  return;
+              }
+
+              console.log("user found: " + JSON.stringify(user));
+          });
+      });
+    #+end_src
+
+    运行结果：
+
+    #+begin_src js
+      user saved
+      user found: {"id":1,"name":"txf","male":true,"birthday":"1983-03-22T00:00:00.000Z"}
     #+end_src

@@ -4,7 +4,7 @@
         <title>node - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/node.xml</link>
-        <lastBuildDate>Tue, 23 Jun 2015 10:57:25 GMT</lastBuildDate>
+        <lastBuildDate>Mon, 13 Jul 2015 10:59:29 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>node - 看看俺 – KanKanAn.com</title>
@@ -14,6 +14,150 @@
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <generator>Feed for Node.js</generator>
         <category>技术</category>
+        <item>
+            <title><![CDATA[使用node.js的对象模式验证模块joi引入强类型]]></title>
+            <link>/article/4f7f7528-node.js-76845bf98c616a215f0f9a8c8bc16a215757-joi-5f1551655f3a7c7b578b.html</link>
+            <guid>/article/4f7f7528-node.js-76845bf98c616a215f0f9a8c8bc16a215757-joi-5f1551655f3a7c7b578b.html</guid>
+            <pubDate>Mon, 13 Jul 2015 10:44:00 GMT</pubDate>
+            <content:encoded><![CDATA[<ul class="org-ul">
+<li>弱类型的Javascript
+
+<p>
+Javascript是一门弱类型的语言，定义变量不需要指定类型，可以为同一个变量赋任意类型类型的值。程序中误用类型程序不报错而是意外的结果：
+</p>
+
+<pre class="example">
+&gt; "1" + 1
+'11'
+&gt; if ("false") { console.log("yes") } else { console.log("no"); }
+yes
+undefined
+&gt;
+</pre>
+
+<p>
+redis中很多数据结构取出时都是字符串值（如：set、hash），调用方需要自行将它转换成正确的类型（如：Boolean、Date、Number），如果仍然使用字符串类型会导致很多的冗长的代码，如Boolean类型：
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-js"><span style="color: #b5bd68;">if</span> ((String(model.stoped) == <span style="color: #8abeb7;">'true'</span>)) {
+<span style="background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">Do something when stoped.</span>
+}
+</pre>
+</div>
+</li>
+
+<li>对象模式验证模块joi
+
+<p>
+有很多的ORM（ Object Relational Mapping 对象关系映射）库都能够实现强类型的数据模型，但是它们都相当的复杂，支持各种各样的数据库后端，支持一对一、一对多、多对多等数据关系，但是很少支持分表分库，我们的系统一般都要数据模型简单但要考虑用户量大了后如何横向扩展，所以从一开始就是分表分库的，不会使用重型的ORM。
+</p>
+
+<p>
+一个单纯的对象模式验证模块能够满足需要并且适用范围更广。而今天要提的就是 <a href="https://github.com/hapijs/joi#anydefaultvalue-description">joi</a> ： Object schema description language and validator for JavaScript objects。
+</p>
+</li>
+
+<li>joi的用法示例
+
+<div class="org-src-container">
+
+<pre class="src src-js"><span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">joi</span> = require(<span style="color: #8abeb7;">'joi'</span>);
+<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">redis</span> = require(<span style="color: #8abeb7;">'redis'</span>);
+
+<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">client</span> = redis.createClient(6379, <span style="color: #8abeb7;">'127.0.0.1'</span>);
+
+<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">User</span> = <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">options</span>) {
+<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (! options) {
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   options = {};
+<span style="background-color: #373b41;"> </span>   }
+
+<span style="background-color: #373b41;"> </span>   <span style="color: #81a2be;">this</span>.id = options.id || 0;
+<span style="background-color: #373b41;"> </span>   <span style="color: #81a2be;">this</span>.name = options.name || <span style="color: #8abeb7;">''</span>;
+<span style="background-color: #373b41;"> </span>   <span style="color: #81a2be;">this</span>.male = options.male || <span style="color: #81a2be;">true</span>;
+<span style="background-color: #373b41;"> </span>   <span style="color: #81a2be;">this</span>.birthday = options.birthday;
+};
+
+User.schema = joi.object().keys({
+<span style="background-color: #373b41;"> </span>   id: joi.number().integer().min(1),
+<span style="background-color: #373b41;"> </span>   name: joi.string().required(),
+<span style="background-color: #373b41;"> </span>   male: joi.<span style="color: #81a2be;">boolean</span>().<span style="color: #b5bd68;">default</span>(<span style="color: #81a2be;">true</span>),
+<span style="background-color: #373b41;"> </span>   birthday: joi.date().required()
+});
+
+User.find = <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">id</span>, <span style="color: #f0c674;">callback</span>) {
+<span style="background-color: #373b41;"> </span>   client.hgetall(<span style="color: #8abeb7;">"user:"</span> + id, <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">err</span>, <span style="color: #f0c674;">value</span>) {
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> callback(err);
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   } <span style="color: #b5bd68;">else</span> <span style="color: #b5bd68;">if</span> (! value) {
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> callback(<span style="color: #b5bd68;">new</span> <span style="color: #81a2be;">Error</span>(<span style="color: #8abeb7;">"User not found"</span>));
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
+
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   joi.validate(value, User.schema, callback);
+<span style="background-color: #373b41;"> </span>   });
+};
+
+User.<span style="color: #81a2be;">prototype</span>.save = <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">callback</span>) {
+<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">value</span> = {};
+<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">for</span>(<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">fieldName</span> <span style="color: #b5bd68;">in</span> <span style="color: #81a2be;">this</span>) {
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (<span style="color: #b5bd68;">typeof</span>(<span style="color: #81a2be;">this</span>[fieldName]) != <span style="color: #8abeb7;">'function'</span>) {
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   value[fieldName] = <span style="color: #81a2be;">this</span>[fieldName];
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
+<span style="background-color: #373b41;"> </span>   }
+<span style="background-color: #373b41;"> </span>   joi.validate(value, User.schema, <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">err</span>, <span style="color: #f0c674;">validatedValue</span>) {
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> callback(err);
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
+
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   client.hmset(<span style="color: #8abeb7;">"user:"</span> + validatedValue.id, validatedValue, callback);
+<span style="background-color: #373b41;"> </span>   });
+};
+
+
+<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">user</span> = <span style="color: #b5bd68;">new</span> <span style="color: #81a2be;">User</span>({
+<span style="background-color: #373b41;"> </span>   id: 1,
+<span style="background-color: #373b41;"> </span>   name: <span style="color: #8abeb7;">"txf"</span>,
+<span style="background-color: #373b41;"> </span>   male: <span style="color: #81a2be;">true</span>,
+<span style="background-color: #373b41;"> </span>   birthday: <span style="color: #b5bd68;">new</span> <span style="color: #81a2be;">Date</span>(<span style="color: #8abeb7;">"1983-03-22"</span>)
+});
+
+user.save(<span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">err</span>) {
+<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   console.error(<span style="color: #8abeb7;">"user save error("</span> + err.toString() + <span style="color: #8abeb7;">")"</span>);
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   client.quit();
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span>;
+<span style="background-color: #373b41;"> </span>   }
+
+<span style="background-color: #373b41;"> </span>   console.info(<span style="color: #8abeb7;">"user saved"</span>);
+
+<span style="background-color: #373b41;"> </span>   User.find(user.id, <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">err</span>, <span style="color: #f0c674;">user</span>) {
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   client.quit();
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   console.error(<span style="color: #8abeb7;">"user find error("</span> + err.toString() + <span style="color: #8abeb7;">")"</span>);
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span>;
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
+
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   console.log(<span style="color: #8abeb7;">"user found: "</span> + JSON.stringify(user));
+<span style="background-color: #373b41;"> </span>   });
+});
+</pre>
+</div>
+
+<p>
+运行结果：
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-js">user saved
+user found: {<span style="color: #8abeb7;">"id"</span>:1,<span style="color: #8abeb7;">"name"</span>:<span style="color: #8abeb7;">"txf"</span>,<span style="color: #8abeb7;">"male"</span>:<span style="color: #81a2be;">true</span>,<span style="color: #8abeb7;">"birthday"</span>:<span style="color: #8abeb7;">"1983-03-22T00:00:00.000</span><span style="color: #8abeb7; text-decoration: underline;">Z"</span><span style="text-decoration: underline;">}</span>
+</pre>
+</div>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[Node.js服务器TCP死连接问题诊断]]></title>
             <link>/article/node.js-670d52a15668-tcp-6b7b8fde63a595ee98988bca65ad.html</link>

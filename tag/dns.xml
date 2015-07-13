@@ -4,7 +4,7 @@
         <title>dns - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/dns.xml</link>
-        <lastBuildDate>Tue, 23 Jun 2015 10:57:24 GMT</lastBuildDate>
+        <lastBuildDate>Mon, 13 Jul 2015 10:59:29 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>dns - 看看俺 – KanKanAn.com</title>
@@ -20,7 +20,7 @@
             <guid>/article/4f7f7528-pdnsd-7f135b5857df540d89e367907ed3679c52a05feb4e0a7f51901f5ea6.html</guid>
             <pubDate>Tue, 23 Jun 2015 10:56:00 GMT</pubDate>
             <content:encoded><![CDATA[<ul class="org-ul">
-<li>频繁的域名解析会容易导致超时出错
+<li>频繁的域名解析容易导致超时出错
 
 <p>
 在执行 <code>opkg-cl update</code> 或 <code>yaourt -Syua</code> 命令更新系统软件信息时，容易因为频繁的域名解析而导致更新速度奇慢甚至是超时出错，通过将要访问的域名添加到 <code>/etc/hosts</code> 中，可以立即解决这个问题。考虑到服务器IP可能会换，使用 <code>/etc/hosts</code> 非长久之计。
@@ -66,6 +66,22 @@ sudo systemctl start pdnsd
 <pre class="example">
 nameserver 127.0.0.1
 </pre>
+
+<p>
+对于 Archlinux <code>/etc/resolv.conf</code> 是由 <code>resolvconf</code> 工具生成，直接修改后随时可能被覆盖，可以修改 <code>/etc/resolvconf.conf</code> 将以下配置行取消注释：
+</p>
+<pre class="example">
+# name_servers=127.0.0.1
+</pre>
+
+<p>
+然后重新生成 <code>/etc/resolv.conf</code> 配置文件：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo resolvconf -u
+</pre>
+</div>
 </li>
 
 <li>看看效果
@@ -145,6 +161,12 @@ rr {
 <pre class="src src-sh">sudo systemctl restart pdnsd
 </pre>
 </div>
+</li>
+
+<li>参考
+
+<p>
+《<a href="http://venmos-com.qiniudn.com/blog/2013/06/19/pdnsd/">用Pdnsd快速打造无污染高速缓存DNS服务器</a>》</p>
 </li>
 </ul>
 ]]></content:encoded>
