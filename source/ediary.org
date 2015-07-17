@@ -6890,7 +6890,7 @@ class RedisShard {
 
   - 弱类型的Javascript
 
-    Javascript是一门弱类型的语言，定义变量不需要指定类型，可以为同一个变量赋任意类型类型的值。程序中误用类型程序不报错而是意外的结果：
+    Javascript是一门弱类型的语言，定义变量不需要指定类型，可以为同一个变量赋任意类型的值。误用类型不会报错，而结果会让你大吃一惊：
 
     #+begin_example
       > "1" + 1
@@ -6901,21 +6901,25 @@ class RedisShard {
       > 
     #+end_example
     
-    redis中很多数据结构取出时都是字符串值（如：set、hash），调用方需要自行将它转换成正确的类型（如：Boolean、Date、Number），如果仍然使用字符串类型会导致很多的冗长的代码，如Boolean类型：
+    redis中很多数据结构取出时都是字符串值（如：set、hash），调用方需要自行将它转换成正确的类型（如：Boolean、Date、Number），如果不转换成正确的类型会导致冗长的代码，如Boolean类型：
 
     #+begin_src js
       if ((String(model.stoped) == 'true')) {
           // Do something when stoped.
       }
     #+end_src
+
+    如果手工转换成正确的类型肯定要写很多样板代码了。
     
-  - 对象模式验证模块joi
+  - 对象模式验证模块 [[https://github.com/hapijs/joi#anydefaultvalue-description][joi]]
 
-    有很多的ORM（ Object Relational Mapping 对象关系映射）库都能够实现强类型的数据模型，但是它们都相当的复杂，支持各种各样的数据库后端，支持一对一、一对多、多对多等数据关系，但是很少支持分表分库，我们的系统一般都要数据模型简单但要考虑用户量大了后如何横向扩展，所以从一开始就是分表分库的，不会使用重型的ORM。
+    有很多的ORM（ Object Relational Mapping 对象关系映射）库都能够实现强类型的数据模型，但是它们都相当的复杂，支持各种各样的数据库后端，支持一对一、一对多、多对多等数据关系，但是很少支持分表分库，我们的系统一般是数据模型简单但要考虑用户量大了横向扩展，所以一开始就进行了分表分库，无法使用重型的ORM。
 
-    一个单纯的对象模式验证模块能够满足需要并且适用范围更广。而今天要提的就是 [[https://github.com/hapijs/joi#anydefaultvalue-description][joi]] ： Object schema description language and validator for JavaScript objects。
+    如果有一个能够自动根据模式（Schema）定义对值进行类型转换的库，一定会非常有用。
+    
+    [[https://github.com/hapijs/joi#anydefaultvalue-description][joi]] 一个Javascript对象模式描述语言以及验证（Object schema description language and validator for JavaScript objects）的库，它可以完成对象类型转换以及合法性验证。
 
-  - joi的用法示例
+  - [[https://github.com/hapijs/joi#anydefaultvalue-description][joi]] 的用法示例
 
     #+begin_src js
       var joi = require('joi');
@@ -7004,3 +7008,9 @@ class RedisShard {
       user saved
       user found: {"id":1,"name":"txf","male":true,"birthday":"1983-03-22T00:00:00.000Z"}
     #+end_src
+* DONE 轻断食日（2015-7-17）                                            :轻断食:
+  CLOSED: [2015-07-17 Fri 14:28]
+
+  今天是轻断食日，昨天晚上10点多吃过水果后到现在还没有吃过东西，上午起得很晚，最近工作太累了。中午忘点餐干脆断食算了，下一顿要到18点的晚餐，已经泡好了下午茶，肚子有点撑（为什么不觉得很饿呢？），有时候又会觉得肚子有点饿得慌，但仔细一体会其实是最近因为工作有点焦虑。
+
+  现在是66.5公斤，主要是肚子瘦了些，继续加油。
