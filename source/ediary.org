@@ -7014,3 +7014,128 @@ class RedisShard {
   今天是轻断食日，昨天晚上10点多吃过水果后到现在还没有吃过东西，上午起得很晚，最近工作太累了。中午忘点餐干脆断食算了，下一顿要到18点的晚餐，已经泡好了下午茶，肚子有点撑（为什么不觉得很饿呢？），有时候又会觉得肚子有点饿得慌，但仔细一体会其实是最近因为工作有点焦虑。
 
   现在是66.5公斤，主要是肚子瘦了些，继续加油。
+* DONE config库避免磁盘满时配置文件被截断                           :linux:c:
+  CLOSED: [2015-07-20 Mon 17:35]
+
+  [[https://github.com/tangxinfa/config][config]] 库在实际使用过程中发现一个问题：磁盘满时写配置文件可能导致配置文件被清空（文件大小为0）。
+  
+  想到两种方案：
+  
+  - 写-替换
+
+    先写到一个临时文件，写成功后替换目标文件，这是由linux下重命名（rename）文件的原子性保证的。由于我们是通过对配置文件加锁的方式支持多进程访问的，可以对配置文件使用独立的锁文件，一想起到配置文件目录里将出现一大堆锁文件，胃就不舒服。
+    
+  - 预分配空间
+
+    先确保文件拥有足够的空间再写入。虽然不是原子性的，但已经能够解决问题。我比较倾向于这个方案。
+
+** 通过预分配空间方式安全写文件算法
+
+   - 如果当前文件过小（不足以容纳新内容），在文件尾部通过追加占位字符（\0）直到文件大小合适
+
+   - 写入新内容
+
+   - 将过多的空间截掉
+
+   具体实现参见： [[https://github.com/tangxinfa/config/commit/5ed686fc42c3356658d67d2d3bb59d3435f8c68f][5ed686f Fix bug: config file content missing when disk full]] .
+
+** 测试
+
+*** 创建模拟磁盘目录 /mnt/disk
+
+    先确保存在 =/dev/loop*= 设备，如果不存在先尝试挂载 =loop= 内核模块
+
+    #+begin_src sh
+     sudo modprobe loop
+    #+end_src
+
+    如果还是没有 =loop= 设备，可能是最近进行了系统升级，重启后再试。
+
+    创建模拟磁盘（/mnt/disk）：
+
+    #+begin_example
+      $ sudo dd if=/dev/zero of=~/Examples/disk.img bs=8M count=1
+      $ sudo losetup /dev/loop0 ~/Examples/disk.img
+      $ sudo parted /dev/loop0
+      GNU Parted 3.2
+      Using /dev/loop0
+      Welcome to GNU Parted! Type 'help' to view a list of commands.
+      (parted) mklabel gpt
+      Warning: The existing disk label on /dev/loop0 will be destroyed and all data on
+      this disk will be lost. Do you want to continue?
+      Yes/No? yes
+      (parted) mkpart primary 0MB 8MB
+      Warning: The resulting partition is not properly aligned for best performance.
+      Ignore/Cancel? Ignore
+      (parted) print
+      Model: Loopback device (loopback)
+      Disk /dev/loop0: 8389kB
+      Sector size (logical/physical): 512B/512B
+      Partition Table: gpt
+      Disk Flags: 
+
+      Number  Start   End     Size    File system  Name  Flags
+       1      17.4kB  8372kB  8354kB
+
+      (parted) quit
+      $ sudo mkfs.ext4 /dev/loop0p1
+      $ sudo mkdir /mnt/disk
+      $ sudo mount /dev/loop0p1 /mnt/disk
+   #+end_example
+
+*** 修复前
+
+    磁盘空间不足写配置导致配置文件被损坏
+
+    #+begin_example
+      $ sudo ~/Opensource/config/config /mnt/disk/test.json set name libconfig
+      name: libconfig
+      $ sudo dd if=/dev/zero of=/mnt/disk/other.data bs=1 obs=1 count=100000000
+      dd: error writing ‘/mnt/disk/other.data’: No space left on device
+      6821889+0 records in
+      6821888+0 records out
+      6821888 bytes (6.8 MB) copied, 7.44769 s, 916 kB/s
+      dd: error writing ‘/mnt/disk/other.data’: No space left on device
+      6821889+0 records in
+      6821888+0 records out
+      6821888 bytes (6.8 MB) copied, 7.53017 s, 906 kB/s
+      $ sudo ~/Opensource/config/config /mnt/disk/test.json set data "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      config: write: No space left on device
+      config: save config file(/mnt/disk/test.json) failed
+      data: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      $ sudo ~/Opensource/config/config /mnt/disk/test.json get name
+      config: get items(name,,,,,) from config file(/mnt/disk/test.json) failed
+    #+end_example
+
+*** 修复后
+
+    磁盘空间不足写配置不会对配置文件造成实质影响
+
+    #+begin_example
+      $ sudo ~/Opensource/config/config /mnt/disk/test.json set name libconfig
+      name: libconfig
+      $ sudo dd if=/dev/zero of=/mnt/disk/other.data bs=1 obs=1 count=100000000
+      dd: error writing ‘/mnt/disk/other.data’: No space left on device
+      6821889+0 records in
+      6821888+0 records out
+      6821888 bytes (6.8 MB) copied, 7.6254 s, 895 kB/s
+      $ sudo ~/Opensource/config/config /mnt/disk/test.json set data "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      config: write: No space left on device
+      config: save config file(/mnt/disk/test.json) failed
+      data: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      $ sudo ~/Opensource/config/config /mnt/disk/test.json get name
+      name: libconfig
+    #+end_example
+
+*** 清除测试环境
+   
+    #+begin_src sh
+      sudo umount /dev/loop0p1
+      sudo losetup -d /dev/loop0
+      sudo rmdir /mnt/disk
+      sudo rm ~/Examples/disk.img
+    #+end_src
+
+** 参考
+
+   《[[http://www.oschina.net/translate/reliable-file-updates-with-python][使用 Python 进行稳定可靠的文件操作]]》
