@@ -76,8 +76,8 @@ redis中很多数据结构取出时都是字符串值（如：set、hash），�
 
 <div class="org-src-container">
 
-<pre class="src src-js"><span style="color: #b5bd68;">if</span> ((String(model.stoped) == <span style="color: #8abeb7;">'true'</span>)) {
-<span style="background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">Do something when stoped.</span>
+<pre class="src src-js"><span style="color: #b9ca4a;">if</span> ((String(model.stoped) == <span style="color: #70c0b1;">'true'</span>)) {
+<span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">Do something when stoped.</span>
 }
 </pre>
 </div>
@@ -106,83 +106,83 @@ redis中很多数据结构取出时都是字符串值（如：set、hash），�
 
 <div class="org-src-container">
 
-<pre class="src src-js"><span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">joi</span> = require(<span style="color: #8abeb7;">'joi'</span>);
-<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">redis</span> = require(<span style="color: #8abeb7;">'redis'</span>);
+<pre class="src src-js"><span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">joi</span> = require(<span style="color: #70c0b1;">'joi'</span>);
+<span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">redis</span> = require(<span style="color: #70c0b1;">'redis'</span>);
 
-<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">client</span> = redis.createClient(6379, <span style="color: #8abeb7;">'127.0.0.1'</span>);
+<span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">client</span> = redis.createClient(6379, <span style="color: #70c0b1;">'127.0.0.1'</span>);
 
-<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">User</span> = <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">options</span>) {
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (! options) {
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   options = {};
-<span style="background-color: #373b41;"> </span>   }
+<span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">User</span> = <span style="color: #b9ca4a;">function</span> (<span style="color: #e7c547;">options</span>) {
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span> (! options) {
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   options = {};
+<span style="background-color: #424242;"> </span>   }
 
-<span style="background-color: #373b41;"> </span>   <span style="color: #81a2be;">this</span>.id = options.id || 0;
-<span style="background-color: #373b41;"> </span>   <span style="color: #81a2be;">this</span>.name = options.name || <span style="color: #8abeb7;">''</span>;
-<span style="background-color: #373b41;"> </span>   <span style="color: #81a2be;">this</span>.male = options.male || <span style="color: #81a2be;">true</span>;
-<span style="background-color: #373b41;"> </span>   <span style="color: #81a2be;">this</span>.birthday = options.birthday;
+<span style="background-color: #424242;"> </span>   <span style="color: #7aa6da;">this</span>.id = options.id || 0;
+<span style="background-color: #424242;"> </span>   <span style="color: #7aa6da;">this</span>.name = options.name || <span style="color: #70c0b1;">''</span>;
+<span style="background-color: #424242;"> </span>   <span style="color: #7aa6da;">this</span>.male = options.male || <span style="color: #7aa6da;">true</span>;
+<span style="background-color: #424242;"> </span>   <span style="color: #7aa6da;">this</span>.birthday = options.birthday;
 };
 
 User.schema = joi.object().keys({
-<span style="background-color: #373b41;"> </span>   id: joi.number().integer().min(1),
-<span style="background-color: #373b41;"> </span>   name: joi.string().required(),
-<span style="background-color: #373b41;"> </span>   male: joi.<span style="color: #81a2be;">boolean</span>().<span style="color: #b5bd68;">default</span>(<span style="color: #81a2be;">true</span>),
-<span style="background-color: #373b41;"> </span>   birthday: joi.date().required()
+<span style="background-color: #424242;"> </span>   id: joi.number().integer().min(1),
+<span style="background-color: #424242;"> </span>   name: joi.string().required(),
+<span style="background-color: #424242;"> </span>   male: joi.<span style="color: #7aa6da;">boolean</span>().<span style="color: #b9ca4a;">default</span>(<span style="color: #7aa6da;">true</span>),
+<span style="background-color: #424242;"> </span>   birthday: joi.date().required()
 });
 
-User.find = <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">id</span>, <span style="color: #f0c674;">callback</span>) {
-<span style="background-color: #373b41;"> </span>   client.hgetall(<span style="color: #8abeb7;">"user:"</span> + id, <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">err</span>, <span style="color: #f0c674;">value</span>) {
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> callback(err);
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   } <span style="color: #b5bd68;">else</span> <span style="color: #b5bd68;">if</span> (! value) {
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> callback(<span style="color: #b5bd68;">new</span> <span style="color: #81a2be;">Error</span>(<span style="color: #8abeb7;">"User not found"</span>));
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
+User.find = <span style="color: #b9ca4a;">function</span> (<span style="color: #e7c547;">id</span>, <span style="color: #e7c547;">callback</span>) {
+<span style="background-color: #424242;"> </span>   client.hgetall(<span style="color: #70c0b1;">"user:"</span> + id, <span style="color: #b9ca4a;">function</span> (<span style="color: #e7c547;">err</span>, <span style="color: #e7c547;">value</span>) {
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span> (err) {
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">return</span> callback(err);
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   } <span style="color: #b9ca4a;">else</span> <span style="color: #b9ca4a;">if</span> (! value) {
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">return</span> callback(<span style="color: #b9ca4a;">new</span> <span style="color: #7aa6da;">Error</span>(<span style="color: #70c0b1;">"User not found"</span>));
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   }
 
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   joi.validate(value, User.schema, callback);
-<span style="background-color: #373b41;"> </span>   });
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   joi.validate(value, User.schema, callback);
+<span style="background-color: #424242;"> </span>   });
 };
 
-User.<span style="color: #81a2be;">prototype</span>.save = <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">callback</span>) {
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">value</span> = {};
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">for</span>(<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">fieldName</span> <span style="color: #b5bd68;">in</span> <span style="color: #81a2be;">this</span>) {
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (<span style="color: #b5bd68;">typeof</span>(<span style="color: #81a2be;">this</span>[fieldName]) != <span style="color: #8abeb7;">'function'</span>) {
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   value[fieldName] = <span style="color: #81a2be;">this</span>[fieldName];
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
-<span style="background-color: #373b41;"> </span>   }
-<span style="background-color: #373b41;"> </span>   joi.validate(value, User.schema, <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">err</span>, <span style="color: #f0c674;">validatedValue</span>) {
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> callback(err);
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
+User.<span style="color: #7aa6da;">prototype</span>.save = <span style="color: #b9ca4a;">function</span> (<span style="color: #e7c547;">callback</span>) {
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">value</span> = {};
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">for</span>(<span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">fieldName</span> <span style="color: #b9ca4a;">in</span> <span style="color: #7aa6da;">this</span>) {
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span> (<span style="color: #b9ca4a;">typeof</span>(<span style="color: #7aa6da;">this</span>[fieldName]) != <span style="color: #70c0b1;">'function'</span>) {
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   value[fieldName] = <span style="color: #7aa6da;">this</span>[fieldName];
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   }
+<span style="background-color: #424242;"> </span>   }
+<span style="background-color: #424242;"> </span>   joi.validate(value, User.schema, <span style="color: #b9ca4a;">function</span> (<span style="color: #e7c547;">err</span>, <span style="color: #e7c547;">validatedValue</span>) {
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span> (err) {
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">return</span> callback(err);
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   }
 
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   client.hmset(<span style="color: #8abeb7;">"user:"</span> + validatedValue.id, validatedValue, callback);
-<span style="background-color: #373b41;"> </span>   });
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   client.hmset(<span style="color: #70c0b1;">"user:"</span> + validatedValue.id, validatedValue, callback);
+<span style="background-color: #424242;"> </span>   });
 };
 
 
-<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">user</span> = <span style="color: #b5bd68;">new</span> <span style="color: #81a2be;">User</span>({
-<span style="background-color: #373b41;"> </span>   id: 1,
-<span style="background-color: #373b41;"> </span>   name: <span style="color: #8abeb7;">"txf"</span>,
-<span style="background-color: #373b41;"> </span>   male: <span style="color: #81a2be;">true</span>,
-<span style="background-color: #373b41;"> </span>   birthday: <span style="color: #b5bd68;">new</span> <span style="color: #81a2be;">Date</span>(<span style="color: #8abeb7;">"1983-03-22"</span>)
+<span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">user</span> = <span style="color: #b9ca4a;">new</span> <span style="color: #7aa6da;">User</span>({
+<span style="background-color: #424242;"> </span>   id: 1,
+<span style="background-color: #424242;"> </span>   name: <span style="color: #70c0b1;">"txf"</span>,
+<span style="background-color: #424242;"> </span>   male: <span style="color: #7aa6da;">true</span>,
+<span style="background-color: #424242;"> </span>   birthday: <span style="color: #b9ca4a;">new</span> <span style="color: #7aa6da;">Date</span>(<span style="color: #70c0b1;">"1983-03-22"</span>)
 });
 
-user.save(<span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">err</span>) {
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   console.error(<span style="color: #8abeb7;">"user save error("</span> + err.toString() + <span style="color: #8abeb7;">")"</span>);
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   client.quit();
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span>;
-<span style="background-color: #373b41;"> </span>   }
+user.save(<span style="color: #b9ca4a;">function</span> (<span style="color: #e7c547;">err</span>) {
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span> (err) {
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   console.error(<span style="color: #70c0b1;">"user save error("</span> + err.toString() + <span style="color: #70c0b1;">")"</span>);
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   client.quit();
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">return</span>;
+<span style="background-color: #424242;"> </span>   }
 
-<span style="background-color: #373b41;"> </span>   console.info(<span style="color: #8abeb7;">"user saved"</span>);
+<span style="background-color: #424242;"> </span>   console.info(<span style="color: #70c0b1;">"user saved"</span>);
 
-<span style="background-color: #373b41;"> </span>   User.find(user.id, <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">err</span>, <span style="color: #f0c674;">user</span>) {
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   client.quit();
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   console.error(<span style="color: #8abeb7;">"user find error("</span> + err.toString() + <span style="color: #8abeb7;">")"</span>);
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span>;
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
+<span style="background-color: #424242;"> </span>   User.find(user.id, <span style="color: #b9ca4a;">function</span> (<span style="color: #e7c547;">err</span>, <span style="color: #e7c547;">user</span>) {
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   client.quit();
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span> (err) {
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   console.error(<span style="color: #70c0b1;">"user find error("</span> + err.toString() + <span style="color: #70c0b1;">")"</span>);
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">return</span>;
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   }
 
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   console.log(<span style="color: #8abeb7;">"user found: "</span> + JSON.stringify(user));
-<span style="background-color: #373b41;"> </span>   });
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   console.log(<span style="color: #70c0b1;">"user found: "</span> + JSON.stringify(user));
+<span style="background-color: #424242;"> </span>   });
 });
 </pre>
 </div>
@@ -194,7 +194,7 @@ user.save(<span style="color: #b5bd68;">function</span> (<span style="color: #f0
 <div class="org-src-container">
 
 <pre class="src src-js">user saved
-user found: {<span style="color: #8abeb7;">"id"</span>:1,<span style="color: #8abeb7;">"name"</span>:<span style="color: #8abeb7;">"txf"</span>,<span style="color: #8abeb7;">"male"</span>:<span style="color: #81a2be;">true</span>,<span style="color: #8abeb7;">"birthday"</span>:<span style="color: #8abeb7;">"1983-03-22T00:00:00.000</span><span style="color: #8abeb7; text-decoration: underline;">Z"</span><span style="text-decoration: underline;">}</span>
+user found: {<span style="color: #70c0b1;">"id"</span>:1,<span style="color: #70c0b1;">"name"</span>:<span style="color: #70c0b1;">"txf"</span>,<span style="color: #70c0b1;">"male"</span>:<span style="color: #7aa6da;">true</span>,<span style="color: #70c0b1;">"birthday"</span>:<span style="color: #70c0b1;">"1983-03-22T00:00:00.000</span><span style="color: #70c0b1; text-decoration: underline;">Z"</span><span style="text-decoration: underline;">}</span>
 </pre>
 </div>
 </li>

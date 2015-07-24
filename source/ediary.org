@@ -7139,3 +7139,228 @@ class RedisShard {
 ** 参考
 
    《[[http://www.oschina.net/translate/reliable-file-updates-with-python][使用 Python 进行稳定可靠的文件操作]]》
+* DONE 后台服务监护工具：forever与pm2                                  :node:
+  CLOSED: [2015-07-25 Sat 00:15]
+
+  使用后台服务监护工具有很多好处：
+
+  - 程序崩溃时自动拉起
+    
+  - 程序日志聚合（你的系统有多个模块或多个进程的时候很有必要）
+
+  - 代码更新时自动重启服务
+    
+  node.js下最常用的后台服务监护工具有：[[https://github.com/nodejitsu/forever][forever]] 、[[https://github.com/Unitech/pm2][pm2]] 。
+
+  [[https://github.com/nodejitsu/forever][forever]] 先出现，[[https://github.com/Unitech/pm2][pm2]] 后出现功能更丰富，下面是特性对比：
+
+  |---------------------+---------+-----|
+  | Feature             | Forever | PM2 |
+  |---------------------+---------+-----|
+  | Keep Alive          | ✔       | ✔   |
+  | Coffeescript        | ✔       |     |
+  | Log aggregation     |         | ✔   |
+  | API                 |         | ✔   |
+  | Terminal monitoring |         | ✔   |
+  | Clustering          |         | ✔   |
+  | JSON configuration  |         | ✔   |
+  |---------------------+---------+-----|
+
+  我在3个项目中使用 [[https://github.com/nodejitsu/forever][forever]] ，多次重启出错后，决定转向 [[https://github.com/Unitech/pm2][pm2]] ，目前我已经在两个较小的项目中成功使用 [[https://github.com/Unitech/pm2][pm2]] 。
+
+** [[https://github.com/nodejitsu/forever][forever]]
+   
+   - 安装
+
+     #+begin_src js
+       npm install -g forever
+     #+end_src
+     
+   - 配置
+
+     启动脚本
+     =start.sh=
+     #+begin_src sh
+       #!/bin/bash
+
+       export PATH=$PATH:`pwd`/node/bin:`pwd`/../node/bin:`pwd`/node_modules/forever/bin:/usr/local/node/bin
+       export NODE_ENV=${NODE_ENV:-production}
+       export NODE_CONFIG_DIR=`pwd`/config
+
+       SCRIPT=`pwd`/src/index.js
+       LOGFILE=`pwd`/run.log
+
+       running=`forever list | grep "$SCRIPT" | grep -v grep | wc -l`
+
+       if [ $running -lt 1 ]; then
+           forever start --spinSleepTime=10000 --killSignal=SIGINT --pidFile=`pwd`/run.pid -l $LOGFILE -a -w --watchDirectory=`pwd`/src --watchIgnore=".svn/*" "$SCRIPT"
+           echo -e "\nRunning."
+       else
+           echo -e "\nAlready running."
+       fi
+
+       forever list | grep "$SCRIPT"
+     #+end_src
+     
+     停止脚本
+     =stop.sh=
+     #+begin_src sh
+       #!/bin/bash
+
+       export PATH=$PATH:`pwd`/node/bin:`pwd`/../node/bin:`pwd`/node_modules/forever/bin:/usr/local/node/bin
+
+       SCRIPT=`pwd`/src/index.js
+
+       forever stop "$SCRIPT"
+     #+end_src
+     
+     重启脚本     
+     =restart.sh=
+     #+begin_src sh
+       #!/bin/bash
+
+       export PATH=$PATH:`pwd`/node/bin:`pwd`/../node/bin:`pwd`/node_modules/forever/bin:/usr/local/node/bin
+
+       SCRIPT=`pwd`/src/index.js
+
+       forever restart "$SCRIPT" || ./start.sh
+     #+end_src
+
+   - 用法
+     
+     启动
+     
+     #+begin_src sh
+       ./start.sh
+     #+end_src
+
+     停止
+     
+     #+begin_src sh
+       ./stop.sh
+     #+end_src
+
+     重启
+     
+     #+begin_src sh
+       ./restart.sh
+     #+end_src
+
+   - 缺点
+
+     + 程序退出过程中的日志无法捕获
+
+       参见：[[https://github.com/foreverjs/forever/issues/385#issuecomment-115163346][no logging after graceful shutdown #385]]
+       
+       应该是forever通过信号通知程序退出后，不再捕获程序的日志输出，程序退出的这段时间内日志丢失。
+
+       一个补丁方案：程序收到forever的退出信号后将日志直接写到日志文件（正常情况下是由forever捕获程序的错误输出写日志文件）。
+
+     + 重启可能失败
+
+       代码更新后，forever会发信号重启进程，但是程序始终重启不成功，出现大量下面的日志：
+       #+begin_example
+         Error: bind EADDRINUSE
+       #+end_example
+       
+       怀疑跟node.js的cluster中master自动拉起slave的行为相冲突，此时只有一个forever实例在运行，这种情况占比很高。
+       
+       另外crontab中调用start.sh也可能和forever相冲突，当node全退出时，可能启动多个forever实例，这种情况占比稍低。
+
+     + 未内置支持开机启动
+
+       可以直接放在crontab每分钟调用一次 =start.sh= 来实现，万一连forever进程都挂了，可以全部拉起来。
+       开机启动不内置则意味着一百个人有一百种做法，带来不必要的争议。
+
+     + 允许程序同时启动多个实例
+       
+       forever未对启动的程序进行唯一性标识，导致程序可能意外启动多个实例，多个实例之间往往相冲突，降低了系统可用性。
+
+       而由程序自已来实现单实例运行是很困难的，forever会不断地拉起退出的多余副本。
+
+** [[https://github.com/Unitech/pm2][pm2]]
+
+   - 安装
+
+     #+begin_src js
+       npm install -g pm2
+     #+end_src
+     
+   - 配置
+     
+     以 [[https://github.com/tangxinfa/upload-fiddle][upload-fiddle]] 项目为例。
+
+     统一配置其它脚本需要的环境变量
+     =.bashrc=
+     #+begin_src sh
+       export PATH=`pwd`/node/bin:`pwd`/../node/bin:`pwd`/node_modules/pm2/bin:/usr/local/node/bin:$PATH
+       export NODE_ENV=${NODE_ENV:-production}
+       export NODE_CONFIG_DIR=`pwd`/config
+       export APP_NAME="upload-fiddle"
+       export APP_SCRIPT=`pwd`/src/index.js
+     #+end_src
+
+     启动脚本
+     =start.sh=
+     #+begin_src sh
+       #!/bin/bash
+
+       source .bashrc
+       pm2 --node-args="--harmony" -n "$APP_NAME" start "$APP_SCRIPT" -i 0 --watch "`pwd`/src/*.js"
+     #+end_src
+
+     停止脚本
+     =stop.sh=
+     #+begin_src sh
+       #!/bin/bash
+
+       source .bashrc
+       pm2 --node-args="--harmony" stop "$APP_NAME"
+     #+end_src
+
+     重启脚本
+     =restart.sh=
+     #+begin_src sh
+       #!/bin/bash
+
+       source .bashrc
+       pm2 --node-args="--harmony" restart "$APP_NAME"
+     #+end_src
+     
+   - 用法
+     
+     启动
+     
+     #+begin_src sh
+       ./start.sh
+     #+end_src
+
+     停止
+     
+     #+begin_src sh
+       ./stop.sh
+     #+end_src
+
+     重启
+     
+     #+begin_src sh
+       ./restart.sh
+     #+end_src
+
+   - 缺点
+
+     + 允许程序同时启动多个实例
+       
+       pm2对启动的程序进行了唯一性标识，但是它将启动的信息保存在了当前用户的home目录下（~/.pm2），所以使用其它帐号时还是有能够启动多个程序实例，对于这一点forever也存在同样的问题。
+       
+       对于服务器来说，多帐号是常态，应该默认防止这种问题发生。
+
+** 程序写日志相关
+
+   用c/c++写日志的时候我一般都会使用日志库，如：[[http://logging.apache.org/log4cxx/index.html][log4cxx]] 、[[https://github.com/HardySimpson/zlog][zlog]] ，这些日志库容易使用而且很稳定，支持将日志写到文件或控制台，支持按大小、日期分割日志文件，支持限定日志文件数、占用空间。
+
+   但是node.js下最好的写日志方式其实是将日志直接输出到错误输出（stderr），由 [[https://github.com/nodejitsu/forever][forever]] 、[[https://github.com/Unitech/pm2][pm2]] 这样的后台服务监护工具来写日志文件。这是因为node.js做为一种动态语言，容易出现异常，特别是前期开发阶段，很多分支没有跑到，往往是写日志的语句出错，此时日志库是很难做到将异常时程序的调用堆栈写到日志文件中的，由台后服务监护工具来做能确保万无一失。
+
+** 参考
+
+   - 《[[http://se77en.cc/2013/06/27/goodbye-node-forever-hello-pm2-translation/][告别node-forever,拥抱PM2]]》
