@@ -4,7 +4,7 @@
         <title>linux - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/linux.xml</link>
-        <lastBuildDate>Fri, 24 Jul 2015 16:18:58 GMT</lastBuildDate>
+        <lastBuildDate>Mon, 03 Aug 2015 09:52:12 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>linux - 看看俺 – KanKanAn.com</title>
@@ -14,6 +14,137 @@
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <generator>Feed for Node.js</generator>
         <category>技术</category>
+        <item>
+            <title><![CDATA[linux服务器出现大量CLOSE_WAIT状态的连接]]></title>
+            <link>/article/linux-670d52a1566851fa73b0592791cf-close_wait-72b6600176848fde63a5.html</link>
+            <guid>/article/linux-670d52a1566851fa73b0592791cf-close_wait-72b6600176848fde63a5.html</guid>
+            <pubDate>Sat, 01 Aug 2015 19:21:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+昨天服务器停止服务，node.js进程耗光了服务器的内存及CPU，node.js进程卡死无法被 <code>kill</code> 掉，最后要来root帐号密码，直接 <code>kill -9</code> 才结束掉进程。
+</p>
+
+<p>
+再次鄙视一下 <a href="https://github.com/nodejitsu/forever">forever</a> ，杀不掉原来的 node.js 进程组也就罢了，竟然又拉起了一套新的 node.js 进程组。
+</p>
+
+<p>
+统计了一下 <code>10</code> 万个fd都耗光了，其中 <code>9</code> 万多个为 <code>CLOSE_WAIT</code> 状态，此时服务器已经无法响应请求。
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">CLOSE_WAIT 状态介绍</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+先看一副TCP连接关闭的状态图（ <a href="http://intronetworks.cs.luc.edu/current/html/tcp.html#index-29">来源</a> ）：
+</p>
+
+
+<div class="figure">
+<p><img src="../static/tcp_normal_close.png" alt="tcp_normal_close.png" />
+</p>
+</div>
+
+<p>
+被动关闭一方才会出现 <code>CLOSE_WAIT</code> 状态，由于被动关闭方未调用 <code>close</code> 关闭socket导致，问题肯定是由服务器代码引起。
+</p>
+
+<p>
+检测到对端socket关闭然后关闭本端socket是由 node.js 自行完成的，最大的可能是没有机会执行 <code>close</code> 。
+</p>
+
+<p>
+我们的应用客户端与服务器有一个tls长连接，当连接断开时客户端会等待3-10秒后尝试重连服务器，如果服务器出现卡顿会导致客户端频繁重连，
+</p>
+
+<p>
+如果服务器来不及关闭这些连接，则会出现 CLOSE_WAIT 状态的连接，占用大量文件描述符，减少 CLOSE_WAIT 超时时间能够在一定程度上缓解这个问题，
+</p>
+
+<p>
+但是对于我们这种长连接的环境，大量CLOSE_WAIT是问题的表象，而非根源。
+</p>
+
+<p>
+参考：《<a href="http://lvxuehu.iteye.com/blog/452487">解决CLOSE_WAIT 问题</a>》
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">内存及CPU占用彪升问题</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+伴随着 CLOSE_WAIT 出现的状况是 node.js 进程内存及CPU占用超高，单node.js进程内存占用达到 1.5G，CPU占用 90% 以上，此时应该会导致 node.js 响应慢，
+来不及关闭连上来的socket。
+</p>
+
+<p>
+所以解决问题的关键就是：找出什么原因导致 node.js 内存及CPU 100%占用。
+</p>
+
+<p>
+想到的可能是redis负载过高引起，从运维监控图上可以看出一些蹊跷，node.js出问题时redis的连接数也同样彪升，而出问题的机器上刚好就是跑redis的机器，
+另一台服务器一直相安无事，没有跑redis。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">一次午夜故障元凶浮出水面</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+在晚上两点的时候服务出现问题，同样的现象，特别留意了一下redis的统计，请求速度很低，只有1200，平时都是5000。偶然在进程列表中发现了 redis-rdb-bgsave 的身影，
+不断地执行ps看进程列表，发现 redis-rdb-bgsave 进程不断地出现，查看redis的持久化配置如下：
+</p>
+
+<pre class="example">
+save 900 1
+save 300 10
+save 60 10000
+</pre>
+
+<p>
+我们的系统有大量的redis，1分钟肯定过万，这样redis持久化变是常态了，而且由于用的是机械硬盘，持久化肯定会引起系统卡顿，先将它调整为15分钟最多持久化一次：
+</p>
+
+<pre class="example">
+config set save "900 1"
+</pre>
+
+<p>
+重启程序释放资源后系统开始正常响应，但是10多分钟后系统再次无响应，才想起一则经验教训：
+</p>
+
+<pre class="example">
+     跑redis的机器至少要预留和redis占用内存同样大小的空闲内存空间，redis RDB持久化进行fork时最坏会占用双倍内存，内存不足就会动用交换分区，系统性能急剧下降。
+</pre>
+
+<p>
+于是，立即改配置将redis所在机器上的node.js cluster进程数调小，腾出大把内存，总算没有再出现问题，今晚终于可以入眠。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4">更多疑问</h2>
+<div class="outline-text-2" id="text-4">
+<ul class="org-ul">
+<li>我们的node.js进程为什么常常会占用很多内存？
+</li>
+
+<li>netstat中看到CLOSE_WAIT状态的连接输入缓冲往往有数据，而ESTABLISHED状态的连接读写缓冲区往往为空，为什么？
+</li>
+
+<li>node.js卡顿时forever杀不死反而启动了新实例帮倒忙，pm2就一定能够解决吗？
+</li>
+
+<li>redis持久化引起服务挂掉，已经是在第二个项目中遇到了，终极解决方案是什么？
+</li>
+</ul>
+</div>
+</div>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[config库避免磁盘满时配置文件被截断]]></title>
             <link>/article/config-5e93907f514d78c176d86ee165f6914d7f6e65874ef688ab622a65ad.html</link>
@@ -212,7 +343,7 @@ linux下的 <code>passwd</code> 命令是交互式运行的（密码需要由用
 
 <div class="org-src-container">
 
-<pre class="src src-sh">(<span style="color: #c397d8;">echo</span> <span style="color: #70c0b1;">'123456'</span>; sleep 1; <span style="color: #c397d8;">echo</span> <span style="color: #70c0b1;">'123456'</span>) | passwd <span style="color: #70c0b1;">'root'</span> &gt; /dev/null
+<pre class="src src-sh">(<span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">'123456'</span>; sleep 1; <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">'123456'</span>) | passwd <span style="color: #8abeb7;">'root'</span> &gt; /dev/null
 </pre>
 </div>
 
@@ -411,7 +542,7 @@ parted /dev/md0
 
 <pre class="src src-sh">wget https://github.com/facebook/flashcache/archive/stable_v3.1.3.zip -O flashca<span style="text-decoration: underline;">che_stable_v3.1.3.zip</span>
 unzip flashcache_stable_v3.1.3.zip
-<span style="color: #c397d8;">cd</span> flashcache-stable_v3.1.3
+<span style="color: #b294bb;">cd</span> flashcache-stable_v3.1.3
 make
 make install
 modprobe flashcache
@@ -695,7 +826,7 @@ dmsetup remove cachedev
 
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo date --rfc-2822 -s <span style="color: #70c0b1;">"`curl -s -i -X HEAD --header "Connection: close" http:/</span><span style="color: #70c0b1; text-decoration: underline;">/www.baidu.com | grep -E '^Date: ' | awk -F ': ' '{print $2}'`"</span>
+<pre class="src src-sh">sudo date --rfc-2822 -s <span style="color: #8abeb7;">"`curl -s -i -X HEAD --header "Connection: close" http:/</span><span style="color: #8abeb7; text-decoration: underline;">/www.baidu.com | grep -E '^Date: ' | awk -F ': ' '{print $2}'`"</span>
 </pre>
 </div>
 ]]></content:encoded>
@@ -714,7 +845,7 @@ dmsetup remove cachedev
 
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #c397d8;">echo</span> <span style="color: #70c0b1;">'/home/tangxinfa/workdir *(rw,sync,no_root_squash)'</span> &gt;&gt; /etc/exports
+<pre class="src src-sh"><span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">'/home/tangxinfa/workdir *(rw,sync,no_root_squash)'</span> &gt;&gt; /etc/exports
 sudo exportfs -arv
 </pre>
 </div>
@@ -771,7 +902,7 @@ sudo systemctl start nfs-server.service
 
 <div class="org-src-container">
 
-<pre class="src src-sh">synclient <span style="color: #e7c547;">HorizHysteresis</span>=30 <span style="color: #e7c547;">VertHysteresis</span>=30
+<pre class="src src-sh">synclient <span style="color: #f0c674;">HorizHysteresis</span>=30 <span style="color: #f0c674;">VertHysteresis</span>=30
 </pre>
 </div>
 
@@ -858,9 +989,9 @@ add mod1 = Alt_L Meta_L
 
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #b9ca4a;">if</span> [ -f $<span style="color: #e7c547;">HOME</span>/.Xmodmap ]; <span style="color: #b9ca4a;">then</span>
-<span style="background-color: #424242;"> </span>   /usr/bin/xmodmap $<span style="color: #e7c547;">HOME</span>/.Xmodmap
-<span style="color: #b9ca4a;">fi</span>
+<pre class="src src-sh"><span style="color: #b5bd68;">if</span> [ -f $<span style="color: #f0c674;">HOME</span>/.Xmodmap ]; <span style="color: #b5bd68;">then</span>
+<span style="background-color: #373b41;"> </span>   /usr/bin/xmodmap $<span style="color: #f0c674;">HOME</span>/.Xmodmap
+<span style="color: #b5bd68;">fi</span>
 </pre>
 </div>
 
@@ -924,7 +1055,7 @@ yum install rubygems
 <div class="outline-text-2" id="text-2">
 <div class="org-src-container">
 
-<pre class="src src-sh">wget <span style="color: #70c0b1;">'http://www.redmine.org/releases/redmine-2.5.0.tar.gz'</span>
+<pre class="src src-sh">wget <span style="color: #8abeb7;">'http://www.redmine.org/releases/redmine-2.5.0.tar.gz'</span>
 tar xzvf redmine-2.5.0.tar.gz
 gem install bundler
 gem install mysql2.
@@ -952,9 +1083,9 @@ bundle install --without development test
 
 <div class="org-src-container">
 
-<pre class="src src-sql"><span style="color: #b9ca4a;">CREATE</span> DATABASE redmine <span style="color: #7aa6da;">CHARACTER</span> <span style="color: #b9ca4a;">SET</span> utf8;
-<span style="color: #b9ca4a;">CREATE</span> <span style="color: #c397d8;">USER</span> <span style="color: #70c0b1;">'redmine'</span>@<span style="color: #70c0b1;">'localhost'</span> IDENTIFIED <span style="color: #b9ca4a;">BY</span> <span style="color: #70c0b1;">'redmine'</span>;
-<span style="color: #b9ca4a;">GRANT</span> <span style="color: #b9ca4a;">ALL</span> <span style="color: #b9ca4a;">PRIVILEGES</span> <span style="color: #b9ca4a;">ON</span> redmine.* <span style="color: #b9ca4a;">TO</span> <span style="color: #70c0b1;">'redmine'</span>@<span style="color: #70c0b1;">'localhost'</span>;
+<pre class="src src-sql"><span style="color: #b5bd68;">CREATE</span> DATABASE redmine <span style="color: #81a2be;">CHARACTER</span> <span style="color: #b5bd68;">SET</span> utf8;
+<span style="color: #b5bd68;">CREATE</span> <span style="color: #b294bb;">USER</span> <span style="color: #8abeb7;">'redmine'</span>@<span style="color: #8abeb7;">'localhost'</span> IDENTIFIED <span style="color: #b5bd68;">BY</span> <span style="color: #8abeb7;">'redmine'</span>;
+<span style="color: #b5bd68;">GRANT</span> <span style="color: #b5bd68;">ALL</span> <span style="color: #b5bd68;">PRIVILEGES</span> <span style="color: #b5bd68;">ON</span> redmine.* <span style="color: #b5bd68;">TO</span> <span style="color: #8abeb7;">'redmine'</span>@<span style="color: #8abeb7;">'localhost'</span>;
 </pre>
 </div>
 </li>
@@ -967,10 +1098,10 @@ bundle install --without development test
 diff config/database.yml config/database.yml.example
 10,11c10,11
 &lt;   username: redmine
-&lt;   password: <span style="color: #70c0b1;">"redmine"</span>
+&lt;   password: <span style="color: #8abeb7;">"redmine"</span>
 ---
 &gt;   username: root
-&gt;   password: <span style="color: #70c0b1;">""</span>
+&gt;   password: <span style="color: #8abeb7;">""</span>
 </pre>
 </div>
 </li>
@@ -988,7 +1119,7 @@ diff config/database.yml config/database.yml.example
 
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #e7c547;">RAILS_ENV</span>=production rake db:migrate
+<pre class="src src-sh"><span style="color: #f0c674;">RAILS_ENV</span>=production rake db:migrate
 </pre>
 </div>
 </li>
@@ -1039,7 +1170,7 @@ production:
 
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #e7c547;">RAILS_ENV</span>=production <span style="color: #e7c547;">REDMINE_LANG</span>=zh rake redmine:load_default_data
+<pre class="src src-sh"><span style="color: #f0c674;">RAILS_ENV</span>=production <span style="color: #f0c674;">REDMINE_LANG</span>=zh rake redmine:load_default_data
 </pre>
 </div>
 </li>
@@ -1107,7 +1238,7 @@ sudo chmod -R 755 files log tmp public/plugin_assets
 <div class="outline-text-2" id="text-6">
 <div class="org-src-container">
 
-<pre class="src src-sh">wget <span style="color: #70c0b1;">'http://nginx.org/download/nginx-1.4.6.tar.gz'</span>
+<pre class="src src-sh">wget <span style="color: #8abeb7;">'http://nginx.org/download/nginx-1.4.6.tar.gz'</span>
 tar xzvf nginx-1.4.6.tar.gz
 gem install passenger
 yum install pcre-devel
@@ -1242,9 +1373,9 @@ server {
 
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #c397d8;">cd</span> plugins
+<pre class="src src-sh"><span style="color: #b294bb;">cd</span> plugins
 git clone https://github.com/tangxinfa/redmine_openid_selector.git
-rake redmine:plugins:migrate <span style="color: #e7c547;">RAILS_ENV</span>=production
+rake redmine:plugins:migrate <span style="color: #f0c674;">RAILS_ENV</span>=production
 touch tmp/restart.txt
 </pre>
 </div>
@@ -1254,7 +1385,7 @@ touch tmp/restart.txt
 
 <div class="org-src-container">
 
-<pre class="src src-sh">rake redmine:plugins:migrate <span style="color: #e7c547;">NAME</span>=redmine-openid-selector <span style="color: #e7c547;">VERSION</span>=0 <span style="color: #e7c547;">RAILS_ENV</span>=pr<span style="text-decoration: underline;">oduction</span>
+<pre class="src src-sh">rake redmine:plugins:migrate <span style="color: #f0c674;">NAME</span>=redmine-openid-selector <span style="color: #f0c674;">VERSION</span>=0 <span style="color: #f0c674;">RAILS_ENV</span>=pr<span style="text-decoration: underline;">oduction</span>
 rm -rf plugins/redmine-openid-selector
 touch tmp/restart.txt
 </pre>
@@ -1325,7 +1456,7 @@ touch tmp/restart.txt
 </p>
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo -u <span style="color: #70c0b1;">"nobody"</span> ./as_root <span style="color: #70c0b1;">"reboot"</span>
+<pre class="src src-sh">sudo -u <span style="color: #8abeb7;">"nobody"</span> ./as_root <span style="color: #8abeb7;">"reboot"</span>
 </pre>
 </div>
 
@@ -1346,21 +1477,21 @@ touch tmp/restart.txt
 <li>利用vps建本地socks代理的脚本 <code>ssh_proxy.sh</code>
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/</span><span style="color: #b9ca4a;">bash</span>
+<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/</span><span style="color: #b5bd68;">bash</span>
 
-<span style="color: #e7c547;">n</span>=<span style="color: #c397d8;">`ps waux | grep 'bash .*/ssh_proxy.sh' | grep -v grep | wc -l`</span>
-<span style="color: #b9ca4a;">if</span> [ $<span style="color: #e7c547;">n</span> -lt 3 ]; <span style="color: #b9ca4a;">then</span>
-<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">while</span> [ true ]; <span style="color: #b9ca4a;">do</span>
-<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">n</span>=<span style="color: #c397d8;">`ps aux | grep 'ssh' | grep '7070' | grep -v grep | wc -l`</span>
-<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span> [ $<span style="color: #e7c547;">n</span> -lt 1 ]; <span style="color: #b9ca4a;">then</span>
-<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #c397d8;">echo</span> <span style="color: #70c0b1;">"start ssh connecting"</span>
-<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   ssh -qTnNf -D 7070 user@host
-<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">fi</span>
-<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #c397d8;">echo</span> <span style="color: #70c0b1;">"wait for next checking"</span>
-<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   sleep 30
-<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">done</span>
-<span style="color: #b9ca4a;">fi</span>
-<span style="color: #c397d8;">echo</span> <span style="color: #70c0b1;">"ssh_proxy.sh already running"</span>
+<span style="color: #f0c674;">n</span>=<span style="color: #b294bb;">`ps waux | grep 'bash .*/ssh_proxy.sh' | grep -v grep | wc -l`</span>
+<span style="color: #b5bd68;">if</span> [ $<span style="color: #f0c674;">n</span> -lt 3 ]; <span style="color: #b5bd68;">then</span>
+<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">while</span> [ true ]; <span style="color: #b5bd68;">do</span>
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #f0c674;">n</span>=<span style="color: #b294bb;">`ps aux | grep 'ssh' | grep '7070' | grep -v grep | wc -l`</span>
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> [ $<span style="color: #f0c674;">n</span> -lt 1 ]; <span style="color: #b5bd68;">then</span>
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"start ssh connecting"</span>
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   ssh -qTnNf -D 7070 user@host
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">fi</span>
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"wait for next checking"</span>
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   sleep 30
+<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">done</span>
+<span style="color: #b5bd68;">fi</span>
+<span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"ssh_proxy.sh already running"</span>
 </pre>
 </div>
 
@@ -1470,7 +1601,7 @@ tsocks看起来很通用，应该也可以让git等进行socks代理访问。</p
 
 <pre class="src src-sh">wget http://download.jabberd.org/jabberd14/jabberd14-1.6.1.1.tar.gz
 tar xzvf jabberd14-1.6.1.1.tar.gz
-<span style="color: #c397d8;">cd</span> jabberd14-1.6.1.1
+<span style="color: #b294bb;">cd</span> jabberd14-1.6.1.1
 </pre>
 </div>
 
@@ -1489,14 +1620,14 @@ tar xzvf jabberd14-1.6.1.1.tar.gz
 &gt;     char *start_predicate = NULL;
 &gt;     char *end_predicate = NULL;
 1836c1836
-&lt;         ((char*)strchr(lang, <span style="color: #70c0b1;">'-'</span>))[0] = 0;
+&lt;         ((char*)strchr(lang, <span style="color: #8abeb7;">'-'</span>))[0] = 0;
 ---
-&gt;         strchr(lang, <span style="color: #70c0b1;">'-'</span>)[0] = 0;
+&gt;         strchr(lang, <span style="color: #8abeb7;">'-'</span>)[0] = 0;
 diff -r jabberd14-1.6.1.1/jabberd/log.cc tmp/jabberd14-1.6.1.1/jabberd/log.cc
 89c89
-&lt;         pos = (char*)strchr(zone,<span style="color: #70c0b1;">'.'</span>);
+&lt;         pos = (char*)strchr(zone,<span style="color: #8abeb7;">'.'</span>);
 ---
-&gt;     pos = strchr(zone,<span style="color: #70c0b1;">'.'</span>);
+&gt;     pos = strchr(zone,<span style="color: #8abeb7;">'.'</span>);
 diff -r jabberd14-1.6.1.1/jabberd/mio_tls.cc tmp/jabberd14-1.6.1.1/jabberd/mio_t<span style="text-decoration: underline;">ls.cc</span>
 615c615
 &lt;         ret = gnutls_certificate_set_openpgp_key_file(current_credentials, pub<span style="text-decoration: underline;">file, privfile, GNUTLS_OPENPGP_FMT_BASE64);</span>
@@ -1510,18 +1641,18 @@ diff -r jabberd14-1.6.1.1/jabberd/mio_tls.cc tmp/jabberd14-1.6.1.1/jabberd/mio_t
 &gt;     }
 &gt;
 &gt;     // load GnuPG trustdb
-&gt;     if (j_strcmp(xmlnode_get_localname(cur), <span style="color: #70c0b1;">"trustdb"</span>) == 0) {
+&gt;     if (j_strcmp(xmlnode_get_localname(cur), <span style="color: #8abeb7;">"trustdb"</span>) == 0) {
 &gt;         char const *const file = xmlnode_get_data(cur);
 &gt;
 &gt;         if (file == NULL) {
-&gt;         log_warn(NULL, <span style="color: #70c0b1;">"Initializing TLS subsystem: &lt;trustdb/&gt; element inside </span><span style="color: #70c0b1; text-decoration: underline;">the TLS configuration, that does not contain a file-name."</span><span style="text-decoration: underline;">);</span>
+&gt;         log_warn(NULL, <span style="color: #8abeb7;">"Initializing TLS subsystem: &lt;trustdb/&gt; element inside </span><span style="color: #8abeb7; text-decoration: underline;">the TLS configuration, that does not contain a file-name."</span><span style="text-decoration: underline;">);</span>
 &gt;         continue;
 &gt;         }
 &gt;
 &gt;         // load the GnuPG trustdb
 &gt;         ret = gnutls_certificate_set_openpgp_trustdb(current_credentials, file<span style="text-decoration: underline;">);</span>
 &gt;         if (ret &lt; 0) {
-&gt;         log_error(NULL, <span style="color: #70c0b1;">"Error loading GnuPG trustdb %s: %s"</span>, file, gnutls_str<span style="text-decoration: underline;">error(ret));</span>
+&gt;         log_error(NULL, <span style="color: #8abeb7;">"Error loading GnuPG trustdb %s: %s"</span>, file, gnutls_str<span style="text-decoration: underline;">error(ret));</span>
 &gt;         continue;
 &gt;         }
 </pre>
@@ -1552,8 +1683,8 @@ diff -r jabberd14-1.6.1.1/jabberd/mio_tls.cc tmp/jabberd14-1.6.1.1/jabberd/mio_t
 <pre class="src src-sh">mysql -uroot -p
 mysql&gt; CREATE DATABASE jabber CHARACTER SET utf8;
 mysql&gt; use jabber;
-mysql&gt; grant all on jabber.* to jabber@localhost identified by <span style="color: #70c0b1;">'secret'</span>;
-mysql&gt; <span style="color: #70c0b1;">\.</span> mysql.sql
+mysql&gt; grant all on jabber.* to jabber@localhost identified by <span style="color: #8abeb7;">'secret'</span>;
+mysql&gt; <span style="color: #8abeb7;">\.</span> mysql.sql
 </pre>
 </div>
 </li>
@@ -1573,17 +1704,17 @@ mysql&gt; <span style="color: #70c0b1;">\.</span> mysql.sql
 
 <pre class="src src-sh">telnet localhost 5222
 &lt;stream:stream
-<span style="background-color: #424242;"> </span> <span style="color: #e7c547;">to</span>=<span style="color: #70c0b1;">'localhost'</span>
-<span style="background-color: #424242;"> </span> <span style="color: #e7c547;">xmlns</span>=<span style="color: #70c0b1;">'jabber:client'</span>
-<span style="background-color: #424242;"> </span> xmlns:<span style="color: #e7c547;">stream</span>=<span style="color: #70c0b1;">'http://etherx.jabber.org/streams'</span>&gt;
+<span style="background-color: #373b41;"> </span> <span style="color: #f0c674;">to</span>=<span style="color: #8abeb7;">'localhost'</span>
+<span style="background-color: #373b41;"> </span> <span style="color: #f0c674;">xmlns</span>=<span style="color: #8abeb7;">'jabber:client'</span>
+<span style="background-color: #373b41;"> </span> xmlns:<span style="color: #f0c674;">stream</span>=<span style="color: #8abeb7;">'http://etherx.jabber.org/streams'</span>&gt;
 
-&lt;iq <span style="color: #e7c547;">id</span>=<span style="color: #70c0b1;">'reg1'</span> <span style="color: #e7c547;">type</span>=<span style="color: #70c0b1;">'set'</span>&gt;
-<span style="background-color: #424242;"> </span> &lt;query <span style="color: #e7c547;">xmlns</span>=<span style="color: #70c0b1;">'jabber:iq:register'</span>&gt;
-<span style="background-color: #424242;"> </span>   &lt;username&gt;jack&lt;/username&gt;
-<span style="background-color: #424242;"> </span>   &lt;password&gt;jack&lt;/password&gt;
-<span style="background-color: #424242;"> </span>   &lt;name&gt;jack&lt;/name&gt;
-<span style="background-color: #424242;"> </span>   &lt;email&gt;&lt;/email&gt;
-<span style="background-color: #424242;"> </span> &lt;/query&gt;
+&lt;iq <span style="color: #f0c674;">id</span>=<span style="color: #8abeb7;">'reg1'</span> <span style="color: #f0c674;">type</span>=<span style="color: #8abeb7;">'set'</span>&gt;
+<span style="background-color: #373b41;"> </span> &lt;query <span style="color: #f0c674;">xmlns</span>=<span style="color: #8abeb7;">'jabber:iq:register'</span>&gt;
+<span style="background-color: #373b41;"> </span>   &lt;username&gt;jack&lt;/username&gt;
+<span style="background-color: #373b41;"> </span>   &lt;password&gt;jack&lt;/password&gt;
+<span style="background-color: #373b41;"> </span>   &lt;name&gt;jack&lt;/name&gt;
+<span style="background-color: #373b41;"> </span>   &lt;email&gt;&lt;/email&gt;
+<span style="background-color: #373b41;"> </span> &lt;/query&gt;
 &lt;/iq&gt;
 
 &lt;/stream:stream&gt;
@@ -1609,17 +1740,17 @@ Empathy菜单-&gt;编辑-&gt;帐户-&gt;添加：
 
 <pre class="src src-sh">telnet localhost 5222
 &lt;stream:stream
-<span style="background-color: #424242;"> </span> <span style="color: #e7c547;">to</span>=<span style="color: #70c0b1;">'localhost'</span>
-<span style="background-color: #424242;"> </span> <span style="color: #e7c547;">xmlns</span>=<span style="color: #70c0b1;">'jabber:client'</span>
-<span style="background-color: #424242;"> </span> xmlns:<span style="color: #e7c547;">stream</span>=<span style="color: #70c0b1;">'http://etherx.jabber.org/streams'</span>&gt;
+<span style="background-color: #373b41;"> </span> <span style="color: #f0c674;">to</span>=<span style="color: #8abeb7;">'localhost'</span>
+<span style="background-color: #373b41;"> </span> <span style="color: #f0c674;">xmlns</span>=<span style="color: #8abeb7;">'jabber:client'</span>
+<span style="background-color: #373b41;"> </span> xmlns:<span style="color: #f0c674;">stream</span>=<span style="color: #8abeb7;">'http://etherx.jabber.org/streams'</span>&gt;
 
-&lt;iq <span style="color: #e7c547;">id</span>=<span style="color: #70c0b1;">'reg1'</span> <span style="color: #e7c547;">type</span>=<span style="color: #70c0b1;">'set'</span>&gt;
-<span style="background-color: #424242;"> </span> &lt;query <span style="color: #e7c547;">xmlns</span>=<span style="color: #70c0b1;">'jabber:iq:register'</span>&gt;
-<span style="background-color: #424242;"> </span>   &lt;username&gt;rose&lt;/username&gt;
-<span style="background-color: #424242;"> </span>   &lt;password&gt;rose&lt;/password&gt;
-<span style="background-color: #424242;"> </span>   &lt;name&gt;rose&lt;/name&gt;
-<span style="background-color: #424242;"> </span>   &lt;email&gt;&lt;/email&gt;
-<span style="background-color: #424242;"> </span> &lt;/query&gt;
+&lt;iq <span style="color: #f0c674;">id</span>=<span style="color: #8abeb7;">'reg1'</span> <span style="color: #f0c674;">type</span>=<span style="color: #8abeb7;">'set'</span>&gt;
+<span style="background-color: #373b41;"> </span> &lt;query <span style="color: #f0c674;">xmlns</span>=<span style="color: #8abeb7;">'jabber:iq:register'</span>&gt;
+<span style="background-color: #373b41;"> </span>   &lt;username&gt;rose&lt;/username&gt;
+<span style="background-color: #373b41;"> </span>   &lt;password&gt;rose&lt;/password&gt;
+<span style="background-color: #373b41;"> </span>   &lt;name&gt;rose&lt;/name&gt;
+<span style="background-color: #373b41;"> </span>   &lt;email&gt;&lt;/email&gt;
+<span style="background-color: #373b41;"> </span> &lt;/query&gt;
 &lt;/iq&gt;
 
 &lt;/stream:stream&gt;
@@ -1643,22 +1774,22 @@ Empathy菜单-&gt;聊天-&gt;添加联系人:
 
 <pre class="src src-sh">telnet localhost 5222
 &lt;stream:stream
-<span style="background-color: #424242;"> </span> <span style="color: #e7c547;">to</span>=<span style="color: #70c0b1;">'localhost'</span>
-<span style="background-color: #424242;"> </span> <span style="color: #e7c547;">xmlns</span>=<span style="color: #70c0b1;">'jabber:client'</span>
-<span style="background-color: #424242;"> </span> xmlns:<span style="color: #e7c547;">stream</span>=<span style="color: #70c0b1;">'http://etherx.jabber.org/streams'</span>&gt;
+<span style="background-color: #373b41;"> </span> <span style="color: #f0c674;">to</span>=<span style="color: #8abeb7;">'localhost'</span>
+<span style="background-color: #373b41;"> </span> <span style="color: #f0c674;">xmlns</span>=<span style="color: #8abeb7;">'jabber:client'</span>
+<span style="background-color: #373b41;"> </span> xmlns:<span style="color: #f0c674;">stream</span>=<span style="color: #8abeb7;">'http://etherx.jabber.org/streams'</span>&gt;
 
-&lt;iq <span style="color: #e7c547;">id</span>=<span style="color: #70c0b1;">'auth1'</span> <span style="color: #e7c547;">type</span>=<span style="color: #70c0b1;">'set'</span>&gt;
-<span style="background-color: #424242;"> </span> &lt;query <span style="color: #e7c547;">xmlns</span>=<span style="color: #70c0b1;">'jabber:iq:auth'</span>&gt;
-<span style="background-color: #424242;"> </span>   &lt;username&gt;rose&lt;/username&gt;
-<span style="background-color: #424242;"> </span>   &lt;password&gt;rose&lt;/password&gt;
-<span style="background-color: #424242;"> </span>   &lt;resource&gt;test&lt;/resource&gt;
-<span style="background-color: #424242;"> </span> &lt;/query&gt;
+&lt;iq <span style="color: #f0c674;">id</span>=<span style="color: #8abeb7;">'auth1'</span> <span style="color: #f0c674;">type</span>=<span style="color: #8abeb7;">'set'</span>&gt;
+<span style="background-color: #373b41;"> </span> &lt;query <span style="color: #f0c674;">xmlns</span>=<span style="color: #8abeb7;">'jabber:iq:auth'</span>&gt;
+<span style="background-color: #373b41;"> </span>   &lt;username&gt;rose&lt;/username&gt;
+<span style="background-color: #373b41;"> </span>   &lt;password&gt;rose&lt;/password&gt;
+<span style="background-color: #373b41;"> </span>   &lt;resource&gt;test&lt;/resource&gt;
+<span style="background-color: #373b41;"> </span> &lt;/query&gt;
 &lt;/iq&gt;
 
 &lt;presence/&gt;
 
-&lt;message <span style="color: #e7c547;">to</span>=<span style="color: #70c0b1;">'jack@localhost'</span>&gt;
-<span style="background-color: #424242;"> </span> &lt;body&gt;hello, jack&lt;/body&gt;
+&lt;message <span style="color: #f0c674;">to</span>=<span style="color: #8abeb7;">'jack@localhost'</span>&gt;
+<span style="background-color: #373b41;"> </span> &lt;body&gt;hello, jack&lt;/body&gt;
 &lt;/message&gt;
 
 &lt;/stream:stream&gt;
