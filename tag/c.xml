@@ -4,7 +4,7 @@
         <title>c - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/c.xml</link>
-        <lastBuildDate>Mon, 10 Aug 2015 09:57:24 GMT</lastBuildDate>
+        <lastBuildDate>Fri, 14 Aug 2015 10:02:17 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>c - 看看俺 – KanKanAn.com</title>
@@ -14,6 +14,62 @@
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <generator>Feed for Node.js</generator>
         <category>技术</category>
+        <item>
+            <title><![CDATA[linux下编程获取/etc/resolv.conf中的域名解析服务器]]></title>
+            <link>/article/linux-4e0b7f167a0b83b753d6-etc-resolv.conf-4e2d768457df540d89e36790670d52a15668.html</link>
+            <guid>/article/linux-4e0b7f167a0b83b753d6-etc-resolv.conf-4e2d768457df540d89e36790670d52a15668.html</guid>
+            <pubDate>Fri, 14 Aug 2015 10:01:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+直接上代码吧：
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-c"><span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;unistd.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;sys/types.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;netinet/in.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;arpa/inet.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;arpa/nameser.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;resolv.h&gt;</span>
+
+<span style="color: #81a2be;">int</span> <span style="color: #de935f;">main</span>(<span style="color: #81a2be;">int</span> <span style="color: #f0c674;">argc</span>, <span style="color: #81a2be;">char</span> *<span style="color: #f0c674;">argv</span>[])
+{
+<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">struct</span> <span style="color: #81a2be;">__res_state</span> <span style="color: #f0c674;">res</span>;
+<span style="background-color: #373b41;"> </span>   res.options &amp;= ~ RES_INIT;
+
+<span style="background-color: #373b41;"> </span>   <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">err</span> = res_ninit(&amp;res);
+<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   fprintf(stderr, <span style="color: #8abeb7;">"res_init error: %d\n"</span>, err);
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> err;
+<span style="background-color: #373b41;"> </span>   }
+
+<span style="background-color: #373b41;"> </span>   <span style="color: #81a2be;">char</span> <span style="color: #f0c674;">ip</span>[16];
+<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">for</span>(<span style="color: #81a2be;">int</span> <span style="color: #f0c674;">i</span> = 0 ; i &lt; res.nscount; ++i) {
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   ip[0] = <span style="color: #8abeb7;">'\0'</span>;
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (<span style="color: #81a2be;">!</span> inet_ntop(AF_INET, &amp;res.nsaddr_list[i].sin_addr, ip, <span style="color: #b5bd68;">sizeof</span>(ip))) <span style="text-decoration: underline;">{</span>
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   perror(<span style="color: #8abeb7;">"inet_ntop"</span>);
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">continue</span>;
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   printf(<span style="color: #8abeb7;">"ip: %s\n"</span>, ip);
+<span style="background-color: #373b41;"> </span>   }
+
+<span style="background-color: #373b41;"> </span>   res_nclose(&amp;res);
+
+<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> 0;
+}
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>参考
+
+<p>
+《<a href="http://stackoverflow.com/questions/2916675/programmatically-obtain-dns-servers-of-host">Programmatically obtain DNS servers of host</a>》
+</p>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[config库避免磁盘满时配置文件被截断]]></title>
             <link>/article/config-5e93907f514d78c176d86ee165f6914d7f6e65874ef688ab622a65ad.html</link>

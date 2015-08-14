@@ -7281,6 +7281,10 @@ class RedisShard {
 
        而由程序自已来实现单实例运行是很困难的，forever会不断地拉起退出的多余副本。
 
+     + 未内置支持cluster以及优雅重启
+
+       部署代码重启程序过程中会停止服务几秒钟。
+
 ** [[https://github.com/Unitech/pm2][pm2]]
 
    - 安装
@@ -7351,7 +7355,15 @@ class RedisShard {
      #+end_src
 
    - 缺点
+     
+     + 程序退出过程中的日志无法捕获？
 
+       初步实验貌似会有同样的问题，有待进一步确认。
+       
+     + 重启可能失败？
+
+       可以初步确认，pm2并没有采用激进的措施（kill -9）确保旧进程结束。
+       
      + 允许程序同时启动多个实例
        
        pm2对启动的程序进行了唯一性标识，但是它将启动的信息保存在了当前用户的home目录下（~/.pm2），所以使用其它帐号时还是有能够启动多个程序实例，对于这一点forever也存在同样的问题。
@@ -7445,7 +7457,7 @@ class RedisShard {
 
   - 编译最新版本的redis，暂不要安装
 
-    参见《[[7f168bd15b8988c5-redis.html][编译安装redis]]》
+    参见《[[http:7f168bd15b8988c5-redis.html][编译安装redis]]》
     
   - 将旧版的redis.conf配置文件中的配置项合入新版本redis.conf
 
@@ -7455,6 +7467,51 @@ class RedisShard {
 
   - 安装新版本redis
 
-    参见《[[7f168bd15b8988c5-redis.html][编译安装redis]]》
+    参见《[[http:7f168bd15b8988c5-redis.html][编译安装redis]]》
 
   - 启动新版本redis
+* DONE linux下编程获取/etc/resolv.conf中的域名解析服务器            :linux:c:
+  CLOSED: [2015-08-14 Fri 18:01]
+
+  直接上代码吧：
+
+  #+begin_src c
+    #include <unistd.h>
+    #include <sys/types.h>
+    #include <netinet/in.h>
+    #include <arpa/inet.h>
+    #include <arpa/nameser.h>
+    #include <resolv.h>
+
+    int main(int argc, char *argv[])
+    {
+        struct __res_state res;
+        res.options &= ~ RES_INIT;
+
+        int err = res_ninit(&res);
+        if (err) {
+            fprintf(stderr, "res_init error: %d\n", err);
+            return err;
+        }
+
+        char ip[16];
+        for(int i = 0 ; i < res.nscount; ++i) {
+            ip[0] = '\0';
+            if (! inet_ntop(AF_INET, &res.nsaddr_list[i].sin_addr, ip, sizeof(ip))) {
+                perror("inet_ntop");
+                continue;
+            }
+            printf("ip: %s\n", ip);
+        }
+
+        res_nclose(&res);
+
+        return 0;
+    }
+  #+end_src
+
+  - 参考
+
+    《[[http://stackoverflow.com/questions/2916675/programmatically-obtain-dns-servers-of-host][Programmatically obtain DNS servers of host]]》
+
+    
