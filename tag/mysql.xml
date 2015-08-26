@@ -4,7 +4,7 @@
         <title>mysql - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/mysql.xml</link>
-        <lastBuildDate>Mon, 24 Aug 2015 13:08:08 GMT</lastBuildDate>
+        <lastBuildDate>Wed, 26 Aug 2015 10:18:56 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>mysql - 看看俺 – KanKanAn.com</title>
@@ -107,30 +107,30 @@ skip-name-resolve
 <pre class="src src-python"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/usr/bin/env python</span>
 <span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">-*- coding: utf-8 -*-</span>
 
-<span style="color: #b9ca4a;">import</span> MySQLdb
+<span style="color: #b5bd68;">import</span> MySQLdb
 
-<span style="color: #b9ca4a;">if</span> <span style="color: #c397d8;">__name__</span> == <span style="color: #70c0b1;">'__main__'</span>:
-<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">mysql</span> = MySQLdb.connect(host=<span style="color: #70c0b1;">'localhost'</span>, user=<span style="color: #70c0b1;">'root'</span>, passwd=<span style="color: #70c0b1;">'123456'</span>, char<span style="text-decoration: underline;">set=</span><span style="color: #70c0b1; text-decoration: underline;">'utf8'</span><span style="text-decoration: underline;">)</span>
-<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">cursor</span> = mysql.cursor()
-<span style="background-color: #424242;"> </span>   cursor.execute(<span style="color: #70c0b1;">'SET NAMES UTF8'</span>)
-<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">sql</span> = <span style="color: #70c0b1;">'DROP DATABASE IF EXISTS mysqldb_utf8_test'</span>
-<span style="background-color: #424242;"> </span>   cursor.execute(sql)
-<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">sql</span> = <span style="color: #70c0b1;">'CREATE DATABASE mysqldb_utf8_test DEFAULT CHARACTER SET utf8 COLLATE </span><span style="color: #70c0b1; text-decoration: underline;">utf8_general_ci'</span>
-<span style="background-color: #424242;"> </span>   cursor.execute(sql)
-<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">mysql</span> = MySQLdb.connect(host=<span style="color: #70c0b1;">'localhost'</span>, user=<span style="color: #70c0b1;">'root'</span>, passwd=<span style="color: #70c0b1;">'123456'</span>, db=<span style="color: #70c0b1;">'</span><span style="color: #70c0b1; text-decoration: underline;">mysqldb_utf8_test'</span><span style="text-decoration: underline;">, charset=</span><span style="color: #70c0b1; text-decoration: underline;">'utf8'</span><span style="text-decoration: underline;">)</span>
-<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">cursor</span> = mysql.cursor()
-<span style="background-color: #424242;"> </span>   cursor.execute(<span style="color: #70c0b1;">'SET NAMES UTF8'</span>)
-<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">sql</span> = <span style="color: #70c0b1;">'CREATE TABLE utf8_table(key_field VARCHAR(32) NOT NULL, value_field V</span><span style="color: #70c0b1; text-decoration: underline;">ARCHAR(255) NOT NULL)'</span>
-<span style="background-color: #424242;"> </span>   cursor.execute(sql)
-<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">key</span> = <span style="color: #70c0b1;">'tangxinfa'</span>
-<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">value</span> = <span style="color: #70c0b1;">'&#22909;&#20154;&#19968;&#20010;'</span>
-<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">sql</span> = <span style="color: #70c0b1;">'INSERT INTO utf8_table VALUES("%s", "%s")'</span>%(key, value)
-<span style="background-color: #424242;"> </span>   cursor.execute(sql)       <span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">&#27880;&#24847;&#26576;&#20123;&#26087;&#29256;&#26412;&#30340;mysql&#65288;&#22914;4.1.22&#20197;&#19979;&#65289;&#65292;mysql.character_set_name</span><span style="color: #969896; font-style: italic; text-decoration: underline;">()&#24635;&#26159;&#36820;&#22238;latin1&#65292;&#20250;&#24341;&#36215;&#20081;&#30721;&#65292;&#38656;&#35201;&#25913;&#20026;cursor.execute('INSERT INTO utf8_table VALUES("%s", "%s")', (key, value))</span>
-<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">sql</span> = <span style="color: #70c0b1;">'select * from utf8_table'</span>
-<span style="background-color: #424242;"> </span>   cursor.execute(sql)
-<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">for</span> record <span style="color: #b9ca4a;">in</span> cursor.fetchall():
-<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">for</span> item <span style="color: #b9ca4a;">in</span> record:
-<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">print</span> item.encode(<span style="color: #70c0b1;">'utf8'</span>)
+<span style="color: #b5bd68;">if</span> <span style="color: #b294bb;">__name__</span> == <span style="color: #8abeb7;">'__main__'</span>:
+<span style="background-color: #373b41;"> </span>   <span style="color: #f0c674;">mysql</span> = MySQLdb.connect(host=<span style="color: #8abeb7;">'localhost'</span>, user=<span style="color: #8abeb7;">'root'</span>, passwd=<span style="color: #8abeb7;">'123456'</span>, char<span style="text-decoration: underline;">set=</span><span style="color: #8abeb7; text-decoration: underline;">'utf8'</span><span style="text-decoration: underline;">)</span>
+<span style="background-color: #373b41;"> </span>   <span style="color: #f0c674;">cursor</span> = mysql.cursor()
+<span style="background-color: #373b41;"> </span>   cursor.execute(<span style="color: #8abeb7;">'SET NAMES UTF8'</span>)
+<span style="background-color: #373b41;"> </span>   <span style="color: #f0c674;">sql</span> = <span style="color: #8abeb7;">'DROP DATABASE IF EXISTS mysqldb_utf8_test'</span>
+<span style="background-color: #373b41;"> </span>   cursor.execute(sql)
+<span style="background-color: #373b41;"> </span>   <span style="color: #f0c674;">sql</span> = <span style="color: #8abeb7;">'CREATE DATABASE mysqldb_utf8_test DEFAULT CHARACTER SET utf8 COLLATE </span><span style="color: #8abeb7; text-decoration: underline;">utf8_general_ci'</span>
+<span style="background-color: #373b41;"> </span>   cursor.execute(sql)
+<span style="background-color: #373b41;"> </span>   <span style="color: #f0c674;">mysql</span> = MySQLdb.connect(host=<span style="color: #8abeb7;">'localhost'</span>, user=<span style="color: #8abeb7;">'root'</span>, passwd=<span style="color: #8abeb7;">'123456'</span>, db=<span style="color: #8abeb7;">'</span><span style="color: #8abeb7; text-decoration: underline;">mysqldb_utf8_test'</span><span style="text-decoration: underline;">, charset=</span><span style="color: #8abeb7; text-decoration: underline;">'utf8'</span><span style="text-decoration: underline;">)</span>
+<span style="background-color: #373b41;"> </span>   <span style="color: #f0c674;">cursor</span> = mysql.cursor()
+<span style="background-color: #373b41;"> </span>   cursor.execute(<span style="color: #8abeb7;">'SET NAMES UTF8'</span>)
+<span style="background-color: #373b41;"> </span>   <span style="color: #f0c674;">sql</span> = <span style="color: #8abeb7;">'CREATE TABLE utf8_table(key_field VARCHAR(32) NOT NULL, value_field V</span><span style="color: #8abeb7; text-decoration: underline;">ARCHAR(255) NOT NULL)'</span>
+<span style="background-color: #373b41;"> </span>   cursor.execute(sql)
+<span style="background-color: #373b41;"> </span>   <span style="color: #f0c674;">key</span> = <span style="color: #8abeb7;">'tangxinfa'</span>
+<span style="background-color: #373b41;"> </span>   <span style="color: #f0c674;">value</span> = <span style="color: #8abeb7;">'&#22909;&#20154;&#19968;&#20010;'</span>
+<span style="background-color: #373b41;"> </span>   <span style="color: #f0c674;">sql</span> = <span style="color: #8abeb7;">'INSERT INTO utf8_table VALUES("%s", "%s")'</span>%(key, value)
+<span style="background-color: #373b41;"> </span>   cursor.execute(sql)       <span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">&#27880;&#24847;&#26576;&#20123;&#26087;&#29256;&#26412;&#30340;mysql&#65288;&#22914;4.1.22&#20197;&#19979;&#65289;&#65292;mysql.character_set_name</span><span style="color: #969896; font-style: italic; text-decoration: underline;">()&#24635;&#26159;&#36820;&#22238;latin1&#65292;&#20250;&#24341;&#36215;&#20081;&#30721;&#65292;&#38656;&#35201;&#25913;&#20026;cursor.execute('INSERT INTO utf8_table VALUES("%s", "%s")', (key, value))</span>
+<span style="background-color: #373b41;"> </span>   <span style="color: #f0c674;">sql</span> = <span style="color: #8abeb7;">'select * from utf8_table'</span>
+<span style="background-color: #373b41;"> </span>   cursor.execute(sql)
+<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">for</span> record <span style="color: #b5bd68;">in</span> cursor.fetchall():
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">for</span> item <span style="color: #b5bd68;">in</span> record:
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">print</span> item.encode(<span style="color: #8abeb7;">'utf8'</span>)
 </pre>
 </div>
 </dd>

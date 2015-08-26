@@ -7358,11 +7358,11 @@ class RedisShard {
      
      + 程序退出过程中的日志无法捕获？
 
-       使用 =pm2 stop= 会有同样的问题，但是pm2支持优雅退出（ =pm2 gracefulReload= ），此时不但退出过程中的日志能够正常捕获，而且可以实现服务0停机时间。
+       不一定。使用 =pm2 stop= 会有同样的问题，但是pm2支持优雅退出（ =pm2 gracefulReload= ），此时不但退出过程中的日志能够正常捕获，而且可以实现服务0停机时间。
        
-     + 重启可能失败？
+     + 重启可能失败
 
-       =pm2 restart= 并没有采用激进的措施（kill -9）确保旧进程结束。重现步骤：用gdb调试运行中的node进程（gdb node <PID>后不执行任何gdb命令），然后用pm2 restart重启服务，此时旧的进程杀不死，新的进程被创建。
+       是的。=pm2 restart= 并没有采用激进的措施（kill -9）确保旧进程结束。重现步骤：用gdb调试运行中的node进程（gdb node <PID>后不执行任何gdb命令），然后用pm2 restart重启服务，此时旧的进程杀不死，新的进程被创建。
        
      + 允许程序同时启动多个实例
        
@@ -7513,3 +7513,47 @@ class RedisShard {
   - 参考
 
     《[[http://stackoverflow.com/questions/2916675/programmatically-obtain-dns-servers-of-host][Programmatically obtain DNS servers of host]]》
+* DONE 轻断食日（2015-8-25）                                            :轻断食:
+  CLOSED: [2015-08-25 Tue 14:43]
+
+  今天是轻断食日，感觉很自然，早上给小孩喂饭时也没有顺便吃一点，体重已经稳定在64-65公斤，最近几周已经调整为一周一天断食，目前的体重已经比较合理，等肌肉结实一点再恢复到一周二天断食继续减轻一些体重，仍然用的是前一天晚餐和第二天早餐不吃的方法，断食时间大部分在睡觉容易施行。
+
+  Cheers!
+* DONE 拉取git仓库的子目录                                              :git:
+  CLOSED: [2015-08-26 Wed 18:17]
+  
+  我们的git仓库目录结构：
+
+  #+begin_example
+    http://server/company.git +
+                              |
+                              +- project1
+                              |
+                              +- project2
+                              |
+                              +- project3
+                              |
+                              +- ...
+  #+end_example
+
+  以前使用svn的时候是可以直接拉取其中一个子项目，像下面这样：
+
+  #+begin_src sh
+    svn checkout http://server/company.git/project1
+  #+end_src
+
+  但是git好像不支持这种用法，网上找了一下相关资料，可以借助git的 =Sparse checkout= 实现：
+
+  #+begin_src sh
+    git clone http://server/company.git --no-checkout
+    cd company
+    git config core.sparsecheckout true
+    echo "project1/" > .git/info/sparse-checkout
+    git checkout --
+    cd ..
+    ln -s company/project1 ./
+  #+end_src
+
+  - 参考
+
+    《[[http://stackoverflow.com/questions/4114887/is-it-possible-to-do-a-sparse-checkout-without-checking-out-the-whole-repository][Is it possible to do a sparse checkout without checking out the whole repository first?]]》

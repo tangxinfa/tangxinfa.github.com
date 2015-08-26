@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+    <channel>
+        <title>git - 看看俺 – KanKanAn.com</title>
+        <description>记我所思，忆我所为。</description>
+        <link>http://blog.kankanan.com/tag/git.xml</link>
+        <lastBuildDate>Wed, 26 Aug 2015 10:18:56 GMT</lastBuildDate>
+        <docs>http://blogs.law.harvard.edu/tech/rss</docs>
+        <image>
+            <title>git - 看看俺 – KanKanAn.com</title>
+            <url>http://blog.kankanan.com/static/favicon.ico</url>
+            <link>http://blog.kankanan.com/tag/git.xml</link>
+        </image>
+        <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
+        <generator>Feed for Node.js</generator>
+        <category>技术</category>
+        <item>
+            <title><![CDATA[拉取git仓库的子目录]]></title>
+            <link>/article/62c953d6-git-4ed35e9376845b5076ee5f55.html</link>
+            <guid>/article/62c953d6-git-4ed35e9376845b5076ee5f55.html</guid>
+            <pubDate>Wed, 26 Aug 2015 10:17:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+我们的git仓库目录结构：
+</p>
+
+<pre class="example">
+http://server/company.git +
+                          |
+                          +- project1
+                          |
+                          +- project2
+                          |
+                          +- project3
+                          |
+                          +- ...
+</pre>
+
+<p>
+以前使用svn的时候是可以直接拉取其中一个子项目，像下面这样：
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">svn checkout http://server/company.git/project1
+</pre>
+</div>
+
+<p>
+但是git好像不支持这种用法，网上找了一下相关资料，可以借助git的 <code>Sparse checkout</code> 实现：
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">git clone http://server/company.git --no-checkout
+<span style="color: #b294bb;">cd</span> company
+git config core.sparsecheckout true
+<span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"project1/"</span> &gt; .git/info/sparse-checkout
+git checkout --
+<span style="color: #b294bb;">cd</span> ..
+ln -s company/project1 ./
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>参考
+
+<p>
+《<a href="http://stackoverflow.com/questions/4114887/is-it-possible-to-do-a-sparse-checkout-without-checking-out-the-whole-repository">Is it possible to do a sparse checkout without checking out the whole repository first?</a>》</p>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
+    </channel>
+</rss>
