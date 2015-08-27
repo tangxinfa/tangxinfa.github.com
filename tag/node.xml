@@ -4,7 +4,7 @@
         <title>node - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/node.xml</link>
-        <lastBuildDate>Wed, 26 Aug 2015 10:18:56 GMT</lastBuildDate>
+        <lastBuildDate>Thu, 27 Aug 2015 09:04:59 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>node - 看看俺 – KanKanAn.com</title>
@@ -14,6 +14,119 @@
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <generator>Feed for Node.js</generator>
         <category>技术</category>
+        <item>
+            <title><![CDATA[process.exit导致的控制台输出不全]]></title>
+            <link>/article/process.exit-5bfc81f4768463a7523653f08f9351fa4e0d5168.html</link>
+            <guid>/article/process.exit-5bfc81f4768463a7523653f08f9351fa4e0d5168.html</guid>
+            <pubDate>Thu, 27 Aug 2015 09:03:00 GMT</pubDate>
+            <content:encoded><![CDATA[<ul class="org-ul">
+<li>先上案例程序：
+
+<div class="org-src-container">
+
+<pre class="src src-js"><span style="color: #b5bd68;">for</span>(<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">i</span> = 0; i &lt; 10000; ++i) {
+<span style="background-color: #373b41;"> </span>   console.log(<span style="color: #8abeb7;">"this is long long long long long long long long long long long </span><span style="color: #8abeb7; text-decoration: underline;">long long long long long long long long long long long long long long long long long long log "</span><span style="text-decoration: underline;"> + i);</span>
+}
+process.exit(0);
+</pre>
+</div>
+
+<p>
+这个程序输出10000行日志，然后结束进程。
+</p>
+</li>
+
+<li><code>Emacs Shell</code> 以及 <code>GNOME Terminal</code> 下运行结果（省略中间部分输出）：
+
+<pre class="example">
+$ node /home/tangxinfa/Examples/test_exit.js
+this is long long long long long long long long long long long long long long long long long long long long long long long long long long long long long log 0
+...
+this is long long long long long long long long long long long long long long long long long long long long long long long long long long long long long log 119
+$
+</pre>
+
+<p>
+程序只输出了前面200行日志。
+</p>
+</li>
+
+<li>按 <code>Ctrl+Alt+F2</code> 进入2号系统终端下运行结果（省略中间部分输出）：
+
+<pre class="example">
+$ node /home/tangxinfa/Examples/test_exit.js
+this is long long long long long long long long long long long long long long long long long long long long long long long long long long long long long log 0
+...
+this is long long long long long long long long long long long long long long long long long long long long long long long long long long long long long log 9999
+$
+</pre>
+
+<p>
+程序输出了完整的日志。
+</p>
+</li>
+
+<li>日志重定向到文件时 <code>Emacs Shell</code> 以及 <code>GNOME Terminal</code> 下运行结果（省略中间部分输出）：
+
+<pre class="example">
+$ node /home/tangxinfa/Examples/test_exit.js &gt; /tmp/test_exit.log
+$ tail -1 /tmp/test_exit.log
+this is long long long long long long long long long long long long long long long long long long long long long long long long long long long long long log 9999
+$
+</pre>
+
+<p>
+程序输出了完整的日志。
+</p>
+</li>
+
+<li>原因
+
+<p>
+如果输出目标为终端（=Emacs Shell= 以及 <code>GNOME Terminal</code> 并非真正的终端）或文件时，console函数是同步的（避免程序过早退出导致丢消息），目标为管道时则为异步（避免长时间堵塞）。
+</p>
+
+<blockquote>
+<p>
+The console functions are synchronous when the destination is a terminal or a file (to avoid lost messages in case of premature exit) and asynchronous when it's a pipe (to avoid blocking for long periods of time).
+</p>
+</blockquote>
+
+<p>
+参考：《<a href="http://stackoverflow.com/questions/18748164/process-exit0-output-disappears">process.exit(0): output disappears?</a>》
+</p>
+</li>
+
+<li>解决方案
+
+<p>
+调用 <code>process.exit</code> 时确保输出完毕，封装如下：
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-js"><span style="color: #969896; font-style: italic;">/// </span><span style="color: #969896; font-style: italic;">Exit process after stdout/stderr flushed.</span>
+<span style="color: #b5bd68;">function</span> <span style="color: #de935f;">exit</span>(<span style="color: #f0c674;">code</span>) {
+<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">drain</span> = 0;
+<span style="background-color: #373b41;"> </span>   process.stdout.once(<span style="color: #8abeb7;">"drain"</span>, <span style="color: #b5bd68;">function</span> () {
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   drain += 1;
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (drain === 2) {
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   process.exit(code);
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
+<span style="background-color: #373b41;"> </span>   });
+<span style="background-color: #373b41;"> </span>   process.stderr.once(<span style="color: #8abeb7;">"drain"</span>, <span style="color: #b5bd68;">function</span> () {
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   drain += 1;
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (drain === 2) {
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   process.exit(code);
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
+<span style="background-color: #373b41;"> </span>   });
+}
+</pre>
+</div>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[linux服务器出现大量CLOSE_WAIT状态的连接]]></title>
             <link>/article/linux-670d52a1566851fa73b0592791cf-close_wait-72b6600176848fde63a5.html</link>

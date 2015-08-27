@@ -7557,3 +7557,84 @@ class RedisShard {
   - 参考
 
     《[[http://stackoverflow.com/questions/4114887/is-it-possible-to-do-a-sparse-checkout-without-checking-out-the-whole-repository][Is it possible to do a sparse checkout without checking out the whole repository first?]]》
+* DONE process.exit导致的控制台输出不全                                :node:
+  CLOSED: [2015-08-27 Thu 17:03]
+
+  - 先上案例程序：
+
+    #+begin_src js
+      for(var i = 0; i < 10000; ++i) {
+          console.log("this is long long long long long long long long long long long long long long long long long long long long long long long long long long long long long log " + i);
+      }
+      process.exit(0);
+    #+end_src
+
+    这个程序输出10000行日志，然后结束进程。
+    
+  - =Emacs Shell= 以及 =GNOME Terminal= 下运行结果（省略中间部分输出）：
+
+    #+begin_example
+      $ node /home/tangxinfa/Examples/test_exit.js
+      this is long long long long long long long long long long long long long long long long long long long long long long long long long long long long long log 0
+      ...
+      this is long long long long long long long long long long long long long long long long long long long long long long long long long long long long long log 119
+      $ 
+    #+end_example
+
+    程序只输出了前面200行日志。
+
+  - 按 =Ctrl+Alt+F2= 进入2号系统终端下运行结果（省略中间部分输出）：
+    
+    #+begin_example
+      $ node /home/tangxinfa/Examples/test_exit.js
+      this is long long long long long long long long long long long long long long long long long long long long long long long long long long long long long log 0
+      ...
+      this is long long long long long long long long long long long long long long long long long long long long long long long long long long long long long log 9999
+      $ 
+    #+end_example
+
+    程序输出了完整的日志。
+
+  - 日志重定向到文件时 =Emacs Shell= 以及 =GNOME Terminal= 下运行结果（省略中间部分输出）：
+
+    #+begin_example
+      $ node /home/tangxinfa/Examples/test_exit.js > /tmp/test_exit.log
+      $ tail -1 /tmp/test_exit.log
+      this is long long long long long long long long long long long long long long long long long long long long long long long long long long long long long log 9999
+      $ 
+    #+end_example
+
+    程序输出了完整的日志。
+
+  - 原因
+
+    如果输出目标为终端（=Emacs Shell= 以及 =GNOME Terminal= 并非真正的终端）或文件时，console函数是同步的（避免程序过早退出导致丢消息），目标为管道时则为异步（避免长时间堵塞）。
+
+    #+begin_quote
+    The console functions are synchronous when the destination is a terminal or a file (to avoid lost messages in case of premature exit) and asynchronous when it's a pipe (to avoid blocking for long periods of time).
+    #+end_quote
+
+    参考：《[[http://stackoverflow.com/questions/18748164/process-exit0-output-disappears][process.exit(0): output disappears?]]》
+
+  - 解决方案
+
+    调用 =process.exit= 时确保输出完毕，封装如下：
+
+    #+begin_src js
+      /// Exit process after stdout/stderr flushed.
+      function exit(code) {
+          var drain = 0;
+          process.stdout.once("drain", function () {
+              drain += 1;
+              if (drain === 2) {
+                  process.exit(code);
+              }
+          });
+          process.stderr.once("drain", function () {
+              drain += 1;
+              if (drain === 2) {
+                  process.exit(code);
+              }
+          });
+      }
+    #+end_src

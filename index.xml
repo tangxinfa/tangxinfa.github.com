@@ -4,7 +4,7 @@
         <title>看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com</link>
-        <lastBuildDate>Wed, 26 Aug 2015 10:18:56 GMT</lastBuildDate>
+        <lastBuildDate>Thu, 27 Aug 2015 09:04:59 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>看看俺 – KanKanAn.com</title>
@@ -16,6 +16,119 @@
         <category>ediary</category>
         <category>技术</category>
         <category>生活</category>
+        <item>
+            <title><![CDATA[process.exit导致的控制台输出不全]]></title>
+            <link>/article/process.exit-5bfc81f4768463a7523653f08f9351fa4e0d5168.html</link>
+            <guid>/article/process.exit-5bfc81f4768463a7523653f08f9351fa4e0d5168.html</guid>
+            <pubDate>Thu, 27 Aug 2015 09:03:00 GMT</pubDate>
+            <content:encoded><![CDATA[<ul class="org-ul">
+<li>先上案例程序：
+
+<div class="org-src-container">
+
+<pre class="src src-js"><span style="color: #b5bd68;">for</span>(<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">i</span> = 0; i &lt; 10000; ++i) {
+<span style="background-color: #373b41;"> </span>   console.log(<span style="color: #8abeb7;">"this is long long long long long long long long long long long </span><span style="color: #8abeb7; text-decoration: underline;">long long long long long long long long long long long long long long long long long long log "</span><span style="text-decoration: underline;"> + i);</span>
+}
+process.exit(0);
+</pre>
+</div>
+
+<p>
+这个程序输出10000行日志，然后结束进程。
+</p>
+</li>
+
+<li><code>Emacs Shell</code> 以及 <code>GNOME Terminal</code> 下运行结果（省略中间部分输出）：
+
+<pre class="example">
+$ node /home/tangxinfa/Examples/test_exit.js
+this is long long long long long long long long long long long long long long long long long long long long long long long long long long long long long log 0
+...
+this is long long long long long long long long long long long long long long long long long long long long long long long long long long long long long log 119
+$
+</pre>
+
+<p>
+程序只输出了前面200行日志。
+</p>
+</li>
+
+<li>按 <code>Ctrl+Alt+F2</code> 进入2号系统终端下运行结果（省略中间部分输出）：
+
+<pre class="example">
+$ node /home/tangxinfa/Examples/test_exit.js
+this is long long long long long long long long long long long long long long long long long long long long long long long long long long long long long log 0
+...
+this is long long long long long long long long long long long long long long long long long long long long long long long long long long long long long log 9999
+$
+</pre>
+
+<p>
+程序输出了完整的日志。
+</p>
+</li>
+
+<li>日志重定向到文件时 <code>Emacs Shell</code> 以及 <code>GNOME Terminal</code> 下运行结果（省略中间部分输出）：
+
+<pre class="example">
+$ node /home/tangxinfa/Examples/test_exit.js &gt; /tmp/test_exit.log
+$ tail -1 /tmp/test_exit.log
+this is long long long long long long long long long long long long long long long long long long long long long long long long long long long long long log 9999
+$
+</pre>
+
+<p>
+程序输出了完整的日志。
+</p>
+</li>
+
+<li>原因
+
+<p>
+如果输出目标为终端（=Emacs Shell= 以及 <code>GNOME Terminal</code> 并非真正的终端）或文件时，console函数是同步的（避免程序过早退出导致丢消息），目标为管道时则为异步（避免长时间堵塞）。
+</p>
+
+<blockquote>
+<p>
+The console functions are synchronous when the destination is a terminal or a file (to avoid lost messages in case of premature exit) and asynchronous when it's a pipe (to avoid blocking for long periods of time).
+</p>
+</blockquote>
+
+<p>
+参考：《<a href="http://stackoverflow.com/questions/18748164/process-exit0-output-disappears">process.exit(0): output disappears?</a>》
+</p>
+</li>
+
+<li>解决方案
+
+<p>
+调用 <code>process.exit</code> 时确保输出完毕，封装如下：
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-js"><span style="color: #969896; font-style: italic;">/// </span><span style="color: #969896; font-style: italic;">Exit process after stdout/stderr flushed.</span>
+<span style="color: #b5bd68;">function</span> <span style="color: #de935f;">exit</span>(<span style="color: #f0c674;">code</span>) {
+<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">drain</span> = 0;
+<span style="background-color: #373b41;"> </span>   process.stdout.once(<span style="color: #8abeb7;">"drain"</span>, <span style="color: #b5bd68;">function</span> () {
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   drain += 1;
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (drain === 2) {
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   process.exit(code);
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
+<span style="background-color: #373b41;"> </span>   });
+<span style="background-color: #373b41;"> </span>   process.stderr.once(<span style="color: #8abeb7;">"drain"</span>, <span style="color: #b5bd68;">function</span> () {
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   drain += 1;
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (drain === 2) {
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   process.exit(code);
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
+<span style="background-color: #373b41;"> </span>   });
+}
+</pre>
+</div>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[拉取git仓库的子目录]]></title>
             <link>/article/62c953d6-git-4ed35e9376845b5076ee5f55.html</link>
@@ -6503,6 +6616,130 @@ make install
 ]]></content:encoded>
         </item>
         <item>
+            <title><![CDATA[Discuz访问推广任务反作弊]]></title>
+            <link>/article/discuz-8bbf95ee63a85e7f4efb52a153cd4f5c5f0a.html</link>
+            <guid>/article/discuz-8bbf95ee63a85e7f4efb52a153cd4f5c5f0a.html</guid>
+            <pubDate>Thu, 19 Dec 2013 17:02:00 GMT</pubDate>
+            <content:encoded><![CDATA[<ul class="org-ul">
+<li>识别作弊
+
+<p>
+发贴、回复较少的用户具有偏高的积分、等级通常就是潜在的作弊对象。在后台查看该用户的积分历史，如果来历不明，那么很可能是通过访问推广作弊获得的。
+</p>
+
+<p>
+在我们的例子里就发现有一个用户金钱数过高，先查看该用户的积分表：
+</p>
+
+<pre class="example">
+mysql&gt; SELECT total, cyclenum, extcredits2 FROM g_common_credit_rule_log WHERE rid=8 and uid=119;
++-------+----------+-------------+
+| total | cyclenum | extcredits2 |
++-------+----------+-------------+
+|  3454 |     3454 |           1 |
++-------+----------+-------------+
+1 row in set (0.00 sec)
+</pre>
+
+<p>
+相关字段说明
+</p>
+<dl class="org-dl">
+<dt> total </dt><dd>策略被执行总次数
+</dd>
+<dt> cyclenum </dt><dd>周期被执行次数 
+</dd>
+<dt> extcredits2 </dt><dd>我们的系统里对应金钱数
+</dd>
+<dt> rid </dt><dd>值8为访问推广任务类型
+</dd>
+<dt> uid </dt><dd>值119为作弊用户id
+</dd>
+</dl>
+<p>
+从上面可以看出该用户完成了3454次任务， 接下来就需要确认这些任务是通过作弊完成的了。
+</p>
+
+<p>
+搜索该用户推广链接在web服务器中留下的访问日志：
+</p>
+<pre class="example">
+logs# grep 'fromuid=119' /usr/local/nginx/logs/access.log*
+"GET /?fromuid=119.jpg HTTP/1.1" 301 6243 "http://xxxx.org/details.php?id=178668"
+...
+</pre>
+
+<p>
+可以初步断定，该用户通过在其它论坛中发布信息并将推广url注入到图片的url中，这样我们的站点在访问量没有任何增长的情况下该用户的推广数却瞬间彪升了。
+</p>
+</li>
+
+<li>阻止作弊
+
+<p>
+通过使用引用页中的用户标识进行记录来解决这个问题，这样只有当用户来到论坛并进行了相关操作才算推荐有效。
+</p>
+
+<p>
+修改source/class/discuz/discuz_application.php文件，将下面的内容：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-php"><span style="color: #b5bd68;">if</span>((!<span style="color: #c5c8c6; background-color: #1d1f21;">empty(</span>$<span style="color: #81a2be;">_GET</span>[<span style="color: #8abeb7;">'fromuid'</span>]) || !<span style="color: #c5c8c6; background-color: #1d1f21;">empty(</span>$<span style="color: #81a2be;">_GET</span>[<span style="color: #8abeb7;">'fromuser'</span>])) &amp;&amp; ($<span style="color: #81a2be;">this</span>-&gt;<span style="color: #f0c674;">var</span>[<span style="color: #8abeb7;">'setti</span><span style="color: #8abeb7; text-decoration: underline;">ng'</span><span style="text-decoration: underline;">][</span><span style="color: #8abeb7; text-decoration: underline;">'creditspolicy'</span><span style="text-decoration: underline;">][</span><span style="color: #8abeb7; text-decoration: underline;">'promotion_visit'</span><span style="text-decoration: underline;">] || $</span><span style="color: #81a2be; text-decoration: underline;">this</span><span style="text-decoration: underline;">-&gt;</span><span style="color: #f0c674; text-decoration: underline;">var</span><span style="text-decoration: underline;">[</span><span style="color: #8abeb7; text-decoration: underline;">'setting'</span><span style="text-decoration: underline;">][</span><span style="color: #8abeb7; text-decoration: underline;">'creditspolicy'</span><span style="text-decoration: underline;">][</span><span style="color: #8abeb7; text-decoration: underline;">'promotion_register'</span><span style="text-decoration: underline;">])) {</span>
+<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">require_once</span> <span style="color: #c5c8c6; background-color: #1d1f21;">libfile(</span><span style="color: #8abeb7;">'misc/promotion'</span>, <span style="color: #8abeb7;">'include'</span>);
+}
+</pre>
+</div>
+<p>
+改为：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-php"><span style="color: #b5bd68;">if</span> (<span style="color: #c5c8c6; background-color: #1d1f21;">isset(</span>$<span style="color: #81a2be;">_SERVER</span>[<span style="color: #8abeb7;">'HTTP_REFERER'</span>]) &amp;&amp; <span style="color: #c5c8c6; background-color: #1d1f21;">strpos(</span>$<span style="color: #81a2be;">_SERVER</span>[<span style="color: #8abeb7;">'HTTP_REFERER'</span>], <span style="color: #8abeb7;">'http://</span><span style="color: #8abeb7; text-decoration: underline;">XXX.com/'</span><span style="text-decoration: underline;">) === </span><span style="color: #c5c8c6; background-color: #1d1f21; text-decoration: underline;">0</span><span style="text-decoration: underline;">) {</span>
+<span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">referer_query</span> = <span style="color: #c5c8c6; background-color: #1d1f21;">parse_url(</span>$<span style="color: #81a2be;">_SERVER</span>[<span style="color: #8abeb7;">'HTTP_REFERER'</span>], <span style="color: #cc6666; font-weight: bold;">PHP_URL_QUERY</span>);
+<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> ($<span style="color: #f0c674;">referer_query</span>) {
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #1d1f21;">parse_str(</span>$<span style="color: #f0c674;">referer_query</span>, $<span style="color: #f0c674;">referer_get</span>);
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span>((!<span style="color: #c5c8c6; background-color: #1d1f21;">empty(</span>$<span style="color: #f0c674;">referer_get</span>[<span style="color: #8abeb7;">'fromuid'</span>]) || !<span style="color: #c5c8c6; background-color: #1d1f21;">empty(</span>$<span style="color: #f0c674;">referer_get</span>[<span style="color: #8abeb7;">'fromuser'</span>]))<span style="text-decoration: underline;"> &amp;&amp; ($</span><span style="color: #81a2be; text-decoration: underline;">this</span><span style="text-decoration: underline;">-&gt;</span><span style="color: #f0c674; text-decoration: underline;">var</span><span style="text-decoration: underline;">[</span><span style="color: #8abeb7; text-decoration: underline;">'setting'</span><span style="text-decoration: underline;">][</span><span style="color: #8abeb7; text-decoration: underline;">'creditspolicy'</span><span style="text-decoration: underline;">][</span><span style="color: #8abeb7; text-decoration: underline;">'promotion_visit'</span><span style="text-decoration: underline;">] || $</span><span style="color: #81a2be; text-decoration: underline;">this</span><span style="text-decoration: underline;">-&gt;</span><span style="color: #f0c674; text-decoration: underline;">var</span><span style="text-decoration: underline;">[</span><span style="color: #8abeb7; text-decoration: underline;">'setting'</span><span style="text-decoration: underline;">][</span><span style="color: #8abeb7; text-decoration: underline;">'creditspolicy'</span><span style="text-decoration: underline;">][</span><span style="color: #8abeb7; text-decoration: underline;">'promotion_register'</span><span style="text-decoration: underline;">])) {</span>
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">require_once</span> <span style="color: #c5c8c6; background-color: #1d1f21;">libfile(</span><span style="color: #8abeb7;">'misc/promotion'</span>, <span style="color: #8abeb7;">'include'</span>);
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
+<span style="background-color: #373b41;"> </span>   }
+}
+</pre>
+</div>
+
+<p>
+修改source/include/misc/misc_promotion.php文件，将下面的内容：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-php"><span style="color: #b5bd68;">if</span>(!<span style="color: #c5c8c6; background-color: #1d1f21;">empty(</span>$<span style="color: #81a2be;">_GET</span>[<span style="color: #8abeb7;">'fromuid'</span>])) {
+<span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">fromuid</span> = <span style="color: #c5c8c6; background-color: #1d1f21;">intval(</span>$<span style="color: #81a2be;">_GET</span>[<span style="color: #8abeb7;">'fromuid'</span>]);
+<span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">fromuser</span> = <span style="color: #8abeb7;">''</span>;
+} <span style="color: #b5bd68;">else</span> {
+<span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">fromuser</span> = $<span style="color: #81a2be;">_GET</span>[<span style="color: #8abeb7;">'fromuser'</span>];
+<span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">fromuid</span> = <span style="color: #8abeb7;">''</span>;
+}
+</pre>
+</div>
+<p>
+改为：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-php"><span style="color: #b5bd68;">if</span>(!<span style="color: #c5c8c6; background-color: #1d1f21;">empty(</span>$<span style="color: #f0c674;">referer_get</span>[<span style="color: #8abeb7;">'fromuid'</span>])) {
+<span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">fromuid</span> = <span style="color: #c5c8c6; background-color: #1d1f21;">intval(</span>$<span style="color: #f0c674;">referer_get</span>[<span style="color: #8abeb7;">'fromuid'</span>]);
+<span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">fromuser</span> = <span style="color: #8abeb7;">''</span>;
+} <span style="color: #b5bd68;">else</span> {
+<span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">fromuser</span> = $<span style="color: #f0c674;">referer_get</span>[<span style="color: #8abeb7;">'fromuser'</span>];
+<span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">fromuid</span> = <span style="color: #8abeb7;">''</span>;
+}
+</pre>
+</div>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
+        <item>
             <title><![CDATA[为什么不能在构造函数中调用shared_from_this]]></title>
             <link>/article/4e3a4ec04e484e0d80fd57286784902051fd65704e2d8c037528-shared_from_this.html</link>
             <guid>/article/4e3a4ec04e484e0d80fd57286784902051fd65704e2d8c037528-shared_from_this.html</guid>
@@ -6635,130 +6872,6 @@ chicken_ptr-&gt;use();
 
 <p>
 参考：《<a href="http://hi.baidu.com/cpuramdisk/item/7c2f8d77385e0f29d7a89cf0">shared_from_this 几个值得注意的地方</a>》</p>
-]]></content:encoded>
-        </item>
-        <item>
-            <title><![CDATA[Discuz访问推广任务反作弊]]></title>
-            <link>/article/discuz-8bbf95ee63a85e7f4efb52a153cd4f5c5f0a.html</link>
-            <guid>/article/discuz-8bbf95ee63a85e7f4efb52a153cd4f5c5f0a.html</guid>
-            <pubDate>Thu, 19 Dec 2013 17:02:00 GMT</pubDate>
-            <content:encoded><![CDATA[<ul class="org-ul">
-<li>识别作弊
-
-<p>
-发贴、回复较少的用户具有偏高的积分、等级通常就是潜在的作弊对象。在后台查看该用户的积分历史，如果来历不明，那么很可能是通过访问推广作弊获得的。
-</p>
-
-<p>
-在我们的例子里就发现有一个用户金钱数过高，先查看该用户的积分表：
-</p>
-
-<pre class="example">
-mysql&gt; SELECT total, cyclenum, extcredits2 FROM g_common_credit_rule_log WHERE rid=8 and uid=119;
-+-------+----------+-------------+
-| total | cyclenum | extcredits2 |
-+-------+----------+-------------+
-|  3454 |     3454 |           1 |
-+-------+----------+-------------+
-1 row in set (0.00 sec)
-</pre>
-
-<p>
-相关字段说明
-</p>
-<dl class="org-dl">
-<dt> total </dt><dd>策略被执行总次数
-</dd>
-<dt> cyclenum </dt><dd>周期被执行次数 
-</dd>
-<dt> extcredits2 </dt><dd>我们的系统里对应金钱数
-</dd>
-<dt> rid </dt><dd>值8为访问推广任务类型
-</dd>
-<dt> uid </dt><dd>值119为作弊用户id
-</dd>
-</dl>
-<p>
-从上面可以看出该用户完成了3454次任务， 接下来就需要确认这些任务是通过作弊完成的了。
-</p>
-
-<p>
-搜索该用户推广链接在web服务器中留下的访问日志：
-</p>
-<pre class="example">
-logs# grep 'fromuid=119' /usr/local/nginx/logs/access.log*
-"GET /?fromuid=119.jpg HTTP/1.1" 301 6243 "http://xxxx.org/details.php?id=178668"
-...
-</pre>
-
-<p>
-可以初步断定，该用户通过在其它论坛中发布信息并将推广url注入到图片的url中，这样我们的站点在访问量没有任何增长的情况下该用户的推广数却瞬间彪升了。
-</p>
-</li>
-
-<li>阻止作弊
-
-<p>
-通过使用引用页中的用户标识进行记录来解决这个问题，这样只有当用户来到论坛并进行了相关操作才算推荐有效。
-</p>
-
-<p>
-修改source/class/discuz/discuz_application.php文件，将下面的内容：
-</p>
-<div class="org-src-container">
-
-<pre class="src src-php"><span style="color: #b5bd68;">if</span>((!<span style="color: #c5c8c6; background-color: #1d1f21;">empty(</span>$<span style="color: #81a2be;">_GET</span>[<span style="color: #8abeb7;">'fromuid'</span>]) || !<span style="color: #c5c8c6; background-color: #1d1f21;">empty(</span>$<span style="color: #81a2be;">_GET</span>[<span style="color: #8abeb7;">'fromuser'</span>])) &amp;&amp; ($<span style="color: #81a2be;">this</span>-&gt;<span style="color: #f0c674;">var</span>[<span style="color: #8abeb7;">'setti</span><span style="color: #8abeb7; text-decoration: underline;">ng'</span><span style="text-decoration: underline;">][</span><span style="color: #8abeb7; text-decoration: underline;">'creditspolicy'</span><span style="text-decoration: underline;">][</span><span style="color: #8abeb7; text-decoration: underline;">'promotion_visit'</span><span style="text-decoration: underline;">] || $</span><span style="color: #81a2be; text-decoration: underline;">this</span><span style="text-decoration: underline;">-&gt;</span><span style="color: #f0c674; text-decoration: underline;">var</span><span style="text-decoration: underline;">[</span><span style="color: #8abeb7; text-decoration: underline;">'setting'</span><span style="text-decoration: underline;">][</span><span style="color: #8abeb7; text-decoration: underline;">'creditspolicy'</span><span style="text-decoration: underline;">][</span><span style="color: #8abeb7; text-decoration: underline;">'promotion_register'</span><span style="text-decoration: underline;">])) {</span>
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">require_once</span> <span style="color: #c5c8c6; background-color: #1d1f21;">libfile(</span><span style="color: #8abeb7;">'misc/promotion'</span>, <span style="color: #8abeb7;">'include'</span>);
-}
-</pre>
-</div>
-<p>
-改为：
-</p>
-<div class="org-src-container">
-
-<pre class="src src-php"><span style="color: #b5bd68;">if</span> (<span style="color: #c5c8c6; background-color: #1d1f21;">isset(</span>$<span style="color: #81a2be;">_SERVER</span>[<span style="color: #8abeb7;">'HTTP_REFERER'</span>]) &amp;&amp; <span style="color: #c5c8c6; background-color: #1d1f21;">strpos(</span>$<span style="color: #81a2be;">_SERVER</span>[<span style="color: #8abeb7;">'HTTP_REFERER'</span>], <span style="color: #8abeb7;">'http://</span><span style="color: #8abeb7; text-decoration: underline;">XXX.com/'</span><span style="text-decoration: underline;">) === </span><span style="color: #c5c8c6; background-color: #1d1f21; text-decoration: underline;">0</span><span style="text-decoration: underline;">) {</span>
-<span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">referer_query</span> = <span style="color: #c5c8c6; background-color: #1d1f21;">parse_url(</span>$<span style="color: #81a2be;">_SERVER</span>[<span style="color: #8abeb7;">'HTTP_REFERER'</span>], <span style="color: #cc6666; font-weight: bold;">PHP_URL_QUERY</span>);
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> ($<span style="color: #f0c674;">referer_query</span>) {
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #1d1f21;">parse_str(</span>$<span style="color: #f0c674;">referer_query</span>, $<span style="color: #f0c674;">referer_get</span>);
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span>((!<span style="color: #c5c8c6; background-color: #1d1f21;">empty(</span>$<span style="color: #f0c674;">referer_get</span>[<span style="color: #8abeb7;">'fromuid'</span>]) || !<span style="color: #c5c8c6; background-color: #1d1f21;">empty(</span>$<span style="color: #f0c674;">referer_get</span>[<span style="color: #8abeb7;">'fromuser'</span>]))<span style="text-decoration: underline;"> &amp;&amp; ($</span><span style="color: #81a2be; text-decoration: underline;">this</span><span style="text-decoration: underline;">-&gt;</span><span style="color: #f0c674; text-decoration: underline;">var</span><span style="text-decoration: underline;">[</span><span style="color: #8abeb7; text-decoration: underline;">'setting'</span><span style="text-decoration: underline;">][</span><span style="color: #8abeb7; text-decoration: underline;">'creditspolicy'</span><span style="text-decoration: underline;">][</span><span style="color: #8abeb7; text-decoration: underline;">'promotion_visit'</span><span style="text-decoration: underline;">] || $</span><span style="color: #81a2be; text-decoration: underline;">this</span><span style="text-decoration: underline;">-&gt;</span><span style="color: #f0c674; text-decoration: underline;">var</span><span style="text-decoration: underline;">[</span><span style="color: #8abeb7; text-decoration: underline;">'setting'</span><span style="text-decoration: underline;">][</span><span style="color: #8abeb7; text-decoration: underline;">'creditspolicy'</span><span style="text-decoration: underline;">][</span><span style="color: #8abeb7; text-decoration: underline;">'promotion_register'</span><span style="text-decoration: underline;">])) {</span>
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">require_once</span> <span style="color: #c5c8c6; background-color: #1d1f21;">libfile(</span><span style="color: #8abeb7;">'misc/promotion'</span>, <span style="color: #8abeb7;">'include'</span>);
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
-<span style="background-color: #373b41;"> </span>   }
-}
-</pre>
-</div>
-
-<p>
-修改source/include/misc/misc_promotion.php文件，将下面的内容：
-</p>
-<div class="org-src-container">
-
-<pre class="src src-php"><span style="color: #b5bd68;">if</span>(!<span style="color: #c5c8c6; background-color: #1d1f21;">empty(</span>$<span style="color: #81a2be;">_GET</span>[<span style="color: #8abeb7;">'fromuid'</span>])) {
-<span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">fromuid</span> = <span style="color: #c5c8c6; background-color: #1d1f21;">intval(</span>$<span style="color: #81a2be;">_GET</span>[<span style="color: #8abeb7;">'fromuid'</span>]);
-<span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">fromuser</span> = <span style="color: #8abeb7;">''</span>;
-} <span style="color: #b5bd68;">else</span> {
-<span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">fromuser</span> = $<span style="color: #81a2be;">_GET</span>[<span style="color: #8abeb7;">'fromuser'</span>];
-<span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">fromuid</span> = <span style="color: #8abeb7;">''</span>;
-}
-</pre>
-</div>
-<p>
-改为：
-</p>
-<div class="org-src-container">
-
-<pre class="src src-php"><span style="color: #b5bd68;">if</span>(!<span style="color: #c5c8c6; background-color: #1d1f21;">empty(</span>$<span style="color: #f0c674;">referer_get</span>[<span style="color: #8abeb7;">'fromuid'</span>])) {
-<span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">fromuid</span> = <span style="color: #c5c8c6; background-color: #1d1f21;">intval(</span>$<span style="color: #f0c674;">referer_get</span>[<span style="color: #8abeb7;">'fromuid'</span>]);
-<span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">fromuser</span> = <span style="color: #8abeb7;">''</span>;
-} <span style="color: #b5bd68;">else</span> {
-<span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">fromuser</span> = $<span style="color: #f0c674;">referer_get</span>[<span style="color: #8abeb7;">'fromuser'</span>];
-<span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">fromuid</span> = <span style="color: #8abeb7;">''</span>;
-}
-</pre>
-</div>
-</li>
-</ul>
 ]]></content:encoded>
         </item>
         <item>
