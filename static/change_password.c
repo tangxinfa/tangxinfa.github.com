@@ -19,7 +19,6 @@
  */
 static int verifyPassword(const char* username, const char* password)
 {
-    
     struct passwd* pw = getpwnam(username);
     endpwent();
 
@@ -30,10 +29,27 @@ static int verifyPassword(const char* username, const char* password)
     struct spwd* sp = getspnam(pw->pw_name);
     endspent();
 
+    if (! sp) {
+        return ENOENT;
+    }
+
     char* correct = sp ? sp->sp_pwdp : pw->pw_passwd;
+    if (! correct) {
+        return ENOENT;
+    }
+
+    /// Empty password.
+    if (password[0] == '\0' && correct[0] == '\0') {
+        return 0;
+    }
+
     struct crypt_data data;
     data.initialized = 0;
     char* encrypted = crypt_r(password, correct, &data);
+    if (! encrypted) {
+        return EINVAL;
+    }
+
     return strcmp(encrypted, correct) ? EINVAL : 0;
 }
 
