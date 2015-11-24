@@ -7732,9 +7732,34 @@ class RedisShard {
 
 ** 参考
 
-   《[[https://www.joyent.com/developers/node/design/errors][Error Handling in Nodejs - Developer Center - Joyent]]》
-   《[[https://cnodejs.org/topic/52090bc944e76d216af25f6f][Node.js下自定义错误类型 - CNode]]》
-   《[[https://docs.nodejitsu.com/articles/errors/what-is-the-error-object][What is the error object? - docs.nodejitsu.com]]》
+   - 《[[https://www.joyent.com/developers/node/design/errors][Error Handling in Nodejs - Developer Center - Joyent]]》
+
+     来自Joyent的Node.js错误处理最佳实践
+
+   - 《[[https://cnodejs.org/topic/52090bc944e76d216af25f6f][Node.js下自定义错误类型 - CNode]]》
+
+     派生Error类注意事项
+   
+   - 《[[https://docs.nodejitsu.com/articles/errors/what-is-the-error-object][What is the error object? - docs.nodejitsu.com]]》
+
+     Error对象详解
+
+   - 《[[http://www.bennadel.com/blog/2828-creating-custom-error-objects-in-node-js-with-error-capturestacktrace.htm][Creating Custom Error Objects In Node.js With Error.captureStackTrace()]]》
+
+     直接可用的自定义Error类方案
+
+   - [[https://github.com/jayyvis/extend-error][extend-error]]
+
+     用于扩展Error类的node.js模块
+
+   - [[https://github.com/davepacheco/node-verror][node-verror]]
+     
+     包裹原始Error对象，并且保证可访问性的node.js模块，Joyent的Node.js错误处理最佳实践中进行了推荐
+
+   - 《[[https://github.com/davepacheco/node-verror/issues/15][Support for custom error types? · Issue #15 · davepacheco/node-verror]]》
+
+     [[https://github.com/davepacheco/node-verror][node-verror]] 支持扩展的讨论
+
 * DONE 肉肉又长回来了                                                   :轻断食:
   CLOSED: [2015-11-03 Tue 17:27]
 
@@ -7743,3 +7768,150 @@ class RedisShard {
   轻断食是一种生活方式，果然没有说错。
 
   今天开始继续一周两断的生活，减下来以后也要维持一周一断才行。
+* TODO node.js理解内存泄露                                             :node:
+
+  线上跑了一个node.js服务，机器配置为8核CPU、16G内存，一台机器维持25000个长连接，8个node.js进程共占用5.6G内存，平均每个进程占用700MB内存。
+  有一台未对外提供服务的机器上，该服务的每个进程占用437MB，这台机器上还有两个其它服务，一个每进程占用123MB，一个每进程占用76MB。
+
+  那么问题来了：
+
+  - 为什么会占用这么多内存？
+
+  - 我怎么知道有没有内存泄露？
+
+*** 闭包、事件处理与内存泄露
+
+    注册的事件处理函数不注销会引起内存泄露吗？注册的回调函数常常是一个闭包，里面会持有外部对象的引用，这些外部对象将一直无法释放。
+
+    特地去搜索了一下相关主题，找到了一个2010年7月19日的讨论《[[https://groups.google.com/forum/#!topic/nodejs/pXbJVo0NtaY][Necessary to clean up all event handlers? - Google 网上论坛]]》，
+    下面是来自Isaac Schlueter的 [[https://groups.google.com/d/msg/nodejs/pXbJVo0NtaY/BxUmF_jp9LkJ][回复]] ： 
+
+    #+begin_quote
+    When the event emitter is garbage collected, its bound listeners go
+    away as well (if the event emitter itself was the only thing aware of
+    them.)  So, if it's a short-lived emitter, there's no need to add a
+    .destroy method or manually clean up listeners.  That's just extra
+    work that will slow down your app, and v8 will do it for you.
+
+    If you need to keep the emitter around for a while, and want to bind a
+    handler for a single use, then this pattern works well:
+    #+end_quote
+    #+begin_src js
+      emitter.on("event", function runonce (er, data) {
+        emitter.removeListener("event", runonce)
+        // dosomething
+      })
+    #+end_src
+    #+begin_quote
+    Being inside a closure doesn't really affect the story much.  Since
+    node runs on v8, and not an outdated ancient version of jscript, you
+    don't have to worry about circular references any more ;)
+    Mark-and-sweep does a fine job of reclaiming unreachable objects.
+    #+end_quote
+
+    翻译如下：
+
+    #+begin_quote
+    当 =event emitter= 被垃圾回收，它的所有 =listeners= 同时被回收（仅当 =event emitter= 唯一引用它们的时候），
+    因此，对于生存期较短的 =emitter= ，是不需要添加 =destroy= 方法或手工清除 =listeners= 的，这些多此一举的工作会让你的程序变得更慢，
+    =v8= 会为你代劳。
+
+    如果你的 =emitter= 会活得久一些，但是你又想绑定一个一次性的事件处理器，可以使用下面的模式：
+    #+end_quote
+    #+begin_src js
+      emitter.on("event", function runonce (er, data) {
+        emitter.removeListener("event", runonce)
+        // dosomething
+      })
+    #+end_src
+    #+begin_quote
+    在闭包中上面的描述也一样适用。由于 =node= 运行在 =v8= 上，并非过时的旧版本javascript，你再也不用担心循环引用。
+    标志-擦除技术能够很好地回收不可达的对象。
+    #+end_quote
+
+    根据上面的描述，似乎没有必要担心闭包、事件处理会导致内存泄露。但是《Node.js High Performance》一个内存泄露的例子：
+
+    #+begin_src js
+      var leakObject = null;
+
+      function MemoryLeak() {
+          var originalObject = leakObject;
+          leakObject = {
+              longString: new Array(1000000).join("*"),
+              someMethod: function () {
+                  console.log(originalObject);
+              }
+          };
+      }
+
+      setInterval(function () {
+          // Keep running.
+      }, 1000000);
+
+      var timer = setInterval(MemoryLeak, 1000);
+
+      setTimeout(function () {
+          clearInterval(timer);
+          leakObject = null;
+          console.log("stop leak");
+      }, 30000);
+    #+end_src
+
+    这个例子运行后会不断地泄露内存，30秒后即使停止调用导致内存泄露的函数，并且将全局变量置空，内存也不会回收。
+
+* TODO linux崩溃上报的设计与实现                                    :linux:c:
+
+** 原理
+
+** 疑难点
+
+*** 崩溃上报程序本身不断崩溃，会不会引起死循环
+
+*** 在读取崩溃源的过程中，引起崩溃的进程会不会处于僵死状态，干扰该程序的重新启动
+
+** 实现
+
+* DONE /etc/passwd、/etc/passwd+、/etc/passwd- 文件介绍               :linux:
+  CLOSED: [2015-11-24 Tue 15:58]
+
+  busybox下修改密码或创建用户的时候，有时候操作会失败，此时 =/etc= 目录可能出现 =passwd+= 、 =passwd-= 两个文件。
+
+  当出现 =/etc/passwd+= 文件时，修改密码会耗时几秒钟然后报错：
+
+  #+begin_example
+    # passwd root
+    Changing password for root
+    New password: 123456
+
+    Retype password: 123456
+
+    passwd: can't create '/etc/passwd+': File exists
+    passwd: can't update password file /etc/passwd
+    # 
+  #+end_example
+
+** 根据 [[https://svn.mcs.anl.gov/repos/ZeptoOS/trunk/BGP/packages/busybox/src/libbb/update_passwd.c][update_passwd.c]] 可以获得以下信息
+
+   - =/etc/passwd= 为系统使用的用户帐号配置文件
+
+   - =/etc/passwd+= 为更新用户帐号配置时的中间文件
+
+   - =/etc/passwd-= 为用户帐号配置备份文件
+     
+   更新密码逻辑：
+ 
+   - 创建 =/etc/passwd+= 文件
+ 
+     如果 =/etc/passwd+= 文件存在，则会返回错误.
+ 
+   - 备份 =/etc/passwd= 文件到 =/etc/passwd-=
+ 
+   - 更新后的帐号配置写到 =/etc/passwd+= 文件
+ 
+   - 将 =/etc/passwd+= 文件重命名为 =/etc/passwd=
+
+** 经验法则
+
+   - =/etc/passwd= 文件损坏时，使用备份文件 =/etc/passwd-= 还原
+
+   - =/etc/passwd+= 文件存在导致无法更新帐号信息，直接删除 =/etc/passwd+= 文件即可

@@ -2,7 +2,7 @@
 <html lang="zh-cn">
   <head>
     <meta charset="utf-8"/>
-    <title>解决360杀毒报网页HTML.Rce.Gen3恶意程序的问题 | 看看俺 – KanKanAn.com</title>
+    <title>/etc/passwd、/etc/passwd+、/etc/passwd- 文件介绍 | 看看俺 – KanKanAn.com</title>
     <link rel="shortcut icon" href="/static/favicon.ico" />
     <link rel="stylesheet" type="text/less" href="/style/less/o-blog.less"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -44,7 +44,7 @@
 
       <div class="article">
         <header class="article-header">
-          <h1>解决360杀毒报网页HTML.Rce.Gen3恶意程序的问题</h1>
+          <h1>/etc/passwd、/etc/passwd+、/etc/passwd- 文件介绍</h1>
       	<div class="qr-code">
       	  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="" alt="" id="qr-code" />
       	  <script>
@@ -54,63 +54,83 @@
         </header>
       
         <div class="article-content">
-          
-<div id="outline-container-sec-1" class="outline-2">
-<h2 id="sec-1">问题描述</h2>
-<div class="outline-text-2" id="text-1">
-<p>
-测试发现在某些机器上会弹出360杀毒危险警告对话框，导致网页无法打开。
+          <p>
+busybox下修改密码或创建用户的时候，有时候操作会失败，此时 <code>/etc</code> 目录可能出现 <code>passwd+</code> 、 <code>passwd-</code> 两个文件。
 </p>
+
+<p>
+当出现 <code>/etc/passwd+</code> 文件时，修改密码会耗时几秒钟然后报错：
+</p>
+
+<pre class="example">
+# passwd root
+Changing password for root
+New password: 123456
+
+Retype password: 123456
+
+passwd: can't create '/etc/passwd+': File exists
+passwd: can't update password file /etc/passwd
+#
+</pre>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">根据 <a href="https://svn.mcs.anl.gov/repos/ZeptoOS/trunk/BGP/packages/busybox/src/libbb/update_passwd.c">update_passwd.c</a> 可以获得以下信息</h2>
+<div class="outline-text-2" id="text-1">
+<ul class="org-ul">
+<li><code>/etc/passwd</code> 为系统使用的用户帐号配置文件
+</li>
+
+<li><code>/etc/passwd+</code> 为更新用户帐号配置时的中间文件
+</li>
+
+<li><code>/etc/passwd-</code> 为用户帐号配置备份文件
+</li>
+</ul>
+
+<p>
+更新密码逻辑：
+</p>
+
+<ul class="org-ul">
+<li>创建 <code>/etc/passwd+</code> 文件
+
+<p>
+如果 <code>/etc/passwd+</code> 文件存在，则会返回错误.
+</p>
+</li>
+
+<li>备份 <code>/etc/passwd</code> 文件到 <code>/etc/passwd-</code>
+</li>
+
+<li>更新后的帐号配置写到 <code>/etc/passwd+</code> 文件
+</li>
+
+<li>将 <code>/etc/passwd+</code> 文件重命名为 <code>/etc/passwd</code>
+</li>
+</ul>
 </div>
 </div>
 
 <div id="outline-container-sec-2" class="outline-2">
-<h2 id="sec-2">解决方法</h2>
+<h2 id="sec-2">经验法则</h2>
 <div class="outline-text-2" id="text-2">
-<p>
-将嵌入的统计js脚本从&lt;/html&gt;标签后移到里面去。
-</p>
 <ul class="org-ul">
-<li>修改前
+<li><code>/etc/passwd</code> 文件损坏时，使用备份文件 <code>/etc/passwd-</code> 还原
+</li>
+
+<li><code>/etc/passwd+</code> 文件存在导致无法更新帐号信息，直接删除 <code>/etc/passwd+</code> 文件即可
 </li>
 </ul>
-<div class="org-src-container">
-
-<pre class="src src-html">...
-&lt;/<span style="color: #f99157;">body</span>&gt;
-&lt;/<span style="color: #f99157;">html</span>&gt;
-&lt;<span style="color: #f99157;">script</span> <span style="color: #ffcc66;">type</span>=<span style="color: #66cccc;">"text/javascript"</span>&gt;document.write(unescape(<span style="color: #66cccc;">"%3Cscript%20...%3C/script%3E"</span>));&lt;/<span style="color: #f99157;">script</span>&gt;
-</pre>
-</div>
-<ul class="org-ul">
-<li>修改后
-</li>
-</ul>
-<div class="org-src-container">
-
-<pre class="src src-html">...
-&lt;<span style="color: #f99157;">script</span> <span style="color: #ffcc66;">type</span>=<span style="color: #66cccc;">"text/javascript"</span>&gt;document.write(unescape(<span style="color: #66cccc;">"%3Cscript%20...%3C/script%3E"</span>));&lt;/<span style="color: #f99157;">script</span>&gt;
-&lt;/<span style="color: #f99157;">body</span>&gt;
-&lt;/<span style="color: #f99157;">html</span>&gt;
-</pre>
-</div>
-</div>
-</div>
-
-<div id="outline-container-sec-3" class="outline-2">
-<h2 id="sec-3">心得</h2>
-<div class="outline-text-2" id="text-3">
-<p>
-以后再遇到这种情况，可以采取排除法，将网页另存为本地文件，一点点的删除内容直到360杀毒不再报警为止。</p>
 </div>
 </div>
 
         </div>
         <br />
         <footer class="article-footer">
-          <a class="tag" href="/tag/web/0.html"><i class="icon-tag icon-white"></i> web</a>
+          <a class="tag" href="/tag/linux/0.html"><i class="icon-tag icon-white"></i> linux</a>
           <span class="muted">
-            <i class="icon-time icon-white"></i> <time datetime="2012-08-01T08:55:00+0800">2012年8月1日 8时</time>
+            <i class="icon-time icon-white"></i> <time datetime="2015-11-24T15:58:00+0800">2015年11月24日 15时</time>
           </span>
         </footer>
       </div>
