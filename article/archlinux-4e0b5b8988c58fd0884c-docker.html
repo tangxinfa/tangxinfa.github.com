@@ -2,7 +2,7 @@
 <html lang="zh-cn">
   <head>
     <meta charset="utf-8"/>
-    <title>linux非交互方式修改用户密码 | 看看俺 – KanKanAn.com</title>
+    <title>Archlinux下安装运行docker | 看看俺 – KanKanAn.com</title>
     <link rel="shortcut icon" href="/static/favicon.ico" />
     <link rel="stylesheet" type="text/less" href="/style/less/o-blog.less"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -44,7 +44,7 @@
 
       <div class="article">
         <header class="article-header">
-          <h1>linux非交互方式修改用户密码</h1>
+          <h1>Archlinux下安装运行docker</h1>
       	<div class="qr-code">
       	  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="" alt="" id="qr-code" />
       	  <script>
@@ -54,56 +54,84 @@
         </header>
       
         <div class="article-content">
-          <p>
-linux下的 <code>passwd</code> 命令是交互式运行的（密码需要由用户使用键盘输入），后台程序如果要改用户密码需要一定的技巧。
+          <ul class="org-ul">
+<li>安装 <code>docker</code>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">yaourt -S docker
+</pre>
+</div>
+</li>
+
+<li>配置 <code>docker</code>
+
+<p>
+由于 <code>docker</code> 的官方仓库被墙，需要从 <code>dockerpool.com</code> 上下载，修改 <code>docker</code> 配置以免 <code>pull</code> 时出现 tls 相关错误。
 </p>
 
 <p>
-如：以下命令可以将 <code>root</code> 帐号的密码改为 <code>123456</code>
+修改 <code>/usr/lib/systemd/system/docker.service</code> 文件，将
+</p>
+
+<pre class="example">
+ExecStart=/usr/bin/docker daemon -H fd:// --exec-opt native.cgroupdriver=cgroupfs
+</pre>
+
+<p>
+改为
+</p>
+
+<pre class="example">
+ExecStart=/usr/bin/docker daemon --insecure-registry dl.dockerpool.com:5000 -H fd:// --exec-opt native.cgroupdriver=cgroupfs
+</pre>
+
+<p>
+生效配置：
 </p>
 
 <div class="org-src-container">
 
-<pre class="src src-sh">(<span style="color: #c397d8;">echo</span> <span style="color: #70c0b1;">'123456'</span>; sleep 1; <span style="color: #c397d8;">echo</span> <span style="color: #70c0b1;">'123456'</span>) | passwd <span style="color: #70c0b1;">'root'</span> &gt; /dev/null
+<pre class="src src-sh">sudo systemctl daemon-reload
 </pre>
 </div>
+</li>
 
-<p>
-但是，此时也不好判断密码是否改成功了，需要验证一下。
-</p>
+<li>启动 <code>docker</code> 服务
 
-<p>
-参考文章《<a href="http://www.xinotes.net/notes/note/1833/">Check Linux user password in C</a> 》编写了以下程序用于非交互式修改密码：
-</p>
-
-<p>
-<a href="../static/change_password.c">change_password.c</a>
-</p>
-
-<p>
-编译：
-</p>
 <div class="org-src-container">
 
-<pre class="src src-sh">gcc -g change_password.c -o change_password -lcrypt
+<pre class="src src-sh">sudo systemctl restart docker
 </pre>
 </div>
+</li>
 
-<p>
-运行：
-</p>
+<li>下载 <code>ubuntu14.04</code> 镜像
+
 <div class="org-src-container">
 
-<pre class="src src-sh">./change_password root 123456
+<pre class="src src-sh">sudo docker pull <span style="color: #70c0b1;">'dl.dockerpool.com:5000/ubuntu:14.04'</span>
 </pre>
 </div>
+</li>
+
+<li>试运行容器
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo docker run -t -i <span style="color: #70c0b1;">'dl.dockerpool.com:5000/ubuntu:14.04'</span> /bin/bash
+</pre>
+</div>
+</li>
+</ul>
 
         </div>
         <br />
         <footer class="article-footer">
-          <a class="tag" href="/tag/linux/0.html"><i class="icon-tag icon-white"></i> linux</a>
+          <a class="tag" href="/tag/archlinux/0.html"><i class="icon-tag icon-white"></i> archlinux</a>
+          <a class="tag" href="/tag/docker/0.html"><i class="icon-tag icon-white"></i> docker</a>
           <span class="muted">
-            <i class="icon-time icon-white"></i> <time datetime="2015-06-16T17:35:00+0800">2015年6月16日 17时</time>
+            <i class="icon-time icon-white"></i> <time datetime="2015-12-09T23:07:00+0800">2015年12月9日 23时</time>
           </span>
         </footer>
       </div>

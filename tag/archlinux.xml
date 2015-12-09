@@ -4,7 +4,7 @@
         <title>archlinux - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/archlinux.xml</link>
-        <lastBuildDate>Wed, 09 Dec 2015 07:54:30 GMT</lastBuildDate>
+        <lastBuildDate>Wed, 09 Dec 2015 15:08:49 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>archlinux - 看看俺 – KanKanAn.com</title>
@@ -14,6 +14,83 @@
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <generator>Feed for Node.js</generator>
         <category>技术</category>
+        <item>
+            <title><![CDATA[Archlinux下安装运行docker]]></title>
+            <link>/article/archlinux-4e0b5b8988c58fd0884c-docker.html</link>
+            <guid>/article/archlinux-4e0b5b8988c58fd0884c-docker.html</guid>
+            <pubDate>Wed, 09 Dec 2015 15:07:00 GMT</pubDate>
+            <content:encoded><![CDATA[<ul class="org-ul">
+<li>安装 <code>docker</code>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">yaourt -S docker
+</pre>
+</div>
+</li>
+
+<li>配置 <code>docker</code>
+
+<p>
+由于 <code>docker</code> 的官方仓库被墙，需要从 <code>dockerpool.com</code> 上下载，修改 <code>docker</code> 配置以免 <code>pull</code> 时出现 tls 相关错误。
+</p>
+
+<p>
+修改 <code>/usr/lib/systemd/system/docker.service</code> 文件，将
+</p>
+
+<pre class="example">
+ExecStart=/usr/bin/docker daemon -H fd:// --exec-opt native.cgroupdriver=cgroupfs
+</pre>
+
+<p>
+改为
+</p>
+
+<pre class="example">
+ExecStart=/usr/bin/docker daemon --insecure-registry dl.dockerpool.com:5000 -H fd:// --exec-opt native.cgroupdriver=cgroupfs
+</pre>
+
+<p>
+生效配置：
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo systemctl daemon-reload
+</pre>
+</div>
+</li>
+
+<li>启动 <code>docker</code> 服务
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo systemctl restart docker
+</pre>
+</div>
+</li>
+
+<li>下载 <code>ubuntu14.04</code> 镜像
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo docker pull <span style="color: #70c0b1;">'dl.dockerpool.com:5000/ubuntu:14.04'</span>
+</pre>
+</div>
+</li>
+
+<li>试运行容器
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo docker run -t -i <span style="color: #70c0b1;">'dl.dockerpool.com:5000/ubuntu:14.04'</span> /bin/bash
+</pre>
+</div>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[在Archlinux上使用FlashCache]]></title>
             <link>/article/5728-archlinux-4e0a4f7f7528-flashcache.html</link>
@@ -37,7 +114,7 @@
 <div class="org-src-container">
 
 <pre class="src src-sh">git clone https://github.com/facebook/flashcache.git
-<span style="color: #cc99cc;">cd</span> flashcache
+<span style="color: #c397d8;">cd</span> flashcache
 make
 sudo make install
 </pre>
@@ -50,7 +127,7 @@ sudo make install
 <div class="outline-text-2" id="text-2">
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo insmod /lib/modules/<span style="color: #cc99cc;">`uname -r`</span>/extra/flashcache/flashcache.ko
+<pre class="src src-sh">sudo insmod /lib/modules/<span style="color: #c397d8;">`uname -r`</span>/extra/flashcache/flashcache.ko
 </pre>
 </div>
 
@@ -90,7 +167,7 @@ insmod: ERROR: could not insert module /lib/modules/3.19.3-3-ARCH/extra/flashcac
 <div class="org-src-container">
 
 <pre class="src src-sh">sudo modprobe dm-mod
-sudo insmod /lib/modules/<span style="color: #cc99cc;">`uname -r`</span>/extra/flashcache/flashcache.ko
+sudo insmod /lib/modules/<span style="color: #c397d8;">`uname -r`</span>/extra/flashcache/flashcache.ko
 </pre>
 </div>
 
@@ -118,7 +195,7 @@ sudo insmod /lib/modules/<span style="color: #cc99cc;">`uname -r`</span>/extra/f
 
 <div class="org-src-container">
 
-<pre class="src src-sh">dd <span style="color: #ffcc66;">if</span>=/dev/zero <span style="color: #ffcc66;">of</span>=/dev/shm/ssd.img <span style="color: #ffcc66;">bs</span>=1024k <span style="color: #ffcc66;">count</span>=1024
+<pre class="src src-sh">dd <span style="color: #e7c547;">if</span>=/dev/zero <span style="color: #e7c547;">of</span>=/dev/shm/ssd.img <span style="color: #e7c547;">bs</span>=1024k <span style="color: #e7c547;">count</span>=1024
 sudo losetup /dev/loop1 /dev/shm/ssd.img
 </pre>
 </div>
@@ -132,7 +209,7 @@ sudo losetup /dev/loop1 /dev/shm/ssd.img
 
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo dd <span style="color: #ffcc66;">if</span>=/dev/zero <span style="color: #ffcc66;">of</span>=/hdd.img <span style="color: #ffcc66;">bs</span>=1024k <span style="color: #ffcc66;">count</span>=5120
+<pre class="src src-sh">sudo dd <span style="color: #e7c547;">if</span>=/dev/zero <span style="color: #e7c547;">of</span>=/hdd.img <span style="color: #e7c547;">bs</span>=1024k <span style="color: #e7c547;">count</span>=5120
 sudo losetup /dev/loop2 /hdd.img
 </pre>
 </div>
@@ -168,7 +245,7 @@ sudo mount /dev/mapper/cachedev /data
 
 <div class="org-src-container">
 
-<pre class="src src-sh">dd <span style="color: #ffcc66;">if</span>=/dev/urandom <span style="color: #ffcc66;">of</span>=/dev/shm/test.dat <span style="color: #ffcc66;">bs</span>=1024k <span style="color: #ffcc66;">count</span>=1024
+<pre class="src src-sh">dd <span style="color: #e7c547;">if</span>=/dev/urandom <span style="color: #e7c547;">of</span>=/dev/shm/test.dat <span style="color: #e7c547;">bs</span>=1024k <span style="color: #e7c547;">count</span>=1024
 </pre>
 </div>
 </li>
@@ -177,7 +254,7 @@ sudo mount /dev/mapper/cachedev /data
 
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo sh -c <span style="color: #66cccc;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /dev/shm/test.dat /'</span>
+<pre class="src src-sh">sudo sh -c <span style="color: #70c0b1;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /dev/shm/test.dat /'</span>
 </pre>
 </div>
 
@@ -196,7 +273,7 @@ sys 0m0.600s
 
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo sh -c <span style="color: #66cccc;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /test.dat /dev/shm/</span>
+<pre class="src src-sh">sudo sh -c <span style="color: #70c0b1;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /test.dat /dev/shm/</span>
 </pre>
 </div>
 
@@ -215,7 +292,7 @@ sys 0m0.727s
 
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo sh -c <span style="color: #66cccc;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /dev/shm/test.dat /data/'</span>
+<pre class="src src-sh">sudo sh -c <span style="color: #70c0b1;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /dev/shm/test.dat /data/'</span>
 </pre>
 </div>
 
@@ -238,7 +315,7 @@ sys 0m0.760s
 
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo sh -c <span style="color: #66cccc;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /data/test.dat /dev/shm/'</span>
+<pre class="src src-sh">sudo sh -c <span style="color: #70c0b1;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /data/test.dat /dev/shm/'</span>
 </pre>
 </div>
 
@@ -258,7 +335,7 @@ sys 0m1.157s
 
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo sh -c <span style="color: #66cccc;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /data/test.dat /dev/shm/'</span>
+<pre class="src src-sh">sudo sh -c <span style="color: #70c0b1;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /data/test.dat /dev/shm/'</span>
 </pre>
 </div>
 
@@ -337,7 +414,7 @@ sudo rmdir /data
 <div class="outline-text-2" id="text-2">
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #cc99cc;">echo</span> <span style="color: #66cccc;">"This is an example. Arch is the best."</span> | festival --tts
+<pre class="src src-sh"><span style="color: #c397d8;">echo</span> <span style="color: #70c0b1;">"This is an example. Arch is the best."</span> | festival --tts
 </pre>
 </div>
 
@@ -353,7 +430,7 @@ sudo rmdir /data
 <div class="org-src-container">
 
 <pre class="src src-lisp">(Parameter.set 'Audio_Method 'Audio_Command)
-(Parameter.set 'Audio_Command <span style="color: #66cccc;">"aplay -q -c 1 -t raw -f s16 -r $SR $FILE"</span>)
+(Parameter.set 'Audio_Command <span style="color: #70c0b1;">"aplay -q -c 1 -t raw -f s16 -r $SR $FILE"</span>)
 </pre>
 </div>
 </div>

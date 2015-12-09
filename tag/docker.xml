@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+    <channel>
+        <title>docker - 看看俺 – KanKanAn.com</title>
+        <description>记我所思，忆我所为。</description>
+        <link>http://blog.kankanan.com/tag/docker.xml</link>
+        <lastBuildDate>Wed, 09 Dec 2015 15:08:49 GMT</lastBuildDate>
+        <docs>http://blogs.law.harvard.edu/tech/rss</docs>
+        <image>
+            <title>docker - 看看俺 – KanKanAn.com</title>
+            <url>http://blog.kankanan.com/static/favicon.ico</url>
+            <link>http://blog.kankanan.com/tag/docker.xml</link>
+        </image>
+        <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
+        <generator>Feed for Node.js</generator>
+        <category>技术</category>
+        <item>
+            <title><![CDATA[Archlinux下安装运行docker]]></title>
+            <link>/article/archlinux-4e0b5b8988c58fd0884c-docker.html</link>
+            <guid>/article/archlinux-4e0b5b8988c58fd0884c-docker.html</guid>
+            <pubDate>Wed, 09 Dec 2015 15:07:00 GMT</pubDate>
+            <content:encoded><![CDATA[<ul class="org-ul">
+<li>安装 <code>docker</code>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">yaourt -S docker
+</pre>
+</div>
+</li>
+
+<li>配置 <code>docker</code>
+
+<p>
+由于 <code>docker</code> 的官方仓库被墙，需要从 <code>dockerpool.com</code> 上下载，修改 <code>docker</code> 配置以免 <code>pull</code> 时出现 tls 相关错误。
+</p>
+
+<p>
+修改 <code>/usr/lib/systemd/system/docker.service</code> 文件，将
+</p>
+
+<pre class="example">
+ExecStart=/usr/bin/docker daemon -H fd:// --exec-opt native.cgroupdriver=cgroupfs
+</pre>
+
+<p>
+改为
+</p>
+
+<pre class="example">
+ExecStart=/usr/bin/docker daemon --insecure-registry dl.dockerpool.com:5000 -H fd:// --exec-opt native.cgroupdriver=cgroupfs
+</pre>
+
+<p>
+生效配置：
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo systemctl daemon-reload
+</pre>
+</div>
+</li>
+
+<li>启动 <code>docker</code> 服务
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo systemctl restart docker
+</pre>
+</div>
+</li>
+
+<li>下载 <code>ubuntu14.04</code> 镜像
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo docker pull <span style="color: #70c0b1;">'dl.dockerpool.com:5000/ubuntu:14.04'</span>
+</pre>
+</div>
+</li>
+
+<li>试运行容器
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo docker run -t -i <span style="color: #70c0b1;">'dl.dockerpool.com:5000/ubuntu:14.04'</span> /bin/bash
+</pre>
+</div>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
+    </channel>
+</rss>

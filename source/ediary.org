@@ -8037,3 +8037,51 @@ class RedisShard {
     + =threaded resolver= 每次域名解析都会开一个线程，解析完成后销毁线程，开销会大一些，但是稳定性、兼容性更好。
 
   按照上面的步骤启用 =c-ares= 进行修改后程序运行了一整天，没有再崩溃。
+* DONE Archlinux下安装运行docker                           :archlinux:docker:
+  CLOSED: [2015-12-09 Wed 23:07]
+
+  - 安装 =docker=
+
+    #+begin_src sh
+      yaourt -S docker
+    #+end_src
+
+  - 配置 =docker=
+
+    由于 =docker= 的官方仓库被墙，需要从 =dockerpool.com= 上下载，修改 =docker= 配置以免 =pull= 时出现 tls 相关错误。
+
+    修改 =/usr/lib/systemd/system/docker.service= 文件，将
+    
+    #+begin_example
+      ExecStart=/usr/bin/docker daemon -H fd:// --exec-opt native.cgroupdriver=cgroupfs
+    #+end_example
+
+    改为
+
+    #+begin_example
+      ExecStart=/usr/bin/docker daemon --insecure-registry dl.dockerpool.com:5000 -H fd:// --exec-opt native.cgroupdriver=cgroupfs
+    #+end_example
+
+    生效配置：
+
+    #+begin_src sh
+      sudo systemctl daemon-reload
+    #+end_src
+
+  - 启动 =docker= 服务
+
+    #+begin_src sh
+      sudo systemctl restart docker
+    #+end_src
+
+  - 下载 =ubuntu14.04= 镜像
+    
+    #+begin_src sh
+      sudo docker pull 'dl.dockerpool.com:5000/ubuntu:14.04'
+    #+end_src
+
+  - 试运行容器
+    
+    #+begin_src sh
+      sudo docker run -t -i 'dl.dockerpool.com:5000/ubuntu:14.04' /bin/bash
+    #+end_src
