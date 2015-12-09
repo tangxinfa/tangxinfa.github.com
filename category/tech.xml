@@ -4,7 +4,7 @@
         <title>技术 - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/category/tech.xml</link>
-        <lastBuildDate>Tue, 24 Nov 2015 08:03:08 GMT</lastBuildDate>
+        <lastBuildDate>Wed, 09 Dec 2015 07:27:39 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>技术 - 看看俺 – KanKanAn.com</title>
@@ -14,6 +14,91 @@
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <generator>Feed for Node.js</generator>
         <category>技术</category>
+        <item>
+            <title><![CDATA[修复libcurl域名解析超时引起的内存越界问题]]></title>
+            <link>/article/4fee590d-libcurl-57df540d89e367908d8565f65f158d77768451855b588d8a754c95ee9898.html</link>
+            <guid>/article/4fee590d-libcurl-57df540d89e367908d8565f65f158d77768451855b588d8a754c95ee9898.html</guid>
+            <pubDate>Wed, 09 Dec 2015 06:17:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+程序发布后在一个用户的机器上频繁出现崩溃，最终定位到崩溃来自一个断言失败：
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-c">assert(pthread_self() != main_thread_id);
+</pre>
+</div>
+
+<p>
+上面这条语句出现在工作线程回调的函数中，竟然发生了工作线程ID和主线程ID相同的怪事，
+观察了运行日志，发现使用libcurl发起HTTP请求如果超时则有很大机率会断言失败导致崩溃，
+在使用libcurl发起HTTP请求的代码块前后输出工作线程ID，工作线程ID出现了变化，
+根据经验很可能是出现了内存越界。
+</p>
+
+<p>
+最终找到了几篇 <code>libcurl</code> 多线程安全相关的文章：
+</p>
+
+<ul class="org-ul">
+<li>《<a href="http://blog.csdn.net/balderfan/article/details/7599554">libcurl 多线程使用注意事项</a>》
+</li>
+
+<li>《<a href="http://blog.csdn.net/delphiwcdj/article/details/18284429">Libcurl多线程crash问题</a>》
+</li>
+</ul>
+
+<p>
+修复步骤总结如下：
+</p>
+
+<ul class="org-ul">
+<li>在主线程起始处初始化 <code>libcurl</code> 库
+
+<div class="org-src-container">
+
+<pre class="src src-c">curl_global_init(CURL_GLOBAL_ALL);
+</pre>
+</div>
+</li>
+
+<li>禁止 <code>libcurl</code> 通过 <code>alarm</code> 实现域名解析超时
+
+<div class="org-src-container">
+
+<pre class="src src-c">curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+</pre>
+</div>
+
+<p>
+如果不做下面的最后一步， <code>libcurl</code> 上设置的超时都会无效。
+</p>
+</li>
+
+<li>编译 <code>libcurl</code> 时启用 <code>c-ares</code> 或 <code>threaded resolver</code> ，以支持域名解析超时
+
+<div class="org-src-container">
+
+<pre class="src src-sh">./configure --enable-ares
+</pre>
+</div>
+
+<p>
+或
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">./configure --enable-threaded-resolver
+</pre>
+</div>
+</li>
+</ul>
+
+<p>
+按照上面的步骤进行修改后程序运行了一整天，没有再崩溃。</p>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[/etc/passwd、/etc/passwd+、/etc/passwd- 文件介绍]]></title>
             <link>/article/etc-passwd-3001-etc-passwd-3001-etc-passwd-65874ef64ecb7ecd.html</link>
@@ -43,13 +128,13 @@ passwd: can't update password file /etc/passwd
 <h2 id="sec-1">根据 <a href="https://svn.mcs.anl.gov/repos/ZeptoOS/trunk/BGP/packages/busybox/src/libbb/update_passwd.c">update_passwd.c</a> 可以获得以下信息</h2>
 <div class="outline-text-2" id="text-1">
 <ul class="org-ul">
-<li><code>/etc/passwd</code> 为系统使用的用户帐号配置文件
+<li><code>/etc/passwd</code> 用户帐号配置文件
 </li>
 
-<li><code>/etc/passwd+</code> 为更新用户帐号配置时的中间文件
+<li><code>/etc/passwd+</code> 更新过程中的临时文件
 </li>
 
-<li><code>/etc/passwd-</code> 为用户帐号配置备份文件
+<li><code>/etc/passwd-</code> 用户帐号配置文件的备份
 </li>
 </ul>
 

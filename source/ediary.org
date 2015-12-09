@@ -7892,11 +7892,11 @@ class RedisShard {
 
 ** 根据 [[https://svn.mcs.anl.gov/repos/ZeptoOS/trunk/BGP/packages/busybox/src/libbb/update_passwd.c][update_passwd.c]] 可以获得以下信息
 
-   - =/etc/passwd= 为系统使用的用户帐号配置文件
+   - =/etc/passwd= 用户帐号配置文件
 
-   - =/etc/passwd+= 为更新用户帐号配置时的中间文件
+   - =/etc/passwd+= 更新过程中的临时文件
 
-   - =/etc/passwd-= 为用户帐号配置备份文件
+   - =/etc/passwd-= 用户帐号配置文件的备份
      
    更新密码逻辑：
  
@@ -7915,3 +7915,119 @@ class RedisShard {
    - =/etc/passwd= 文件损坏时，使用备份文件 =/etc/passwd-= 还原
 
    - =/etc/passwd+= 文件存在导致无法更新帐号信息，直接删除 =/etc/passwd+= 文件即可
+
+* TODO 使用cluster后net模块listen时backlog参数失效                     :node:
+
+  下面两个示例代码，我设置 =backlog= 为64。
+
+  - 不使用 =cluster=
+
+    #+begin_src js
+      var http       = require('http');
+
+      http.createServer(function(req, res) {
+          res.writeHead(200);
+          res.end("hello world\n");
+      }).listen(3000, "0.0.0.0", 64);
+    #+end_src
+
+    =ss -ltn | grep 3000= 命令输出：
+
+    #+begin_example
+      LISTEN     0      64           *:3000                     *:*                  
+    #+end_example
+
+
+  - 使用 =cluster=
+
+    #+begin_src js
+      var cluster    = require('cluster'),
+          http       = require('http');
+
+
+      if (cluster.isMaster) {
+          cluster.fork();
+      } else {
+          http.createServer(function(req, res) {
+              res.writeHead(200);
+              res.end("hello world\n");
+          }).listen(3000, "0.0.0.0", 64);
+      }
+    #+end_src
+
+    =ss -ltn | grep 3000= 命令输出：
+    
+    #+begin_example
+      LISTEN     0      511          *:3000                     *:*                  
+    #+end_example
+
+    实际生效的 =backlog= 是默认值（511），这表明 =cluster= 模块未能正确处理 =listen= 时的 =backlog= 参数。
+
+    通过 =strace= 命令可以进一步确认使用的 =backlog= 确实是 511：
+
+    #+begin_example
+      ...
+      bind(11, {sa_family=AF_INET, sin_port=htons(3000), sin_addr=inet_addr("127.0.0.1")}, 16) = 0
+      listen(11, 511)                         = 0
+      ...
+    #+end_example
+
+  - 如何修复
+
+    According to =server.listen= 's implementation, if second or third parameter is Number,
+    treat it as backlog, but for the =server.listen(options[, callback])= already have
+    a backlog in options and has higher priority, i think it is better to avoid documention
+    another standalone =backlog= parameter to avoid more confuse.
+
+    当第二或第三个参数为数字时，总是做为 =backlog= ，由于 =server.listen(options[, callback])=
+    的 =options= 中已经有 =backlog= 项了，不再在文档中描述 =backlog= 参数以免混乱。
+
+* DONE 修复libcurl域名解析超时引起的内存越界问题                    :linux:c:
+  CLOSED: [2015-12-09 Wed 14:17]
+
+  程序发布后在一个用户的机器上频繁出现崩溃，最终定位到崩溃来自一个断言失败：
+
+  #+begin_src c
+    assert(pthread_self() != main_thread_id);
+  #+end_src
+
+  上面这条语句出现在工作线程回调的函数中，竟然发生了工作线程ID和主线程ID相同的怪事，
+  观察了运行日志，发现使用libcurl发起HTTP请求如果超时则有很大机率会断言失败导致崩溃，
+  在使用libcurl发起HTTP请求的代码块前后输出工作线程ID，工作线程ID出现了变化，
+  根据经验很可能是出现了内存越界。
+
+  最终找到了几篇 =libcurl= 多线程安全相关的文章：
+
+  - 《[[http://blog.csdn.net/balderfan/article/details/7599554][libcurl 多线程使用注意事项]]》
+
+  - 《[[http://blog.csdn.net/delphiwcdj/article/details/18284429][Libcurl多线程crash问题]]》
+
+  修复步骤总结如下：
+  
+  - 在主线程起始处初始化 =libcurl= 库
+    
+    #+begin_src c
+      curl_global_init(CURL_GLOBAL_ALL);
+    #+end_src
+    
+  - 禁止 =libcurl= 通过 =alarm= 实现域名解析超时
+    
+    #+begin_src c
+      curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+    #+end_src
+
+    如果不做下面的最后一步， =libcurl= 上设置的超时都会无效。
+    
+  - 编译 =libcurl= 时启用 =c-ares= 或 =threaded resolver= ，以支持域名解析超时
+    
+    #+begin_src sh
+      ./configure --enable-ares
+    #+end_src
+
+    或
+
+    #+begin_src sh
+      ./configure --enable-threaded-resolver
+    #+end_src
+
+  按照上面的步骤进行修改后程序运行了一整天，没有再崩溃。

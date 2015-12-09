@@ -2,7 +2,7 @@
 <html lang="zh-cn">
   <head>
     <meta charset="utf-8"/>
-    <title>/etc/passwd、/etc/passwd+、/etc/passwd- 文件介绍 | 看看俺 – KanKanAn.com</title>
+    <title>修复libcurl域名解析超时引起的内存越界问题 | 看看俺 – KanKanAn.com</title>
     <link rel="shortcut icon" href="/static/favicon.ico" />
     <link rel="stylesheet" type="text/less" href="/style/less/o-blog.less"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -44,7 +44,7 @@
 
       <div class="article">
         <header class="article-header">
-          <h1>/etc/passwd、/etc/passwd+、/etc/passwd- 文件介绍</h1>
+          <h1>修复libcurl域名解析超时引起的内存越界问题</h1>
       	<div class="qr-code">
       	  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="" alt="" id="qr-code" />
       	  <script>
@@ -55,82 +55,91 @@
       
         <div class="article-content">
           <p>
-busybox下修改密码或创建用户的时候，有时候操作会失败，此时 <code>/etc</code> 目录可能出现 <code>passwd+</code> 、 <code>passwd-</code> 两个文件。
+程序发布后在一个用户的机器上频繁出现崩溃，最终定位到崩溃来自一个断言失败：
 </p>
 
-<p>
-当出现 <code>/etc/passwd+</code> 文件时，修改密码会耗时几秒钟然后报错：
-</p>
+<div class="org-src-container">
 
-<pre class="example">
-# passwd root
-Changing password for root
-New password: 123456
-
-Retype password: 123456
-
-passwd: can't create '/etc/passwd+': File exists
-passwd: can't update password file /etc/passwd
-#
+<pre class="src src-c">assert(pthread_self() != main_thread_id);
 </pre>
+</div>
 
-<div id="outline-container-sec-1" class="outline-2">
-<h2 id="sec-1">根据 <a href="https://svn.mcs.anl.gov/repos/ZeptoOS/trunk/BGP/packages/busybox/src/libbb/update_passwd.c">update_passwd.c</a> 可以获得以下信息</h2>
-<div class="outline-text-2" id="text-1">
+<p>
+上面这条语句出现在工作线程回调的函数中，竟然发生了工作线程ID和主线程ID相同的怪事，
+观察了运行日志，发现使用libcurl发起HTTP请求如果超时则有很大机率会断言失败导致崩溃，
+在使用libcurl发起HTTP请求的代码块前后输出工作线程ID，工作线程ID出现了变化，
+根据经验很可能是出现了内存越界。
+</p>
+
+<p>
+最终找到了几篇 <code>libcurl</code> 多线程安全相关的文章：
+</p>
+
 <ul class="org-ul">
-<li><code>/etc/passwd</code> 用户帐号配置文件
+<li>《<a href="http://blog.csdn.net/balderfan/article/details/7599554">libcurl 多线程使用注意事项</a>》
 </li>
 
-<li><code>/etc/passwd+</code> 更新过程中的临时文件
-</li>
-
-<li><code>/etc/passwd-</code> 用户帐号配置文件的备份
+<li>《<a href="http://blog.csdn.net/delphiwcdj/article/details/18284429">Libcurl多线程crash问题</a>》
 </li>
 </ul>
 
 <p>
-更新密码逻辑：
+修复步骤总结如下：
 </p>
 
 <ul class="org-ul">
-<li>创建 <code>/etc/passwd+</code> 文件
+<li>在主线程起始处初始化 <code>libcurl</code> 库
+
+<div class="org-src-container">
+
+<pre class="src src-c">curl_global_init(CURL_GLOBAL_ALL);
+</pre>
+</div>
+</li>
+
+<li>禁止 <code>libcurl</code> 通过 <code>alarm</code> 实现域名解析超时
+
+<div class="org-src-container">
+
+<pre class="src src-c">curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+</pre>
+</div>
 
 <p>
-如果 <code>/etc/passwd+</code> 文件存在，则会返回错误.
+如果不做下面的最后一步， <code>libcurl</code> 上设置的超时都会无效。
 </p>
 </li>
 
-<li>备份 <code>/etc/passwd</code> 文件到 <code>/etc/passwd-</code>
-</li>
+<li>编译 <code>libcurl</code> 时启用 <code>c-ares</code> 或 <code>threaded resolver</code> ，以支持域名解析超时
 
-<li>更新后的帐号配置写到 <code>/etc/passwd+</code> 文件
-</li>
+<div class="org-src-container">
 
-<li>将 <code>/etc/passwd+</code> 文件重命名为 <code>/etc/passwd</code>
+<pre class="src src-sh">./configure --enable-ares
+</pre>
+</div>
+
+<p>
+或
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">./configure --enable-threaded-resolver
+</pre>
+</div>
 </li>
 </ul>
-</div>
-</div>
 
-<div id="outline-container-sec-2" class="outline-2">
-<h2 id="sec-2">经验法则</h2>
-<div class="outline-text-2" id="text-2">
-<ul class="org-ul">
-<li><code>/etc/passwd</code> 文件损坏时，使用备份文件 <code>/etc/passwd-</code> 还原
-</li>
-
-<li><code>/etc/passwd+</code> 文件存在导致无法更新帐号信息，直接删除 <code>/etc/passwd+</code> 文件即可
-</li>
-</ul>
-</div>
-</div>
+<p>
+按照上面的步骤进行修改后程序运行了一整天，没有再崩溃。</p>
 
         </div>
         <br />
         <footer class="article-footer">
           <a class="tag" href="/tag/linux/0.html"><i class="icon-tag icon-white"></i> linux</a>
+          <a class="tag" href="/tag/c/0.html"><i class="icon-tag icon-white"></i> c</a>
           <span class="muted">
-            <i class="icon-time icon-white"></i> <time datetime="2015-11-24T15:58:00+0800">2015年11月24日 15时</time>
+            <i class="icon-time icon-white"></i> <time datetime="2015-12-09T14:17:00+0800">2015年12月9日 14时</time>
           </span>
         </footer>
       </div>
