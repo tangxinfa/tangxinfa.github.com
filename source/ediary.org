@@ -8030,4 +8030,10 @@ class RedisShard {
       ./configure --enable-threaded-resolver
     #+end_src
 
-  按照上面的步骤进行修改后程序运行了一整天，没有再崩溃。
+    《[[http://daniel.haxx.se/blog/2011/04/25/libcurls-name-resolving/][Asynch resolving in libcurl]]》对 =c-ares= 或 =threaded resolver= 两种方式进行了比较，简而言之：
+
+    + =c-ares= 是一个异步的域名解析库，开销更少，但是它并非使用系统原生的方式实现，对于定制系统（如：hosts或resolv.conf不在标准位置）可能会有问题。
+
+    + =threaded resolver= 每次域名解析都会开一个线程，解析完成后销毁线程，开销会大一些，但是稳定性、兼容性更好。
+
+  按照上面的步骤启用 =c-ares= 进行修改后程序运行了一整天，没有再崩溃。
