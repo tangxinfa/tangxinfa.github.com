@@ -8085,3 +8085,96 @@ class RedisShard {
     #+begin_src sh
       sudo docker run -t -i 'dl.dockerpool.com:5000/ubuntu:14.04' /bin/bash
     #+end_src
+* DONE package.json文件dependencies中的各种版本号形式                  :node:
+  CLOSED: [2015-12-10 Thu 17:07]
+
+  查看 =package.json= 文件时，往往会在 =dependencies= 下看到各种各样的版本号形式，示例如下：
+
+  #+begin_src js
+    "dependencies": {
+        "async": "1.2.1",
+        "chokidar": "^1.0.0",
+        "vizion": "latest",
+        "babel": "^5.x",
+        "pm2-logs": "~0.1.1",
+        "ikt": "git+http://ikt.pm2.io/ikt.git#master",
+        "punt": "*",
+        "express": ">=3.0.0",
+        "connect": "1.30.2 - 2.30.2",
+    }
+  #+end_src
+
+  一般自已写 =package.json= 时，图省事版本号会用 =*= ，想想也是很危险的，指不定哪天依赖的包不在向后兼容，程序运行估计就有问题了。
+
+  版本号形式是有据可循的，它就是《[[http://semver.org/lang/zh-CN/][语义化版本 2.0.0]]》， =npm= 遵循该规范，但做了以下扩展：
+
+  #+begin_quote
+  版本号的构建号部分允许使用 =-= 字符，所以 =0.2.0-1= 在《[[http://semver.org/lang/zh-CN/][语义化版本 2.0.0]]》中是非法的，却是合法的 npm 语义版本（Semantic Versioning）。
+  #+end_quote
+
+  =npm= 使用 [[https://github.com/npm/node-semver][semver]] 包进行版本号解析。
+
+** 版本号解析示例
+
+   这篇文章《[[http://deadhorse.me/nodejs/2014/04/27/semver-in-nodejs.html][node.js 中的版本管理]]》对常见的版本号风格进行了解释，虽然对 =^= 前缀解析不清，但还是值得一看，同时了提供了使用建议。
+
+   版本号格式： =主版本号.次版本号.修订号=
+
+   - 1.2.1 :: 匹配指定版本，这里是匹配1.2.1。
+
+   - ^1.0.0 :: 匹配 >=1.0.0 且 <2.0.0的版本。
+
+               ^ 前缀意为 =与指定的版本兼容= 。
+
+               =^= 前缀表示最左边的非0段不允许改变，该段之后的段可以为更高版，所以
+
+               ^1.1.0 匹配 >=1.1.0 且 <1.2.0
+
+               ^0.0.3 匹配 >=0.0.3 且 <0.0.4
+
+               ^1.1.1 匹配 >=1.1.1 且 <2.0.0
+
+   - latest :: 当前发布版本。
+
+               这是一个标记（tag，详见 [[https://docs.npmjs.com/cli/dist-tag][dist-tag | npm Documentation]]），默认情况下 =npm install= 安装的就是这个 =latest= 标记。
+               常见的标记还有 =next= =stable= =beta= =canary= 。
+               
+   - ^5.x :: 匹配 >=5.0.0 且 <6.0.0。
+
+             =X=, =x= 及 =*= 为通配符，版本号尾部省略的段等同于通配符，所以
+
+             *   匹配 >=0.0.0
+
+             1   匹配 >=1.0.0 且 <2.0.0
+
+             1.2 匹配 >=1.2.0 且 <1.3.0
+             
+    - ~0.1.1 :: 匹配 >=0.1.1 且 <0.2.0。
+
+                ~ 前缀意为 =约等于版本=
+
+                如果存在次版本号，则允许修订号为更高版，否则允许次版本号为更高版。
+                
+                ~1 匹配 >=1.0.0 且 <2.0.0
+    
+    - * :: 匹配 >=0.0.0
+      
+    - >=3.0.0 :: 同字面意义 >=3.0.0。
+
+                 其它操作符有 =<= =<\== =>= =>\== =\== ，多个表达式之间用空格分隔并示并集，用 =||= 分隔交集。
+                 
+    - 1.30.2 - 2.30.2 :: 匹配 >=1.30.2 且 <=2.30.2
+
+         尾部缺失的节被替换为0再进行比较，如：1.30 - 2.30.2 同 1.30.0 - 2.30.2。
+    
+    - git+http://ikt.pm2.io/ikt.git#master :: Git URL形式的依赖
+
+         还支持URL、GitHub URL、本地 URL，详见 [[https://docs.npmjs.com/files/package.json#urls-as-dependencies][URLs as Dependencies]]
+
+** 参考
+
+   - [[https://docs.npmjs.com/files/package.json][package.json | npm Documentation]]
+
+   - [[http://blog.nodejitsu.com/package-dependencies-done-right/][Package.json dependencies done right | Nodejitsu Inc.]]
+
+   - [[http://deadhorse.me/nodejs/2014/04/27/semver-in-nodejs.html][node.js 中的版本管理]]
