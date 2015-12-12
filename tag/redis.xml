@@ -4,7 +4,7 @@
         <title>redis - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/redis.xml</link>
-        <lastBuildDate>Thu, 10 Dec 2015 10:14:02 GMT</lastBuildDate>
+        <lastBuildDate>Sat, 12 Dec 2015 12:20:42 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>redis - 看看俺 – KanKanAn.com</title>
@@ -284,6 +284,34 @@ shutdown
 ]]></content:encoded>
         </item>
         <item>
+            <title><![CDATA[解决保存快照失败后redis无法写入的问题]]></title>
+            <link>/article/89e351b34fdd5b585feb716759318d25540e-redis-65e06cd551995165768495ee9898.html</link>
+            <guid>/article/89e351b34fdd5b585feb716759318d25540e-redis-65e06cd551995165768495ee9898.html</guid>
+            <pubDate>Sun, 16 Dec 2012 07:14:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+用命令行工具连上后执行“set test 0”出现以下错误提示：
+</p>
+<pre class="example">
+MISCONF Redis is configured to save RDB snapshots, but is currently not able to persist on disk. Commands that may modify the data set are disabled. Please check Redis logs for details about the error.
+</pre>
+<p>
+这个应该是之前强制停止redis快照导致的，查看redis快照状态证实了这一点：
+</p>
+<pre class="example">
+redis 127.0.0.1:6379&gt; info
+...
+rdb_last_bgsave_status:err
+...
+</pre>
+<p>
+通过关闭配置项stop-writes-on-bgsave-error解决该问题。
+</p>
+<pre class="example">
+redis 127.0.0.1:6379&gt; config set stop-writes-on-bgsave-error no
+</pre>
+]]></content:encoded>
+        </item>
+        <item>
             <title><![CDATA[估算redis内存占用]]></title>
             <link>/article/4f307b97-redis-51855b5853607528.html</link>
             <guid>/article/4f307b97-redis-51855b5853607528.html</guid>
@@ -424,34 +452,6 @@ redis在执行bgsave时，会进行一次fork，fork后的进程负责将内存�
             <pubDate>Sun, 16 Dec 2012 07:14:00 GMT</pubDate>
             <content:encoded><![CDATA[<p>
 当hash结构中的元素较少（少于redis.conf:hash-max-zipmap-entries指定的数量时，配置成&lt;=1000，过大会减低处理速度，参见： <a href="http://stackoverflow.com/questions/11281734/redis-using-hashes">这里</a> 和 <a href="http://instagram-engineering.tumblr.com/post/12202313862/storing-hundreds-of-millions-of-simple-key-value-pairs">这里</a> ）且数据为整型时，redis使用特殊的方式（数组保存，时间换空间）保存hash结构以减少内存占用，参见 <a href="http://redis.io/topics/memory-optimization">这里</a> 和 <a href="http://stackoverflow.com/questions/9625246/what-are-the-underlying-data-structures-used-for-redis">这里</a> 。但当hash结构超过指定数量时将使用普通的<a href="http://redis.io/commands#string">字符串</a>方式保存，也就无法再节省内存了。</p>
-]]></content:encoded>
-        </item>
-        <item>
-            <title><![CDATA[解决保存快照失败后redis无法写入的问题]]></title>
-            <link>/article/89e351b34fdd5b585feb716759318d25540e-redis-65e06cd551995165768495ee9898.html</link>
-            <guid>/article/89e351b34fdd5b585feb716759318d25540e-redis-65e06cd551995165768495ee9898.html</guid>
-            <pubDate>Sun, 16 Dec 2012 07:14:00 GMT</pubDate>
-            <content:encoded><![CDATA[<p>
-用命令行工具连上后执行“set test 0”出现以下错误提示：
-</p>
-<pre class="example">
-MISCONF Redis is configured to save RDB snapshots, but is currently not able to persist on disk. Commands that may modify the data set are disabled. Please check Redis logs for details about the error.
-</pre>
-<p>
-这个应该是之前强制停止redis快照导致的，查看redis快照状态证实了这一点：
-</p>
-<pre class="example">
-redis 127.0.0.1:6379&gt; info
-...
-rdb_last_bgsave_status:err
-...
-</pre>
-<p>
-通过关闭配置项stop-writes-on-bgsave-error解决该问题。
-</p>
-<pre class="example">
-redis 127.0.0.1:6379&gt; config set stop-writes-on-bgsave-error no
-</pre>
 ]]></content:encoded>
         </item>
         <item>

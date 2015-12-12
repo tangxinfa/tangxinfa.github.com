@@ -8178,3 +8178,76 @@ class RedisShard {
    - [[http://blog.nodejitsu.com/package-dependencies-done-right/][Package.json dependencies done right | Nodejitsu Inc.]]
 
    - [[http://deadhorse.me/nodejs/2014/04/27/semver-in-nodejs.html][node.js 中的版本管理]]
+* DONE node.js写日志堵塞问题                                           :node:
+  CLOSED: [2015-12-12 Sat 20:19]
+
+  今天遇到一起后台服务中断问题，原因是有一个服务写日志导致磁盘满，清掉日志释放磁盘空间后，服务无法自动恢复，此时有以下症状：
+
+  - =node.js= 进程内存占用超高（超过1G），CPU占用超高（接近100%）
+
+  - =[[https://github.com/Unitech/pm2][pm2]]= 运行异常
+    
+    =stop= 和 =delete= 操作会卡住， =start= 和 =restart= 操作失败。
+
+    后台有大量 =[[https://github.com/Unitech/pm2][pm2]]= 进程，应该是 =crontab= 每分钟调用 =pm2 start= 确保服务拉起导致。
+
+    =killall -9 node= 及 =[[https://github.com/Unitech/pm2][pm2]]= 仍然无法将服务恢复。
+
+    =pm2 kill= 也会卡住，最终通过 =kill -9= 干掉 =[[https://github.com/Unitech/pm2][pm2]]= 的后台进程 =PM2 v0.14.3: God Daemon= 才把服务重新启动。
+
+
+  一个小时后又出现险情，类似的症状，虽然没有严重到中断服务，但是 =[[https://github.com/Unitech/pm2][pm2]]= 失控很让人揪心，服务开了两个实例，其中一个实例状态：
+
+  #+begin_example
+    │ App name          │ id │ mode    │ pid │ status  │ restart │ uptime │ memory │ watching │
+    │ xxx.xxxxxxxxx.com │ 0  │ cluster │ N/A │ errored │ 2       │ 0      │ 0 B    │ disabled │
+  #+end_example
+
+  执行 =pm2 delete 0= 也是挂住，最终还是通过 =kill -9= 干掉 =[[https://github.com/Unitech/pm2][pm2]]= 的后台进程 =PM2 v0.14.3: God Daemon= 才把服务重新启动。
+
+  =top= 看到的进程状态：
+
+  #+begin_example
+     PID USER      PR  NI  VIRT  RES  SHR S %CPU   %MEM  TIME+   COMMAND           
+    1640 nobody    20   0  793m 149m 8468 R 105.5  0.9   0:34.74 node /usr/local  
+    1649 nobody    20   0  796m 152m 8472 R 103.6  1.0   0:34.78 node /usr/local  
+  #+end_example
+
+  服务输出的日志量在每秒700行（每行不超过120个字符）左右，最终将日志级别调到 =error= ，几乎不再输出日志，方才将CPU占用降下来：
+
+  #+begin_example
+        PID USER      PR  NI  VIRT  RES  SHR S %CPU %MEM  TIME+    COMMAND           
+    3527 nobody       20   0  829m 185m 8476 R 62.3  1.2  30:41.12 node /usr/local
+    3537 nobody       20   0  825m 181m 8476 R 60.4  1.1  30:45.96 node /usr/local
+  #+end_example
+
+
+   我使用的日志模块为 [[https://github.com/baryon/tracer][tracer]] ，简单地通过 =tracer.console(options)= 实例化全局的日志对象，最终写日志调用的是 =console.log= 。
+
+   在上层，我使用 =[[https://github.com/Unitech/pm2][pm2]]= 来做进程管理，使用以下参数启动我的服务：
+   
+   #+begin_example
+     pm2 -n xxx.xxxxxxxxx.com -l /usr/local/xxx.xxxxxxxxx.com/run.log --merge-logs start /usr/local/xxx.xxxxxxxxx.com/src/index.js -i 2
+   #+end_example
+
+   通过 =pm2 describe xxx.xxxxxxxxx.com= 输出可以发现最终会写三个日志文件：
+
+   #+begin_example
+     │ entire log path   │ /usr/local/xxx.xxxxxxxxx.com/run.log             │
+     │ error log path    │ /root/.pm2/logs/xxx.xxxxxxxxx.com-error.log      │
+     │ out log path      │ /root/.pm2/logs/xxx.xxxxxxxxx.com-out.log        │
+   #+end_example
+
+   根据 [[https://nodejs.org/docs/latest-v0.12.x/api/console.html#console_console][console的文档]] 中的描述：
+   
+   #+begin_quote
+   The console functions are synchronous when the destination is a terminal or a file (to avoid lost messages in case of premature exit) and asynchronous when it's a pipe (to avoid blocking for long periods of time).
+
+   如果输出目标为终端或文件时，console函数是同步的（避免程序过早退出导致丢消息），目标为管道时则为异步（避免长时间堵塞）。
+   #+end_quote
+
+   这个特性引起的问题我也在另一篇文章《 [[http://blog.kankanan.com/article/process.exit-5bfc81f4768463a7523653f08f9351fa4e0d5168.html][process.exit导致的控制台输出不全]] 》里有提及。
+
+   也就是说不出意外的话，我们的服务写日志是阻塞式的，每秒钟同步方式写700行日志到一块普通机械硬盘上， =node.js= 不卡死才怪，更何况这块硬盘上还在被其它服务频繁读写。
+
+   一个服务运行过程中不写日志文件是不可能的，在 =node.js= 写日志方面需要找到更优的方案。

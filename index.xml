@@ -4,7 +4,7 @@
         <title>看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com</link>
-        <lastBuildDate>Thu, 10 Dec 2015 10:14:03 GMT</lastBuildDate>
+        <lastBuildDate>Sat, 12 Dec 2015 12:20:42 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>看看俺 – KanKanAn.com</title>
@@ -16,6 +16,122 @@
         <category>ediary</category>
         <category>技术</category>
         <category>生活</category>
+        <item>
+            <title><![CDATA[node.js写日志堵塞问题]]></title>
+            <link>/article/node.js-519965e55fd75835585e95ee9898.html</link>
+            <guid>/article/node.js-519965e55fd75835585e95ee9898.html</guid>
+            <pubDate>Sat, 12 Dec 2015 12:19:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+今天遇到一起后台服务中断问题，原因是有一个服务写日志导致磁盘满，清掉日志释放磁盘空间后，服务无法自动恢复，此时有以下症状：
+</p>
+
+<ul class="org-ul">
+<li><code>node.js</code> 进程内存占用超高（超过1G），CPU占用超高（接近100%）
+</li>
+
+<li><code>[[https://github.com/Unitech/pm2][pm2]]</code> 运行异常
+
+<p>
+<code>stop</code> 和 <code>delete</code> 操作会卡住， <code>start</code> 和 <code>restart</code> 操作失败。
+</p>
+
+<p>
+后台有大量 <code>[[https://github.com/Unitech/pm2][pm2]]</code> 进程，应该是 <code>crontab</code> 每分钟调用 <code>pm2 start</code> 确保服务拉起导致。
+</p>
+
+<p>
+<code>killall -9 node</code> 及 <code>[[https://github.com/Unitech/pm2][pm2]]</code> 仍然无法将服务恢复。
+</p>
+
+<p>
+<code>pm2 kill</code> 也会卡住，最终通过 <code>kill -9</code> 干掉 <code>[[https://github.com/Unitech/pm2][pm2]]</code> 的后台进程 <code>PM2 v0.14.3: God Daemon</code> 才把服务重新启动。
+</p>
+</li>
+</ul>
+
+
+<p>
+一个小时后又出现险情，类似的症状，虽然没有严重到中断服务，但是 <code>[[https://github.com/Unitech/pm2][pm2]]</code> 失控很让人揪心，服务开了两个实例，其中一个实例状态：
+</p>
+
+<pre class="example">
+    │ App name          │ id │ mode    │ pid │ status  │ restart │ uptime │ memory │ watching │
+    │ xxx.xxxxxxxxx.com │ 0  │ cluster │ N/A │ errored │ 2       │ 0      │ 0 B    │ disabled │
+</pre>
+
+<p>
+执行 <code>pm2 delete 0</code> 也是挂住，最终还是通过 <code>kill -9</code> 干掉 <code>[[https://github.com/Unitech/pm2][pm2]]</code> 的后台进程 <code>PM2 v0.14.3: God Daemon</code> 才把服务重新启动。
+</p>
+
+<p>
+<code>top</code> 看到的进程状态：
+</p>
+
+<pre class="example">
+ PID USER      PR  NI  VIRT  RES  SHR S %CPU   %MEM  TIME+   COMMAND           
+1640 nobody    20   0  793m 149m 8468 R 105.5  0.9   0:34.74 node /usr/local  
+1649 nobody    20   0  796m 152m 8472 R 103.6  1.0   0:34.78 node /usr/local
+</pre>
+
+<p>
+服务输出的日志量在每秒700行（每行不超过120个字符）左右，最终将日志级别调到 <code>error</code> ，几乎不再输出日志，方才将CPU占用降下来：
+</p>
+
+<pre class="example">
+    PID USER      PR  NI  VIRT  RES  SHR S %CPU %MEM  TIME+    COMMAND           
+3527 nobody       20   0  829m 185m 8476 R 62.3  1.2  30:41.12 node /usr/local
+3537 nobody       20   0  825m 181m 8476 R 60.4  1.1  30:45.96 node /usr/local
+</pre>
+
+
+<p>
+我使用的日志模块为 <a href="https://github.com/baryon/tracer">tracer</a> ，简单地通过 <code>tracer.console(options)</code> 实例化全局的日志对象，最终写日志调用的是 <code>console.log</code> 。
+</p>
+
+<p>
+在上层，我使用 <code>[[https://github.com/Unitech/pm2][pm2]]</code> 来做进程管理，使用以下参数启动我的服务：
+</p>
+
+<pre class="example">
+pm2 -n xxx.xxxxxxxxx.com -l /usr/local/xxx.xxxxxxxxx.com/run.log --merge-logs start /usr/local/xxx.xxxxxxxxx.com/src/index.js -i 2
+</pre>
+
+<p>
+通过 <code>pm2 describe xxx.xxxxxxxxx.com</code> 输出可以发现最终会写三个日志文件：
+</p>
+
+<pre class="example">
+     │ entire log path   │ /usr/local/xxx.xxxxxxxxx.com/run.log             │
+     │ error log path    │ /root/.pm2/logs/xxx.xxxxxxxxx.com-error.log      │
+     │ out log path      │ /root/.pm2/logs/xxx.xxxxxxxxx.com-out.log        │
+</pre>
+
+<p>
+根据 <a href="https://nodejs.org/docs/latest-v0.12.x/api/console.html#console_console">console的文档</a> 中的描述：
+</p>
+
+<blockquote>
+<p>
+The console functions are synchronous when the destination is a terminal or a file (to avoid lost messages in case of premature exit) and asynchronous when it's a pipe (to avoid blocking for long periods of time).
+</p>
+
+<p>
+如果输出目标为终端或文件时，console函数是同步的（避免程序过早退出导致丢消息），目标为管道时则为异步（避免长时间堵塞）。
+</p>
+</blockquote>
+
+<p>
+这个特性引起的问题我也在另一篇文章《 <a href="http://blog.kankanan.com/article/process.exit-5bfc81f4768463a7523653f08f9351fa4e0d5168.html">process.exit导致的控制台输出不全</a> 》里有提及。
+</p>
+
+<p>
+也就是说不出意外的话，我们的服务写日志是阻塞式的，每秒钟同步方式写700行日志到一块普通机械硬盘上， <code>node.js</code> 不卡死才怪，更何况这块硬盘上还在被其它服务频繁读写。
+</p>
+
+<p>
+一个服务运行过程中不写日志文件是不可能的，在 <code>node.js</code> 写日志方面需要找到更优的方案。</p>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[package.json文件dependencies中的各种版本号形式]]></title>
             <link>/article/package.json-65874ef6-dependencies-4e2d7684540479cd7248672c53f75f625f0f.html</link>
@@ -8599,6 +8715,34 @@ Web服务器可重用到服务程序的连接进一步提升性能（如：nginx
 ]]></content:encoded>
         </item>
         <item>
+            <title><![CDATA[解决保存快照失败后redis无法写入的问题]]></title>
+            <link>/article/89e351b34fdd5b585feb716759318d25540e-redis-65e06cd551995165768495ee9898.html</link>
+            <guid>/article/89e351b34fdd5b585feb716759318d25540e-redis-65e06cd551995165768495ee9898.html</guid>
+            <pubDate>Sun, 16 Dec 2012 07:14:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+用命令行工具连上后执行“set test 0”出现以下错误提示：
+</p>
+<pre class="example">
+MISCONF Redis is configured to save RDB snapshots, but is currently not able to persist on disk. Commands that may modify the data set are disabled. Please check Redis logs for details about the error.
+</pre>
+<p>
+这个应该是之前强制停止redis快照导致的，查看redis快照状态证实了这一点：
+</p>
+<pre class="example">
+redis 127.0.0.1:6379&gt; info
+...
+rdb_last_bgsave_status:err
+...
+</pre>
+<p>
+通过关闭配置项stop-writes-on-bgsave-error解决该问题。
+</p>
+<pre class="example">
+redis 127.0.0.1:6379&gt; config set stop-writes-on-bgsave-error no
+</pre>
+]]></content:encoded>
+        </item>
+        <item>
             <title><![CDATA[估算redis内存占用]]></title>
             <link>/article/4f307b97-redis-51855b5853607528.html</link>
             <guid>/article/4f307b97-redis-51855b5853607528.html</guid>
@@ -8739,34 +8883,6 @@ redis在执行bgsave时，会进行一次fork，fork后的进程负责将内存�
             <pubDate>Sun, 16 Dec 2012 07:14:00 GMT</pubDate>
             <content:encoded><![CDATA[<p>
 当hash结构中的元素较少（少于redis.conf:hash-max-zipmap-entries指定的数量时，配置成&lt;=1000，过大会减低处理速度，参见： <a href="http://stackoverflow.com/questions/11281734/redis-using-hashes">这里</a> 和 <a href="http://instagram-engineering.tumblr.com/post/12202313862/storing-hundreds-of-millions-of-simple-key-value-pairs">这里</a> ）且数据为整型时，redis使用特殊的方式（数组保存，时间换空间）保存hash结构以减少内存占用，参见 <a href="http://redis.io/topics/memory-optimization">这里</a> 和 <a href="http://stackoverflow.com/questions/9625246/what-are-the-underlying-data-structures-used-for-redis">这里</a> 。但当hash结构超过指定数量时将使用普通的<a href="http://redis.io/commands#string">字符串</a>方式保存，也就无法再节省内存了。</p>
-]]></content:encoded>
-        </item>
-        <item>
-            <title><![CDATA[解决保存快照失败后redis无法写入的问题]]></title>
-            <link>/article/89e351b34fdd5b585feb716759318d25540e-redis-65e06cd551995165768495ee9898.html</link>
-            <guid>/article/89e351b34fdd5b585feb716759318d25540e-redis-65e06cd551995165768495ee9898.html</guid>
-            <pubDate>Sun, 16 Dec 2012 07:14:00 GMT</pubDate>
-            <content:encoded><![CDATA[<p>
-用命令行工具连上后执行“set test 0”出现以下错误提示：
-</p>
-<pre class="example">
-MISCONF Redis is configured to save RDB snapshots, but is currently not able to persist on disk. Commands that may modify the data set are disabled. Please check Redis logs for details about the error.
-</pre>
-<p>
-这个应该是之前强制停止redis快照导致的，查看redis快照状态证实了这一点：
-</p>
-<pre class="example">
-redis 127.0.0.1:6379&gt; info
-...
-rdb_last_bgsave_status:err
-...
-</pre>
-<p>
-通过关闭配置项stop-writes-on-bgsave-error解决该问题。
-</p>
-<pre class="example">
-redis 127.0.0.1:6379&gt; config set stop-writes-on-bgsave-error no
-</pre>
 ]]></content:encoded>
         </item>
         <item>
@@ -9596,6 +9712,63 @@ listen = 127.0.0.1:9000
 ]]></content:encoded>
         </item>
         <item>
+            <title><![CDATA[解决360杀毒报网页HTML.Rce.Gen3恶意程序的问题]]></title>
+            <link>/article/89e351b3-360-67406bd262a57f519875-html.rce.gen3-6076610f7a0b5e8f768495ee9898.html</link>
+            <guid>/article/89e351b3-360-67406bd262a57f519875-html.rce.gen3-6076610f7a0b5e8f768495ee9898.html</guid>
+            <pubDate>Wed, 01 Aug 2012 00:55:00 GMT</pubDate>
+            <content:encoded><![CDATA[
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">问题描述</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+测试发现在某些机器上会弹出360杀毒危险警告对话框，导致网页无法打开。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">解决方法</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+将嵌入的统计js脚本从&lt;/html&gt;标签后移到里面去。
+</p>
+<ul class="org-ul">
+<li>修改前
+</li>
+</ul>
+<div class="org-src-container">
+
+<pre class="src src-html">...
+&lt;/<span style="color: #de935f;">body</span>&gt;
+&lt;/<span style="color: #de935f;">html</span>&gt;
+&lt;<span style="color: #de935f;">script</span> <span style="color: #f0c674;">type</span>=<span style="color: #8abeb7;">"text/javascript"</span>&gt;document.write(unescape(<span style="color: #8abeb7;">"%3Cscript%20...%3C/script%3E"</span>));&lt;/<span style="color: #de935f;">script</span>&gt;
+</pre>
+</div>
+<ul class="org-ul">
+<li>修改后
+</li>
+</ul>
+<div class="org-src-container">
+
+<pre class="src src-html">...
+&lt;<span style="color: #de935f;">script</span> <span style="color: #f0c674;">type</span>=<span style="color: #8abeb7;">"text/javascript"</span>&gt;document.write(unescape(<span style="color: #8abeb7;">"%3Cscript%20...%3C/script%3E"</span>));&lt;/<span style="color: #de935f;">script</span>&gt;
+&lt;/<span style="color: #de935f;">body</span>&gt;
+&lt;/<span style="color: #de935f;">html</span>&gt;
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">心得</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+以后再遇到这种情况，可以采取排除法，将网页另存为本地文件，一点点的删除内容直到360杀毒不再报警为止。</p>
+</div>
+</div>
+]]></content:encoded>
+        </item>
+        <item>
             <title><![CDATA[在python中安装mysqldb模块]]></title>
             <link>/article/5728-python-4e2d5b8988c5-mysqldb-6a215757.html</link>
             <guid>/article/5728-python-4e2d5b8988c5-mysqldb-6a215757.html</guid>
@@ -9650,63 +9823,6 @@ sh setuptools-0.6c11-py2.4.egg
 </div>
 </li>
 </ul>
-</div>
-</div>
-]]></content:encoded>
-        </item>
-        <item>
-            <title><![CDATA[解决360杀毒报网页HTML.Rce.Gen3恶意程序的问题]]></title>
-            <link>/article/89e351b3-360-67406bd262a57f519875-html.rce.gen3-6076610f7a0b5e8f768495ee9898.html</link>
-            <guid>/article/89e351b3-360-67406bd262a57f519875-html.rce.gen3-6076610f7a0b5e8f768495ee9898.html</guid>
-            <pubDate>Wed, 01 Aug 2012 00:55:00 GMT</pubDate>
-            <content:encoded><![CDATA[
-<div id="outline-container-sec-1" class="outline-2">
-<h2 id="sec-1">问题描述</h2>
-<div class="outline-text-2" id="text-1">
-<p>
-测试发现在某些机器上会弹出360杀毒危险警告对话框，导致网页无法打开。
-</p>
-</div>
-</div>
-
-<div id="outline-container-sec-2" class="outline-2">
-<h2 id="sec-2">解决方法</h2>
-<div class="outline-text-2" id="text-2">
-<p>
-将嵌入的统计js脚本从&lt;/html&gt;标签后移到里面去。
-</p>
-<ul class="org-ul">
-<li>修改前
-</li>
-</ul>
-<div class="org-src-container">
-
-<pre class="src src-html">...
-&lt;/<span style="color: #de935f;">body</span>&gt;
-&lt;/<span style="color: #de935f;">html</span>&gt;
-&lt;<span style="color: #de935f;">script</span> <span style="color: #f0c674;">type</span>=<span style="color: #8abeb7;">"text/javascript"</span>&gt;document.write(unescape(<span style="color: #8abeb7;">"%3Cscript%20...%3C/script%3E"</span>));&lt;/<span style="color: #de935f;">script</span>&gt;
-</pre>
-</div>
-<ul class="org-ul">
-<li>修改后
-</li>
-</ul>
-<div class="org-src-container">
-
-<pre class="src src-html">...
-&lt;<span style="color: #de935f;">script</span> <span style="color: #f0c674;">type</span>=<span style="color: #8abeb7;">"text/javascript"</span>&gt;document.write(unescape(<span style="color: #8abeb7;">"%3Cscript%20...%3C/script%3E"</span>));&lt;/<span style="color: #de935f;">script</span>&gt;
-&lt;/<span style="color: #de935f;">body</span>&gt;
-&lt;/<span style="color: #de935f;">html</span>&gt;
-</pre>
-</div>
-</div>
-</div>
-
-<div id="outline-container-sec-3" class="outline-2">
-<h2 id="sec-3">心得</h2>
-<div class="outline-text-2" id="text-3">
-<p>
-以后再遇到这种情况，可以采取排除法，将网页另存为本地文件，一点点的删除内容直到360杀毒不再报警为止。</p>
 </div>
 </div>
 ]]></content:encoded>
