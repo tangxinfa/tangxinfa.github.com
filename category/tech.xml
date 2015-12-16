@@ -4,7 +4,7 @@
         <title>技术 - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/category/tech.xml</link>
-        <lastBuildDate>Sat, 12 Dec 2015 12:31:57 GMT</lastBuildDate>
+        <lastBuildDate>Wed, 16 Dec 2015 09:43:39 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>技术 - 看看俺 – KanKanAn.com</title>
@@ -14,6 +14,47 @@
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <generator>Feed for Node.js</generator>
         <category>技术</category>
+        <item>
+            <title><![CDATA[使用国内镜像加速npm]]></title>
+            <link>/article/4f7f752856fd5185955c50cf52a0901f-npm.html</link>
+            <guid>/article/4f7f752856fd5185955c50cf52a0901f-npm.html</guid>
+            <pubDate>Wed, 16 Dec 2015 09:42:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+使用 <code>npm</code> 安装 <code>node.js</code> 包时会很慢，使用国内镜像可以提高速度。
+</p>
+
+<ul class="org-ul">
+<li>方式一
+
+<div class="org-src-container">
+
+<pre class="src src-sh">npm install --registry=https://registry.npm.taobao.org
+</pre>
+</div>
+</li>
+
+<li>方式二
+
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #b294bb;">export</span> <span style="color: #f0c674;">npm_config_registry</span>=https://registry.npm.taobao.org
+npm install
+</pre>
+</div>
+</li>
+
+<li>方式三
+
+<div class="org-src-container">
+
+<pre class="src src-sh">npm config set <span style="color: #f0c674;">registry</span>=https://registry.npm.taobao.org
+npm install
+</pre>
+</div>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[node.js写日志堵塞问题]]></title>
             <link>/article/node.js-519965e55fd75835585e95ee9898.html</link>
@@ -127,7 +168,21 @@ The console functions are synchronous when the destination is a terminal or a fi
 </p>
 
 <p>
-一个服务运行过程中不写日志文件是不可能的，在 <code>node.js</code> 写日志方面需要找到更优的方案。</p>
+一个服务运行过程中不写日志文件是不可能的，在 <code>node.js</code> 写日志方面需要找到更优的方案。
+</p>
+
+<p>
+但是在寻找更好的方案之前，我做了一个常识性的思考：
+</p>
+
+<blockquote>
+<p>
+将应用程序日志写到磁盘文件的模块，除非它丢弃日志，当磁盘写入无法跟上日志产生的速度，就要暂存到某个地方，它可能是本机的内存或连网的另一台机器。
+</p>
+</blockquote>
+
+<p>
+所以我最终要找的，不仅仅是一个异步写日志文件的模块，还要先减少磁盘写入量，或者日志不直接写到磁盘文件，而是发送到一个日志服务。</p>
 ]]></content:encoded>
         </item>
         <item>

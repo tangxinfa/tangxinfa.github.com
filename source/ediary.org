@@ -8251,3 +8251,36 @@ class RedisShard {
    也就是说不出意外的话，我们的服务写日志是阻塞式的，每秒钟同步方式写700行日志到一块普通机械硬盘上， =node.js= 不卡死才怪，更何况这块硬盘上还在被其它服务频繁读写。
 
    一个服务运行过程中不写日志文件是不可能的，在 =node.js= 写日志方面需要找到更优的方案。
+
+   但是在寻找更好的方案之前，我做了一个常识性的思考：
+
+   #+begin_quote
+   将应用程序日志写到磁盘文件的模块，除非它丢弃日志，当磁盘写入无法跟上日志产生的速度，就要暂存到某个地方，它可能是本机的内存或连网的另一台机器。
+   #+end_quote
+
+   所以我最终要找的，不仅仅是一个异步写日志文件的模块，还要先减少磁盘写入量，或者日志不直接写到磁盘文件，而是发送到一个日志服务。
+
+* DONE 使用国内镜像加速npm                                             :node:
+  CLOSED: [2015-12-16 Wed 17:42]
+
+  使用 =npm= 安装 =node.js= 包时会很慢，使用国内镜像可以提高速度。
+
+  - 方式一
+
+    #+begin_src sh
+      npm install --registry=https://registry.npm.taobao.org
+    #+end_src
+
+  - 方式二
+
+    #+begin_src sh
+      export npm_config_registry=https://registry.npm.taobao.org
+      npm install
+    #+end_src
+
+  - 方式三
+    
+    #+begin_src sh
+      npm config set registry=https://registry.npm.taobao.org
+      npm install
+    #+end_src
