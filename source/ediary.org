@@ -8104,7 +8104,7 @@ class RedisShard {
     }
   #+end_src
 
-  一般自已写 =package.json= 时，图省事版本号会用 =*= ，想想也是很危险的，指不定哪天依赖的包不在向后兼容，程序运行估计就有问题了。
+  一般自已写 =package.json= 时，图省事版本号会用 =*= ，想想也是很危险的，指不定哪天依赖的包不再向后兼容，程序运行估计就有问题了。
 
   版本号形式是有据可循的，它就是《[[http://semver.org/lang/zh-CN/][语义化版本 2.0.0]]》， =npm= 遵循该规范，但做了以下扩展：
 
@@ -8282,3 +8282,83 @@ class RedisShard {
       npm config set registry=https://registry.npm.taobao.org
       npm install
     #+end_src
+* DONE node.js服务迁移到docker容器                              :node:docker:
+  CLOSED: [2015-12-17 Thu 16:54]
+
+  这是一篇 =docker= 实践教程，将 [[https://github.com/tangxinfa/upload-fiddle][tangxinfa/upload-fiddle]] 这个 =node.js= 服务封装成 =docker= 容器。
+  相关代码已提交到 [[https://github.com/tangxinfa/upload-fiddle][tangxinfa/upload-fiddle]] 项目。
+
+** 编写 =Dockerfile=
+
+   #+begin_example -n -r
+     FROM dl.dockerpool.com:5000/ubuntu:14.04    (ref:dockerpool)
+
+     MAINTAINER tangxinfa <tangxinfa@gmail.com>
+
+     # Change apt sources
+     ADD .docker/sources.list /etc/apt/sources.list  (ref:163-ubuntu)
+
+     # Install python
+     RUN \
+         apt-get update && apt-get -y -qq install python wget
+
+     # Install node
+     RUN \
+         wget http://npm.taobao.org/mirrors/node/v0.12.9/node-v0.12.9-linux-x64.tar.gz &&\
+         tar xzf node-v0.12.9-linux-x64.tar.gz -C /usr/local
+
+     WORKDIR /usr/local/sandai/upload-fiddle/
+
+     # Install node modules
+     ADD package.json ./
+     ADD *.bashrc ./
+     RUN \
+         ln -s /usr/local/node-v0.12.9-linux-x64 ./node
+     RUN \
+         ["/bin/bash", "-c", "source .bashrc; npm install --registry=https://registry.npm.taobao.org"]   (ref:npm-taobao)
+
+     # Add project files
+     COPY src ./src
+     COPY config ./config
+     ADD *.sh ./
+     ADD public/*.html ./public/
+
+     # Create directory for upload files.
+     RUN \
+         mkdir public/files &&\
+         chmod a+w public/files
+
+     # Start service.
+     CMD ["/bin/bash", "-c", "./start.sh && read"]   (ref:read)
+   #+end_example
+
+   - 配置行 [[(dockerpool)]] :: 在官方仓库被墙的大环境下，使用 =dockerpool.com= 提供的镜像
+     
+   - 配置行 [[(163-ubuntu)]] :: 使用163的ubuntu源，提高速度
+
+   - 配置行 [[(npm-taobao)]] :: 使用taobao的npm源，提高速度
+
+   - 配置行 [[(read)]] :: 调用read命令避免命令退出导致容器停止
+
+** 创建 =docker= 镜像
+
+   #+begin_src sh
+     sudo docker build -t 'tangxinfa/upload-fiddle:0.0.1' .
+   #+end_src
+  
+** 运行 =docker= 容器
+
+   #+begin_src sh
+     sudo docker run -idt --name='upload-fiddle' -p 127.0.0.1:80:80 'tangxinfa/upload-fiddle:0.0.1'
+   #+end_src
+
+   现在可以通过浏览器访问服务了：[[http://localhost/]]
+
+** 打开 =docker= 容器终端查看运行日志
+
+   #+begin_src sh
+     sudo docker exec -ti upload-fiddle /bin/bash
+     tail -f run.log
+   #+end_src
+
+   直接 =exit= 退出终端不会停止容器。
