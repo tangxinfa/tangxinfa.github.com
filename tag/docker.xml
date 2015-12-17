@@ -4,7 +4,7 @@
         <title>docker - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/docker.xml</link>
-        <lastBuildDate>Thu, 17 Dec 2015 10:34:15 GMT</lastBuildDate>
+        <lastBuildDate>Thu, 17 Dec 2015 15:28:53 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>docker - 看看俺 – KanKanAn.com</title>
@@ -14,6 +14,85 @@
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <generator>Feed for Node.js</generator>
         <category>技术</category>
+        <item>
+            <title><![CDATA[docker容器数据持久化]]></title>
+            <link>/article/docker-5bb956686570636e63014e455316.html</link>
+            <guid>/article/docker-5bb956686570636e63014e455316.html</guid>
+            <pubDate>Thu, 17 Dec 2015 15:24:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+在上一篇文章《 <a href="http:node.js-670d52a18fc179fb5230-docker-5bb95668.html">node.js服务迁移到docker容器</a> 》中，当容器被删除之后上传的文件将丢失，可以新建一个数据卷容器专门用来保存上传的文件，这个数据卷容器可以为多个应用容器提供数据持久化功能。
+</p>
+
+<p>
+其实也可以挂载本地文件目录做为容器的数据卷，但使用数据卷容器更规范一些。
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">创建数据卷容器</h2>
+<div class="outline-text-2" id="text-1">
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo docker run -d -v /usr/local/upload-fiddle/public/files --name upload-fiddle<span style="text-decoration: underline;">-data </span><span style="color: #70c0b1; text-decoration: underline;">'dl.dockerpool.com:5000/ubuntu:14.04'</span><span style="text-decoration: underline;"> echo </span><span style="color: #70c0b1; text-decoration: underline;">'upload-fiddle data container'</span>
+</pre>
+</div>
+
+<p>
+数据卷容器不需要运行已节约资源，它存在的目的只是对数据卷进行引用，避免数据卷被意外删除。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">挂载数据卷容器</h2>
+<div class="outline-text-2" id="text-2">
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo docker run -idt --name=<span style="color: #70c0b1;">'upload-fiddle'</span> -p 127.0.0.1:80:80 --volumes-from up<span style="text-decoration: underline;">load-fiddle-data </span><span style="color: #70c0b1; text-decoration: underline;">'tangxinfa/upload-fiddle:0.0.1'</span>
+</pre>
+</div>
+
+<p>
+使用 <code>--volumes-from</code> 选项引用容器中的数据卷。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">数据卷容器数据存储位置</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+查看数据卷容器挂载信息
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo docker inspect -f {{.Mounts}} upload-fiddle-data
+</pre>
+</div>
+
+<p>
+可以看到数据存储在宿主机的 <code>/var/lib/docker/volumes/</code> 目录下。
+</p>
+
+<p>
+数据卷只有当最后一个引用它的容器使用 <code>-v</code> 选项进行删除（ <code>docker rm</code> 命令）时，才会被删除。
+</p>
+
+<p>
+可以使用 <code>docker volume</code> 命令对数据卷进行管理。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4">参考</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+《<a href="http://container-solutions.com/understanding-volumes-docker/">Understanding Volumes in Docker - Container Solutions</a>》</p>
+</div>
+</div>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[node.js服务迁移到docker容器]]></title>
             <link>/article/node.js-670d52a18fc179fb5230-docker-5bb95668.html</link>
@@ -44,7 +123,7 @@
 <span class="linenr">14: </span>    wget http://npm.taobao.org/mirrors/node/v0.12.9/node-v0.12.9-linux-x64.tar.gz &amp;&amp;\
 <span class="linenr">15: </span>    tar xzf node-v0.12.9-linux-x64.tar.gz -C /usr/local
 <span class="linenr">16: </span>
-<span class="linenr">17: </span>WORKDIR /usr/local/sandai/upload-fiddle/
+<span class="linenr">17: </span>WORKDIR /usr/local/upload-fiddle/
 <span class="linenr">18: </span>
 <span class="linenr">19: </span># Install node modules
 <span class="linenr">20: </span>ADD package.json ./
@@ -90,7 +169,7 @@
 <div class="outline-text-2" id="text-2">
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo docker build -t <span style="color: #8abeb7;">'tangxinfa/upload-fiddle:0.0.1'</span> .
+<pre class="src src-sh">sudo docker build -t <span style="color: #70c0b1;">'tangxinfa/upload-fiddle:0.0.1'</span> .
 </pre>
 </div>
 </div>
@@ -101,7 +180,7 @@
 <div class="outline-text-2" id="text-3">
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo docker run -idt --name=<span style="color: #8abeb7;">'upload-fiddle'</span> -p 127.0.0.1:80:80 <span style="color: #8abeb7;">'tangxinfa/upload</span><span style="color: #8abeb7; text-decoration: underline;">-fiddle:0.0.1'</span>
+<pre class="src src-sh">sudo docker run -idt --name=<span style="color: #70c0b1;">'upload-fiddle'</span> -p 127.0.0.1:80:80 <span style="color: #70c0b1;">'tangxinfa/upload</span><span style="color: #70c0b1; text-decoration: underline;">-fiddle:0.0.1'</span>
 </pre>
 </div>
 
@@ -188,7 +267,7 @@ ExecStart=/usr/bin/docker daemon --insecure-registry dl.dockerpool.com:5000 -H f
 
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo docker pull <span style="color: #8abeb7;">'dl.dockerpool.com:5000/ubuntu:14.04'</span>
+<pre class="src src-sh">sudo docker pull <span style="color: #70c0b1;">'dl.dockerpool.com:5000/ubuntu:14.04'</span>
 </pre>
 </div>
 </li>
@@ -197,7 +276,7 @@ ExecStart=/usr/bin/docker daemon --insecure-registry dl.dockerpool.com:5000 -H f
 
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo docker run -t -i <span style="color: #8abeb7;">'dl.dockerpool.com:5000/ubuntu:14.04'</span> /bin/bash
+<pre class="src src-sh">sudo docker run -t -i <span style="color: #70c0b1;">'dl.dockerpool.com:5000/ubuntu:14.04'</span> /bin/bash
 </pre>
 </div>
 </li>

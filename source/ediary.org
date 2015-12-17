@@ -8307,7 +8307,7 @@ class RedisShard {
          wget http://npm.taobao.org/mirrors/node/v0.12.9/node-v0.12.9-linux-x64.tar.gz &&\
          tar xzf node-v0.12.9-linux-x64.tar.gz -C /usr/local
 
-     WORKDIR /usr/local/sandai/upload-fiddle/
+     WORKDIR /usr/local/upload-fiddle/
 
      # Install node modules
      ADD package.json ./
@@ -8362,3 +8362,43 @@ class RedisShard {
    #+end_src
 
    直接 =exit= 退出终端不会停止容器。
+* DONE docker容器数据持久化                                          :docker:
+  CLOSED: [2015-12-17 Thu 23:24]
+
+  在上一篇文章《 [[http:node.js-670d52a18fc179fb5230-docker-5bb95668.html][node.js服务迁移到docker容器]] 》中，当容器被删除之后上传的文件将丢失，可以新建一个数据卷容器专门用来保存上传的文件，这个数据卷容器可以为多个应用容器提供数据持久化功能。
+
+  其实也可以挂载本地文件目录做为容器的数据卷，但使用数据卷容器更规范一些。
+
+** 创建数据卷容器
+
+   #+begin_src sh
+     sudo docker run -d -v /usr/local/upload-fiddle/public/files --name upload-fiddle-data 'dl.dockerpool.com:5000/ubuntu:14.04' echo 'upload-fiddle data container'
+   #+end_src
+
+   数据卷容器不需要运行已节约资源，它存在的目的只是对数据卷进行引用，避免数据卷被意外删除。
+
+** 挂载数据卷容器
+
+   #+begin_src sh
+     sudo docker run -idt --name='upload-fiddle' -p 127.0.0.1:80:80 --volumes-from upload-fiddle-data 'tangxinfa/upload-fiddle:0.0.1'
+   #+end_src
+
+   使用 =--volumes-from= 选项引用容器中的数据卷。
+
+** 数据卷容器数据存储位置
+
+   查看数据卷容器挂载信息
+
+   #+begin_src sh
+     sudo docker inspect -f {{.Mounts}} upload-fiddle-data
+   #+end_src
+
+   可以看到数据存储在宿主机的 =/var/lib/docker/volumes/= 目录下。
+
+   数据卷只有当最后一个引用它的容器使用 =-v= 选项进行删除（ =docker rm= 命令）时，才会被删除。
+
+   可以使用 =docker volume= 命令对数据卷进行管理。
+
+** 参考
+
+   《[[http://container-solutions.com/understanding-volumes-docker/][Understanding Volumes in Docker - Container Solutions]]》
