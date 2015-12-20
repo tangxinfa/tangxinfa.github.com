@@ -8445,6 +8445,7 @@ class RedisShard {
   - 192.0.2.0/24 :: 192.0.2.0 - 192.0.2.255
                     
                     Assigned as "TEST-NET" in RFC 5737 for use solely in documentation and example source code and should not be used publicly.
+
                     一般用户不可能被分配到这个IP段。
 
   - 198.18.0.0/15 :: 198.18.0.0 - 198.19.255.255
@@ -8468,3 +8469,209 @@ class RedisShard {
   - 255.255.255.255/32 :: 255.255.255.255
 
                           本网段的广播地址。
+* DONE tls连接内存占用                                                 :node:
+  CLOSED: [2015-12-21 Mon 00:17]
+
+  我们有一个 =node.js= 服务，有大量 =tls= 长连接，跑了一段时间后发现内存消耗比较大，每个 =node.js= 实例维持 =3000= 个连接需要消耗 =1G= 略多的内存，但是也不能确定有内存泄露，毕竟内存没有再往上涨导致服务中断，所以觉得有必要测试一下 =tls= 连接的内存消耗情况。
+
+** tls服务器
+
+   #+begin_src js
+     var tls         = require('tls'),
+         fs          = require('fs');
+
+
+     var options = {
+         key: fs.readFileSync('server.key'),
+         cert: fs.readFileSync('server.cert'),
+         handshakeTimeout: 10*1000,
+         plain: true,
+         ssl: true
+     };
+
+     var port = 1234;
+     var tlsServer = tls.createServer(options, function (socket) {
+         socket.on("close", function () {
+             console.warn('tls client(' + socket.remoteAddress + ':' + socket.remotePort +') closed');
+         });
+     }).listen(port, "0.0.0.0", function(){
+         console.log('tls server listening on port(' + port + ')');
+     });
+     tlsServer.maxConnections = 10000;
+     tlsServer.on('clientError', function (exception, socket) {
+         console.warn('tls client(' + socket.remoteAddress + ':' + socket.remotePort +') error(' + exception + ')');
+         socket.destroy();
+     });
+
+     function memoryUsage() {
+         var mem = process.memoryUsage();
+         var format = function(bytes) {
+             return (bytes/1024/1024).toFixed(2)+'MB';
+         };
+         console.log('Process: heapTotal '+format(mem.heapTotal) + ' heapUsed ' + format(mem.heapUsed) + ' rss ' + format(mem.rss));
+     }
+
+     setInterval(function () {
+         tlsServer.getConnections(function (err, tlsCount) {
+             if (err) {
+                 console.error("get tls connections count error(" + err.toString() + ")");
+             }
+
+             console.warn("server: tls connections(" + tlsCount + ")");
+
+             memoryUsage();
+         });
+     }, 1*1000);
+   #+end_src
+
+** tls客户端
+
+   #+begin_src js
+     var tls = require('tls');
+
+     var tlsCount = 0;
+
+     function connect() {
+         var socket = tls.connect(1234, {rejectUnauthorized: false}, function () {
+             tlsCount += 1;
+             socket.setEncoding('utf8');
+             socket.on('data', function(data) {
+             });
+             socket.on('close', function() {
+                 tlsCount -= 1;
+             });
+         });
+     }
+
+     function memoryUsage() {
+         var mem = process.memoryUsage();
+         var format = function(bytes) {
+             return (bytes/1024/1024).toFixed(2)+'MB';
+         };
+         console.log('Process: heapTotal '+format(mem.heapTotal) + ' heapUsed ' + format(mem.heapUsed) + ' rss ' + format(mem.rss));
+     }
+
+     var round = 0;
+     setInterval(function () {
+         if (round < 10) {
+             for(var i = 0; i < 100; ++i) {
+                 connect();
+             }
+             round += 1;
+         }
+
+         console.warn("client: tls connections(" + tlsCount + ")");
+
+         memoryUsage();
+     }, 1000);
+   #+end_src
+
+** tls服务器日志
+
+   连接从 =0= 到 =1000= 内存增长
+
+   #+begin_example
+     server: tls connections(0)
+     Process: heapTotal 9.14MB heapUsed 4.80MB rss 23.69MB
+     server: tls connections(100)
+     Process: heapTotal 10.13MB heapUsed 5.59MB rss 29.53MB
+     server: tls connections(200)
+     Process: heapTotal 10.13MB heapUsed 6.75MB rss 32.32MB
+     server: tls connections(300)
+     Process: heapTotal 9.18MB heapUsed 7.32MB rss 34.37MB
+     server: tls connections(400)
+     Process: heapTotal 10.16MB heapUsed 8.11MB rss 37.05MB
+     server: tls connections(500)
+     Process: heapTotal 11.14MB heapUsed 8.66MB rss 38.18MB
+     server: tls connections(600)
+     Process: heapTotal 11.14MB heapUsed 9.48MB rss 39.73MB
+     server: tls connections(600)
+     Process: heapTotal 12.12MB heapUsed 9.62MB rss 40.50MB
+     server: tls connections(700)
+     Process: heapTotal 15.04MB heapUsed 10.16MB rss 42.69MB
+     server: tls connections(800)
+     Process: heapTotal 18.97MB heapUsed 10.72MB rss 44.50MB
+     server: tls connections(900)
+     Process: heapTotal 18.97MB heapUsed 11.68MB rss 46.30MB
+     server: tls connections(1000)
+     Process: heapTotal 18.97MB heapUsed 12.63MB rss 47.32MB
+   #+end_example
+
+   tls客户端结束后连接数从 =1000= 降到 =0= 约 =30= 秒后
+
+   #+begin_example
+     server: tls connections(0)
+     Process: heapTotal 22.91MB heapUsed 13.63MB rss 48.44MB
+   #+end_example
+
+   从上面的日志可以计算出：
+
+   - 每 =tls= 连接 =rss= 要消耗 =24.2KB=  =heap= 要消耗 =8KB=
+
+   - 连接关闭后内存没有释放
+     
+     还略有增加，要么就是 =node.js= 没有释放 =tls= 连接的内存（应该不太可能），要么就是我的代码有问题，没有释放资源
+
+   使用 =heapdump= 导出堆数据后通过 =Chromium= 的开发工具进行分析，发现事情没这么简单，占用的内存绝大部分是代码，
+   =tls= 服务器不退出，使用 =tls= 客户端测试多轮后可以发现 =rss= 内存占用不会增加， =tls= 客户端退出关闭所有连接后，
+   =rss= 内存占用总是会恢复到同一水平，这就说明代码是没有问题的，应该不存在内存泄露。
+
+   多轮测试后重新取样：
+
+   #+begin_example
+     server: tls connections(0)
+     Process: heapTotal 21.93MB heapUsed 13.22MB rss 54.06MB
+     server: tls connections(100)
+     Process: heapTotal 21.93MB heapUsed 14.16MB rss 54.06MB
+     server: tls connections(200)
+     Process: heapTotal 25.86MB heapUsed 14.79MB rss 58.57MB
+     server: tls connections(300)
+     Process: heapTotal 25.86MB heapUsed 15.76MB rss 59.08MB
+     server: tls connections(400)
+     Process: heapTotal 25.86MB heapUsed 16.69MB rss 59.08MB
+     server: tls connections(500)
+     Process: heapTotal 27.83MB heapUsed 16.72MB rss 60.37MB
+     server: tls connections(600)
+     Process: heapTotal 27.83MB heapUsed 17.65MB rss 60.37MB
+     server: tls connections(700)
+     Process: heapTotal 33.74MB heapUsed 15.76MB rss 59.32MB
+     server: tls connections(800)
+     Process: heapTotal 33.74MB heapUsed 16.71MB rss 59.32MB
+     server: tls connections(800)
+     Process: heapTotal 33.74MB heapUsed 16.83MB rss 59.32MB
+     server: tls connections(900)
+     Process: heapTotal 33.74MB heapUsed 18.31MB rss 59.38MB
+     server: tls connections(1000)
+     Process: heapTotal 33.74MB heapUsed 19.24MB rss 59.38MB
+   #+end_example
+
+   从上面的日志可以计算出：
+
+   - 每 =tls= 连接 =rss= 要消耗 =5.45KB= ， =heap= 要消耗 =6.16KB=
+
+   也就是说正常情况下， =3000= 个 =tls= 连接， =rss= 会消耗 =16MB= ， =heap= 会消耗 =18MB= ，占用 =1G= 的问题肯定出在其它地方。
+
+   另外注意到调用 =heapdump.writeSnapshot= 后内存占用大幅下降，应该是 =heapdump= 触发了 =v8= 的垃圾回收， =v8= 的垃圾回收应该不是实时精确的，要精确测量内存占用，估计也要像 =heapdump= 一样让 =v8= 将全部垃圾回收后再测量。
+
+** 不同版本的node.js结果会有差异
+
+   为了完全模拟真实环境，针对每一个接收的tls连接，除了 =close= ，还监听了 =data= 、 =error= 、 =timeout= 事件：
+
+   #+begin_src js
+     socket.on("data", function (data) {
+
+     });
+     socket.on("error", function (err) {
+         console.warn('tls client(' + socket.remoteAddress + ':' + socket.remotePort +') error(' + err.toString() + ')');
+     });
+     socket.on("close", function () {
+         console.warn('tls client(' + socket.remoteAddress + ':' + socket.remotePort +') closed');
+     });
+     socket.on("timeout", function () {
+         socket.destroy();
+     });
+   #+end_src
+
+   前面的测试我使用的是 =node-v5.3.0= ，我使用 =node-v0.12.7= 重新测了几轮，最终 =rss= 内存占用停在 =145.5MB= ，这还只是 =1000= 个 =tls= 连接，使用 =3000= 个 =tls= 连接进行测试， =rss= 内存占用停在 =303MB= 。再次使用 =node-v5.3.0= 测试 =3000= 个 =tls= 连接， =rss= 内存占用停在 =115MB - 130MB= 之间，随着连接的增减有一定的波动。
+
+   由此看来 =tls= 连接是要占用一定内存量的，高版本的 =node= 改进很大，可以考虑升级一下 =node= 。
