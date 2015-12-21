@@ -8256,7 +8256,7 @@ class RedisShard {
    将应用程序日志写到磁盘文件的模块，除非它丢弃日志，当磁盘写入无法跟上日志产生的速度，就要暂存到某个地方，它可能是本机的内存或连网的另一台机器。
    #+end_quote
 
-   所以我最终要找的，不仅仅是一个异步写日志文件的模块，还要先减少磁盘写入量，或者日志不直接写到磁盘文件，而是发送到一个日志服务。
+   所以我最终要找的，不仅仅是一个异步写日志文件的模块，还要先减少磁盘写入量，或者日志不直接写到磁盘文件，而是发送到一个日志服务，如果日志是写在本地磁盘，最好能够做到磁盘满时不中断服务，这种情况下丢失日志也是可以接受的。
 
 * DONE 使用国内镜像加速npm                                             :node:
   CLOSED: [2015-12-16 Wed 17:42]
@@ -8282,6 +8282,9 @@ class RedisShard {
       npm config set registry=https://registry.npm.taobao.org
       npm install
     #+end_src
+
+  最后再推荐一下 [[http://npm.taobao.org/][淘宝 NPM 镜像]] ，不但有 =npm= 的镜像，还有 [[http://npm.taobao.org/mirrors/node][node.js镜像]] ，以后安装 =node.js= 可以更方便了。
+
 * DONE node.js服务迁移到docker容器                              :node:docker:
   CLOSED: [2015-12-17 Thu 16:54]
 
@@ -8655,7 +8658,7 @@ class RedisShard {
 
 ** 不同版本的node.js结果会有差异
 
-   为了完全模拟真实环境，针对每一个接收的tls连接，除了 =close= ，还监听了 =data= 、 =error= 、 =timeout= 事件：
+   为了完全模拟真实环境，针对每一个接收的 =tls= 连接，除了 =close= ，还监听了 =data= 、 =error= 、 =timeout= 事件：
 
    #+begin_src js
      socket.on("data", function (data) {
@@ -8675,3 +8678,121 @@ class RedisShard {
    前面的测试我使用的是 =node-v5.3.0= ，我使用 =node-v0.12.7= 重新测了几轮，最终 =rss= 内存占用停在 =145.5MB= ，这还只是 =1000= 个 =tls= 连接，使用 =3000= 个 =tls= 连接进行测试， =rss= 内存占用停在 =303MB= 。再次使用 =node-v5.3.0= 测试 =3000= 个 =tls= 连接， =rss= 内存占用停在 =115MB - 130MB= 之间，随着连接的增减有一定的波动。
 
    由此看来 =tls= 连接是要占用一定内存量的，高版本的 =node= 改进很大，可以考虑升级一下 =node= 。
+
+** 最后附上 node.js 各个版本的测试结果
+
+   |--------------------+-----------------------------------------------------|
+   | 不同版本的 node.js | 10000 个 tls 连接                                   |
+   |--------------------+-----------------------------------------------------|
+   | node-v0.12.7       | heapTotal 158.34MB  heapUsed 98.62MB   rss 728.26MB |
+   | node-v0.12.9       | heapTotal 239.04MB  heapUsed 209.53MB  rss 838.40MB |
+   | node-v4.2.3        | heapTotal 86.58MB   heapUsed 81.47MB   rss 222.97MB |
+   | node-v5.3.0        | heapTotal 96.73MB   heapUsed 75.23MB   rss 235.11MB |
+   |--------------------+-----------------------------------------------------|
+
+   - 测试脚本
+
+     [[file:../static/test_tls_server.js][test_tls_server.js]]
+
+     [[file:../static/test_tls_client.js][test_tls_client.js]]
+
+   - 测试命令
+
+     终端 =1= ( =tls= 服务器)
+
+     #+begin_src sh
+       sudo bash -c "(ulimit -n 10240; node ./test_tls_server.js)"
+     #+end_src
+     
+     终端 =2= ( =tls= 客户端)
+     
+     #+begin_src sh
+       sudo bash -c "(ulimit -n 10240; for (( i = 0; i < 100; i++)); do echo round \$i; node ./test_tls_client.js; done;)"
+     #+end_src
+     
+     内存占用取的是 =tls= 测试客户端退出后，服务器端最后建立了 =10000= 个 =tls= 连接时的内存占用。
+* DONE 安全使用libcurl的正确姿势                                          :c:
+  CLOSED: [2015-12-21 Mon 18:14]
+
+  在我们的项目中，数次遇到 =libcurl= 导致的应用程序崩溃问题，这里总结了一下使用 =libcurl= 的正确姿势。
+
+  #+begin_src c -n -r
+    #include <curl/curl.h>
+    #include <stdint.h>
+    #include <string.h>
+
+
+    #define RESPONSE_BODY_SIZE 128
+
+    static size_t write_function(const void *buffer, const size_t size, const size_t nmemb, void *user_p)
+    {
+        char* response_body = (char*)user_p;
+        uint32_t response_body_len = strlen(response_body);
+        uint32_t len = size*nmemb;
+        if (len > RESPONSE_BODY_SIZE - response_body_len - 1) {
+            len = RESPONSE_BODY_SIZE - response_body_len - 1;
+        }
+        memcpy(response_body + response_body_len, buffer, len); (ref:curl_write_function_buffer)
+        return size*nmemb; (ref:curl_write_function_return)
+    }
+
+    int main(int argc, char *argv[])
+    {
+        const char* url = "http://www.example.com/dns_servers";
+        struct curl_slist *headers = NULL;
+        headers = curl_slist_append(headers, "Content-Type: application/json");
+        const char* request_body = "{\"host\": \"8.8.8.8\", \"port\": 53}";
+
+        CURL *curl;
+        CURLcode res;
+        char response_body[RESPONSE_BODY_SIZE] = {'\0'};
+        long response_code = 0;
+
+        curl = curl_easy_init();
+        if(curl) {
+            curl_easy_setopt(curl, CURLOPT_URL, url);
+            curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, request_body);
+            curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, strlen(request_body));
+            curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);  (ref:curl_nosignal)
+            curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_function);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, response_body);
+            res = curl_easy_perform(curl);
+            if (res == CURLE_OK) {
+                res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);  (ref:curl_response_code)
+            }
+            if(res != CURLE_OK) {
+                fprintf(stderr, "request to %s error(%d): %s", url, res, curl_easy_strerror(res));
+            }
+            curl_easy_cleanup(curl);
+        }
+
+        curl_slist_free_all(headers);
+        if (response_code == 201) {
+            fprintf(stderr, "request to %s successful: %s\n", url, response_body);
+            return 0;
+        }
+
+        fprintf(stderr, "request to %s response failed(%ld): %s\n", url, response_code, response_body);
+        return 1;
+    }
+  #+end_src
+
+  上面的示例代码要注意的地方：
+
+  - 行 [[(curl_write_function_buffer)]] :: buffer不是 =\0= 结尾的
+
+  - 行 [[(curl_write_function_return)]] :: 总是返回 =size*nmemb=
+
+  - 行 [[(curl_nosignal)]] :: 总是设置这个选项
+    
+       =libcurl= 不支持异步 =dns= 解析时，会通过 =signal= 的方式实现 =dns= 解析设置超时， =signal= 会导致多线程程序崩溃，后台服务通常都是多线程的，所以应该总是设置这个选项（但是 =libcurl= 不支持异步 =dns= 解析时，超时选项将被忽略）。
+
+       可以通过运行 =curl --version= 命令或调用 =curl_version= 函数查看 =libcurl= 是否支持异步 =dns= 解析，调用 =curl_version_info= 函数还可以获得具体的 =c-ares= 库版本号。
+       
+       编译 =libcurl= 时，通过为  =configure= 指定 =--enable-threaded-resolver= 或 =--enable-ares= 选项启用异步 =dns= 解析。
+
+  - 行 [[(curl_response_code)]] :: 状态响应码变量必须是 =long= 类型
+
+       否则会由于内存越界导致程序崩溃。
