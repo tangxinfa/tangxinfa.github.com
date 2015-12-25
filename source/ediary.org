@@ -8681,14 +8681,15 @@ class RedisShard {
 
 ** 最后附上 node.js 各个版本的测试结果
 
-   |--------------------+-----------------------------------------------------|
-   | 不同版本的 node.js | 10000 个 tls 连接                                   |
-   |--------------------+-----------------------------------------------------|
-   | node-v0.12.7       | heapTotal 158.34MB  heapUsed 98.62MB   rss 728.26MB |
-   | node-v0.12.9       | heapTotal 239.04MB  heapUsed 209.53MB  rss 838.40MB |
-   | node-v4.2.3        | heapTotal 86.58MB   heapUsed 81.47MB   rss 222.97MB |
-   | node-v5.3.0        | heapTotal 96.73MB   heapUsed 75.23MB   rss 235.11MB |
-   |--------------------+-----------------------------------------------------|
+   #+CAPTION: 10000 tls connections
+   |--------------+---------------+--------------+---------|
+   | node.js      | heapTotal(MB) | heapUsed(MB) | rss(MB) |
+   |--------------+---------------+--------------+---------|
+   | node-v0.12.7 |        158.34 |        98.62 |  728.26 |
+   | node-v0.12.9 |        239.04 |       209.53 |  838.40 |
+   | node-v4.2.3  |         86.58 |        81.47 |  222.97 |
+   | node-v5.3.0  |         96.73 |        75.23 |  235.11 |
+   |--------------+---------------+--------------+---------|
 
    - 测试脚本
 
@@ -8796,3 +8797,57 @@ class RedisShard {
   - 行 [[(curl_response_code)]] :: 状态响应码变量必须是 =long= 类型
 
        否则会由于内存越界导致程序崩溃。
+* TODO redis高可用性基础：Master-Slave                                :redis:
+
+  虽然一直在做后端，很惭愧存储方面从来没有实施过高可用性方案。
+
+** 理解Master-Slave
+
+   =Master-Slave= 常常翻译为 =主/备= ，是一种高可用性（ [[https://en.wikipedia.org/wiki/High_availability][High Availability]] ）方案。
+
+   举个生活中的 =Master-Slave= 例子：
+
+   #+begin_quote
+   参加考试的时候，我们会准备两支钢笔，正常情况下我们只会使用一支，出问题了才会换另外一支。
+   #+end_quote
+
+   所以实施 =Master-Slave= 是有成本的，至少会有 =50%= 的资源浪费（多备几支浪费会更多），可以让 =Slave= 承担一部分工作来充分利用资源。
+
+** Redis的Master-Slave
+
+   关于 =Redis= 的 =Master-Slave= ，《[[http://redis.io/topics/replication][Replication – Redis]]》 有详尽描述。
+
+   需要注意的是 =Redis= 的 =Master-Slave= 不能保证绝对不丢数据，而是丢失一小段时间内（如：1秒钟）的数据。
+
+   下面开始 =Redis= 的 =Master-Slave= 实践，使用的 =redis= 版本为 =3.0.6= 。
+
+*** 创建Master结点
+
+*** 创建Slave结点
+
+*** 模拟Slave挂的场景
+
+*** 模拟Master挂的场景
+
+** 参考
+
+   [[https://en.wikipedia.org/wiki/Master/slave_%28technology%29][Master/slave (technology) - Wikipedia, the free encyclopedia]]
+   
+   [[http://redis.io/topics/replication][Replication – Redis]]
+
+* TODO redis高可用性方案：Sentinel                                    :redis:
+* TODO node.js连接redis高可用性方案：Sentinel                    :redis:node:
+* DONE 控制pm2的日志文件大小                                           :node:
+  CLOSED: [2015-12-25 Fri 18:41]
+
+  下班前发现线上服务器的 =100G= 磁盘只有 =10%= 空闲空间了，检查了一下是 =pm2= 的日志文件（在 =~/.pm2/logs= 目录下）占用的。
+
+  参考帖子 [[https://github.com/Unitech/pm2/issues/535][Limit logs size? · Issue #535 · Unitech/pm2]] 安装 [[https://www.npmjs.com/package/pm2-logrotate][pm2-logrotate]] =pm2 install pm2-logrotate= ，
+
+  安装完成后，观察到正在按时间切分成多个日志文件，但空闲空间在迅速减少，眼看就要低于 =5%= 了，要是磁盘满了会影响关键的 =redis= 数据库，
+
+  立即手工将日志文件全部删除，但是磁盘空闲空间在继续减少，明白是 =pm2= 或者 =pm2-logrotate= 打开了日志文件导致空间无法释放，
+
+  立即执行 =pm2 kill= ， 等 =crontab= 将服务重新拉起，一分钟后确认危机解决。好在这台服务器上的 =node.js= 服务都不是很关键，
+
+  没有造成太大影响，圣诞节快乐:)

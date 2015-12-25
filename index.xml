@@ -4,7 +4,7 @@
         <title>看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com</link>
-        <lastBuildDate>Mon, 21 Dec 2015 10:21:33 GMT</lastBuildDate>
+        <lastBuildDate>Fri, 25 Dec 2015 10:43:16 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>看看俺 – KanKanAn.com</title>
@@ -16,6 +16,35 @@
         <category>ediary</category>
         <category>技术</category>
         <category>生活</category>
+        <item>
+            <title><![CDATA[控制pm2的日志文件大小]]></title>
+            <link>/article/63a75236-pm2-768465e55fd765874ef659275c0f.html</link>
+            <guid>/article/63a75236-pm2-768465e55fd765874ef659275c0f.html</guid>
+            <pubDate>Fri, 25 Dec 2015 10:41:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+下班前发现线上服务器的 <code>100G</code> 磁盘只有 <code>10%</code> 空闲空间了，检查了一下是 <code>pm2</code> 的日志文件（在 <code>~/.pm2/logs</code> 目录下）占用的。
+</p>
+
+<p>
+参考帖子 <a href="https://github.com/Unitech/pm2/issues/535">Limit logs size? · Issue #535 · Unitech/pm2</a> 安装 <a href="https://www.npmjs.com/package/pm2-logrotate">pm2-logrotate</a> <code>pm2 install pm2-logrotate</code> ，
+</p>
+
+<p>
+安装完成后，观察到正在按时间切分成多个日志文件，但空闲空间在迅速减少，眼看就要低于 <code>5%</code> 了，要是磁盘满了会影响关键的 <code>redis</code> 数据库，
+</p>
+
+<p>
+立即手工将日志文件全部删除，但是磁盘空闲空间在继续减少，明白是 <code>pm2</code> 或者 <code>pm2-logrotate</code> 打开了日志文件导致空间无法释放，
+</p>
+
+<p>
+立即执行 <code>pm2 kill</code> ， 等 <code>crontab</code> 将服务重新拉起，一分钟后确认危机解决。好在这台服务器上的 <code>node.js</code> 服务都不是很关键，
+</p>
+
+<p>
+没有造成太大影响，圣诞节快乐:)</p>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[安全使用libcurl的正确姿势]]></title>
             <link>/article/5b8951684f7f7528-libcurl-76846b63786e59ff52bf.html</link>
@@ -388,38 +417,52 @@ socket.on(<span style="color: #8abeb7;">"timeout"</span>, <span style="color: #b
 <h2 id="sec-5">最后附上 node.js 各个版本的测试结果</h2>
 <div class="outline-text-2" id="text-5">
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
-
+<caption class="t-above"><span class="table-number">Table 1:</span> 10000 tls connections</caption>
 
 <colgroup>
 <col  class="left" />
 
-<col  class="left" />
+<col  class="right" />
+
+<col  class="right" />
+
+<col  class="right" />
 </colgroup>
 <thead>
 <tr>
-<th scope="col" class="left">不同版本的 node.js</th>
-<th scope="col" class="left">10000 个 tls 连接</th>
+<th scope="col" class="left">node.js</th>
+<th scope="col" class="right">heapTotal(MB)</th>
+<th scope="col" class="right">heapUsed(MB)</th>
+<th scope="col" class="right">rss(MB)</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td class="left">node-v0.12.7</td>
-<td class="left">heapTotal 158.34MB  heapUsed 98.62MB   rss 728.26MB</td>
+<td class="right">158.34</td>
+<td class="right">98.62</td>
+<td class="right">728.26</td>
 </tr>
 
 <tr>
 <td class="left">node-v0.12.9</td>
-<td class="left">heapTotal 239.04MB  heapUsed 209.53MB  rss 838.40MB</td>
+<td class="right">239.04</td>
+<td class="right">209.53</td>
+<td class="right">838.40</td>
 </tr>
 
 <tr>
 <td class="left">node-v4.2.3</td>
-<td class="left">heapTotal 86.58MB   heapUsed 81.47MB   rss 222.97MB</td>
+<td class="right">86.58</td>
+<td class="right">81.47</td>
+<td class="right">222.97</td>
 </tr>
 
 <tr>
 <td class="left">node-v5.3.0</td>
-<td class="left">heapTotal 96.73MB   heapUsed 75.23MB   rss 235.11MB</td>
+<td class="right">96.73</td>
+<td class="right">75.23</td>
+<td class="right">235.11</td>
 </tr>
 </tbody>
 </table>
