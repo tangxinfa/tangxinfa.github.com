@@ -8822,11 +8822,15 @@ class RedisShard {
 
 *** 创建Master结点
 
-    - redis配置文件 :: [[file:../static/redis-master.conf][redis-master.conf]]
+    - redis配置文件
       
-                       从 =/etc/redis.conf= 拷贝一份进行修改，无关的配置项已去掉，使用默认值即可。
-
-    - 在终端 =1= 启动 =Master= 结点 :: =redis-server ./redis-master.conf=
+      从 =/etc/redis.conf= 拷贝一份进行修改，无关的配置项已去掉，使用默认值即可。
+      
+      [[file:../static/redis-master.conf][redis-master.conf]]
+      
+    - 在终端 =1= 启动 =Master= 结点
+      
+      =redis-server ./redis-master.conf=
 
     - 使用 =redis-cli= 连接 =Master=
 
@@ -8835,15 +8839,19 @@ class RedisShard {
         127.0.0.1:6379>
       #+end_example
 
-
 *** 创建Slave结点
 
-    - redis配置文件 :: [[file:../static/redis-slave.conf][redis-slave.conf]]
-      
-                       从 =redis-master.conf= 拷贝一份进行修改，主要是修改监听的端口号（ =6380= ）、PID文件名、DB文件名，
-                       最关键的是设置为 =Master= 的 =Slave= =slaveof 127.0.0.1 6379= 。
+    - redis配置文件
 
-    - 在终端 =2= 启动 =Slave= 结点 :: =redis-server ./redis-slave.conf=
+      从 =redis-master.conf= 拷贝一份进行修改，主要是修改监听的端口号（ =6380= ）、PID文件名、DB文件名，
+
+      最关键的是设置为 =Master= 的 =Slave= =slaveof 127.0.0.1 6379= 。
+
+      [[file:../static/redis-slave.conf][redis-slave.conf]]
+      
+    - 在终端 =2= 启动 =Slave= 结点
+      
+      =redis-server ./redis-slave.conf=
       
     - 使用 =redis-cli= 连接 =Slave=
 
@@ -8872,12 +8880,12 @@ class RedisShard {
 
     - 关闭 =Slave= 
       
-      终端 =2= 上的 =redis-server= 会自动退出，注意到它退出前进行了存盘
-
       #+begin_example
         127.0.0.1:6380> shutdown
         not connected>
       #+end_example
+      
+      终端 =2= 上的 =redis-server= 会自动退出，注意到它退出前进行了存盘。
 
     - 在 =Master= 写入
 
@@ -8888,11 +8896,11 @@ class RedisShard {
 
     - 在终端 =2= 上再次启动 =Slave=
       
-      从日志上可以看到 =Slave= 从 =Master= 重新进行了数据同步
-
       #+begin_src sh
         redis-server ./redis-slave.conf
       #+end_src
+      
+      从日志上可以看到 =Slave= 从 =Master= 重新进行了数据同步。
 
     - 在 =Slave= 上读取
 
@@ -8906,12 +8914,12 @@ class RedisShard {
 
     - 关闭 =Master=
 
-      终端 =1= 上的 =redis-server= 会自动退出，注意到它退出前进行了存盘， 终端 =2= 上的 =Slave= 在不断尝试重连 =Master= 
-
       #+begin_example
         127.0.0.1:6379> shutdown
         not connected>
       #+end_example
+      
+      终端 =1= 上的 =redis-server= 会自动退出，注意到它退出前进行了存盘， 终端 =2= 上的 =Slave= 在不断尝试重连 =Master= 。
       
     - Master-Slave角色切换
 
@@ -8935,17 +8943,18 @@ class RedisShard {
 
     - 在终端 =1= 上再次启动原 =Master= 
       
-      从日志上可以看到它现在是 =Slave= 角色了，反而从原 =Slave= 同步数据
-
       #+begin_src sh
         redis-server ./redis-master.conf
       #+end_src
+      
+      从日志上可以看到它现在是 =Slave= 角色了，反而从原 =Slave= 同步数据。
 
     - 在原 =Master= 上读取
 
       #+begin_example
         not connected> get hello
         "master-slave"
+        127.0.0.1:6379>
       #+end_example
 
 *** 总结

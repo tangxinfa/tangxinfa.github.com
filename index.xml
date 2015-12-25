@@ -4,7 +4,7 @@
         <title>看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com</link>
-        <lastBuildDate>Fri, 25 Dec 2015 13:21:07 GMT</lastBuildDate>
+        <lastBuildDate>Fri, 25 Dec 2015 13:42:57 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>看看俺 – KanKanAn.com</title>
@@ -64,52 +64,70 @@
 <div id="outline-container-sec-2-1" class="outline-3">
 <h3 id="sec-2-1">创建Master结点</h3>
 <div class="outline-text-3" id="text-2-1">
-<dl class="org-dl">
-<dt> redis配置文件 </dt><dd><a href="../static/redis-master.conf">redis-master.conf</a>
+<ul class="org-ul">
+<li>redis配置文件
 
 <p>
 从 <code>/etc/redis.conf</code> 拷贝一份进行修改，无关的配置项已去掉，使用默认值即可。
 </p>
-</dd>
 
-<dt> 在终端 <code>1</code> 启动 <code>Master</code> 结点 </dt><dd><code>redis-server ./redis-master.conf</code>
-</dd>
+<p>
+<a href="../static/redis-master.conf">redis-master.conf</a>
+</p>
+</li>
 
-<dt> (no term) </dt><dd>使用 <code>redis-cli</code> 连接 <code>Master</code>
+<li>在终端 <code>1</code> 启动 <code>Master</code> 结点
+
+<p>
+<code>redis-server ./redis-master.conf</code>
+</p>
+</li>
+
+<li>使用 <code>redis-cli</code> 连接 <code>Master</code>
 
 <pre class="example">
 $ redis-cli -p 6379
 127.0.0.1:6379&gt;
 </pre>
-</dd>
-</dl>
+</li>
+</ul>
 </div>
 </div>
-
 
 <div id="outline-container-sec-2-2" class="outline-3">
 <h3 id="sec-2-2">创建Slave结点</h3>
 <div class="outline-text-3" id="text-2-2">
-<dl class="org-dl">
-<dt> redis配置文件 </dt><dd><a href="../static/redis-slave.conf">redis-slave.conf</a>
+<ul class="org-ul">
+<li>redis配置文件
 
 <p>
 从 <code>redis-master.conf</code> 拷贝一份进行修改，主要是修改监听的端口号（ <code>6380</code> ）、PID文件名、DB文件名，
+</p>
+
+<p>
 最关键的是设置为 <code>Master</code> 的 <code>Slave</code> <code>slaveof 127.0.0.1 6379</code> 。
 </p>
-</dd>
 
-<dt> 在终端 <code>2</code> 启动 <code>Slave</code> 结点 </dt><dd><code>redis-server ./redis-slave.conf</code>
-</dd>
+<p>
+<a href="../static/redis-slave.conf">redis-slave.conf</a>
+</p>
+</li>
 
-<dt> (no term) </dt><dd>使用 <code>redis-cli</code> 连接 <code>Slave</code>
+<li>在终端 <code>2</code> 启动 <code>Slave</code> 结点
+
+<p>
+<code>redis-server ./redis-slave.conf</code>
+</p>
+</li>
+
+<li>使用 <code>redis-cli</code> 连接 <code>Slave</code>
 
 <pre class="example">
 $ redis-cli -p 6380
 127.0.0.1:6380&gt;
 </pre>
-</dd>
-</dl>
+</li>
+</ul>
 </div>
 </div>
 
@@ -142,14 +160,14 @@ OK
 <ul class="org-ul">
 <li>关闭 <code>Slave</code> 
 
-<p>
-终端 <code>2</code> 上的 <code>redis-server</code> 会自动退出，注意到它退出前进行了存盘
-</p>
-
 <pre class="example">
 127.0.0.1:6380&gt; shutdown
 not connected&gt;
 </pre>
+
+<p>
+终端 <code>2</code> 上的 <code>redis-server</code> 会自动退出，注意到它退出前进行了存盘。
+</p>
 </li>
 
 <li>在 <code>Master</code> 写入
@@ -162,15 +180,15 @@ OK
 
 <li>在终端 <code>2</code> 上再次启动 <code>Slave</code>
 
-<p>
-从日志上可以看到 <code>Slave</code> 从 <code>Master</code> 重新进行了数据同步
-</p>
-
 <div class="org-src-container">
 
 <pre class="src src-sh">redis-server ./redis-slave.conf
 </pre>
 </div>
+
+<p>
+从日志上可以看到 <code>Slave</code> 从 <code>Master</code> 重新进行了数据同步。
+</p>
 </li>
 
 <li>在 <code>Slave</code> 上读取
@@ -191,14 +209,14 @@ not connected&gt; get hello
 <ul class="org-ul">
 <li>关闭 <code>Master</code>
 
-<p>
-终端 <code>1</code> 上的 <code>redis-server</code> 会自动退出，注意到它退出前进行了存盘， 终端 <code>2</code> 上的 <code>Slave</code> 在不断尝试重连 <code>Master</code> 
-</p>
-
 <pre class="example">
 127.0.0.1:6379&gt; shutdown
 not connected&gt;
 </pre>
+
+<p>
+终端 <code>1</code> 上的 <code>redis-server</code> 会自动退出，注意到它退出前进行了存盘， 终端 <code>2</code> 上的 <code>Slave</code> 在不断尝试重连 <code>Master</code> 。
+</p>
 </li>
 
 <li>Master-Slave角色切换
@@ -231,15 +249,15 @@ OK
 
 <li>在终端 <code>1</code> 上再次启动原 <code>Master</code> 
 
-<p>
-从日志上可以看到它现在是 <code>Slave</code> 角色了，反而从原 <code>Slave</code> 同步数据
-</p>
-
 <div class="org-src-container">
 
 <pre class="src src-sh">redis-server ./redis-master.conf
 </pre>
 </div>
+
+<p>
+从日志上可以看到它现在是 <code>Slave</code> 角色了，反而从原 <code>Slave</code> 同步数据。
+</p>
 </li>
 
 <li>在原 <code>Master</code> 上读取
@@ -247,6 +265,7 @@ OK
 <pre class="example">
 not connected&gt; get hello
 "master-slave"
+127.0.0.1:6379&gt;
 </pre>
 </li>
 </ul>
