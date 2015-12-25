@@ -8797,9 +8797,8 @@ class RedisShard {
   - 行 [[(curl_response_code)]] :: 状态响应码变量必须是 =long= 类型
 
        否则会由于内存越界导致程序崩溃。
-* TODO redis高可用性基础：Master-Slave                                :redis:
-
-  虽然一直在做后端，很惭愧存储方面从来没有实施过高可用性方案。
+* DONE redis高可用性基础：Master-Slave                                :redis:
+  CLOSED: [2015-12-25 Fri 21:19]
 
 ** 理解Master-Slave
 
@@ -8823,17 +8822,145 @@ class RedisShard {
 
 *** 创建Master结点
 
+    - redis配置文件 :: [[file:../static/redis-master.conf][redis-master.conf]]
+      
+                       从 =/etc/redis.conf= 拷贝一份进行修改，无关的配置项已去掉，使用默认值即可。
+
+    - 在终端 =1= 启动 =Master= 结点 :: =redis-server ./redis-master.conf=
+
+    - 使用 =redis-cli= 连接 =Master=
+
+      #+begin_example
+        $ redis-cli -p 6379
+        127.0.0.1:6379>
+      #+end_example
+
+
 *** 创建Slave结点
 
-*** 模拟Slave挂的场景
+    - redis配置文件 :: [[file:../static/redis-slave.conf][redis-slave.conf]]
+      
+                       从 =redis-master.conf= 拷贝一份进行修改，主要是修改监听的端口号（ =6380= ）、PID文件名、DB文件名，
+                       最关键的是设置为 =Master= 的 =Slave= =slaveof 127.0.0.1 6379= 。
 
-*** 模拟Master挂的场景
+    - 在终端 =2= 启动 =Slave= 结点 :: =redis-server ./redis-slave.conf=
+      
+    - 使用 =redis-cli= 连接 =Slave=
 
+      #+begin_example
+        $ redis-cli -p 6380
+        127.0.0.1:6380>
+      #+end_example
+
+*** 演示Master写Slave读的场景
+
+    - 在 =Master= 写入
+
+      #+begin_example
+        127.0.0.1:6379> set hello world
+        OK
+      #+end_example
+
+    - 从 =Slave= 读取
+
+      #+begin_example
+        127.0.0.1:6380> get hello
+        "world"
+      #+end_example
+
+*** 演示Slave挂掉的场景
+
+    - 关闭 =Slave= 
+      
+      终端 =2= 上的 =redis-server= 会自动退出，注意到它退出前进行了存盘
+
+      #+begin_example
+        127.0.0.1:6380> shutdown
+        not connected>
+      #+end_example
+
+    - 在 =Master= 写入
+
+      #+begin_example
+        127.0.0.1:6379> set hello redis
+        OK
+      #+end_example
+
+    - 在终端 =2= 上再次启动 =Slave=
+      
+      从日志上可以看到 =Slave= 从 =Master= 重新进行了数据同步
+
+      #+begin_src sh
+        redis-server ./redis-slave.conf
+      #+end_src
+
+    - 在 =Slave= 上读取
+
+      #+begin_example
+        not connected> get hello
+        "redis"
+        127.0.0.1:6380> 
+      #+end_example
+
+*** 演示Master挂掉的场景
+
+    - 关闭 =Master=
+
+      终端 =1= 上的 =redis-server= 会自动退出，注意到它退出前进行了存盘， 终端 =2= 上的 =Slave= 在不断尝试重连 =Master= 
+
+      #+begin_example
+        127.0.0.1:6379> shutdown
+        not connected>
+      #+end_example
+      
+    - Master-Slave角色切换
+
+      将运行中的原 =Slave= 提升为新 =Master=
+
+      #+begin_example
+        127.0.0.1:6380> slaveof no one
+        OK
+      #+end_example
+    
+      修改原 =Slave= 的配置文件 =redis-slave.conf= 删除配置 =#slaveof 127.0.0.1 6379=
+
+      修改原 =Master= 的配置文件 =redis-master.conf= 添加配置 =slaveof 127.0.0.1 6380=
+
+    - 在新 =Master= 写入
+
+      #+begin_example
+        127.0.0.1:6380> set hello master-slave
+        OK
+      #+end_example
+
+    - 在终端 =1= 上再次启动原 =Master= 
+      
+      从日志上可以看到它现在是 =Slave= 角色了，反而从原 =Slave= 同步数据
+
+      #+begin_src sh
+        redis-server ./redis-master.conf
+      #+end_src
+
+    - 在原 =Master= 上读取
+
+      #+begin_example
+        not connected> get hello
+        "master-slave"
+      #+end_example
+
+*** 总结
+
+    =Redis= 的 =Master-Slave= 是一种动态关系，角色（ =Master= 、 =Slave= ）会互相转换，角色转换过程中必须严格按照步骤来，操作不当可能导致数据丢失。
+
+    后面会发文介绍自动进行这种切换的工具 =Redis Sentinel= ，以及当 =Master-Slave= 发生切换后，应用程序该如何重连到新的 =Master= 。
+    
 ** 参考
 
    [[https://en.wikipedia.org/wiki/Master/slave_%28technology%29][Master/slave (technology) - Wikipedia, the free encyclopedia]]
    
    [[http://redis.io/topics/replication][Replication – Redis]]
+
+   [[http://www.tuicool.com/articles/2QbABj][Redis slave切换为master操作（不停机） - 推酷]]
 
 * TODO redis高可用性方案：Sentinel                                    :redis:
 * TODO node.js连接redis高可用性方案：Sentinel                    :redis:node:

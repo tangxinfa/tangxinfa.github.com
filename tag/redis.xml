@@ -4,7 +4,7 @@
         <title>redis - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/redis.xml</link>
-        <lastBuildDate>Fri, 25 Dec 2015 10:43:15 GMT</lastBuildDate>
+        <lastBuildDate>Fri, 25 Dec 2015 13:21:07 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>redis - 看看俺 – KanKanAn.com</title>
@@ -14,6 +14,274 @@
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <generator>Feed for Node.js</generator>
         <category>技术</category>
+        <item>
+            <title><![CDATA[redis高可用性基础：Master-Slave]]></title>
+            <link>/article/redis-9ad853ef7528602757fa7840ff1a-master-slave.html</link>
+            <guid>/article/redis-9ad853ef7528602757fa7840ff1a-master-slave.html</guid>
+            <pubDate>Fri, 25 Dec 2015 13:19:00 GMT</pubDate>
+            <content:encoded><![CDATA[
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">理解Master-Slave</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+<code>Master-Slave</code> 常常翻译为 <code>主/备</code> ，是一种高可用性（ <a href="https://en.wikipedia.org/wiki/High_availability">High Availability</a> ）方案。
+</p>
+
+<p>
+举个生活中的 <code>Master-Slave</code> 例子：
+</p>
+
+<blockquote>
+<p>
+参加考试的时候，我们会准备两支钢笔，正常情况下我们只会使用一支，出问题了才会换另外一支。
+</p>
+</blockquote>
+
+<p>
+所以实施 <code>Master-Slave</code> 是有成本的，至少会有 <code>50%</code> 的资源浪费（多备几支浪费会更多），可以让 <code>Slave</code> 承担一部分工作来充分利用资源。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">Redis的Master-Slave</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+关于 <code>Redis</code> 的 <code>Master-Slave</code> ，《<a href="http://redis.io/topics/replication">Replication – Redis</a>》 有详尽描述。
+</p>
+
+<p>
+需要注意的是 <code>Redis</code> 的 <code>Master-Slave</code> 不能保证绝对不丢数据，而是丢失一小段时间内（如：1秒钟）的数据。
+</p>
+
+<p>
+下面开始 <code>Redis</code> 的 <code>Master-Slave</code> 实践，使用的 <code>redis</code> 版本为 <code>3.0.6</code> 。
+</p>
+</div>
+
+<div id="outline-container-sec-2-1" class="outline-3">
+<h3 id="sec-2-1">创建Master结点</h3>
+<div class="outline-text-3" id="text-2-1">
+<dl class="org-dl">
+<dt> redis配置文件 </dt><dd><a href="../static/redis-master.conf">redis-master.conf</a>
+
+<p>
+从 <code>/etc/redis.conf</code> 拷贝一份进行修改，无关的配置项已去掉，使用默认值即可。
+</p>
+</dd>
+
+<dt> 在终端 <code>1</code> 启动 <code>Master</code> 结点 </dt><dd><code>redis-server ./redis-master.conf</code>
+</dd>
+
+<dt> (no term) </dt><dd>使用 <code>redis-cli</code> 连接 <code>Master</code>
+
+<pre class="example">
+$ redis-cli -p 6379
+127.0.0.1:6379&gt;
+</pre>
+</dd>
+</dl>
+</div>
+</div>
+
+
+<div id="outline-container-sec-2-2" class="outline-3">
+<h3 id="sec-2-2">创建Slave结点</h3>
+<div class="outline-text-3" id="text-2-2">
+<dl class="org-dl">
+<dt> redis配置文件 </dt><dd><a href="../static/redis-slave.conf">redis-slave.conf</a>
+
+<p>
+从 <code>redis-master.conf</code> 拷贝一份进行修改，主要是修改监听的端口号（ <code>6380</code> ）、PID文件名、DB文件名，
+最关键的是设置为 <code>Master</code> 的 <code>Slave</code> <code>slaveof 127.0.0.1 6379</code> 。
+</p>
+</dd>
+
+<dt> 在终端 <code>2</code> 启动 <code>Slave</code> 结点 </dt><dd><code>redis-server ./redis-slave.conf</code>
+</dd>
+
+<dt> (no term) </dt><dd>使用 <code>redis-cli</code> 连接 <code>Slave</code>
+
+<pre class="example">
+$ redis-cli -p 6380
+127.0.0.1:6380&gt;
+</pre>
+</dd>
+</dl>
+</div>
+</div>
+
+<div id="outline-container-sec-2-3" class="outline-3">
+<h3 id="sec-2-3">演示Master写Slave读的场景</h3>
+<div class="outline-text-3" id="text-2-3">
+<ul class="org-ul">
+<li>在 <code>Master</code> 写入
+
+<pre class="example">
+127.0.0.1:6379&gt; set hello world
+OK
+</pre>
+</li>
+
+<li>从 <code>Slave</code> 读取
+
+<pre class="example">
+127.0.0.1:6380&gt; get hello
+"world"
+</pre>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-2-4" class="outline-3">
+<h3 id="sec-2-4">演示Slave挂掉的场景</h3>
+<div class="outline-text-3" id="text-2-4">
+<ul class="org-ul">
+<li>关闭 <code>Slave</code> 
+
+<p>
+终端 <code>2</code> 上的 <code>redis-server</code> 会自动退出，注意到它退出前进行了存盘
+</p>
+
+<pre class="example">
+127.0.0.1:6380&gt; shutdown
+not connected&gt;
+</pre>
+</li>
+
+<li>在 <code>Master</code> 写入
+
+<pre class="example">
+127.0.0.1:6379&gt; set hello redis
+OK
+</pre>
+</li>
+
+<li>在终端 <code>2</code> 上再次启动 <code>Slave</code>
+
+<p>
+从日志上可以看到 <code>Slave</code> 从 <code>Master</code> 重新进行了数据同步
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">redis-server ./redis-slave.conf
+</pre>
+</div>
+</li>
+
+<li>在 <code>Slave</code> 上读取
+
+<pre class="example">
+not connected&gt; get hello
+"redis"
+127.0.0.1:6380&gt;
+</pre>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-2-5" class="outline-3">
+<h3 id="sec-2-5">演示Master挂掉的场景</h3>
+<div class="outline-text-3" id="text-2-5">
+<ul class="org-ul">
+<li>关闭 <code>Master</code>
+
+<p>
+终端 <code>1</code> 上的 <code>redis-server</code> 会自动退出，注意到它退出前进行了存盘， 终端 <code>2</code> 上的 <code>Slave</code> 在不断尝试重连 <code>Master</code> 
+</p>
+
+<pre class="example">
+127.0.0.1:6379&gt; shutdown
+not connected&gt;
+</pre>
+</li>
+
+<li>Master-Slave角色切换
+
+<p>
+将运行中的原 <code>Slave</code> 提升为新 <code>Master</code>
+</p>
+
+<pre class="example">
+127.0.0.1:6380&gt; slaveof no one
+OK
+</pre>
+
+<p>
+修改原 <code>Slave</code> 的配置文件 <code>redis-slave.conf</code> 删除配置 <code>#slaveof 127.0.0.1 6379</code>
+</p>
+
+<p>
+修改原 <code>Master</code> 的配置文件 <code>redis-master.conf</code> 添加配置 <code>slaveof 127.0.0.1 6380</code>
+</p>
+</li>
+
+<li>在新 <code>Master</code> 写入
+
+<pre class="example">
+127.0.0.1:6380&gt; set hello master-slave
+OK
+</pre>
+</li>
+
+<li>在终端 <code>1</code> 上再次启动原 <code>Master</code> 
+
+<p>
+从日志上可以看到它现在是 <code>Slave</code> 角色了，反而从原 <code>Slave</code> 同步数据
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">redis-server ./redis-master.conf
+</pre>
+</div>
+</li>
+
+<li>在原 <code>Master</code> 上读取
+
+<pre class="example">
+not connected&gt; get hello
+"master-slave"
+</pre>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-2-6" class="outline-3">
+<h3 id="sec-2-6">总结</h3>
+<div class="outline-text-3" id="text-2-6">
+<p>
+<code>Redis</code> 的 <code>Master-Slave</code> 是一种动态关系，角色（ <code>Master</code> 、 <code>Slave</code> ）会互相转换，角色转换过程中必须严格按照步骤来，操作不当可能导致数据丢失。
+</p>
+
+<p>
+后面会发文介绍自动进行这种切换的工具 <code>Redis Sentinel</code> ，以及当 <code>Master-Slave</code> 发生切换后，应用程序该如何重连到新的 <code>Master</code> 。
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">参考</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+<a href="https://en.wikipedia.org/wiki/Master/slave_(technology)">Master/slave (technology) - Wikipedia, the free encyclopedia</a>
+</p>
+
+<p>
+<a href="http://redis.io/topics/replication">Replication – Redis</a>
+</p>
+
+<p>
+<a href="http://www.tuicool.com/articles/2QbABj">Redis slave切换为master操作（不停机） - 推酷</a></p>
+</div>
+</div>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[升级redis到最新版本的过程]]></title>
             <link>/article/53477ea7-redis-5230670065b07248672c76848fc77a0b.html</link>
@@ -216,7 +484,7 @@ make install
 
 <div class="org-src-container">
 
-<pre class="src src-sh">make <span style="color: #f0c674;">PREFIX</span>=/usr/local/redis install
+<pre class="src src-sh">make <span style="color: #e7c547;">PREFIX</span>=/usr/local/redis install
 </pre>
 </div>
 </li>
@@ -284,15 +552,6 @@ shutdown
 ]]></content:encoded>
         </item>
         <item>
-            <title><![CDATA[使用hash表结构减少redis内存占用]]></title>
-            <link>/article/4f7f7528-hash-88687ed3678451cf5c11-redis-51855b5853607528.html</link>
-            <guid>/article/4f7f7528-hash-88687ed3678451cf5c11-redis-51855b5853607528.html</guid>
-            <pubDate>Sun, 16 Dec 2012 07:14:00 GMT</pubDate>
-            <content:encoded><![CDATA[<p>
-当hash结构中的元素较少（少于redis.conf:hash-max-zipmap-entries指定的数量时，配置成&lt;=1000，过大会减低处理速度，参见： <a href="http://stackoverflow.com/questions/11281734/redis-using-hashes">这里</a> 和 <a href="http://instagram-engineering.tumblr.com/post/12202313862/storing-hundreds-of-millions-of-simple-key-value-pairs">这里</a> ）且数据为整型时，redis使用特殊的方式（数组保存，时间换空间）保存hash结构以减少内存占用，参见 <a href="http://redis.io/topics/memory-optimization">这里</a> 和 <a href="http://stackoverflow.com/questions/9625246/what-are-the-underlying-data-structures-used-for-redis">这里</a> 。但当hash结构超过指定数量时将使用普通的<a href="http://redis.io/commands#string">字符串</a>方式保存，也就无法再节省内存了。</p>
-]]></content:encoded>
-        </item>
-        <item>
             <title><![CDATA[解决保存快照失败后redis无法写入的问题]]></title>
             <link>/article/89e351b34fdd5b585feb716759318d25540e-redis-65e06cd551995165768495ee9898.html</link>
             <guid>/article/89e351b34fdd5b585feb716759318d25540e-redis-65e06cd551995165768495ee9898.html</guid>
@@ -351,28 +610,28 @@ redis 127.0.0.1:6379&gt; config set stop-writes-on-bgsave-error no
 
 <pre class="src src-python"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/env python</span>
 
-<span style="color: #b5bd68;">import</span> redis
-<span style="color: #b5bd68;">import</span> uuid
-<span style="color: #b5bd68;">import</span> time
+<span style="color: #b9ca4a;">import</span> redis
+<span style="color: #b9ca4a;">import</span> uuid
+<span style="color: #b9ca4a;">import</span> time
 
-<span style="color: #f0c674;">r</span> = redis.Redis(host=<span style="color: #8abeb7;">'localhost'</span>, port=6379, db=0)
-<span style="color: #b5bd68;">for</span> num_strings <span style="color: #b5bd68;">in</span> (100000,):
-<span style="background-color: #373b41;"> </span>   r.flushall()
-<span style="background-color: #373b41;"> </span>   time.sleep(1.0)
-<span style="background-color: #373b41;"> </span>   <span style="color: #f0c674;">initial_size</span> = r.dbsize()
-<span style="background-color: #373b41;"> </span>   <span style="color: #f0c674;">initial_info</span> = r.info()
+<span style="color: #e7c547;">r</span> = redis.Redis(host=<span style="color: #70c0b1;">'localhost'</span>, port=6379, db=0)
+<span style="color: #b9ca4a;">for</span> num_strings <span style="color: #b9ca4a;">in</span> (100000,):
+<span style="background-color: #424242;"> </span>   r.flushall()
+<span style="background-color: #424242;"> </span>   time.sleep(1.0)
+<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">initial_size</span> = r.dbsize()
+<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">initial_info</span> = r.info()
 
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">for</span> i <span style="color: #b5bd68;">in</span> <span style="color: #b294bb;">xrange</span>(0, num_strings):
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   r.<span style="color: #b294bb;">set</span>(<span style="color: #b294bb;">str</span>(uuid.uuid4()), time.time())
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">r.setex(str(uuid.uuid4()), time.time(), 100000)</span>
-<span style="background-color: #373b41;"> </span>   <span style="color: #f0c674;">final_size</span> = r.dbsize()
-<span style="background-color: #373b41;"> </span>   <span style="color: #f0c674;">final_info</span> = r.info()
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">for</span> i <span style="color: #b9ca4a;">in</span> <span style="color: #c397d8;">xrange</span>(0, num_strings):
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   r.<span style="color: #c397d8;">set</span>(<span style="color: #c397d8;">str</span>(uuid.uuid4()), time.time())
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">r.setex(str(uuid.uuid4()), time.time(), 100000)</span>
+<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">final_size</span> = r.dbsize()
+<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">final_info</span> = r.info()
 
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">print</span> <span style="color: #8abeb7;">"For %s strings."</span> % (num_strings,)
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">print</span> <span style="color: #8abeb7;">"Keys: %s =&gt; %s"</span> % (initial_size, final_size)
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">print</span> <span style="color: #8abeb7;">"Memory: %s =&gt; %s"</span> % (initial_info[<span style="color: #8abeb7;">'used_memory'</span>],
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   final_info[<span style="color: #8abeb7;">'used_memory'</span>])
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">print</span> <span style="color: #8abeb7;">"Memory per key: %d"</span>%((<span style="color: #b294bb;">int</span>(final_info[<span style="color: #8abeb7;">'used_memory'</span>]) - <span style="color: #b294bb;">int</span>(initial_in<span style="text-decoration: underline;">fo[</span><span style="color: #8abeb7; text-decoration: underline;">'used_memory'</span><span style="text-decoration: underline;">])) / num_strings)</span>
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">print</span> <span style="color: #70c0b1;">"For %s strings."</span> % (num_strings,)
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">print</span> <span style="color: #70c0b1;">"Keys: %s =&gt; %s"</span> % (initial_size, final_size)
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">print</span> <span style="color: #70c0b1;">"Memory: %s =&gt; %s"</span> % (initial_info[<span style="color: #70c0b1;">'used_memory'</span>],
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   final_info[<span style="color: #70c0b1;">'used_memory'</span>])
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">print</span> <span style="color: #70c0b1;">"Memory per key: %d"</span>%((<span style="color: #c397d8;">int</span>(final_info[<span style="color: #70c0b1;">'used_memory'</span>]) - <span style="color: #c397d8;">int</span>(initial_in<span style="text-decoration: underline;">fo[</span><span style="color: #70c0b1; text-decoration: underline;">'used_memory'</span><span style="text-decoration: underline;">])) / num_strings)</span>
 </pre>
 </div>
 </li>
@@ -397,34 +656,34 @@ redis 127.0.0.1:6379&gt; config set stop-writes-on-bgsave-error no
 
 <pre class="src src-python"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/env python</span>
 
-<span style="color: #b5bd68;">import</span> redis
-<span style="color: #b5bd68;">import</span> math
-<span style="color: #b5bd68;">import</span> time
+<span style="color: #b9ca4a;">import</span> redis
+<span style="color: #b9ca4a;">import</span> math
+<span style="color: #b9ca4a;">import</span> time
 
-<span style="color: #f0c674;">r</span> = redis.Redis(host=<span style="color: #8abeb7;">'localhost'</span>, port=6379, db=0)
-<span style="color: #f0c674;">set_capcity</span> = <span style="color: #b294bb;">int</span>(r.config_get(<span style="color: #8abeb7;">"set-max-intset-entries"</span>)[<span style="color: #8abeb7;">"set-max-intset-entries</span><span style="color: #8abeb7; text-decoration: underline;">"</span><span style="text-decoration: underline;">])</span>
+<span style="color: #e7c547;">r</span> = redis.Redis(host=<span style="color: #70c0b1;">'localhost'</span>, port=6379, db=0)
+<span style="color: #e7c547;">set_capcity</span> = <span style="color: #c397d8;">int</span>(r.config_get(<span style="color: #70c0b1;">"set-max-intset-entries"</span>)[<span style="color: #70c0b1;">"set-max-intset-entries</span><span style="color: #70c0b1; text-decoration: underline;">"</span><span style="text-decoration: underline;">])</span>
 
-<span style="color: #b5bd68;">def</span> <span style="color: #de935f;">set_name</span>(i, num_strings, set_capcity):
-<span style="background-color: #373b41;"> </span>   <span style="color: #f0c674;">set_num</span> = math.ceil(num_strings/<span style="color: #b294bb;">float</span>(set_capcity))
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> <span style="color: #8abeb7;">"s%d"</span>%(i%set_num)
+<span style="color: #b9ca4a;">def</span> <span style="color: #e78c45;">set_name</span>(i, num_strings, set_capcity):
+<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">set_num</span> = math.ceil(num_strings/<span style="color: #c397d8;">float</span>(set_capcity))
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">return</span> <span style="color: #70c0b1;">"s%d"</span>%(i%set_num)
 
-<span style="color: #b5bd68;">for</span> num_strings <span style="color: #b5bd68;">in</span> (100000,):
-<span style="background-color: #373b41;"> </span>   r.flushall()
-<span style="background-color: #373b41;"> </span>   time.sleep(1.0)
-<span style="background-color: #373b41;"> </span>   <span style="color: #f0c674;">initial_size</span> = r.dbsize()
-<span style="background-color: #373b41;"> </span>   <span style="color: #f0c674;">initial_info</span> = r.info()
+<span style="color: #b9ca4a;">for</span> num_strings <span style="color: #b9ca4a;">in</span> (100000,):
+<span style="background-color: #424242;"> </span>   r.flushall()
+<span style="background-color: #424242;"> </span>   time.sleep(1.0)
+<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">initial_size</span> = r.dbsize()
+<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">initial_info</span> = r.info()
 
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">for</span> i <span style="color: #b5bd68;">in</span> <span style="color: #b294bb;">xrange</span>(0, num_strings):
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">r.sadd("s", str(i))</span>
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   r.sadd(set_name(i, num_strings, set_capcity), <span style="color: #b294bb;">str</span>(i))
-<span style="background-color: #373b41;"> </span>   <span style="color: #f0c674;">final_size</span> = r.dbsize()
-<span style="background-color: #373b41;"> </span>   <span style="color: #f0c674;">final_info</span> = r.info()
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">for</span> i <span style="color: #b9ca4a;">in</span> <span style="color: #c397d8;">xrange</span>(0, num_strings):
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">r.sadd("s", str(i))</span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   r.sadd(set_name(i, num_strings, set_capcity), <span style="color: #c397d8;">str</span>(i))
+<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">final_size</span> = r.dbsize()
+<span style="background-color: #424242;"> </span>   <span style="color: #e7c547;">final_info</span> = r.info()
 
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">print</span> <span style="color: #8abeb7;">"For %s strings."</span> % (num_strings,)
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">print</span> <span style="color: #8abeb7;">"Keys: %s =&gt; %s"</span> % (initial_size, final_size)
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">print</span> <span style="color: #8abeb7;">"Memory: %s =&gt; %s"</span> % (initial_info[<span style="color: #8abeb7;">'used_memory'</span>],
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   final_info[<span style="color: #8abeb7;">'used_memory'</span>])
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">print</span> <span style="color: #8abeb7;">"Memory per key: %d"</span>%((<span style="color: #b294bb;">int</span>(final_info[<span style="color: #8abeb7;">'used_memory'</span>]) - <span style="color: #b294bb;">int</span>(initial_in<span style="text-decoration: underline;">fo[</span><span style="color: #8abeb7; text-decoration: underline;">'used_memory'</span><span style="text-decoration: underline;">])) / num_strings)</span>
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">print</span> <span style="color: #70c0b1;">"For %s strings."</span> % (num_strings,)
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">print</span> <span style="color: #70c0b1;">"Keys: %s =&gt; %s"</span> % (initial_size, final_size)
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">print</span> <span style="color: #70c0b1;">"Memory: %s =&gt; %s"</span> % (initial_info[<span style="color: #70c0b1;">'used_memory'</span>],
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   final_info[<span style="color: #70c0b1;">'used_memory'</span>])
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">print</span> <span style="color: #70c0b1;">"Memory per key: %d"</span>%((<span style="color: #c397d8;">int</span>(final_info[<span style="color: #70c0b1;">'used_memory'</span>]) - <span style="color: #c397d8;">int</span>(initial_in<span style="text-decoration: underline;">fo[</span><span style="color: #70c0b1; text-decoration: underline;">'used_memory'</span><span style="text-decoration: underline;">])) / num_strings)</span>
 </pre>
 </div>
 </li>
@@ -452,6 +711,15 @@ redis 127.0.0.1:6379&gt; config set stop-writes-on-bgsave-error no
 redis在执行bgsave时，会进行一次fork，fork后的进程负责将内存中的数据写入磁盘，由于fork采用Copy-On-Write，两个redis进程共享内存中的数据。redis如果有数据更新，则会将对应的共享内存页创建一份副本再更新，当更新操作足够频繁时，共享的内存空间会迅速地副本化，导致物理内存被耗光，系统被迫动用交换空间，从而导致redis服务极不稳定，整个系统堵塞在磁盘io上。</p>
 </div>
 </div>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[使用hash表结构减少redis内存占用]]></title>
+            <link>/article/4f7f7528-hash-88687ed3678451cf5c11-redis-51855b5853607528.html</link>
+            <guid>/article/4f7f7528-hash-88687ed3678451cf5c11-redis-51855b5853607528.html</guid>
+            <pubDate>Sun, 16 Dec 2012 07:14:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+当hash结构中的元素较少（少于redis.conf:hash-max-zipmap-entries指定的数量时，配置成&lt;=1000，过大会减低处理速度，参见： <a href="http://stackoverflow.com/questions/11281734/redis-using-hashes">这里</a> 和 <a href="http://instagram-engineering.tumblr.com/post/12202313862/storing-hundreds-of-millions-of-simple-key-value-pairs">这里</a> ）且数据为整型时，redis使用特殊的方式（数组保存，时间换空间）保存hash结构以减少内存占用，参见 <a href="http://redis.io/topics/memory-optimization">这里</a> 和 <a href="http://stackoverflow.com/questions/9625246/what-are-the-underlying-data-structures-used-for-redis">这里</a> 。但当hash结构超过指定数量时将使用普通的<a href="http://redis.io/commands#string">字符串</a>方式保存，也就无法再节省内存了。</p>
 ]]></content:encoded>
         </item>
         <item>
@@ -507,102 +775,102 @@ Redis的析构函数没有关闭redis连接，这会导致redis网络负载过�
 <div class="org-src-container">
 
 <pre class="src src-php"><span style="color: #969896; font-style: italic;">/// </span><span style="color: #969896; font-style: italic;">&#20998;&#24067;&#24335;Redis.</span>
-<span style="color: #b5bd68;">class</span> <span style="color: #81a2be;">RedisShard</span> {
-<span style="background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">/// </span><span style="color: #969896; font-style: italic;">&#26500;&#36896;&#20989;&#25968;.</span>
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">public</span> <span style="color: #b5bd68;">function</span> <span style="color: #de935f;">__construct</span>($<span style="color: #f0c674;">shards</span>) {
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   $<span style="color: #81a2be;">this</span>-&gt;<span style="color: #c5c8c6; background-color: #1d1f21;">reinit</span>($<span style="color: #f0c674;">shards</span>);
-<span style="background-color: #373b41;"> </span>   }
+<span style="color: #b9ca4a;">class</span> <span style="color: #7aa6da;">RedisShard</span> {
+<span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">/// </span><span style="color: #969896; font-style: italic;">&#26500;&#36896;&#20989;&#25968;.</span>
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">public</span> <span style="color: #b9ca4a;">function</span> <span style="color: #e78c45;">__construct</span>($<span style="color: #e7c547;">shards</span>) {
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   $<span style="color: #7aa6da;">this</span>-&gt;<span style="color: #eaeaea; background-color: #000000;">reinit</span>($<span style="color: #e7c547;">shards</span>);
+<span style="background-color: #424242;"> </span>   }
 
-<span style="background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">/// </span><span style="color: #969896; font-style: italic;">&#26512;&#26500;&#20989;&#25968;.</span>
-<span style="background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">/// </span><span style="color: #969896; font-style: italic;">&#33050;&#26412;&#32467;&#26463;&#26102;&#65292;phpredis&#19981;&#20250;&#33258;&#21160;&#20851;&#38381;redis&#36830;&#25509;&#65292;&#36825;&#37324;&#28155;&#21152;&#33258;&#21160;&#20851;&#38381;&#36830;&#25509;&#25903;&#25345;.</span>
-<span style="background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">/// </span><span style="color: #969896; font-style: italic;">&#21487;&#20197;&#36890;&#36807;&#25163;&#21160;unset&#26412;&#31867;&#23545;&#35937;&#24555;&#36895;&#37322;&#25918;&#36164;&#28304;.</span>
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">public</span> <span style="color: #b5bd68;">function</span> <span style="color: #de935f;">__destruct</span>() {
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span>(<span style="color: #c5c8c6; background-color: #1d1f21;">isset(</span>$<span style="color: #81a2be;">this</span>-&gt;<span style="color: #f0c674;">shard</span>)){
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   $<span style="color: #81a2be;">this</span>-&gt;<span style="color: #f0c674;">shard</span>[<span style="color: #8abeb7;">'redis'</span>]-&gt;<span style="color: #c5c8c6; background-color: #1d1f21;">close</span>();
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
-<span style="background-color: #373b41;"> </span>   }
+<span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">/// </span><span style="color: #969896; font-style: italic;">&#26512;&#26500;&#20989;&#25968;.</span>
+<span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">/// </span><span style="color: #969896; font-style: italic;">&#33050;&#26412;&#32467;&#26463;&#26102;&#65292;phpredis&#19981;&#20250;&#33258;&#21160;&#20851;&#38381;redis&#36830;&#25509;&#65292;&#36825;&#37324;&#28155;&#21152;&#33258;&#21160;&#20851;&#38381;&#36830;&#25509;&#25903;&#25345;.</span>
+<span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">/// </span><span style="color: #969896; font-style: italic;">&#21487;&#20197;&#36890;&#36807;&#25163;&#21160;unset&#26412;&#31867;&#23545;&#35937;&#24555;&#36895;&#37322;&#25918;&#36164;&#28304;.</span>
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">public</span> <span style="color: #b9ca4a;">function</span> <span style="color: #e78c45;">__destruct</span>() {
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span>(<span style="color: #eaeaea; background-color: #000000;">isset(</span>$<span style="color: #7aa6da;">this</span>-&gt;<span style="color: #e7c547;">shard</span>)){
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   $<span style="color: #7aa6da;">this</span>-&gt;<span style="color: #e7c547;">shard</span>[<span style="color: #70c0b1;">'redis'</span>]-&gt;<span style="color: #eaeaea; background-color: #000000;">close</span>();
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   }
+<span style="background-color: #424242;"> </span>   }
 
-<span style="background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">/// </span><span style="color: #969896; font-style: italic;">&#37325;&#26032;&#21021;&#22987;&#21270;.</span>
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">public</span> <span style="color: #b5bd68;">function</span> <span style="color: #de935f;">reinit</span>($<span style="color: #f0c674;">shards</span>){
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">index</span> = <span style="color: #c5c8c6; background-color: #1d1f21;">0</span>;
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   $<span style="color: #81a2be;">this</span>-&gt;<span style="color: #f0c674;">shards</span> = <span style="color: #c5c8c6; background-color: #1d1f21;">array(</span>);
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">foreach</span>($<span style="color: #f0c674;">shards</span> <span style="color: #b5bd68;">as</span> $<span style="color: #f0c674;">shard</span>){
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   $<span style="color: #81a2be;">this</span>-&gt;<span style="color: #f0c674;">shards</span>[$<span style="color: #f0c674;">index</span>] = <span style="color: #c5c8c6; background-color: #1d1f21;">explode(</span><span style="color: #8abeb7;">':'</span>, $<span style="color: #f0c674;">shard</span>); <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">&#26684;&#24335;&#65306;host:port:db</span>
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   $<span style="color: #81a2be;">this</span>-&gt;<span style="color: #f0c674;">shards</span>[$<span style="color: #f0c674;">index</span>][<span style="color: #8abeb7;">'index'</span>] = $<span style="color: #f0c674;">index</span>;
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   ++$<span style="color: #f0c674;">index</span>;
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }<span style="color: #cc6666; background-color: #373b41;">        </span>
-<span style="background-color: #373b41;"> </span>   }
+<span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">/// </span><span style="color: #969896; font-style: italic;">&#37325;&#26032;&#21021;&#22987;&#21270;.</span>
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">public</span> <span style="color: #b9ca4a;">function</span> <span style="color: #e78c45;">reinit</span>($<span style="color: #e7c547;">shards</span>){
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   $<span style="color: #e7c547;">index</span> = <span style="color: #eaeaea; background-color: #000000;">0</span>;
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   $<span style="color: #7aa6da;">this</span>-&gt;<span style="color: #e7c547;">shards</span> = <span style="color: #eaeaea; background-color: #000000;">array(</span>);
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">foreach</span>($<span style="color: #e7c547;">shards</span> <span style="color: #b9ca4a;">as</span> $<span style="color: #e7c547;">shard</span>){
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   $<span style="color: #7aa6da;">this</span>-&gt;<span style="color: #e7c547;">shards</span>[$<span style="color: #e7c547;">index</span>] = <span style="color: #eaeaea; background-color: #000000;">explode(</span><span style="color: #70c0b1;">':'</span>, $<span style="color: #e7c547;">shard</span>); <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">&#26684;&#24335;&#65306;host:port:db</span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   $<span style="color: #7aa6da;">this</span>-&gt;<span style="color: #e7c547;">shards</span>[$<span style="color: #e7c547;">index</span>][<span style="color: #70c0b1;">'index'</span>] = $<span style="color: #e7c547;">index</span>;
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   ++$<span style="color: #e7c547;">index</span>;
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   }<span style="color: #d54e53; background-color: #424242;">        </span>
+<span style="background-color: #424242;"> </span>   }
 
-<span style="background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">/// </span><span style="color: #969896; font-style: italic;">&#36716;&#21457;&#26041;&#27861;&#35843;&#29992;&#21040;&#30495;&#27491;&#30340;redis&#23545;&#35937;.</span>
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">public</span> <span style="color: #b5bd68;">function</span> <span style="color: #de935f;">__call</span>($<span style="color: #f0c674;">name</span>, $<span style="color: #f0c674;">arguments</span>) {
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">result</span> = <span style="color: #c5c8c6; background-color: #1d1f21;">call_user_func_array(array(</span>$<span style="color: #81a2be;">this</span>-&gt;<span style="color: #c5c8c6; background-color: #1d1f21;">redis</span>($<span style="color: #f0c674;">arguments</span>[<span style="color: #c5c8c6; background-color: #1d1f21;">0</span>]), $<span style="color: #f0c674;">name</span>)<span style="text-decoration: underline;">, $</span><span style="color: #f0c674; text-decoration: underline;">arguments</span><span style="text-decoration: underline;">);</span>
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span>($<span style="color: #f0c674;">result</span> === <span style="color: #81a2be;">false</span> <span style="color: #b5bd68;">and</span> <span style="color: #c5c8c6; background-color: #1d1f21;">in_array(</span>$<span style="color: #f0c674;">name</span>, <span style="color: #c5c8c6; background-color: #1d1f21;">array(</span><span style="color: #8abeb7;">'set'</span>, <span style="color: #8abeb7;">'setex'</span>, <span style="color: #8abeb7;">'incr'</span>)))<span style="text-decoration: underline;"> {</span>
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #1d1f21;">trigger_error(</span><span style="color: #8abeb7;">"redis error: "</span> . $<span style="color: #81a2be;">this</span>-&gt;<span style="color: #f0c674;">shard</span>[<span style="color: #c5c8c6; background-color: #1d1f21;">0</span>] . <span style="color: #8abeb7;">':'</span> . $<span style="color: #81a2be;">this</span>-&gt;<span style="color: #f0c674;">shard</span><span style="text-decoration: underline;">[</span><span style="color: #c5c8c6; background-color: #1d1f21; text-decoration: underline;">1</span><span style="text-decoration: underline;">] . </span><span style="color: #8abeb7; text-decoration: underline;">':'</span><span style="text-decoration: underline;"> .$</span><span style="color: #81a2be; text-decoration: underline;">this</span><span style="text-decoration: underline;">-&gt;</span><span style="color: #f0c674; text-decoration: underline;">shard</span><span style="text-decoration: underline;">[</span><span style="color: #c5c8c6; background-color: #1d1f21; text-decoration: underline;">2</span><span style="text-decoration: underline;">] . </span><span style="color: #8abeb7; text-decoration: underline;">" $name "</span><span style="text-decoration: underline;"> . </span><span style="color: #c5c8c6; background-color: #1d1f21; text-decoration: underline;">implode(</span><span style="color: #8abeb7; text-decoration: underline;">' '</span><span style="text-decoration: underline;">, $</span><span style="color: #f0c674; text-decoration: underline;">arguments</span><span style="text-decoration: underline;">), </span><span style="color: #81a2be; text-decoration: underline;">E_USER_NOTICE</span><span style="text-decoration: underline;">);</span>
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> $<span style="color: #f0c674;">result</span>;
-<span style="background-color: #373b41;"> </span>   }
+<span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">/// </span><span style="color: #969896; font-style: italic;">&#36716;&#21457;&#26041;&#27861;&#35843;&#29992;&#21040;&#30495;&#27491;&#30340;redis&#23545;&#35937;.</span>
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">public</span> <span style="color: #b9ca4a;">function</span> <span style="color: #e78c45;">__call</span>($<span style="color: #e7c547;">name</span>, $<span style="color: #e7c547;">arguments</span>) {
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   $<span style="color: #e7c547;">result</span> = <span style="color: #eaeaea; background-color: #000000;">call_user_func_array(array(</span>$<span style="color: #7aa6da;">this</span>-&gt;<span style="color: #eaeaea; background-color: #000000;">redis</span>($<span style="color: #e7c547;">arguments</span>[<span style="color: #eaeaea; background-color: #000000;">0</span>]), $<span style="color: #e7c547;">name</span>)<span style="text-decoration: underline;">, $</span><span style="color: #e7c547; text-decoration: underline;">arguments</span><span style="text-decoration: underline;">);</span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span>($<span style="color: #e7c547;">result</span> === <span style="color: #7aa6da;">false</span> <span style="color: #b9ca4a;">and</span> <span style="color: #eaeaea; background-color: #000000;">in_array(</span>$<span style="color: #e7c547;">name</span>, <span style="color: #eaeaea; background-color: #000000;">array(</span><span style="color: #70c0b1;">'set'</span>, <span style="color: #70c0b1;">'setex'</span>, <span style="color: #70c0b1;">'incr'</span>)))<span style="text-decoration: underline;"> {</span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">trigger_error(</span><span style="color: #70c0b1;">"redis error: "</span> . $<span style="color: #7aa6da;">this</span>-&gt;<span style="color: #e7c547;">shard</span>[<span style="color: #eaeaea; background-color: #000000;">0</span>] . <span style="color: #70c0b1;">':'</span> . $<span style="color: #7aa6da;">this</span>-&gt;<span style="color: #e7c547;">shard</span><span style="text-decoration: underline;">[</span><span style="color: #eaeaea; background-color: #000000; text-decoration: underline;">1</span><span style="text-decoration: underline;">] . </span><span style="color: #70c0b1; text-decoration: underline;">':'</span><span style="text-decoration: underline;"> .$</span><span style="color: #7aa6da; text-decoration: underline;">this</span><span style="text-decoration: underline;">-&gt;</span><span style="color: #e7c547; text-decoration: underline;">shard</span><span style="text-decoration: underline;">[</span><span style="color: #eaeaea; background-color: #000000; text-decoration: underline;">2</span><span style="text-decoration: underline;">] . </span><span style="color: #70c0b1; text-decoration: underline;">" $name "</span><span style="text-decoration: underline;"> . </span><span style="color: #eaeaea; background-color: #000000; text-decoration: underline;">implode(</span><span style="color: #70c0b1; text-decoration: underline;">' '</span><span style="text-decoration: underline;">, $</span><span style="color: #e7c547; text-decoration: underline;">arguments</span><span style="text-decoration: underline;">), </span><span style="color: #7aa6da; text-decoration: underline;">E_USER_NOTICE</span><span style="text-decoration: underline;">);</span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   }
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">return</span> $<span style="color: #e7c547;">result</span>;
+<span style="background-color: #424242;"> </span>   }
 
-<span style="background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">/// </span><span style="color: #969896; font-style: italic;">&#33719;&#21462;1&#33267;max&#38388;&#30340;&#21807;&#19968;&#24207;&#21495;name&#65292;&#36798;&#21040;max&#21518;&#20250;&#20174;1&#24320;&#22987;.</span>
-<span style="background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">/// </span><span style="color: #969896; font-style: italic;">redis&#30340;&#36882;&#22686;&#21040;&#26368;&#22823;&#20540;&#21518;&#20250;&#36820;&#22238;&#38169;&#35823;&#65292;&#26412;&#26041;&#27861;&#23454;&#29616;&#23433;&#20840;&#30340;&#36882;&#22686;&#12290;</span>
-<span style="background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">/// </span><span style="color: #969896; font-style: italic;">&#22833;&#36133;&#36820;&#22238;false&#65292;&#26368;&#35201;&#30830;&#20445;&#24050;&#29992;redis()&#26041;&#27861;&#36830;&#21040;&#29983;&#25104;&#24207;&#21495;&#30340;&#26576;&#20010;redis&#23545;&#35937;.</span>
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">public</span> <span style="color: #b5bd68;">function</span> <span style="color: #de935f;">id</span>($<span style="color: #f0c674;">name</span>, $<span style="color: #f0c674;">max</span>) {
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span>(<span style="color: #c5c8c6; background-color: #1d1f21;">isset(</span>$<span style="color: #81a2be;">this</span>-&gt;<span style="color: #f0c674;">shard</span>)){
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">id</span> = $<span style="color: #81a2be;">this</span>-&gt;<span style="color: #f0c674;">shard</span>[<span style="color: #8abeb7;">'redis'</span>]-&gt;<span style="color: #c5c8c6; background-color: #1d1f21;">incr</span>(<span style="color: #8abeb7;">'_id_'</span> . $<span style="color: #f0c674;">name</span>);
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span>($<span style="color: #f0c674;">id</span>){
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">max</span> = <span style="color: #c5c8c6; background-color: #1d1f21;">intval(</span>$<span style="color: #f0c674;">max</span>/<span style="color: #c5c8c6; background-color: #1d1f21;">count(</span>$<span style="color: #81a2be;">this</span>-&gt;<span style="color: #f0c674;">shards</span>));
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span>($<span style="color: #f0c674;">id</span> % $<span style="color: #f0c674;">max</span> == <span style="color: #c5c8c6; background-color: #1d1f21;">0</span>){
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">while</span>($<span style="color: #81a2be;">this</span>-&gt;<span style="color: #f0c674;">shard</span>[<span style="color: #8abeb7;">'redis'</span>]-&gt;<span style="color: #c5c8c6; background-color: #1d1f21;">decrBy</span>(<span style="color: #8abeb7;">'_id_'</span> . $<span style="color: #f0c674;">name</span>, $<span style="color: #f0c674;">max</span>) &gt;=<span style="text-decoration: underline;"> $</span><span style="color: #f0c674; text-decoration: underline;">max</span><span style="text-decoration: underline;">){</span>
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">id</span> = $<span style="color: #f0c674;">max</span>;
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">else</span> <span style="color: #b5bd68;">if</span>($<span style="color: #f0c674;">id</span> &gt; $<span style="color: #f0c674;">max</span>){
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">id</span> %= $<span style="color: #f0c674;">max</span>;
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> ($<span style="color: #f0c674;">id</span> - <span style="color: #c5c8c6; background-color: #1d1f21;">1</span>)*<span style="color: #c5c8c6; background-color: #1d1f21;">count(</span>$<span style="color: #81a2be;">this</span>-&gt;<span style="color: #f0c674;">shards</span>) + ($<span style="color: #81a2be;">this</span>-&gt;<span style="color: #f0c674;">shard</span>[<span style="color: #8abeb7;">'index'</span>] +<span style="text-decoration: underline;"> </span><span style="color: #c5c8c6; background-color: #1d1f21; text-decoration: underline;">1</span><span style="text-decoration: underline;">);</span>
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> <span style="color: #81a2be;">false</span>;
-<span style="background-color: #373b41;"> </span>   }
+<span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">/// </span><span style="color: #969896; font-style: italic;">&#33719;&#21462;1&#33267;max&#38388;&#30340;&#21807;&#19968;&#24207;&#21495;name&#65292;&#36798;&#21040;max&#21518;&#20250;&#20174;1&#24320;&#22987;.</span>
+<span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">/// </span><span style="color: #969896; font-style: italic;">redis&#30340;&#36882;&#22686;&#21040;&#26368;&#22823;&#20540;&#21518;&#20250;&#36820;&#22238;&#38169;&#35823;&#65292;&#26412;&#26041;&#27861;&#23454;&#29616;&#23433;&#20840;&#30340;&#36882;&#22686;&#12290;</span>
+<span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">/// </span><span style="color: #969896; font-style: italic;">&#22833;&#36133;&#36820;&#22238;false&#65292;&#26368;&#35201;&#30830;&#20445;&#24050;&#29992;redis()&#26041;&#27861;&#36830;&#21040;&#29983;&#25104;&#24207;&#21495;&#30340;&#26576;&#20010;redis&#23545;&#35937;.</span>
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">public</span> <span style="color: #b9ca4a;">function</span> <span style="color: #e78c45;">id</span>($<span style="color: #e7c547;">name</span>, $<span style="color: #e7c547;">max</span>) {
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span>(<span style="color: #eaeaea; background-color: #000000;">isset(</span>$<span style="color: #7aa6da;">this</span>-&gt;<span style="color: #e7c547;">shard</span>)){
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   $<span style="color: #e7c547;">id</span> = $<span style="color: #7aa6da;">this</span>-&gt;<span style="color: #e7c547;">shard</span>[<span style="color: #70c0b1;">'redis'</span>]-&gt;<span style="color: #eaeaea; background-color: #000000;">incr</span>(<span style="color: #70c0b1;">'_id_'</span> . $<span style="color: #e7c547;">name</span>);
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span>($<span style="color: #e7c547;">id</span>){
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   $<span style="color: #e7c547;">max</span> = <span style="color: #eaeaea; background-color: #000000;">intval(</span>$<span style="color: #e7c547;">max</span>/<span style="color: #eaeaea; background-color: #000000;">count(</span>$<span style="color: #7aa6da;">this</span>-&gt;<span style="color: #e7c547;">shards</span>));
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span>($<span style="color: #e7c547;">id</span> % $<span style="color: #e7c547;">max</span> == <span style="color: #eaeaea; background-color: #000000;">0</span>){
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">while</span>($<span style="color: #7aa6da;">this</span>-&gt;<span style="color: #e7c547;">shard</span>[<span style="color: #70c0b1;">'redis'</span>]-&gt;<span style="color: #eaeaea; background-color: #000000;">decrBy</span>(<span style="color: #70c0b1;">'_id_'</span> . $<span style="color: #e7c547;">name</span>, $<span style="color: #e7c547;">max</span>) &gt;=<span style="text-decoration: underline;"> $</span><span style="color: #e7c547; text-decoration: underline;">max</span><span style="text-decoration: underline;">){</span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   }
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   $<span style="color: #e7c547;">id</span> = $<span style="color: #e7c547;">max</span>;
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   }
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">else</span> <span style="color: #b9ca4a;">if</span>($<span style="color: #e7c547;">id</span> &gt; $<span style="color: #e7c547;">max</span>){
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   $<span style="color: #e7c547;">id</span> %= $<span style="color: #e7c547;">max</span>;
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   }
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">return</span> ($<span style="color: #e7c547;">id</span> - <span style="color: #eaeaea; background-color: #000000;">1</span>)*<span style="color: #eaeaea; background-color: #000000;">count(</span>$<span style="color: #7aa6da;">this</span>-&gt;<span style="color: #e7c547;">shards</span>) + ($<span style="color: #7aa6da;">this</span>-&gt;<span style="color: #e7c547;">shard</span>[<span style="color: #70c0b1;">'index'</span>] +<span style="text-decoration: underline;"> </span><span style="color: #eaeaea; background-color: #000000; text-decoration: underline;">1</span><span style="text-decoration: underline;">);</span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   }
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   }
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">return</span> <span style="color: #7aa6da;">false</span>;
+<span style="background-color: #424242;"> </span>   }
 
-<span style="background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">/// </span><span style="color: #969896; font-style: italic;">&#36830;&#25509;&#24182;&#36820;&#22238;key&#23545;&#24212;&#30340;redis&#23545;&#35937;.</span>
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">public</span> <span style="color: #b5bd68;">function</span> <span style="color: #de935f;">redis</span>($<span style="color: #f0c674;">key</span>){
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">TODO: crc32&#22312;32&#20301;&#31995;&#32479;&#19979;&#20250;&#36820;&#22238;&#36127;&#25968;&#65292;&#22240;&#25105;&#20204;&#26159;&#37096;&#32626;&#22312;64&#20301;&#31995;&#32479;&#19978;&#65292;&#26242;&#26102;&#24573;&#30053;.</span>
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #1d1f21;">assert(</span><span style="color: #cc6666; font-weight: bold;">PHP_INT_SIZE</span> === <span style="color: #c5c8c6; background-color: #1d1f21;">8</span>);
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">index</span> = <span style="color: #c5c8c6; background-color: #1d1f21;">crc32(</span>$<span style="color: #f0c674;">key</span>) % <span style="color: #c5c8c6; background-color: #1d1f21;">count(</span>$<span style="color: #81a2be;">this</span>-&gt;<span style="color: #f0c674;">shards</span>);
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">shard</span> = $<span style="color: #81a2be;">this</span>-&gt;<span style="color: #f0c674;">shards</span>[$<span style="color: #f0c674;">index</span>];
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span>(<span style="color: #c5c8c6; background-color: #1d1f21;">isset(</span>$<span style="color: #81a2be;">this</span>-&gt;<span style="color: #f0c674;">shard</span>)){
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">&#23581;&#35797;&#37325;&#29992;&#24050;&#26377;&#36830;&#25509;.</span>
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span>($<span style="color: #81a2be;">this</span>-&gt;<span style="color: #f0c674;">shard</span>[<span style="color: #c5c8c6; background-color: #1d1f21;">0</span>] == $<span style="color: #f0c674;">shard</span>[<span style="color: #c5c8c6; background-color: #1d1f21;">0</span>] <span style="color: #b5bd68;">and</span> $<span style="color: #81a2be;">this</span>-&gt;<span style="color: #f0c674;">shard</span>[<span style="color: #c5c8c6; background-color: #1d1f21;">1</span>] == $<span style="color: #f0c674;">shard</span>[<span style="color: #c5c8c6; background-color: #1d1f21;">1</span>]){
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span>($<span style="color: #81a2be;">this</span>-&gt;<span style="color: #f0c674;">shard</span>[<span style="color: #c5c8c6; background-color: #1d1f21;">2</span>] != $<span style="color: #f0c674;">shard</span>[<span style="color: #c5c8c6; background-color: #1d1f21;">2</span>]){
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span>(! $<span style="color: #81a2be;">this</span>-&gt;<span style="color: #f0c674;">shard</span>[<span style="color: #8abeb7;">'redis'</span>]-&gt;<span style="color: #c5c8c6; background-color: #1d1f21;">select</span>($<span style="color: #f0c674;">shard</span>[<span style="color: #c5c8c6; background-color: #1d1f21;">2</span>])){
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #1d1f21;">trigger_error(</span><span style="color: #8abeb7;">'redis error: select '</span> . $<span style="color: #f0c674;">shard</span>[<span style="color: #c5c8c6; background-color: #1d1f21;">0</span>] . <span style="color: #8abeb7;">':'</span> .<span style="text-decoration: underline;"> $</span><span style="color: #f0c674; text-decoration: underline;">shard</span><span style="text-decoration: underline;">[</span><span style="color: #c5c8c6; background-color: #1d1f21; text-decoration: underline;">1</span><span style="text-decoration: underline;">] . </span><span style="color: #8abeb7; text-decoration: underline;">':'</span><span style="text-decoration: underline;"> .$</span><span style="color: #f0c674; text-decoration: underline;">shard</span><span style="text-decoration: underline;">[</span><span style="color: #c5c8c6; background-color: #1d1f21; text-decoration: underline;">2</span><span style="text-decoration: underline;">], </span><span style="color: #81a2be; text-decoration: underline;">E_USER_ERROR</span><span style="text-decoration: underline;">);</span>
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> <span style="color: #81a2be;">false</span>;
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   $<span style="color: #81a2be;">this</span>-&gt;<span style="color: #f0c674;">shard</span>[<span style="color: #c5c8c6; background-color: #1d1f21;">2</span>] = $<span style="color: #f0c674;">shard</span>[<span style="color: #c5c8c6; background-color: #1d1f21;">2</span>];
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> $<span style="color: #81a2be;">this</span>-&gt;<span style="color: #f0c674;">shard</span>[<span style="color: #8abeb7;">'redis'</span>];
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   $<span style="color: #81a2be;">this</span>-&gt;<span style="color: #f0c674;">shard</span>[<span style="color: #8abeb7;">'redis'</span>]-&gt;<span style="color: #c5c8c6; background-color: #1d1f21;">close</span>();
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #1d1f21;">unset(</span>$<span style="color: #81a2be;">this</span>-&gt;<span style="color: #f0c674;">shard</span>);
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">&#26032;&#24314;&#36830;&#25509;.</span>
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">shard</span>[<span style="color: #8abeb7;">'redis'</span>] = <span style="color: #b5bd68;">new</span> <span style="color: #81a2be;">Redis</span>();
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span>(! $<span style="color: #f0c674;">shard</span>[<span style="color: #8abeb7;">'redis'</span>]-&gt;<span style="color: #c5c8c6; background-color: #1d1f21;">connect</span>($<span style="color: #f0c674;">shard</span>[<span style="color: #c5c8c6; background-color: #1d1f21;">0</span>], $<span style="color: #f0c674;">shard</span>[<span style="color: #c5c8c6; background-color: #1d1f21;">1</span>])){
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #1d1f21;">trigger_error(</span><span style="color: #8abeb7;">'redis error: connect '</span> . $<span style="color: #f0c674;">shard</span>[<span style="color: #c5c8c6; background-color: #1d1f21;">0</span>] . <span style="color: #8abeb7;">':'</span> . $<span style="color: #f0c674;">shard</span>[<span style="color: #c5c8c6; background-color: #1d1f21;">1</span>],<span style="text-decoration: underline;"> </span><span style="color: #81a2be; text-decoration: underline;">E_USER_ERROR</span><span style="text-decoration: underline;">);</span>
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> <span style="color: #81a2be;">false</span>;
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">db</span> = <span style="color: #c5c8c6; background-color: #1d1f21;">intval(</span>$<span style="color: #f0c674;">shard</span>[<span style="color: #c5c8c6; background-color: #1d1f21;">2</span>]);
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span>($<span style="color: #f0c674;">db</span> != <span style="color: #c5c8c6; background-color: #1d1f21;">0</span> <span style="color: #b5bd68;">and</span> !$<span style="color: #f0c674;">shard</span>[<span style="color: #8abeb7;">'redis'</span>]-&gt;<span style="color: #c5c8c6; background-color: #1d1f21;">select</span>($<span style="color: #f0c674;">db</span>)){
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #1d1f21;">trigger_error(</span><span style="color: #8abeb7;">'redis error: select '</span> . $<span style="color: #f0c674;">shard</span>[<span style="color: #c5c8c6; background-color: #1d1f21;">0</span>] . <span style="color: #8abeb7;">':'</span> . $<span style="color: #f0c674;">shard</span>[<span style="color: #c5c8c6; background-color: #1d1f21;">1</span>] .<span style="text-decoration: underline;"> </span><span style="color: #8abeb7; text-decoration: underline;">':'</span><span style="text-decoration: underline;"> .$</span><span style="color: #f0c674; text-decoration: underline;">shard</span><span style="text-decoration: underline;">[</span><span style="color: #c5c8c6; background-color: #1d1f21; text-decoration: underline;">2</span><span style="text-decoration: underline;">], </span><span style="color: #81a2be; text-decoration: underline;">E_USER_ERROR</span><span style="text-decoration: underline;">);</span>
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   $<span style="color: #f0c674;">shard</span>[<span style="color: #8abeb7;">'redis'</span>]-&gt;<span style="color: #c5c8c6; background-color: #1d1f21;">close</span>();
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> <span style="color: #81a2be;">false</span>;
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span>(<span style="color: #cc6666; font-weight: bold;">ENABLE_DEVELOP</span>){
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #1d1f21;">trigger_error(</span><span style="color: #8abeb7;">'redis connect success. '</span> . $<span style="color: #f0c674;">shard</span>[<span style="color: #c5c8c6; background-color: #1d1f21;">0</span>] . <span style="color: #8abeb7;">':'</span> . $<span style="color: #f0c674;">shard</span>[<span style="color: #c5c8c6; background-color: #1d1f21;">1</span><span style="text-decoration: underline;">] . </span><span style="color: #8abeb7; text-decoration: underline;">':'</span><span style="text-decoration: underline;"> . $</span><span style="color: #f0c674; text-decoration: underline;">shard</span><span style="text-decoration: underline;">[</span><span style="color: #c5c8c6; background-color: #1d1f21; text-decoration: underline;">2</span><span style="text-decoration: underline;">], </span><span style="color: #81a2be; text-decoration: underline;">E_USER_NOTICE</span><span style="text-decoration: underline;">);</span>
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }<span style="color: #cc6666; background-color: #373b41;">        </span>
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   $<span style="color: #81a2be;">this</span>-&gt;<span style="color: #f0c674;">shard</span> = $<span style="color: #f0c674;">shard</span>;
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> $<span style="color: #81a2be;">this</span>-&gt;<span style="color: #f0c674;">shard</span>[<span style="color: #8abeb7;">'redis'</span>];
-<span style="background-color: #373b41;"> </span>   }
+<span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">/// </span><span style="color: #969896; font-style: italic;">&#36830;&#25509;&#24182;&#36820;&#22238;key&#23545;&#24212;&#30340;redis&#23545;&#35937;.</span>
+<span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">public</span> <span style="color: #b9ca4a;">function</span> <span style="color: #e78c45;">redis</span>($<span style="color: #e7c547;">key</span>){
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">TODO: crc32&#22312;32&#20301;&#31995;&#32479;&#19979;&#20250;&#36820;&#22238;&#36127;&#25968;&#65292;&#22240;&#25105;&#20204;&#26159;&#37096;&#32626;&#22312;64&#20301;&#31995;&#32479;&#19978;&#65292;&#26242;&#26102;&#24573;&#30053;.</span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">assert(</span><span style="color: #d54e53; font-weight: bold;">PHP_INT_SIZE</span> === <span style="color: #eaeaea; background-color: #000000;">8</span>);
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   $<span style="color: #e7c547;">index</span> = <span style="color: #eaeaea; background-color: #000000;">crc32(</span>$<span style="color: #e7c547;">key</span>) % <span style="color: #eaeaea; background-color: #000000;">count(</span>$<span style="color: #7aa6da;">this</span>-&gt;<span style="color: #e7c547;">shards</span>);
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   $<span style="color: #e7c547;">shard</span> = $<span style="color: #7aa6da;">this</span>-&gt;<span style="color: #e7c547;">shards</span>[$<span style="color: #e7c547;">index</span>];
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span>(<span style="color: #eaeaea; background-color: #000000;">isset(</span>$<span style="color: #7aa6da;">this</span>-&gt;<span style="color: #e7c547;">shard</span>)){
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">&#23581;&#35797;&#37325;&#29992;&#24050;&#26377;&#36830;&#25509;.</span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span>($<span style="color: #7aa6da;">this</span>-&gt;<span style="color: #e7c547;">shard</span>[<span style="color: #eaeaea; background-color: #000000;">0</span>] == $<span style="color: #e7c547;">shard</span>[<span style="color: #eaeaea; background-color: #000000;">0</span>] <span style="color: #b9ca4a;">and</span> $<span style="color: #7aa6da;">this</span>-&gt;<span style="color: #e7c547;">shard</span>[<span style="color: #eaeaea; background-color: #000000;">1</span>] == $<span style="color: #e7c547;">shard</span>[<span style="color: #eaeaea; background-color: #000000;">1</span>]){
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span>($<span style="color: #7aa6da;">this</span>-&gt;<span style="color: #e7c547;">shard</span>[<span style="color: #eaeaea; background-color: #000000;">2</span>] != $<span style="color: #e7c547;">shard</span>[<span style="color: #eaeaea; background-color: #000000;">2</span>]){
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span>(! $<span style="color: #7aa6da;">this</span>-&gt;<span style="color: #e7c547;">shard</span>[<span style="color: #70c0b1;">'redis'</span>]-&gt;<span style="color: #eaeaea; background-color: #000000;">select</span>($<span style="color: #e7c547;">shard</span>[<span style="color: #eaeaea; background-color: #000000;">2</span>])){
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">trigger_error(</span><span style="color: #70c0b1;">'redis error: select '</span> . $<span style="color: #e7c547;">shard</span>[<span style="color: #eaeaea; background-color: #000000;">0</span>] . <span style="color: #70c0b1;">':'</span> .<span style="text-decoration: underline;"> $</span><span style="color: #e7c547; text-decoration: underline;">shard</span><span style="text-decoration: underline;">[</span><span style="color: #eaeaea; background-color: #000000; text-decoration: underline;">1</span><span style="text-decoration: underline;">] . </span><span style="color: #70c0b1; text-decoration: underline;">':'</span><span style="text-decoration: underline;"> .$</span><span style="color: #e7c547; text-decoration: underline;">shard</span><span style="text-decoration: underline;">[</span><span style="color: #eaeaea; background-color: #000000; text-decoration: underline;">2</span><span style="text-decoration: underline;">], </span><span style="color: #7aa6da; text-decoration: underline;">E_USER_ERROR</span><span style="text-decoration: underline;">);</span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">return</span> <span style="color: #7aa6da;">false</span>;
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   }
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   $<span style="color: #7aa6da;">this</span>-&gt;<span style="color: #e7c547;">shard</span>[<span style="color: #eaeaea; background-color: #000000;">2</span>] = $<span style="color: #e7c547;">shard</span>[<span style="color: #eaeaea; background-color: #000000;">2</span>];
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   }
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">return</span> $<span style="color: #7aa6da;">this</span>-&gt;<span style="color: #e7c547;">shard</span>[<span style="color: #70c0b1;">'redis'</span>];
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   }
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   $<span style="color: #7aa6da;">this</span>-&gt;<span style="color: #e7c547;">shard</span>[<span style="color: #70c0b1;">'redis'</span>]-&gt;<span style="color: #eaeaea; background-color: #000000;">close</span>();
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">unset(</span>$<span style="color: #7aa6da;">this</span>-&gt;<span style="color: #e7c547;">shard</span>);
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   }
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">&#26032;&#24314;&#36830;&#25509;.</span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   $<span style="color: #e7c547;">shard</span>[<span style="color: #70c0b1;">'redis'</span>] = <span style="color: #b9ca4a;">new</span> <span style="color: #7aa6da;">Redis</span>();
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span>(! $<span style="color: #e7c547;">shard</span>[<span style="color: #70c0b1;">'redis'</span>]-&gt;<span style="color: #eaeaea; background-color: #000000;">connect</span>($<span style="color: #e7c547;">shard</span>[<span style="color: #eaeaea; background-color: #000000;">0</span>], $<span style="color: #e7c547;">shard</span>[<span style="color: #eaeaea; background-color: #000000;">1</span>])){
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">trigger_error(</span><span style="color: #70c0b1;">'redis error: connect '</span> . $<span style="color: #e7c547;">shard</span>[<span style="color: #eaeaea; background-color: #000000;">0</span>] . <span style="color: #70c0b1;">':'</span> . $<span style="color: #e7c547;">shard</span>[<span style="color: #eaeaea; background-color: #000000;">1</span>],<span style="text-decoration: underline;"> </span><span style="color: #7aa6da; text-decoration: underline;">E_USER_ERROR</span><span style="text-decoration: underline;">);</span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">return</span> <span style="color: #7aa6da;">false</span>;
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   }
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   $<span style="color: #e7c547;">db</span> = <span style="color: #eaeaea; background-color: #000000;">intval(</span>$<span style="color: #e7c547;">shard</span>[<span style="color: #eaeaea; background-color: #000000;">2</span>]);
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span>($<span style="color: #e7c547;">db</span> != <span style="color: #eaeaea; background-color: #000000;">0</span> <span style="color: #b9ca4a;">and</span> !$<span style="color: #e7c547;">shard</span>[<span style="color: #70c0b1;">'redis'</span>]-&gt;<span style="color: #eaeaea; background-color: #000000;">select</span>($<span style="color: #e7c547;">db</span>)){
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">trigger_error(</span><span style="color: #70c0b1;">'redis error: select '</span> . $<span style="color: #e7c547;">shard</span>[<span style="color: #eaeaea; background-color: #000000;">0</span>] . <span style="color: #70c0b1;">':'</span> . $<span style="color: #e7c547;">shard</span>[<span style="color: #eaeaea; background-color: #000000;">1</span>] .<span style="text-decoration: underline;"> </span><span style="color: #70c0b1; text-decoration: underline;">':'</span><span style="text-decoration: underline;"> .$</span><span style="color: #e7c547; text-decoration: underline;">shard</span><span style="text-decoration: underline;">[</span><span style="color: #eaeaea; background-color: #000000; text-decoration: underline;">2</span><span style="text-decoration: underline;">], </span><span style="color: #7aa6da; text-decoration: underline;">E_USER_ERROR</span><span style="text-decoration: underline;">);</span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   $<span style="color: #e7c547;">shard</span>[<span style="color: #70c0b1;">'redis'</span>]-&gt;<span style="color: #eaeaea; background-color: #000000;">close</span>();
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">return</span> <span style="color: #7aa6da;">false</span>;
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   }
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span>(<span style="color: #d54e53; font-weight: bold;">ENABLE_DEVELOP</span>){
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">trigger_error(</span><span style="color: #70c0b1;">'redis connect success. '</span> . $<span style="color: #e7c547;">shard</span>[<span style="color: #eaeaea; background-color: #000000;">0</span>] . <span style="color: #70c0b1;">':'</span> . $<span style="color: #e7c547;">shard</span>[<span style="color: #eaeaea; background-color: #000000;">1</span><span style="text-decoration: underline;">] . </span><span style="color: #70c0b1; text-decoration: underline;">':'</span><span style="text-decoration: underline;"> . $</span><span style="color: #e7c547; text-decoration: underline;">shard</span><span style="text-decoration: underline;">[</span><span style="color: #eaeaea; background-color: #000000; text-decoration: underline;">2</span><span style="text-decoration: underline;">], </span><span style="color: #7aa6da; text-decoration: underline;">E_USER_NOTICE</span><span style="text-decoration: underline;">);</span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   }<span style="color: #d54e53; background-color: #424242;">        </span>
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   $<span style="color: #7aa6da;">this</span>-&gt;<span style="color: #e7c547;">shard</span> = $<span style="color: #e7c547;">shard</span>;
+<span style="background-color: #424242;"> </span>   <span style="background-color: #424242;"> </span>   <span style="color: #b9ca4a;">return</span> $<span style="color: #7aa6da;">this</span>-&gt;<span style="color: #e7c547;">shard</span>[<span style="color: #70c0b1;">'redis'</span>];
+<span style="background-color: #424242;"> </span>   }
 }
 </pre>
 </div>
