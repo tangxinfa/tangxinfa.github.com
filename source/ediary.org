@@ -8971,7 +8971,112 @@ class RedisShard {
 
    [[http://www.tuicool.com/articles/2QbABj][Redis slave切换为master操作（不停机） - 推酷]]
 
-* TODO redis高可用性方案：Sentinel                                    :redis:
+* DONE redis高可用性方案：Sentinel                                    :redis:
+  CLOSED: [2015-12-26 Sat 22:54]
+  
+  在前面一篇文章《 [[http://blog.kankanan.com/article/redis-9ad853ef7528602757fa7840ff1a-master-slave.html][redis高可用性基础：Master-Slave]] 》中，主备切换过程时有好几个步骤，需要人工介入，这势必增加服务的故障时间（Down Time）。
+
+  而 =Sentinel= 正是自动化这一过程的官方工具，详细文档请参考《[[http://redis.io/topics/sentinel][Redis Sentinel Documentation – Redis]]》。
+
+** =Sentinel= 的功能
+
+   - 监控
+
+     =Sentinel= 不断地检测 =Master= 和 =Slave= 实例的运行状态。
+
+   - 通知
+     
+     =Sentinel= 通过API，能够通知系统管理员、其它程序：监控的Redis实例出问题了。
+
+   - 自动故障切换
+     
+     如果 =Master= 实例出问题了， =Sentinel= 通过将一个 =Slave= 实例提升为 =Master= 修复故障，其它 =Slave= 实例使用新的 =Master= 实例，同时通知给使用Redis服务的应用程序以便重新建立连接。
+
+   - 配置提供者
+     
+     =Sentinel= 做为客户端服务发现的权威来源：客户端连接到 =Sentinel= 以获取当前 =Master= 的地址，故障切换后报告新的地址。
+
+** =Sentinel= 演示
+
+   =Redis Sentinel= 推荐的配置为至少三个Sentinel部署在三台不同的机器上，只配一台自已本身就是单点没有意义，二台时可能出现“脑裂”。
+
+   - 启动上一篇文章《 [[http://blog.kankanan.com/article/redis-9ad853ef7528602757fa7840ff1a-master-slave.html][redis高可用性基础：Master-Slave]] 》配置好的 =Master= 及 =Slave= Redis实例
+
+     =Master= 监听在 =6379= 端口， =Slave= 监听在 =6380= 端口。
+
+   - 使用端口号 =5000= =5001= =5002= 创建三个 =Sentinel= 实例
+
+     =Sentinel= 实例 =a= 的配置文件 =redis-sentinel-a.conf=
+
+     #+begin_example
+       port 5000
+       sentinel monitor mymaster 127.0.0.1 6379 2
+       sentinel down-after-milliseconds mymaster 5000
+       sentinel failover-timeout mymaster 60000
+       sentinel parallel-syncs mymaster 1
+     #+end_example
+
+     其它两个 =Sentinel= 实例 =b= =c= 配置和 =a= 基本一样，只是端口号分别为 =5001= 和 =5002= ：
+
+       [[file:../static/redis-sentinel-a.conf][redis-sentinel-a.conf]]
+
+       [[file:../static/redis-sentinel-b.conf][redis-sentinel-b.conf]]
+
+       [[file:../static/redis-sentinel-c.conf][redis-sentinel-c.conf]]
+
+     终端 =3= 启动 =Sentinel= =a= =redis-sentinel ./redis-sentinel-a.conf=
+     终端 =4= 启动 =Sentinel= =b= =redis-sentinel ./redis-sentinel-b.conf=
+     终端 =5= 启动 =Sentinel= =c= =redis-sentinel ./redis-sentinel-c.conf=
+
+     可以发现当 =Sentinel= 实例启动时 =Sentinel= 的配置文件会自动进行更新，记录 =Slave= 及其它 =Sentinel= 的信息。
+
+   - 从 =Sentinel= 获取当前 =Master= 的地址
+
+     通过 =redis-cli= 连上任一 =Sentinel= =redis-cli -p 5000=
+
+     #+begin_example
+       127.0.0.1:5000> sentinel get-master-addr-by-name mymaster
+       1) "127.0.0.1"
+       2) "6379"
+     #+end_example
+
+   - 故障切换测试
+
+     让 =Master= 停止响应 =30= 秒 =redis-cli -p 6379 debug sleep 30=
+
+     约 =10= 秒钟后，通过 =Sentinel= 的日志输出看到发生了主从切换。
+     
+     重新获取当前的 =Master=
+
+     #+begin_example
+       127.0.0.1:5000> sentinel get-master-addr-by-name mymaster
+       1) "127.0.0.1"
+       2) "6380"
+     #+end_example
+     
+     =Redis= 实例的配置文件被自动修正，以反映新的 =Master-Slave= 状态：
+         =redis-master.conf= 添加了配置行 =slaveof 127.0.0.1 6380=
+         =redis-slave.conf= 删除了配置行 =slaveof 127.0.0.1 6379=
+     和我们在上一篇文章《 [[http://blog.kankanan.com/article/redis-9ad853ef7528602757fa7840ff1a-master-slave.html][redis高可用性基础：Master-Slave]] 》手工做的主备切换如出一辙。
+     
+     三个 =Sentinel= 配置文件中的 =Master-Slave= 配置也被自动修正。
+
+** 疑问
+
+   - =Redis= 实例的配置文件是被谁修改的？
+
+     如果是 =Sentinel= 那么就意味着所有 =Redis= 实例的同一机器上必须配置有 =Sentinel= （《[[http://redis.io/topics/sentinel][Redis Sentinel Documentation – Redis]]》未提及）。
+     
+   - 万一因为某种原因，原 =Master= 配置文件未改为 =Slave= ，会不会出现脑裂？
+
+     感觉应该是会出现脑裂的，但是只要客户端应用总是使用 =Sentinel= 提供的 =Master= 地址，就不会有问题。
+
+     =node.js= 访问单个 =redis= 实例已经用得很溜了，下一篇文章会研究 =node.js= 访问 =redis sentinel= ，相信答案就会水落石出了。
+
+** 参考
+   
+   [[http://redis.io/topics/sentinel][Redis Sentinel Documentation – Redis]]
+
 * TODO node.js连接redis高可用性方案：Sentinel                    :redis:node:
 * DONE 控制pm2的日志文件大小                                           :node:
   CLOSED: [2015-12-25 Fri 18:41]
