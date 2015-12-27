@@ -9082,7 +9082,226 @@ class RedisShard {
    
    [[http://redis.io/topics/sentinel][Redis Sentinel Documentation – Redis]]
 
-* TODO node.js连接redis高可用性方案：Sentinel                    :redis:node:
+* DONE node.js连接redis高可用性方案：Sentinel                    :redis:node:
+  CLOSED: [2015-12-27 Sun 14:27]
+
+  node.js后台应用在开始时往往不会搞得太复杂，使用单实例的redis，一般都会使用官方推荐的模块 [[https://github.com/NodeRedis/node_redis][node_redis]] 。
+
+** 访问单实例node.js
+
+   在 [[https://github.com/NodeRedis/node_redis][node_redis]] 的基础上稍作封装，主要是避免并行访问时意外创建多个redis连接。
+
+*** database.js
+
+    #+begin_src js
+      var redis = require('redis');
+
+      function Database() {
+          var self = this;
+
+          self._redis_host = '127.0.0.1';
+          self._redis_port = 6379;
+          self._redis_db = 2;
+
+          self._redis = null;
+          self._redis_selected = false;
+      }
+
+      Database.prototype.redis = function(callback) {
+          var self = this;
+
+          if (self._redis && self._redis_selected) {
+              return callback(null, self._redis);
+          }
+
+          if (! self._redis) {
+              self._redis = redis.createClient(self._redis_port, self._redis_host);
+          }
+
+          self._redis.select(self._redis_db, function (err) {
+              if (err) {
+                  return callback(err);
+              }
+
+              self._redis_selected = true;
+
+              return callback(null, self._redis);
+          });
+      };
+
+
+      module.exports = new Database();
+    #+end_src
+
+*** client.js
+
+    使用 =database.js=
+
+    #+begin_src js
+      var db = require('./database');
+
+      db.redis(function (err, client) {
+          if(err) {
+              console.error(err.toString());
+              return process.exit(1);
+          }
+
+          client.set('hello', 'world', function (err) {
+              if(err) {
+                  console.error(err.toString());
+                  return process.exit(1);
+              }
+
+              setTimeout(function () {
+                  client.get('hello', function (err, value) {
+                      if(err) {
+                          console.error(err.toString());
+                          return process.exit(1);
+                      }
+
+                      console.log('hello: ' + value);
+
+                      process.exit(0);
+                  });
+              }, 20*1000);
+          });
+      });
+   #+end_src
+
+** 访问主备Redis
+    
+   但是随着服务的成功，用户量开始增加，另外对稳定性、可靠性有了一定要求，确保数据的安全性成了重中之重，redis由单机转向主/备（Replication）甚至集群（Cluster），
+   本文只关注使用 =Sentinel= 管理的主/备（Replication）Redis。
+
+   这就意味着Redis客户端应用不能直接连接Redis实例，而是需要先连接 =Sentinel= ，根据 =Sentinel= 提供的 =Master= 或 =Slave= 地址连接Redis实例，
+   还要接收 =Sentinel= 的 =Master= =Slave= 变动通知，重连Redis实例。
+
+   不幸的是，[[https://github.com/NodeRedis/node_redis][node_redis]] 模块只支持单实例redis，基于 [[https://github.com/NodeRedis/node_redis][node_redis]] 实现与 =Sentinel= 的交互工作量比较大。
+
+   所幸的是 [[http://github.com/luin/ioredis/][ioredis]] （现已成为redis官方推荐模块）出现了，它支持 =Sentinel= ，而且大部分API跟 [[https://github.com/NodeRedis/node_redis][node_redis]] 是兼容的:
+
+   #+begin_quote
+   ioredis is a robust, full-featured Redis client that is used in the world's biggest online commerce company Alibaba and many other awesome companies.
+
+     1. Full-featured. It supports Cluster, Sentinel, Pipelining and of course Lua scripting & Pub/Sub (with the support of binary messages).
+     2. High performance.
+     3. Delightful API. It works with Node callbacks and Bluebird promises.
+     4. Transformation of command arguments and replies.
+     5. Transparent key prefixing.
+     6. Abstraction for Lua scripting, allowing you to define custom commands.
+     7. Support for binary data.
+     8. Support for TLS.
+     9. Support for offline queue and ready checking.
+    10. Support for ES6 types, such as Map and Set.
+    11. Support for GEO commands (Redis 3.2 Unstable).
+    12. Sophisticated error handling strategy.
+   #+end_quote
+
+   [[http://github.com/luin/ioredis/][ioredis]] 提供了从 [[https://github.com/NodeRedis/node_redis][node_redis]] 进行迁移的文档 [[https://github.com/luin/ioredis/wiki/Migrating-from-node_redis][Migrating from node_redis]] 。
+
+   参考文档 [[https://github.com/luin/ioredis/blob/master/README.md#sentinel][ioredis Sentinel]] ，将上一节 =访问单实例node.js= 中redis封装代码改成支持 =Sentinel=
+
+*** database.js
+
+    #+begin_src js
+      var Redis = require('ioredis');
+
+      function Database() {
+          var self = this;
+
+          self._redis_sentinels = [{
+              host: '127.0.0.1',
+              port: 5000
+          }, {
+              host: '127.0.0.1',
+              port: 5001
+          }];
+          self._redis_name = 'mymaster';
+          self._redis_db = 2;
+
+          self._redis = null;
+          self._redis_selected = false;
+      }
+
+      Database.prototype.redis = function(callback) {
+          var self = this;
+
+          if (self._redis && self._redis_selected) {
+              return callback(null, self._redis);
+          }
+
+          if (! self._redis) {
+              self._redis = new Redis({
+                  sentinels: self._redis_sentinels,
+                  name: self._redis_name
+              });
+          }
+
+          self._redis.select(self._redis_db, function (err) {
+              if (err) {
+                  return callback(err);
+              }
+
+              self._redis_selected = true;
+
+              return callback(null, self._redis);
+          });
+      };
+
+      module.exports = new Database();
+    #+end_src
+
+*** 启动 Redis 及 Sentinel
+
+    启动上一篇文章《 [[http://blog.kankanan.com/article/redis-9ad853ef7528602765b96848ff1a-sentinel.html][redis高可用性方案：Sentinel]] 》配置好的 =Sentinel=
+
+    - =Master= =redis-server ./redis-master.conf= 
+   
+    - =Slave= =redis-server ./redis-slave.conf=
+
+    - =Sentinel a= =redis-sentinel ./redis-sentinel-a.conf=
+   
+    - =Sentinel b= =redis-sentinel ./redis-sentinel-b.conf=
+
+    - =Sentinel c= =redis-sentinel ./redis-sentinel-c.conf=
+
+*** 演示运行
+
+    运行演示脚本
+
+    #+begin_src sh -n -r
+      node client.js & (ref:master_write)
+      sleep 1 (ref:wait_sync)
+      redis-cli -p 6380 -n 2 get hello (ref:slave_read)
+      redis-cli -p 6379 debug sleep 30 & (ref:failover)
+    #+end_src
+    
+    - 行 [[(master_write)]] :: 运行 =client.js= 在 =Master= 写入键值
+
+    - 行 [[(wait_sync)]] :: 等待 =Master= 同步数据到 =Slave=
+
+    - 行 [[(slave_read)]] :: 从 =Slave= 读取键值
+
+    - 行 [[(failover)]] :: 触发故障切换
+
+    演示脚本运行结果
+      
+    #+begin_example +n -r
+    "world" (ref:slave_read_result)
+    OK (ref:slave_read_status)
+    hello: world (ref:master_read)
+    #+end_example
+
+    - 行 [[(slave_read_result)]] :: 演示脚本行 [[(slave_read)]] 的redis命令执行结果
+
+    - 行 [[(slave_read_status)]] :: 演示脚本行 [[(slave_read)]] 的redis命令执行状态
+      
+    - 行 [[(master_read)]] :: 演示脚本行 [[(master_write)]] 后台运行结束时输出的键值，此时由于主备已切换，是从新的 =Master= （原 =Slave= ）上获取的
+
+** 参考
+
+   [[https://github.com/luin/ioredis/blob/master/README.md#sentinel][ioredis Sentinel]]
+
 * DONE 控制pm2的日志文件大小                                           :node:
   CLOSED: [2015-12-25 Fri 18:41]
 
