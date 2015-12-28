@@ -9316,3 +9316,36 @@ class RedisShard {
   立即执行 =pm2 kill= ， 等 =crontab= 将服务重新拉起，一分钟后确认危机解决。好在这台服务器上的 =node.js= 服务都不是很关键，
 
   没有造成太大影响，圣诞节快乐:)
+* DONE 修复文件目录权限引起的错误：Cannot find module                  :node:
+  CLOSED: [2015-12-28 Mon 15:28]
+
+  =node.js= 应用部署后多次遇到这种错误：
+
+  #+begin_example
+    Error: Cannot find module '../encodings'
+          at Function.Module._resolveFilename (module.js:338:15)
+          at Function.Module._load (module.js:289:25)
+          at Function._load (/usr/local/www.xxxxxxxx.com/node_modules/pm2/node_modules/pmx/lib/transaction.js:62:21)
+          at Module.require (module.js:366:17)
+          at require (module.js:385:17)
+          at Object.getCodec (/usr/local/www.xxxxxxxx.com/node_modules/koa-body/node_modules/co-body/node_modules/raw-body/node_modules/iconv-lite/lib/index.js:61:27)
+          at Object.getDecoder (/usr/local/www.xxxxxxxx.com/node_modules/koa-body/node_modules/co-body/node_modules/raw-body/node_modules/iconv-lite/lib/index.js:118:23)
+          at getDecoder (/usr/local/www.xxxxxxxx.com/node_modules/koa-body/node_modules/co-body/node_modules/raw-body/index.js:44:18)
+          at readStream (/usr/local/www.xxxxxxxx.com/node_modules/koa-body/node_modules/co-body/node_modules/raw-body/index.js:218:15)
+          at executor (/usr/local/www.xxxxxxxx.com/node_modules/koa-body/node_modules/co-body/node_modules/raw-body/index.js:110:5)
+  #+end_example
+
+  下意识地以为是 =node.js= 版本用错了（ =npm install= 和运行时的 =node.js= 版本不一致），删除 =node_modules= 重新 =npm install= 后还是一样的问题。
+
+  查了一下源代码，找到了出错位置 =node_modules/koa-body/node_modules/co-body/node_modules/raw-body/node_modules/iconv-lite/lib/index.js:61= ：
+
+  #+begin_src js
+    if (!iconv.encodings)
+        iconv.encodings = require("../encodings"); // Lazy load all encoding definitions.
+  #+end_src
+
+  这是延迟加载模块，代码本身没有错， =../encodings= 模块是存在的，以前也有遇到类似问题，不过是在 =node.js= 一启动就报错，因为系统默认的权限太严格了（如： =umask= 为 =0022= ），
+  =npm install= 安装的 =node_modules= 其它用户（如： =nobody= ）没有访问权限。这次是在处理用户请求过程中报错，考虑到上面的模块是延迟加载，
+  在初始化完成与监听端口处理用户请求的代码之间，我的代码有 =setuid= 到 =nobody= 的逻辑，应该还是文件目录权限引起。
+
+  最终发现是 =/usr/local/www.xxxxxxxx.com= 在创建时因为系统默认的权限设置太严格（ =umask= 为 =0022= ），导致 =nobody= 用户无法访问，改一下目录权限后问题修复。
