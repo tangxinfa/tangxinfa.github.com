@@ -237,6 +237,22 @@ sentinel parallel-syncs mymaster 1
 <code>node.js</code> 访问单个 <code>redis</code> 实例已经用得很溜了，下一篇文章会研究 <code>node.js</code> 访问 <code>redis sentinel</code> ，相信答案就会水落石出了。
 </p>
 </li>
+
+<li><code>Redis Sentinel</code> 能保证不丢数据吗？
+
+<p>
+不能。由于 <code>Redis</code> 是异步复制，没有办法防止数据丢失，假设配置如下：
+</p>
+
+<pre class="example">
+min-slaves-to-write 1
+min-slaves-max-lag 10
+</pre>
+
+<p>
+假设出现了分裂（partition）， <code>Master</code> 要 <code>10</code> 秒钟后才发现 <code>Slave</code> 失联再禁止写入，当分裂消除（partition heals）， 旧 <code>Master</code> 做为 <code>Slave</code> 连上新的 <code>Master</code> ，这 <code>10</code> 秒钟内写入的数据不会合入（merge）新的 <code>Master</code> ，数据丢失了。
+</p>
+</li>
 </ul>
 </div>
 </div>

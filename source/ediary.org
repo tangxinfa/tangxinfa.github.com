@@ -9077,6 +9077,17 @@ class RedisShard {
      感觉应该是会出现脑裂的，但是只要客户端应用总是使用 =Sentinel= 提供的 =Master= 地址，就不会有问题。
 
      =node.js= 访问单个 =redis= 实例已经用得很溜了，下一篇文章会研究 =node.js= 访问 =redis sentinel= ，相信答案就会水落石出了。
+     
+   - =Redis Sentinel= 能保证不丢数据吗？
+
+     不能。由于 =Redis= 是异步复制，没有办法防止数据丢失，假设配置如下：
+
+     #+begin_example
+       min-slaves-to-write 1
+       min-slaves-max-lag 10
+     #+end_example
+     
+     假设出现了分裂（partition）， =Master= 要 =10= 秒钟后才发现 =Slave= 失联再禁止写入，当分裂消除（partition heals）， 旧 =Master= 做为 =Slave= 连上新的 =Master= ，这 =10= 秒钟内写入的数据不会合入（merge）新的 =Master= ，数据丢失了。
 
 ** 参考
    
@@ -9447,3 +9458,61 @@ class RedisShard {
 ** 参考
 
    [[https://wiki.archlinux.org/index.php/Resolv.conf#Preserve_DNS_settings][resolv.conf - ArchWiki]]
+* DONE mqtt协议一瞥                                             :network:IoT:
+  CLOSED: [2016-01-05 Tue 11:16]
+
+  #+begin_quote
+  IoT是Internet of Things的缩写，字面翻译是“物体组成的因特网”，准确的翻译应该为“物联网”。物联网(Internet Of Things)又称传感网，简要讲就是互联网从人向物的延伸。
+  #+end_quote
+  引用自 [[http://baike.baidu.com/subview/2831030/13489169.htm][IOT（物联网）_百度百科]]
+
+  #+begin_quote
+  MQTT is a machine-to-machine (M2M)/"Internet of Things" connectivity protocol. It was designed as an extremely lightweight publish/subscribe messaging transport. It is useful for connections with remote locations where a small code footprint is required and/or network bandwidth is at a premium. For example, it has been used in sensors communicating to a broker via satellite link, over occasional dial-up connections with healthcare providers, and in a range of home automation and small device scenarios. It is also ideal for mobile applications because of its small size, low power usage, minimised data packets, and efficient distribution of information to one or many receivers.
+  #+end_quote
+  引用自 [[http://mqtt.org/][mqtt.org]]
+
+  #+begin_quote
+  MQTT（Message Queuing Telemetry Transport，消息队列遥测传输）是IBM开发的一个即时通讯协议，有可能成为物联网的重要组成部分。
+  #+end_quote
+  引用自 [[http://baike.baidu.com/view/9956531.htm][MQTT_百度百科]]
+
+  #+begin_quote
+  MQTT is a lightweight messaging protocol that is based on publish/subscribe pattern. Due to its low overhead and simplicity, this protocol is suitable for use in IoT and M2M applications. 
+  #+end_quote
+  引用自 [[http://www.bitreactive.com/mqtt-request-response/][Request/Response Pattern Over MQTT | Bitreactive]]
+
+  #+begin_quote
+  MQTT - MQ Telemetry Transport
+ 
+    轻量级的 Machine-to-Machine 通信协议。
+    Publish/Subscribe模式。
+    基于TCP/IP。
+    支持QoS。
+    适合于低带宽、不可靠连接、嵌入式设备、CPU内存资源紧张。
+    是一种比较不错的Android消息推送方案。
+    FacebookMessenger采用了MQTT。
+    MQTT有可能成为物联网的重要协议。
+  #+end_quote
+  引用自 [[http://www.cnblogs.com/caca/p/mqtt.html][MQTT协议简记 - cacard - 博客园]]
+
+  
+  _简言之， =mqtt= 就是简单高效基于 =发布/订阅= 的 =消息传输协议= ，主要用于资源受限设备（如：传感器、手机等）与服务器间有保障地进行消息或事件推送。_
+
+  
+** 有一些人（或项目）在尝试将 =mqtt= 扩展到其它用途
+
+   - 请求/响应模型（Request/Response） :: [[http://www.bitreactive.com/mqtt-request-response/][Request/Response Pattern Over MQTT | Bitreactive]]
+
+                     
+   - 远程过程调用（RPC） :: [[https://github.com/wolfeidau/mqtt-rpc][wolfeidau/mqtt-rpc]]
+    
+    
+   - 包裹WEB服务（REST） :: [[http://bytecontinnum.com/2014/12/consuming-mobile-apis-with-mqtt-reqres-pattern/][REST over MQTT for Constrained Devices/Mobiles | Prithiviraj Damodaran]]
+
+
+** IoT领域的其它竞争对手
+  
+  - [[https://tools.ietf.org/html/rfc7252][CoAP]] :: 二进制简化版 [[https://tools.ietf.org/html/draft-ietf-httpbis-http2][HTTP/2]]
+
+
+  - [[https://tools.ietf.org/html/draft-ietf-httpbis-http2][HTTP/2]] :: [[http://timkellogg.me/blog/2015/02/20/can-http2-replace-mqtt/][Can HTTP/2 Replace MQTT? - Tim Kellogg]] [[http://www.limmat.co/2015/02/18/http-2-the-new-iot-protocol/][HTTP/2 - The New IoT Protocol?]] [[http://robbysimpson.com/2015/01/26/http2-and-the-internet-of-things/][HTTP/2 and the Internet of Things]]
