@@ -2490,7 +2490,7 @@ class RedisShard {
       shutdown
     #+end_src
 
-* TODO 当心烦意乱接下来不知道要做什么的时候                            :心理健康:
+* TODO 当心烦意乱接下来不知道要做什么的时候                            :心理:
 
   - 试着通过深呼吸、走一走、微笑让自已平静下来，回归理性的自已。
     
@@ -9499,6 +9499,18 @@ class RedisShard {
   #+end_quote
   引用自 [[http://www.cnblogs.com/caca/p/mqtt.html][MQTT协议简记 - cacard - 博客园]]
 
+  #+begin_quote
+  Why MQTT?
+
+    It is a publish/subscribe protocol
+    It has Multiple Quality of Service levels (QOS)
+    It has at-least-once and exactly-once semantics
+    It has a low overhead (2 bytes at minimum)
+    It supports offline messaging
+    It retains messages, like a key/value store
+  #+end_quote
+  引用自 [[http://thejackalofjavascript.com/getting-started-mqtt/][Getting started with MQTT | The Jackal of Javascript]]
+
   
   _简言之， =mqtt= 就是简单高效基于 =发布/订阅= 的 =消息传输协议= ，主要用于资源受限设备（如：传感器、手机等）与服务器间有保障地进行消息或事件推送。_
 
@@ -9538,3 +9550,198 @@ class RedisShard {
     [[https://systembash.com/mqtt-vs-websockets-vs-http2-the-best-iot-messaging-protocol/][MQTT vs Websockets vs HTTP/2: The Best IoT Messaging Protocol?]]
 
     [[http://webofthings.org/2015/10/25/http2-for-internet-of-things-1/][What’s in HTTP/2 for the Internet of Things? 1/2 | Web of Things]]
+* TODO node.js下进行mqtt实践                                    :network:IoT:node:
+
+  通过 =mqtt= 可以将设备连接在一起，能够实现将消息（可能来自服务器也可能来自其它设备）推送到设备，如果设备离线，
+  服务器可以暂存消息，在设备上线时再推送，有一些特性很关键：
+
+  - offline
+
+    允许设备暂时离线。
+
+    即使是使用固定宽带，有些用户也会因为各种原因无法保持稳定的长连接，可能是上级路由设备有限制，或者是带宽被其它应用抢占而导致长连接不稳定。
+    将设备的在线状态与TCP长连接状态耦合在一起是不明智的。
+
+  - bridge
+
+    设备连接在不同的 =broker= 上，通过 =bridge= 实现互通。
+
+    支持几万台设备在线，估计一台 =broker= 就够了，但是一旦达到数十万、百万甚至上亿，肯定需要搭建 =broker= 集群，参见 [[http://www.kegel.com/c10k.html][The C10K problem]]。
+
+  简单起见， =node.js= 服务器端使用 [[https://github.com/mcollina/mosca][mosca]]， 客户端使用 [[https://github.com/mqttjs/MQTT.js][MQTT.js]]。
+
+** 客户端与服务器通信
+
+   - 客户端通过服务器给自已发个消息
+
+     =server.js=
+     #+begin_src js
+       var mosca = require('mosca');
+
+
+       var settings = {
+           port: 1883
+       };
+
+       var server = new mosca.Server(settings);
+       server.on('ready', function () {
+           console.log('mosca server running');
+       }).on('clientConnected', function (client) {
+           console.log('client(' + client.id + ') connected');
+       }).on('published', function (packet, client) {
+           console.log('client(' + (client ? client.id : 'internal') + ') published topic(' + packet.topic + '): ' + packet.payload);
+       }).on('subscribed', function (topic, client) {
+           console.log('client(' + client.id + ') subscribed topic(' + topic + ')');
+       }).on('unsubscribed', function (topic, client) {
+           console.log('client(' + client.id + ') unsubscribed topic(' + topic + ')');
+       }).on('clientDisconnecting', function (client) {
+           console.log('client(' + client.id + ') disconnecting');
+       }).on('clientDisconnected', function (client) {
+           console.log('client(' + client.id + ') disconnected');
+       });
+     #+end_src
+
+     =client.js=
+     #+begin_src js
+       var mqtt = require('mqtt');
+
+
+       var client = mqtt.connect('mqtt://127.0.0.1:1883');
+       client.on('connect', function () {
+           client.subscribe('presence');
+           client.publish('presence', 'a message from myself');
+       }).on('message', function (topic, message) {
+           console.log(topic + ': ' + message.toString());
+           client.end();
+       });
+     #+end_src
+     
+     运行 =server.js=
+     #+begin_example
+       $ node server.js
+       mosca server running
+       client(mqttjs_a423c0af) connected
+       client(internal) published topic($SYS/41TXEHPDe/new/clients): mqttjs_a423c0af
+       client(mqttjs_a423c0af) subscribed topic(presence)
+       client(internal) published topic($SYS/41TXEHPDe/new/subscribes): {"clientId":"mqttjs_a423c0af","topic":"presence"}
+       client(mqttjs_a423c0af) published topic(presence): a message from myself
+       client(mqttjs_a423c0af) unsubscribed topic(presence)
+       client(mqttjs_a423c0af) disconnected
+       client(internal) published topic($SYS/41TXEHPDe/new/unsubscribes): {"clientId":"mqttjs_a423c0af","topic":"presence"}
+       client(internal) published topic($SYS/41TXEHPDe/disconnect/clients): mqttjs_a423c0af
+     #+end_example
+
+     运行 =client.js=
+     #+begin_example
+       $ node client.js
+       presence: a message from myself
+       $ 
+     #+end_example
+
+** 客户端与客户端通信
+
+   - 客户端发送消息给另一个客户端
+
+     下面的例子演示了客户端通过约定的 =topic= 互相通信。
+
+     =client_sub.js=
+     #+begin_src js
+       var mqtt = require('mqtt');
+
+
+       var client = mqtt.connect('mqtt://127.0.0.1:1883');
+       client.on('connect', function () {
+           client.publish('sub', 'message from pub');
+       }).on('message', function (topic, message) {
+           console.log(topic + ': ' + message.toString());
+           client.end();
+       });
+     #+end_src
+
+     =client_pub.js=
+     #+begin_src js
+       var mqtt = require('mqtt');
+
+
+       var client = mqtt.connect('mqtt://127.0.0.1:1883');
+       client.on('connect', function () {
+           client.publish('sub', 'message from pub');
+       }).on('message', function (topic, message) {
+           console.log(topic + ': ' + message.toString());
+           client.end();
+       });
+     #+end_src
+     
+     运行 =server.js=
+     #+begin_example
+       $ node server.js
+       mosca server running
+       client(mqttjs_ebdc9fd4) connected
+       client(internal) published topic($SYS/4Jk9PBwDe/new/clients): mqttjs_ebdc9fd4
+       client(mqttjs_ebdc9fd4) subscribed topic(sub)
+       client(internal) published topic($SYS/4Jk9PBwDe/new/subscribes): {"clientId":"mqttjs_ebdc9fd4","topic":"sub"}
+       client(mqttjs_ff000868) connected
+       client(internal) published topic($SYS/4Jk9PBwDe/new/clients): mqttjs_ff000868
+       client(mqttjs_ff000868) published topic(sub): message from pub
+       client(mqttjs_ebdc9fd4) unsubscribed topic(sub)
+       client(mqttjs_ebdc9fd4) disconnected
+       client(internal) published topic($SYS/4Jk9PBwDe/new/unsubscribes): {"clientId":"mqttjs_ebdc9fd4","topic":"sub"}
+       client(internal) published topic($SYS/4Jk9PBwDe/disconnect/clients): mqttjs_ebdc9fd4
+     #+end_example
+
+     运行 =client_sub.js=
+     #+begin_example
+       $ node client_sub.js
+       sub: message from pub
+       $ 
+     #+end_example
+
+     运行 =client_pub.js=
+     #+begin_example
+       $ node client_pub.js
+
+     #+end_example
+
+** 客户端与客户端离线通信
+   
+   同时满足以下两个条件方支持离线：
+
+   - 订阅方连接时指定了 =clean= 为 =false=
+   
+   - 订阅时指定 =qos= 大于 =0=
+
+** 参考
+
+   [[https://www.youtube.com/watch?v=WE7GVIFRV7Q][Matteo Collina: "MQTT" and "Node.js"- Messaging the Internet of Things ]]
+
+   [[http://thejackalofjavascript.com/getting-started-mqtt/][Getting started with MQTT | The Jackal of Javascript]]
+
+* DONE 我应该是中度抑郁症                                                :心理:
+  CLOSED: [2016-01-07 Thu 16:44]
+
+  一直怀疑自已有抑郁症，今天看了一下《走出抑郁的阴影：伯恩斯新情绪疗法》，根据里面提及的“贝克抑郁清单”进行了自测，结果为 =24分 中度抑郁= 。
+
+  以前听到电视里提到绝大部分人都有心理疾病，我总是做心里点头默默飘过状，想不到自已也会中招。
+
+  人或许就像是程序，上帝写出来的时候是完美的，只是成长过程中掺入了杂质，出现了 =BUG= ，我要开始 =DEBUG= 了。
+* DONE 我的抑郁症的运行过程                                              :心理:
+  CLOSED: [2016-01-09 Sat 18:11]
+
+** 发病流程
+  
+   - 从心里冒出的扭曲念头
+
+     有时候是无意中看到某个人引起，有时候是走神一会儿后突然从头脑中冒出。
+
+   - 觉得难受、揪心、屈辱
+
+     头脑有冲血堵塞的感觉，很难放松下来进行理性分析。
+
+   - 没有心情做事情
+
+     情感透支引起心力憔悴，心烦意乱没法做成事情。从道德上觉得自已不应该是这种状态，又觉得自已再努力去做，
+     也可能被人拖后腿，自已的成果不会被认可，没有个人价值。事后觉得很内疚。
+
+** 习惯的力量
+
+   之前有看过《习惯的力量》，我觉得抑郁症就是一种心理的坏习惯，就算你发现了它，了解了它，要克服它也不是一一朝一夕就可以，因为它是自发运行的，在你意识到它之前它可能已经运行了很久，对你的身心造成了很大的破坏。它就像是蚂蟥，它刚开始叮上你的时候，会稍微痛一下，等到它释放出麻醉效果，你就再也感觉不到它在吸你的血，甚至在往你身体里钻。抑郁症也会麻醉你的感知，让你默默长久承受心灵的痛苦，你习惯了这种痛苦，你又有抗拒改变的本能。就像是这个世界上难以戒除的各种瘾一样，抑郁症也是人生中要迈过的一道坎。
