@@ -215,6 +215,10 @@ ioredis is a robust, full-featured Redis client that is used in the world's bigg
 </p>
 
 <p>
+但也要注意 <a href="http://github.com/luin/ioredis/">ioredis</a> 的不同之处，如连接 <code>Redis</code> 失败时， <a href="https://github.com/NodeRedis/node_redis">node_redis</a> 默认是不重连，而 <a href="http://github.com/luin/ioredis/">ioredis</a> 会重连，在 <code>redis</code> 故障时可能导致 <code>node.js</code> 积压大量请求耗尽内存。
+</p>
+
+<p>
 参考文档 <a href="https://github.com/luin/ioredis/blob/master/README.md#sentinel">ioredis Sentinel</a> ，将上一节 <code>访问单实例node.js</code> 中redis封装代码改成支持 <code>Sentinel</code>
 </p>
 </div>
@@ -229,48 +233,52 @@ ioredis is a robust, full-featured Redis client that is used in the world's bigg
 <span style="color: #b5bd68;">function</span> <span style="color: #de935f;">Database</span>() {
 <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">self</span> = <span style="color: #81a2be;">this</span>;
 
-<span style="background-color: #373b41;"> </span>   self._redis_sentinels = [{
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   host: <span style="color: #8abeb7;">'127.0.0.1'</span>,
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   port: 5000
-<span style="background-color: #373b41;"> </span>   }, {
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   host: <span style="color: #8abeb7;">'127.0.0.1'</span>,
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   port: 5001
-<span style="background-color: #373b41;"> </span>   }];
-<span style="background-color: #373b41;"> </span>   self._redis_name = <span style="color: #8abeb7;">'mymaster'</span>;
-<span style="background-color: #373b41;"> </span>   self._redis_db = 2;
+<span style="background-color: #373b41;"> </span>   self._redis_options = {
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   name: <span style="color: #8abeb7;">'mymaster'</span>,
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   sentinels: [{
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   host: <span style="color: #8abeb7;">'127.0.0.1'</span>,
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   port: 5000
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }, {
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   host: <span style="color: #8abeb7;">'127.0.0.1'</span>,
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   port: 5001
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }],
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   db: 2
+<span style="background-color: #373b41;"> </span>   };
 
 <span style="background-color: #373b41;"> </span>   self._redis = <span style="color: #81a2be;">null</span>;
-<span style="background-color: #373b41;"> </span>   self._redis_selected = <span style="color: #81a2be;">false</span>;
 }
 
 Database.<span style="color: #81a2be;">prototype</span>.redis = <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">callback</span>) {
 <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">self</span> = <span style="color: #81a2be;">this</span>;
 
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (self._redis &amp;&amp; self._redis_selected) {
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> callback(<span style="color: #81a2be;">null</span>, self._redis);
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span><span style="color: #b5bd68;">if</span> (! self._redis) {
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   self._redis = <span style="color: #b5bd68;">new</span> <span style="color: #81a2be;">Redis</span>(self._redis_options);
 <span style="background-color: #373b41;"> </span>   }
 
-<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (! self._redis) {
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   self._redis = <span style="color: #b5bd68;">new</span> <span style="color: #81a2be;">Redis</span>({
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   sentinels: self._redis_sentinels,
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   name: self._redis_name
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   });
-<span style="background-color: #373b41;"> </span>   }
-
-<span style="background-color: #373b41;"> </span>   self._redis.select(self._redis_db, <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">err</span>) {
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> callback(err);
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   }
-
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   self._redis_selected = <span style="color: #81a2be;">true</span>;
-
-<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> callback(<span style="color: #81a2be;">null</span>, self._redis);
-<span style="background-color: #373b41;"> </span>   });
+<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> callback(<span style="color: #81a2be;">null</span>, self._redis);
 };
 
 module.exports = <span style="color: #b5bd68;">new</span> <span style="color: #81a2be;">Database</span>();
 </pre>
 </div>
+
+<p>
+和使用 <a href="https://github.com/NodeRedis/node_redis">node_redis</a> 的 <code>database.js</code> 对照一下，可以发现 <a href="http://github.com/luin/ioredis/">ioredis</a> 连接 <code>redis</code> 时，支持 <code>db</code> 选项，可以省去调用 <code>select</code> 。
+</p>
+
+<p>
+值得注意的是 <a href="https://github.com/NodeRedis/node_redis">node_redis</a> 最近开始支持连接 <code>redis</code> 时指定 <code>db</code> 选项，见 <a href="https://github.com/NodeRedis/node_redis/commit/a4285c156c5b8964d92a36bd7f361a6f40e2449a">Parse redis url just like IANA · NodeRedis/node_redis@a4285c1</a> ，
+使用该特性时请安装最新版的 <a href="https://github.com/NodeRedis/node_redis">node_redis</a> 。
+</p>
+
+<blockquote>
+<p>
+db: null; If set, client will run redis select command on connect. This is not recommended.
+</p>
+</blockquote>
+<p>
+引用自 <a href="https://github.com/NodeRedis/node_redis#rediscreateclient">redis.createClient()文档</a>
+</p>
 </div>
 </div>
 

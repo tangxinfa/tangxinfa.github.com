@@ -4,7 +4,7 @@
         <title>dns - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/dns.xml</link>
-        <lastBuildDate>Sat, 09 Jan 2016 10:41:52 GMT</lastBuildDate>
+        <lastBuildDate>Thu, 21 Jan 2016 10:04:23 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>dns - 看看俺 – KanKanAn.com</title>
@@ -161,6 +161,39 @@ rr {
 <pre class="src src-sh">sudo systemctl restart pdnsd
 </pre>
 </div>
+</li>
+
+<li>配置pdnsd使用dhcp分配的dns服务器
+
+<p>
+往往dhcp提供的dns服务器是最快的（它可能也做了缓存），用到了本地域名的情况下必须使用dhcp提供的dns服务器，
+如果将dns服务器写死在pdnsd.conf，切换网络（如从公司回到家里）就上不了网了，其实 <code>resolvconf</code> 对 <code>pdnsd</code> 提供了支持。
+</p>
+
+<p>
+参考 <code>man resolvconf</code> 将 <code>/etc/resolvconf.conf</code> 改为
+</p>
+<pre class="example">
+name_servers=127.0.0.1
+pdnsd_conf=/etc/pdnsd.conf
+</pre>
+
+<p>
+删掉 <code>/etc/pdnsd.conf</code> 中的所有 <code>server</code> 配置块。
+</p>
+
+<p>
+重启 <code>NetworkManager</code> 生效配置
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo systemctl restart NetworkManager
+</pre>
+</div>
+
+<p>
+现在 <code>/etc/pdnsd.conf</code> 中的 <code>server</code> 配置块将由 <code>resolvconf</code> 来提供。
+</p>
 </li>
 
 <li>参考
