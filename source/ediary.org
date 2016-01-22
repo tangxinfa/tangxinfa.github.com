@@ -9857,3 +9857,115 @@ class RedisShard {
    支持同时迁移多个 db 。
 
    [[https://github.com/yaauie/redis-copy][redis-copy]] 可以任意指定源、目的 db 号，不需要往 redis 写入簿记信息。
+
+* DONE CentOS 6.4 上编译安装 gcc 5.2.0                                :linux:
+  CLOSED: [2016-01-22 Fri 21:12]
+
+  node.js 4.x 的第三方扩展编译时要求 gcc 版本为 4.8，但是 CentOS 6.4 仓库里的版本为 4.4.7，
+  在生产环境从第三方仓库里安装最新版 gcc 又不放心，还是自已从源代码编译安装吧。
+  
+  - 下载 gcc 源代码
+
+    #+begin_src sh
+      wget http://mirror.lzu.edu.cn/gnu/gcc/gcc-5.2.0/gcc-5.2.0.tar.bz2
+      tar xjvf gcc-5.2.0.tar.bz2
+      cd gcc-5.2.0
+    #+end_src
+
+    官方的下载地址为 [[ftp://ftp.gnu.org/gnu/gcc/]] ，使用国内镜像 [[http://mirror.lzu.edu.cn/gnu/gcc]] 快很多。
+
+  - 安装依赖的包
+
+    #+begin_src sh
+      yum install gmp-devel
+      yum install mpfr-devel
+      yum install libmpc-devel
+    #+end_src
+
+    参考自 INSTALL 目录下的文档。
+
+  - 编译安装
+
+    #+begin_src sh
+      ./configure --prefix=/opt/gcc-5.2.0 --disable-multilib
+      make
+      make -k check
+      make install
+    #+end_src
+
+    =--disable-multilib= 只编译 64 位。
+
+    编译时间会耗时几个小时，这段时间最好去干点别的。
+
+  - 切换gcc版本
+
+    #+begin_src sh
+      export PATH=/opt/gcc-5.2.0/bin:$PATH
+    #+end_src
+
+    或
+
+    #+begin_src sh
+      export CC=/opt/gcc-5.2.0/bin/gcc
+      export CPP=/opt/gcc-5.2.0/bin/cpp
+      export CXX=/opt/gcc-5.2.0/bin/c++
+    #+end_src
+
+  - 参考
+
+    [[http://superuser.com/questions/381160/how-to-install-gcc-4-7-x-4-8-x-on-centos][yum - How to Install gcc 4.7.x/4.8.x on CentOS - Super User]]
+
+    [[https://wiki.mikejung.biz/Gcc_CentOS][Gcc CentOS - How to compile gcc-4.8.2 on CentOS 6.6]]
+
+* DONE CentOS 6.4 上安装 ruby 1.9.3                              :linux:ruby:
+  CLOSED: [2016-01-22 Fri 21:12]
+
+  CentOS 6.4 上仓库中的 Ruby 版本为 1.8.7 太旧了，[[https://github.com/yaauie/redis-copy][redis-copy]] 要求 Ruby 版本至少为 1.9.3。
+
+  - 安装 rvm
+    
+    #+begin_src sh
+      curl -L get.rvm.io | bash -s stable
+    #+end_src
+
+  - 安装 Ruby 1.9.3
+
+    #+begin_src sh
+      /usr/local/rvm/bin/rvm install 1.9.3
+    #+end_src
+    
+   - 启用 Ruby 1.9.3
+
+     #+begin_src js
+       source /usr/local/rvm/scripts/rvm
+       /usr/local/rvm/bin/rvm use 1.9.3
+     #+end_src
+
+   - 安装 RubyGems
+
+     #+begin_src sh
+       rvm rubygems current
+     #+end_src
+     
+   - RubyGems 官方源国内访问不稳定，换成淘宝的镜像
+     
+     #+begin_src sh
+       gem sources --remove https://rubygems.org/
+       gem sources -a https://ruby.taobao.org/
+     #+end_src
+     
+   - 安装 [[https://github.com/yaauie/redis-copy][redis-copy]]
+
+     #+begin_src sh
+       gem install redis-copy
+     #+end_src
+
+     安装后程序路径为 /usr/local/rvm/gems/ruby-1.9.3-p551/bin/redis-copy
+
+  - 参考
+
+    [[https://www.digitalocean.com/community/tutorials/how-to-install-ruby-on-rails-on-centos-6-with-rvm][How To Install Ruby on Rails on CentOS 6 with RVM | DigitalOcean]]
+
+    [[https://ruby-china.org/topics/3705][手把手安装RVM以及为什么RVM is not a function » Topics » Ruby China]]
+
+    [[http://www.jb51.net/article/49079.htm][淘宝网提供的国内RubyGems镜像简介和使用方法_ruby专题_脚本之家]]
