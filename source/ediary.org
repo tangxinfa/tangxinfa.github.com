@@ -9349,6 +9349,46 @@ class RedisShard {
   立即执行 =pm2 kill= ， 等 =crontab= 将服务重新拉起，一分钟后确认危机解决。好在这台服务器上的 =node.js= 服务都不是很关键，
 
   没有造成太大影响，圣诞节快乐:)
+
+** 今天（2016-02-16）运维人员发现pm2的日志快占满磁盘
+
+   [[https://www.npmjs.com/package/pm2-logrotate][pm2-logrotate]] （当前版本为1.3.1） 默认情况下，并未限制日志文件数，旧的日志文件未自动删除释放空间，需要设置 retain 配置项：
+
+   #+begin_src js
+     pm2 set pm2-logrotate:retain 100
+   #+end_src
+
+   这样最多会保留 100 个日志文件。
+
+   max_size 配置项默认是 10MB，并不意味着切割出来的日志文件大小一定就是 10MB，而是检查时发现日志文件大小达到 max_size，则触发日志切割。
+
+   interval 和 interval_unit 配置项指定了按时间维度进行日志切割。
+
+   切割是指将日志文件内容移到名称为 <project name>-out__YYYY-MM-DD-HH-mm.log 的日志文件中，所以日志文件大小往往是超过 max_size 的。
+
+   由于默认配置 interval 为 1， interval_unit 为 DD，所以每天至少会切割一次日志，每分钟当发现日志大小超过 10MB，也会触发一次日志切割。
+
+   pm2-logrotate 现阶段小问题还是比较多的（详见项目的 [[https://github.com/pm2-hive/pm2-logrotate/issues][issues]] ），如：
+
+   - 日志文件日期始终是前一天，日志文件大小超过 max_size 触发日志切割时，文件名中的日期也为前一天不合理了。
+     
+     详见 [[https://github.com/pm2-hive/pm2-logrotate/issues/18][Fast growing log files may be overwritten #18]]
+
+   - 如果日志文件写得很快，切割时有可能因为日志文件名冲突，导致同名的旧日志文件被覆盖。
+
+     详见 [[https://github.com/pm2-hive/pm2-logrotate/issues/17][Rotated files date #17]]
+     
+   - pm2 开启 merge_logs 时，日志会重复
+     
+     详见 [[https://github.com/pm2-hive/pm2-logrotate/issues/14][logrotate rotate the log multiple times if merge_logs is true #14]]
+     
+   - 无法精确限制日志占用空间。
+
+     不过 logrotate 工具也不能，所以也不算是个严重的问题。
+     
+   更好的方式可能是使用操作系统的 logrotate 服务。
+
+
 * DONE 修复文件目录权限引起的错误：Cannot find module                  :node:
   CLOSED: [2015-12-28 Mon 15:28]
 
@@ -9938,7 +9978,7 @@ class RedisShard {
 
      #+begin_src js
        source /usr/local/rvm/scripts/rvm
-       /usr/local/rvm/bin/rvm use 1.9.3
+       rvm use 1.9.3
      #+end_src
 
    - 安装 RubyGems
@@ -9961,6 +10001,8 @@ class RedisShard {
      #+end_src
 
      安装后程序路径为 /usr/local/rvm/gems/ruby-1.9.3-p551/bin/redis-copy
+
+     启用 Ruby 1.9.3 后，redis-copy 可以直接运行。
 
   - 参考
 
