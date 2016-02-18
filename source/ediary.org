@@ -10011,3 +10011,56 @@ class RedisShard {
     [[https://ruby-china.org/topics/3705][手把手安装RVM以及为什么RVM is not a function » Topics » Ruby China]]
 
     [[http://www.jb51.net/article/49079.htm][淘宝网提供的国内RubyGems镜像简介和使用方法_ruby专题_脚本之家]]
+
+* DONE pm2的日志管理                                                   :node:
+  CLOSED: [2016-02-17 Wed 14:16]
+
+  [[https://github.com/Unitech/pm2][pm2]] 自身的日志文件 ~/.pm2/pm2.log，下面讲的是 [[https://github.com/Unitech/pm2][pm2]] app（应用）的日志文件。
+
+** 默认日志
+
+   每个 app（应用） 会生成 instances*2 （实例数×2）个日志文件。
+
+   - app 的标准输出日志文件 :: ~/.pm2/logs/<app name>-out-<instance id>.log
+
+   - app 的错误输出日志文件 :: ~/.pm2/logs/<app name>-error-<instance id>.log
+     
+** 合并输出类型日志（-l）
+
+   每个 app（应用） 会生成 instances+1 （实例数+1）个日志文件。
+
+   - app 的日志文件 :: ~/.pm2/logs/<app name>-<instance id>.log
+
+   不影响默认日志。
+
+   - 可以指定合并输出类型的日志文件名（-l app.log）
+     
+     输出日志文件名为 app-<instance id>.log
+     
+** 合并实例日志（--merge-logs）
+
+   同一 app（应用）的所有 instances（实例）日志文件放在一起。
+
+   - app 的默认标准输出日志文件 :: ~/.pm2/logs/<app name>-out.log
+
+   - app 的默认错误输出日志文件 :: ~/.pm2/logs/<app name>-error.log
+     
+   - app 的合并输出类型日志文件 :: ~/.pm2/logs/<app name>.log
+
+** 禁止默认日志
+
+   - 禁止默认的标准输出日志文件（-o /dev/null）
+     
+   - 禁止默认的错误输出日志文件（-e /dev/null）
+
+** 示例：app 生成一个日志文件简化日志管理
+
+   #+begin_src sh
+     pm2 -n app -i 0 -l app.log -o /dev/null -e /dev/null --merge-logs start app.js
+   #+end_src
+
+   这样只会生成一个日志文件 app.log。
+
+** 定期清理日志
+
+   不建议使用 [[https://www.npmjs.com/package/pm2-logrotate][pm2-logrotate]] ，太多问题了（详见：[[blog.kankanan.com/article/63a75236-pm2-768465e55fd765874ef659275c0f.html#sec-1][控制pm2的日志文件大小]]），还是使用 logrotate 服务靠谱（参见 [[http://pm2.keymetrics.io/docs/usage/log-management/#setting-up-a-native-logrotate][Setting up a native logrotate]]）。
