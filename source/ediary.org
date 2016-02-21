@@ -9388,7 +9388,6 @@ class RedisShard {
      
    更好的方式可能是使用操作系统的 logrotate 服务。
 
-
 * DONE 修复文件目录权限引起的错误：Cannot find module                  :node:
   CLOSED: [2015-12-28 Mon 15:28]
 
@@ -9621,7 +9620,8 @@ class RedisShard {
 
    做为一个开发者，与其坐等完美的解决方案出现，还不如立即开始学习 =mqtt= ，应用 =mqtt= ，从 =mqtt= 中学到协议设计的经验与技术，以至成为实现构建于 [[https://tools.ietf.org/html/draft-ietf-httpbis-http2][HTTP/2]] 上的类 =mqtt= 解决方案的那个人。
 
-* TODO node.js下进行mqtt实践                                    :network:IoT:node:
+* DONE node.js下进行mqtt实践                               :network:IoT:node:
+  CLOSED: [2016-02-21 Sun 13:13]
 
   通过 =mqtt= 可以将设备连接在一起，能够实现将消息（可能来自服务器也可能来自其它设备）推送到设备，如果设备离线，
   服务器可以暂存消息，在设备上线时再推送，有一些特性很关键：
@@ -9631,7 +9631,7 @@ class RedisShard {
     允许设备暂时离线。
 
     即使是使用固定宽带，有些用户也会因为各种原因无法保持稳定的长连接，可能是上级路由设备有限制，或者是带宽被其它应用抢占而导致长连接不稳定。
-    将设备的在线状态与TCP长连接状态耦合在一起是不明智的。
+    将设备的在线状态与 TCP 长连接状态耦合在一起是不明智的。
 
   - bridge
 
@@ -9719,7 +9719,6 @@ class RedisShard {
      #+begin_src js
        var mqtt = require('mqtt');
 
-
        var client = mqtt.connect('mqtt://127.0.0.1:1883');
        client.on('connect', function () {
            client.publish('sub', 'message from pub');
@@ -9770,7 +9769,6 @@ class RedisShard {
      运行 =client_pub.js=
      #+begin_example
        $ node client_pub.js
-
      #+end_example
 
 ** 客户端与客户端离线通信
@@ -9781,9 +9779,104 @@ class RedisShard {
 
    - 订阅方连接服务器时指定 =clean= 为 =false=
    
-   - 发布方发布消息时指定 =qos= 大于 =0=
+   - 发布方发布消息时指定 =qos= 大于 =0= 以及 =retain= 为 =true=
+
+   下面的例子演示了客户端接收离线消息
+   
+   =server.js=
+   #+begin_src js
+     var mosca = require('mosca');
+
+     var server = new mosca.Server({ port: 1883 });
+     var db = new mosca.persistence.Redis({host: '127.0.0.1', port: 6379, db: 13});
+     db.wire(server);
+
+     server.on('ready', function () {
+         console.log('mosca server running');
+     }).on('clientConnected', function (client) {
+         console.log('client(' + client.id + ') connected');
+     }).on('published', function (packet, client) {
+         console.log('client(' + (client ? client.id : 'internal') + ') published topic(' + packet.topic + '): ' + packet.payload);
+     }).on('subscribed', function (topic, client) {
+         console.log('client(' + client.id + ') subscribed topic(' + topic + ')');
+     }).on('unsubscribed', function (topic, client) {
+         console.log('client(' + client.id + ') unsubscribed topic(' + topic + ')');
+     }).on('clientDisconnecting', function (client) {
+         console.log('client(' + client.id + ') disconnecting');
+     }).on('clientDisconnected', function (client) {
+         console.log('client(' + client.id + ') disconnected');
+     });
+   #+end_src
+
+   =client_sub.js=
+   #+begin_src js
+     var mqtt = require('mqtt');
+
+     var client = mqtt.connect('mqtt://127.0.0.1:1883', {clientId: 'sub', clean: false});
+     client.on('connect', function () {
+         client.subscribe('sub');
+     }).on('message', function (topic, message) {
+         console.log(topic + ': ' + message.toString());
+         client.end();
+     });
+   #+end_src
+
+   =client_pub.js=
+   #+begin_src js
+     var mqtt = require('mqtt');
+
+     var client = mqtt.connect('mqtt://127.0.0.1:1883', {clientId: 'pub'});
+     client.on('connect', function () {
+         client.publish('sub', 'message from pub', {qos: 1, retain: true});
+     }).on('message', function (topic, message) {
+         console.log(topic + ': ' + message.toString());
+         client.end();
+     });
+   #+end_src
+
+   运行 =srever.js=
+   #+begin_example
+     $ node mqtt_server.js
+     mosca server running
+     client(sub) connected
+     client(internal) published topic($SYS/V19OSVfix/new/clients): sub
+     client(sub) subscribed topic(sub)
+     client(internal) published topic($SYS/V19OSVfix/new/subscribes): {"clientId":"sub","topic":"sub"}
+     client(sub) disconnected
+     client(internal) published topic($SYS/V19OSVfix/disconnect/clients): sub
+     client(pub) connected
+     client(internal) published topic($SYS/V19OSVfix/new/clients): pub
+     client(pub) published topic(sub): message from pub
+     client(sub) connected
+     client(internal) published topic($SYS/V19OSVfix/new/clients): sub
+     client(sub) subscribed topic(sub)
+     client(internal) published topic($SYS/V19OSVfix/new/subscribes): {"clientId":"sub","topic":"sub"}
+     client(sub) disconnected
+     client(internal) published topic($SYS/V19OSVfix/disconnect/clients): sub
+   #+end_example
+
+   运行 =client_sub.js= 订阅消息后退出
+   #+begin_example
+     $ node client_sub.js 
+     sub: message from pub
+     $ 
+   #+end_example
+
+   运行 =client_pub.js= 发布消息
+   #+begin_example
+     $ node mqtt_client_pub.js 
+   #+end_example
+
+   运行 =client_sub.js= 接收离线消息后退出
+   #+begin_example
+     $ node client_sub.js 
+     sub: message from pub
+     $ 
+   #+end_example
 
 ** 参考
+
+   [[http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html][MQTT Version 3.1.1]]
 
    [[https://www.youtube.com/watch?v=WE7GVIFRV7Q][Matteo Collina: "MQTT" and "Node.js"- Messaging the Internet of Things ]]
 
@@ -10063,4 +10156,55 @@ class RedisShard {
 
 ** 定期清理日志
 
-   不建议使用 [[https://www.npmjs.com/package/pm2-logrotate][pm2-logrotate]] ，太多问题了（详见：[[blog.kankanan.com/article/63a75236-pm2-768465e55fd765874ef659275c0f.html#sec-1][控制pm2的日志文件大小]]），还是使用 logrotate 服务靠谱（参见 [[http://pm2.keymetrics.io/docs/usage/log-management/#setting-up-a-native-logrotate][Setting up a native logrotate]]）。
+   不建议使用 [[https://www.npmjs.com/package/pm2-logrotate][pm2-logrotate]] ，太多问题了（详见： [[http://blog.kankanan.com/article/63a75236-pm2-768465e55fd765874ef659275c0f.html#sec-1][控制pm2的日志文件大小]] ），还是使用 logrotate 服务靠谱（参见 [[http://pm2.keymetrics.io/docs/usage/log-management/#setting-up-a-native-logrotate][Setting up a native logrotate]]）。
+
+* DONE git多人协作：维护干净的提交树                                    :git:
+  CLOSED: [2016-02-21 Sun 13:14]
+
+  很多开源项目是被强制要求维护干净的提交树，上游容易合并你通过 pull request 提交的补丁，要实现这一点，pull 代码时需要使用 rebase 替换默认的 merge 方式。
+
+  #+begin_src sh
+    git pull --rebase
+  #+end_src
+
+  git pull 时自动进行 rebase。
+    
+  - 全局开启
+
+    #+begin_src sh
+      git config --global pull.rebase true
+    #+end_src
+     
+  - 当前分支开启
+     
+    #+begin_src sh
+      git config branch.master.rebase true
+    #+end_src
+
+  现在，如果你的工作区有未提交的代码，是不允许 pull 的，需要 stash 将工作区清理一下，等 pull 完成再恢复一下。
+
+  #+begin_src sh
+    git stash
+    git pull
+    git stash pop
+  #+end_src
+
+  使用 rebase 模式相对来说麻烦一些，但是好处就是中心仓库的提交历史是线性的，特别是通过 pull request 提交补丁来协作开发的时候，
+  接收方随时可以将补丁合并进来，完全没有 merge 模式合并补丁那么麻烦。强烈建议默认情况下使用这种模式。
+
+* TODO 快乐去哪里了                                                      :反省:
+
+  从什么时候开始，再也难以开怀大笑。
+  需要被逗乐才会笑，所以没事就不自觉得找乐子，可能是笑点越来越低了，找来找去徒烦闷。
+  需要被奖励才会满足，所以总想着努力会有回报，却难以从忙忙碌碌中找到存在感。
+  以为有时间才会快乐，却没了寻找快乐的习惯，在自已的时间里，像一台暂停运行的机器，放在那里生锈。
+  
+  那时候，我看了一部又一部电影。
+  那时候，我追了一集又一集美剧。
+  那时候，我看了一篇又一篇博客。
+  那时候，我看了一篇又一篇评测。
+  那时个，我看了一本又一本书。
+  那时候，我逛了一个又一个空间。
+  那时候，我淘了一个又一个宝贝。
+  
+  我找到了一点快乐，但是很快就消失了，快乐为什么没有办法永恒，而要不断寻找。

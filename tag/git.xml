@@ -4,7 +4,7 @@
         <title>git - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/git.xml</link>
-        <lastBuildDate>Wed, 17 Feb 2016 11:04:04 GMT</lastBuildDate>
+        <lastBuildDate>Sun, 21 Feb 2016 05:15:59 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>git - 看看俺 – KanKanAn.com</title>
@@ -14,6 +14,62 @@
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <generator>Feed for Node.js</generator>
         <category>技术</category>
+        <item>
+            <title><![CDATA[git多人协作：维护干净的提交树]]></title>
+            <link>/article/git-591a4eba534f4f5cff1a7ef462a45e7251c0768463d04ea46811.html</link>
+            <guid>/article/git-591a4eba534f4f5cff1a7ef462a45e7251c0768463d04ea46811.html</guid>
+            <pubDate>Sun, 21 Feb 2016 05:14:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+很多开源项目是被强制要求维护干净的提交树，上游容易合并你通过 pull request 提交的补丁，要实现这一点，pull 代码时需要使用 rebase 替换默认的 merge 方式。
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">git pull --rebase
+</pre>
+</div>
+
+<p>
+git pull 时自动进行 rebase。
+</p>
+
+<ul class="org-ul">
+<li>全局开启
+
+<div class="org-src-container">
+
+<pre class="src src-sh">git config --global pull.rebase true
+</pre>
+</div>
+</li>
+
+<li>当前分支开启
+
+<div class="org-src-container">
+
+<pre class="src src-sh">git config branch.master.rebase true
+</pre>
+</div>
+</li>
+</ul>
+
+<p>
+现在，如果你的工作区有未提交的代码，是不允许 pull 的，需要 stash 将工作区清理一下，等 pull 完成再恢复一下。
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">git stash
+git pull
+git stash pop
+</pre>
+</div>
+
+<p>
+使用 rebase 模式相对来说麻烦一些，但是好处就是中心仓库的提交历史是线性的，特别是通过 pull request 提交补丁来协作开发的时候，
+接收方随时可以将补丁合并进来，完全没有 merge 模式合并补丁那么麻烦。强烈建议默认情况下使用这种模式。</p>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[拉取git仓库的子目录]]></title>
             <link>/article/62c953d6-git-4ed35e9376845b5076ee5f55.html</link>
@@ -52,11 +108,11 @@ http://server/company.git +
 <div class="org-src-container">
 
 <pre class="src src-sh">git clone http://server/company.git --no-checkout
-<span style="color: #b294bb;">cd</span> company
+<span style="color: #cc99cc;">cd</span> company
 git config core.sparsecheckout true
-<span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"project1/"</span> &gt; .git/info/sparse-checkout
+<span style="color: #cc99cc;">echo</span> <span style="color: #66cccc;">"project1/"</span> &gt; .git/info/sparse-checkout
 git checkout --
-<span style="color: #b294bb;">cd</span> ..
+<span style="color: #cc99cc;">cd</span> ..
 ln -s company/project1 ./
 </pre>
 </div>
