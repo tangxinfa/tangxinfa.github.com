@@ -4,7 +4,7 @@
         <title>看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com</link>
-        <lastBuildDate>Sun, 21 Feb 2016 05:15:59 GMT</lastBuildDate>
+        <lastBuildDate>Thu, 25 Feb 2016 07:19:59 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>看看俺 – KanKanAn.com</title>
@@ -16,6 +16,331 @@
         <category>ediary</category>
         <category>技术</category>
         <category>生活</category>
+        <item>
+            <title><![CDATA[使用 pm2 管理应用]]></title>
+            <link>/article/4f7f7528-pm2-7ba174065e947528.html</link>
+            <guid>/article/4f7f7528-pm2-7ba174065e947528.html</guid>
+            <pubDate>Thu, 25 Feb 2016 07:18:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+pm2 是使用 node.js 开发的进程管理器，实现统一方式管理进程，如：崩溃后拉起、启动/停止、监控、日志管理等。
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">安装</h2>
+<div class="outline-text-2" id="text-1">
+<div class="org-src-container">
+
+<pre class="src src-sh">npm install pm2@latest -g
+</pre>
+</div>
+</div>
+
+<div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1">为什么要全局（global）方式安装 pm2？</h3>
+<div class="outline-text-3" id="text-1-1">
+<p>
+pm2 被设计成管理用户的全部应用，pm2 的数据保存在 ~/.pm2 目录下，同一用户只能启动一个 pm2 后台进程（PM2 daemon），不同用户的 pm2 互不影响。
+不安装为全局的情况下，如果安装多个版本的 pm2，不同版本的 pm2 前端工具程序与 pm2 后台进程（PM2 daemon）交互是有风险的。
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">应用管理</h2>
+<div class="outline-text-2" id="text-2">
+<ul class="org-ul">
+<li>启动应用
+
+<div class="org-src-container">
+
+<pre class="src src-sh">pm2 start -n app1 app1.js
+pm2 start -n app2 app2.js
+</pre>
+</div>
+</li>
+
+<li>列出应用
+
+<div class="org-src-container">
+
+<pre class="src src-sh">pm2 list
+</pre>
+</div>
+</li>
+
+<li>应用详情
+
+<div class="org-src-container">
+
+<pre class="src src-sh">pm2 describe app1
+</pre>
+</div>
+</li>
+
+<li>停止应用
+
+<div class="org-src-container">
+
+<pre class="src src-sh">pm2 stop app1
+pm2 stop app2
+</pre>
+</div>
+</li>
+
+<li>删除应用
+
+<div class="org-src-container">
+
+<pre class="src src-sh">pm2 delete app1
+pm2 delete app2
+</pre>
+</div>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">开机启动</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+应用启动后需要保存，应用才会在开机后由 pm2 服务启动。
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">pm2 save
+</pre>
+</div>
+
+<p>
+创建 pm2 系统服务，开机启动 pm2
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo pm2 startup systemd -u app
+</pre>
+</div>
+
+<p>
+不重启试运行一下，看是否正常
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #999999; font-style: italic;"># </span><span style="color: #999999; font-style: italic;">&#28165;&#31354;&#36827;&#31243;&#24182;&#36864;&#20986; pm2&#65292;&#22238;&#21040;&#24178;&#20928;&#30340;&#31995;&#32479;&#29366;&#24577;</span>
+sudo systemctl stop pm2
+ps aux | grep node
+
+<span style="color: #999999; font-style: italic;"># </span><span style="color: #999999; font-style: italic;">&#21551;&#21160; pm2 &#26381;&#21153;&#65292;&#39564;&#35777;&#19968;&#19979;&#24212;&#29992;&#26159;&#21542;&#27491;&#24120;&#21551;&#21160;</span>
+sudo systemctl start pm2
+pm2 list
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4">日志管理</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+《 <a href="http://blog.kankanan.com/article/pm2-768465e55fd77ba17406.html">pm2的日志管理</a> 》有详细描述。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5">多 node.js 版本共存</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+pm2 本身就是 node.js 开发的程序，依赖 node.js，pm2 应用可以使用不同版本的 node.js。
+</p>
+
+<p>
+pm2 命令行工具会通过“#!/usr/bin/env node”方式引用 node，如果应用也以同样的方式引用 node.js，就要随时注意切换 node.js 版本，一不小心 pm2 命令行工具和 pm2 应用使用的 node.js 版本会错乱，有一定风险性。一个 node.js 版本安装的模块不能保证与另一个 node.js 版本兼容，特别是一些 c++ 扩展模块。
+</p>
+
+<p>
+我以前的实践中，应用会提供一个环境脚本 .bashrc ，在操作某个应用时，总是会通过 <code>source .bashrc</code> 先设置应用的 shell 环境变量，通过 $PATH 环境变量指定 node 命令为应用所需的 node.js 版本不是一个好主意，当操作 pm2 时，pm2 也会使用这个应用的 node.js 版本。
+</p>
+
+<p>
+从这一点上看，不应该使用 node.js 、php、python、ruby 之类的脚本语言来开发进程管理器，它本身的依赖管理就是个大麻烦，使用 go、c 或 c++ 来开发会好得多。
+</p>
+
+<p>
+理想情况下，pm2 和 应用（app）总是使用正确的 node.js 版本，可以归为以下三种情形。新应用应该总是假设布署环境为情形 1，不要过多考虑系统运行的 node.js 版本，这也就要求应用能够兼容各种 node.js 版本，但是现实情况是，node.js 以及 javascript 发展得太快了，应用依赖的各种 node.js 模块也往往做不到兼容各种 node.js 版本，很多模块基于实现的简洁性考虑，提供多个版本分别对应不同的 node.js 版本，导致应用也必须从一开始就选择特定的 node.js 版本，不同团队、人员及项目跟进新技术步调不一致时，情形 2 及情形 3 是现实的选择。
+</p>
+</div>
+
+<div id="outline-container-sec-5-1" class="outline-3">
+<h3 id="sec-5-1">情形 1：系统中只有一个 node.js 版本，并且是全局安装</h3>
+<div class="outline-text-3" id="text-5-1">
+<p>
+在专机专用的生产环境下，这种情形会很常见，特别是 docker 容器环境下。
+</p>
+
+<p>
+这是最简单的一种情况，不需要为 node.js 版本操心，整个开发组织在 node.js 版本选择上共进退，保持一致。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-5-2" class="outline-3">
+<h3 id="sec-5-2">情形 2：系统中有一个全局 node.js 版本，应用有自已的 node.js 版本</h3>
+<div class="outline-text-3" id="text-5-2">
+<p>
+开发环境下，或者同一机器部署大量微服务的情况下，一般就是这种情形。
+</p>
+
+<p>
+这是最复杂的一种情况，在运行应用代码的时候，要确保切到应用所需的 node.js 版本，在执行 pm2 操作的时候，要确保切到 pm2 所需的 node.js 版本，有如履薄冰的感觉。
+</p>
+
+<p>
+node.js 版本需要在以下方面正确匹配：
+</p>
+
+<ul class="org-ul">
+<li>pm2 的 node.js 版本
+
+<p>
+pm2 本身就是一套用户全局的进程管理工具，使用全局的 node.js 版本是自然而然的选择。
+</p>
+
+<p>
+否则就一定要记得使用正确的 node.js 版本运行 pm2：/usr/local/node-v5.0.0/bin/node pm2 list，很是不便。
+</p>
+</li>
+
+<li>应用的 node.js 版本
+
+<p>
+建议使用 <code>--interpreter</code> 选项指定 node.js 版本，参见讨论：<a href="https://github.com/Unitech/PM2/issues/1034">Using different versions of node via nvm for each app · Issue #1034 · Unitech/pm2</a> 。
+</p>
+
+<p>
+这是最关键的一点，应用的 node.js 版本不对，可能导致应用启动失败，中断服务。
+</p>
+</li>
+
+<li>应用的辅助脚本的 node.js 版本
+
+<p>
+使用 node.js 开发的应用附带命令行工具运行时如果 node.js 版本不对，通常不会对运行中的服务造成影响。
+</p>
+
+<p>
+可以简单地写一些 shell 脚本封装，在 shell 脚本中指定正确的 node.js 版本，如：
+</p>
+
+<p>
+<code>dump.sh</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #999999; font-style: italic;">#</span><span style="color: #999999; font-style: italic;">!/bin/</span><span style="color: #99cc99;">bash</span>
+
+/usr/local/node-v5.0.0/bin/node ./dump.js
+</pre>
+</div>
+
+<p>
+也可以直接在 node.js 脚本中引用正确的 node.js 版本，如：
+</p>
+
+<p>
+<code>dump.js</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-js">#!/usr/local/node-v5.0.0/bin/node
+
+<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">fs</span> = require(<span style="color: #66cccc;">'fs'</span>);
+...
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">chmod a+x dump.js
+./dump.js
+</pre>
+</div>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-5-3" class="outline-3">
+<h3 id="sec-5-3">情形 3：系统没有全局 node.js 版本，应用各自维护 node.js 版本</h3>
+<div class="outline-text-3" id="text-5-3">
+<p>
+这是上面情况的简化版，考验开发、运维团队的纪律性。
+</p>
+
+<p>
+由于 $PATH 中没有 node.js，不会由于没有指定 node.js 绝对路径无意间引用错误的 node.js 版本。
+</p>
+
+<p>
+可以把 node.js 安装在应用根目录下，如下目录结构所示：
+</p>
+
+<pre class="example">
+Applications
+|
+|
+|--- Application 1
+|         |
+|         |--------- node
+|         |
+|         |--------- package.json
+|         |
+|         |--------- ...
+|
+|    
+|--- Application 2
+|         |
+|         |--------- node
+|         |
+|         |--------- package.json
+|         |
+|         |--------- ...
+|
+|
+|--- Application 3
+|         |
+|         |--------- node
+|         |
+|         |--------- package.json
+|         |
+|         |--------- ...
+|
+</pre>
+
+<p>
+甚至 pm2 也通过以上方式安装自已的 node.js 版本。
+</p>
+
+<p>
+通过 ./node/bin/node 引用 node.js 可执行程序，不要试图通过将 ./node/bin 目录加到 $PATH 中以简化使用，否则操作不同应用或 pm2 时，又会一不小心引用到错误的 node.js 版本。
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-6" class="outline-2">
+<h2 id="sec-6">参考</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+<a href="http://pm2.keymetrics.io/docs/usage/pm2-doc-single-page/">PM2 - One page documentation</a></p>
+</div>
+</div>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[git多人协作：维护干净的提交树]]></title>
             <link>/article/git-591a4eba534f4f5cff1a7ef462a45e7251c0768463d04ea46811.html</link>
@@ -78,7 +403,7 @@ git stash pop
             <guid>/article/node.js-4e0b8fdb884c-mqtt-5b9e8df5.html</guid>
             <pubDate>Sun, 21 Feb 2016 05:13:00 GMT</pubDate>
             <content:encoded><![CDATA[<p>
-通过 <code>mqtt</code> 可以将设备连接在一起，能够实现将消息（可能来自服务器也可能来自其它设备）推送到设备，如果设备离线，
+通过 mqtt 可以将设备连接在一起，能够实现将消息（可能来自服务器也可能来自其它设备）推送到设备，如果设备离线，
 服务器可以暂存消息，在设备上线时再推送，有一些特性很关键：
 </p>
 
@@ -98,17 +423,17 @@ git stash pop
 <li>bridge
 
 <p>
-设备连接在不同的 <code>broker</code> 上，通过 <code>bridge</code> 实现互通。
+设备连接在不同的 broker 上，通过 bridge 实现互通。
 </p>
 
 <p>
-支持几万台设备在线，估计一台 <code>broker</code> 就够了，但是一旦达到数十万、百万甚至上亿，肯定需要搭建 <code>broker</code> 集群，参见 <a href="http://www.kegel.com/c10k.html">The C10K problem</a>。
+支持几万台设备在线，估计一台 broker 就够了，但是一旦达到数十万、百万甚至上亿，肯定需要搭建 broker 集群，参见 <a href="http://www.kegel.com/c10k.html">The C10K problem</a>。
 </p>
 </li>
 </ul>
 
 <p>
-简单起见， <code>node.js</code> 服务器端使用 <a href="https://github.com/mcollina/mosca">mosca</a>， 客户端使用 <a href="https://github.com/mqttjs/MQTT.js">MQTT.js</a>。
+简单起见， node.js 服务器端使用 <a href="https://github.com/mcollina/mosca">mosca</a>， 客户端使用 <a href="https://github.com/mqttjs/MQTT.js">MQTT.js</a> ，由于 <a href="https://github.com/mcollina/mosca">mosca</a> 不支持 bridge，本文不涉及 bridge 特性。
 </p>
 
 <div id="outline-container-sec-1" class="outline-2">
@@ -123,7 +448,6 @@ git stash pop
 <div class="org-src-container">
 
 <pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">mosca</span> = require(<span style="color: #66cccc;">'mosca'</span>);
-
 
 <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">settings</span> = {
 <span style="background-color: #515151;"> </span>   port: 1883
@@ -231,7 +555,6 @@ client.on(<span style="color: #66cccc;">'connect'</span>, <span style="color: #9
 
 <pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">mqtt</span> = require(<span style="color: #66cccc;">'mqtt'</span>);
 
-
 <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">client</span> = mqtt.connect(<span style="color: #66cccc;">'mqtt://127.0.0.1:1883'</span>);
 client.on(<span style="color: #66cccc;">'connect'</span>, <span style="color: #99cc99;">function</span> () {
 <span style="background-color: #515151;"> </span>   client.publish(<span style="color: #66cccc;">'sub'</span>, <span style="color: #66cccc;">'message from pub'</span>);
@@ -292,45 +615,24 @@ $ node client_pub.js
 <li>服务器配置持久存储
 </li>
 
-<li>订阅方连接服务器时指定 <code>clean</code> 为 <code>false</code>
+<li>订阅方启用会话状态
+
+<p>
+连接服务器时使用同样的 clientId 并指定 <code>clean</code> 为 <code>false</code>
+</p>
 </li>
 
-<li>发布方发布消息时指定 <code>qos</code> 大于 <code>0</code> 以及 <code>retain</code> 为 <code>true</code>
+<li>发布方发布持久消息
+
+<p>
+发布消息时指定 <code>qos</code> 大于 <code>0</code> 以及 <code>retain</code> 为 <code>true</code>
+</p>
 </li>
 </ul>
 
 <p>
 下面的例子演示了客户端接收离线消息
 </p>
-
-<p>
-<code>server.js</code>
-</p>
-<div class="org-src-container">
-
-<pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">mosca</span> = require(<span style="color: #66cccc;">'mosca'</span>);
-
-<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">server</span> = <span style="color: #99cc99;">new</span> <span style="color: #6699cc;">mosca.Server</span>({ port: 1883 });
-<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">db</span> = <span style="color: #99cc99;">new</span> <span style="color: #6699cc;">mosca.persistence.Redis</span>({host: <span style="color: #66cccc;">'127.0.0.1'</span>, port: 6379, db: 13});
-db.wire(server);
-
-server.on(<span style="color: #66cccc;">'ready'</span>, <span style="color: #99cc99;">function</span> () {
-<span style="background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'mosca server running'</span>);
-}).on(<span style="color: #66cccc;">'clientConnected'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">client</span>) {
-<span style="background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') connected'</span>);
-}).on(<span style="color: #66cccc;">'published'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">packet</span>, <span style="color: #ffcc66;">client</span>) {
-<span style="background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + (client ? client.id : <span style="color: #66cccc;">'internal'</span>) + <span style="color: #66cccc;">') published top</span><span style="color: #66cccc; text-decoration: underline;">ic('</span><span style="text-decoration: underline;"> + packet.topic + </span><span style="color: #66cccc; text-decoration: underline;">'): '</span><span style="text-decoration: underline;"> + packet.payload);</span>
-}).on(<span style="color: #66cccc;">'subscribed'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">topic</span>, <span style="color: #ffcc66;">client</span>) {
-<span style="background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') subscribed topic('</span> + topic + <span style="color: #66cccc;">')'</span>);
-}).on(<span style="color: #66cccc;">'unsubscribed'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">topic</span>, <span style="color: #ffcc66;">client</span>) {
-<span style="background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') unsubscribed topic('</span> + topic + <span style="color: #66cccc;">')'</span>);
-}).on(<span style="color: #66cccc;">'clientDisconnecting'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">client</span>) {
-<span style="background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') disconnecting'</span>);
-}).on(<span style="color: #66cccc;">'clientDisconnected'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">client</span>) {
-<span style="background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') disconnected'</span>);
-});
-</pre>
-</div>
 
 <p>
 <code>client_sub.js</code>
@@ -10384,6 +10686,130 @@ make install
 ]]></content:encoded>
         </item>
         <item>
+            <title><![CDATA[Discuz访问推广任务反作弊]]></title>
+            <link>/article/discuz-8bbf95ee63a85e7f4efb52a153cd4f5c5f0a.html</link>
+            <guid>/article/discuz-8bbf95ee63a85e7f4efb52a153cd4f5c5f0a.html</guid>
+            <pubDate>Thu, 19 Dec 2013 17:02:00 GMT</pubDate>
+            <content:encoded><![CDATA[<ul class="org-ul">
+<li>识别作弊
+
+<p>
+发贴、回复较少的用户具有偏高的积分、等级通常就是潜在的作弊对象。在后台查看该用户的积分历史，如果来历不明，那么很可能是通过访问推广作弊获得的。
+</p>
+
+<p>
+在我们的例子里就发现有一个用户金钱数过高，先查看该用户的积分表：
+</p>
+
+<pre class="example">
+mysql&gt; SELECT total, cyclenum, extcredits2 FROM g_common_credit_rule_log WHERE rid=8 and uid=119;
++-------+----------+-------------+
+| total | cyclenum | extcredits2 |
++-------+----------+-------------+
+|  3454 |     3454 |           1 |
++-------+----------+-------------+
+1 row in set (0.00 sec)
+</pre>
+
+<p>
+相关字段说明
+</p>
+<dl class="org-dl">
+<dt> total </dt><dd>策略被执行总次数
+</dd>
+<dt> cyclenum </dt><dd>周期被执行次数 
+</dd>
+<dt> extcredits2 </dt><dd>我们的系统里对应金钱数
+</dd>
+<dt> rid </dt><dd>值8为访问推广任务类型
+</dd>
+<dt> uid </dt><dd>值119为作弊用户id
+</dd>
+</dl>
+<p>
+从上面可以看出该用户完成了3454次任务， 接下来就需要确认这些任务是通过作弊完成的了。
+</p>
+
+<p>
+搜索该用户推广链接在web服务器中留下的访问日志：
+</p>
+<pre class="example">
+logs# grep 'fromuid=119' /usr/local/nginx/logs/access.log*
+"GET /?fromuid=119.jpg HTTP/1.1" 301 6243 "http://xxxx.org/details.php?id=178668"
+...
+</pre>
+
+<p>
+可以初步断定，该用户通过在其它论坛中发布信息并将推广url注入到图片的url中，这样我们的站点在访问量没有任何增长的情况下该用户的推广数却瞬间彪升了。
+</p>
+</li>
+
+<li>阻止作弊
+
+<p>
+通过使用引用页中的用户标识进行记录来解决这个问题，这样只有当用户来到论坛并进行了相关操作才算推荐有效。
+</p>
+
+<p>
+修改source/class/discuz/discuz_application.php文件，将下面的内容：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-php"><span style="color: #99cc99;">if</span>((!<span style="color: #cccccc; background-color: #2d2d2d;">empty(</span>$<span style="color: #6699cc;">_GET</span>[<span style="color: #66cccc;">'fromuid'</span>]) || !<span style="color: #cccccc; background-color: #2d2d2d;">empty(</span>$<span style="color: #6699cc;">_GET</span>[<span style="color: #66cccc;">'fromuser'</span>])) &amp;&amp; ($<span style="color: #6699cc;">this</span>-&gt;<span style="color: #ffcc66;">var</span>[<span style="color: #66cccc;">'setti</span><span style="color: #66cccc; text-decoration: underline;">ng'</span><span style="text-decoration: underline;">][</span><span style="color: #66cccc; text-decoration: underline;">'creditspolicy'</span><span style="text-decoration: underline;">][</span><span style="color: #66cccc; text-decoration: underline;">'promotion_visit'</span><span style="text-decoration: underline;">] || $</span><span style="color: #6699cc; text-decoration: underline;">this</span><span style="text-decoration: underline;">-&gt;</span><span style="color: #ffcc66; text-decoration: underline;">var</span><span style="text-decoration: underline;">[</span><span style="color: #66cccc; text-decoration: underline;">'setting'</span><span style="text-decoration: underline;">][</span><span style="color: #66cccc; text-decoration: underline;">'creditspolicy'</span><span style="text-decoration: underline;">][</span><span style="color: #66cccc; text-decoration: underline;">'promotion_register'</span><span style="text-decoration: underline;">])) {</span>
+<span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">require_once</span> <span style="color: #cccccc; background-color: #2d2d2d;">libfile(</span><span style="color: #66cccc;">'misc/promotion'</span>, <span style="color: #66cccc;">'include'</span>);
+}
+</pre>
+</div>
+<p>
+改为：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-php"><span style="color: #99cc99;">if</span> (<span style="color: #cccccc; background-color: #2d2d2d;">isset(</span>$<span style="color: #6699cc;">_SERVER</span>[<span style="color: #66cccc;">'HTTP_REFERER'</span>]) &amp;&amp; <span style="color: #cccccc; background-color: #2d2d2d;">strpos(</span>$<span style="color: #6699cc;">_SERVER</span>[<span style="color: #66cccc;">'HTTP_REFERER'</span>], <span style="color: #66cccc;">'http://</span><span style="color: #66cccc; text-decoration: underline;">XXX.com/'</span><span style="text-decoration: underline;">) === </span><span style="color: #cccccc; background-color: #2d2d2d; text-decoration: underline;">0</span><span style="text-decoration: underline;">) {</span>
+<span style="background-color: #515151;"> </span>   $<span style="color: #ffcc66;">referer_query</span> = <span style="color: #cccccc; background-color: #2d2d2d;">parse_url(</span>$<span style="color: #6699cc;">_SERVER</span>[<span style="color: #66cccc;">'HTTP_REFERER'</span>], <span style="color: #f2777a; font-weight: bold;">PHP_URL_QUERY</span>);
+<span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> ($<span style="color: #ffcc66;">referer_query</span>) {
+<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #2d2d2d;">parse_str(</span>$<span style="color: #ffcc66;">referer_query</span>, $<span style="color: #ffcc66;">referer_get</span>);
+<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span>((!<span style="color: #cccccc; background-color: #2d2d2d;">empty(</span>$<span style="color: #ffcc66;">referer_get</span>[<span style="color: #66cccc;">'fromuid'</span>]) || !<span style="color: #cccccc; background-color: #2d2d2d;">empty(</span>$<span style="color: #ffcc66;">referer_get</span>[<span style="color: #66cccc;">'fromuser'</span>]))<span style="text-decoration: underline;"> &amp;&amp; ($</span><span style="color: #6699cc; text-decoration: underline;">this</span><span style="text-decoration: underline;">-&gt;</span><span style="color: #ffcc66; text-decoration: underline;">var</span><span style="text-decoration: underline;">[</span><span style="color: #66cccc; text-decoration: underline;">'setting'</span><span style="text-decoration: underline;">][</span><span style="color: #66cccc; text-decoration: underline;">'creditspolicy'</span><span style="text-decoration: underline;">][</span><span style="color: #66cccc; text-decoration: underline;">'promotion_visit'</span><span style="text-decoration: underline;">] || $</span><span style="color: #6699cc; text-decoration: underline;">this</span><span style="text-decoration: underline;">-&gt;</span><span style="color: #ffcc66; text-decoration: underline;">var</span><span style="text-decoration: underline;">[</span><span style="color: #66cccc; text-decoration: underline;">'setting'</span><span style="text-decoration: underline;">][</span><span style="color: #66cccc; text-decoration: underline;">'creditspolicy'</span><span style="text-decoration: underline;">][</span><span style="color: #66cccc; text-decoration: underline;">'promotion_register'</span><span style="text-decoration: underline;">])) {</span>
+<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">require_once</span> <span style="color: #cccccc; background-color: #2d2d2d;">libfile(</span><span style="color: #66cccc;">'misc/promotion'</span>, <span style="color: #66cccc;">'include'</span>);
+<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   }
+<span style="background-color: #515151;"> </span>   }
+}
+</pre>
+</div>
+
+<p>
+修改source/include/misc/misc_promotion.php文件，将下面的内容：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-php"><span style="color: #99cc99;">if</span>(!<span style="color: #cccccc; background-color: #2d2d2d;">empty(</span>$<span style="color: #6699cc;">_GET</span>[<span style="color: #66cccc;">'fromuid'</span>])) {
+<span style="background-color: #515151;"> </span>   $<span style="color: #ffcc66;">fromuid</span> = <span style="color: #cccccc; background-color: #2d2d2d;">intval(</span>$<span style="color: #6699cc;">_GET</span>[<span style="color: #66cccc;">'fromuid'</span>]);
+<span style="background-color: #515151;"> </span>   $<span style="color: #ffcc66;">fromuser</span> = <span style="color: #66cccc;">''</span>;
+} <span style="color: #99cc99;">else</span> {
+<span style="background-color: #515151;"> </span>   $<span style="color: #ffcc66;">fromuser</span> = $<span style="color: #6699cc;">_GET</span>[<span style="color: #66cccc;">'fromuser'</span>];
+<span style="background-color: #515151;"> </span>   $<span style="color: #ffcc66;">fromuid</span> = <span style="color: #66cccc;">''</span>;
+}
+</pre>
+</div>
+<p>
+改为：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-php"><span style="color: #99cc99;">if</span>(!<span style="color: #cccccc; background-color: #2d2d2d;">empty(</span>$<span style="color: #ffcc66;">referer_get</span>[<span style="color: #66cccc;">'fromuid'</span>])) {
+<span style="background-color: #515151;"> </span>   $<span style="color: #ffcc66;">fromuid</span> = <span style="color: #cccccc; background-color: #2d2d2d;">intval(</span>$<span style="color: #ffcc66;">referer_get</span>[<span style="color: #66cccc;">'fromuid'</span>]);
+<span style="background-color: #515151;"> </span>   $<span style="color: #ffcc66;">fromuser</span> = <span style="color: #66cccc;">''</span>;
+} <span style="color: #99cc99;">else</span> {
+<span style="background-color: #515151;"> </span>   $<span style="color: #ffcc66;">fromuser</span> = $<span style="color: #ffcc66;">referer_get</span>[<span style="color: #66cccc;">'fromuser'</span>];
+<span style="background-color: #515151;"> </span>   $<span style="color: #ffcc66;">fromuid</span> = <span style="color: #66cccc;">''</span>;
+}
+</pre>
+</div>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
+        <item>
             <title><![CDATA[为什么不能在构造函数中调用shared_from_this]]></title>
             <link>/article/4e3a4ec04e484e0d80fd57286784902051fd65704e2d8c037528-shared_from_this.html</link>
             <guid>/article/4e3a4ec04e484e0d80fd57286784902051fd65704e2d8c037528-shared_from_this.html</guid>
@@ -10516,130 +10942,6 @@ chicken_ptr-&gt;use();
 
 <p>
 参考：《<a href="http://hi.baidu.com/cpuramdisk/item/7c2f8d77385e0f29d7a89cf0">shared_from_this 几个值得注意的地方</a>》</p>
-]]></content:encoded>
-        </item>
-        <item>
-            <title><![CDATA[Discuz访问推广任务反作弊]]></title>
-            <link>/article/discuz-8bbf95ee63a85e7f4efb52a153cd4f5c5f0a.html</link>
-            <guid>/article/discuz-8bbf95ee63a85e7f4efb52a153cd4f5c5f0a.html</guid>
-            <pubDate>Thu, 19 Dec 2013 17:02:00 GMT</pubDate>
-            <content:encoded><![CDATA[<ul class="org-ul">
-<li>识别作弊
-
-<p>
-发贴、回复较少的用户具有偏高的积分、等级通常就是潜在的作弊对象。在后台查看该用户的积分历史，如果来历不明，那么很可能是通过访问推广作弊获得的。
-</p>
-
-<p>
-在我们的例子里就发现有一个用户金钱数过高，先查看该用户的积分表：
-</p>
-
-<pre class="example">
-mysql&gt; SELECT total, cyclenum, extcredits2 FROM g_common_credit_rule_log WHERE rid=8 and uid=119;
-+-------+----------+-------------+
-| total | cyclenum | extcredits2 |
-+-------+----------+-------------+
-|  3454 |     3454 |           1 |
-+-------+----------+-------------+
-1 row in set (0.00 sec)
-</pre>
-
-<p>
-相关字段说明
-</p>
-<dl class="org-dl">
-<dt> total </dt><dd>策略被执行总次数
-</dd>
-<dt> cyclenum </dt><dd>周期被执行次数 
-</dd>
-<dt> extcredits2 </dt><dd>我们的系统里对应金钱数
-</dd>
-<dt> rid </dt><dd>值8为访问推广任务类型
-</dd>
-<dt> uid </dt><dd>值119为作弊用户id
-</dd>
-</dl>
-<p>
-从上面可以看出该用户完成了3454次任务， 接下来就需要确认这些任务是通过作弊完成的了。
-</p>
-
-<p>
-搜索该用户推广链接在web服务器中留下的访问日志：
-</p>
-<pre class="example">
-logs# grep 'fromuid=119' /usr/local/nginx/logs/access.log*
-"GET /?fromuid=119.jpg HTTP/1.1" 301 6243 "http://xxxx.org/details.php?id=178668"
-...
-</pre>
-
-<p>
-可以初步断定，该用户通过在其它论坛中发布信息并将推广url注入到图片的url中，这样我们的站点在访问量没有任何增长的情况下该用户的推广数却瞬间彪升了。
-</p>
-</li>
-
-<li>阻止作弊
-
-<p>
-通过使用引用页中的用户标识进行记录来解决这个问题，这样只有当用户来到论坛并进行了相关操作才算推荐有效。
-</p>
-
-<p>
-修改source/class/discuz/discuz_application.php文件，将下面的内容：
-</p>
-<div class="org-src-container">
-
-<pre class="src src-php"><span style="color: #99cc99;">if</span>((!<span style="color: #cccccc; background-color: #2d2d2d;">empty(</span>$<span style="color: #6699cc;">_GET</span>[<span style="color: #66cccc;">'fromuid'</span>]) || !<span style="color: #cccccc; background-color: #2d2d2d;">empty(</span>$<span style="color: #6699cc;">_GET</span>[<span style="color: #66cccc;">'fromuser'</span>])) &amp;&amp; ($<span style="color: #6699cc;">this</span>-&gt;<span style="color: #ffcc66;">var</span>[<span style="color: #66cccc;">'setti</span><span style="color: #66cccc; text-decoration: underline;">ng'</span><span style="text-decoration: underline;">][</span><span style="color: #66cccc; text-decoration: underline;">'creditspolicy'</span><span style="text-decoration: underline;">][</span><span style="color: #66cccc; text-decoration: underline;">'promotion_visit'</span><span style="text-decoration: underline;">] || $</span><span style="color: #6699cc; text-decoration: underline;">this</span><span style="text-decoration: underline;">-&gt;</span><span style="color: #ffcc66; text-decoration: underline;">var</span><span style="text-decoration: underline;">[</span><span style="color: #66cccc; text-decoration: underline;">'setting'</span><span style="text-decoration: underline;">][</span><span style="color: #66cccc; text-decoration: underline;">'creditspolicy'</span><span style="text-decoration: underline;">][</span><span style="color: #66cccc; text-decoration: underline;">'promotion_register'</span><span style="text-decoration: underline;">])) {</span>
-<span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">require_once</span> <span style="color: #cccccc; background-color: #2d2d2d;">libfile(</span><span style="color: #66cccc;">'misc/promotion'</span>, <span style="color: #66cccc;">'include'</span>);
-}
-</pre>
-</div>
-<p>
-改为：
-</p>
-<div class="org-src-container">
-
-<pre class="src src-php"><span style="color: #99cc99;">if</span> (<span style="color: #cccccc; background-color: #2d2d2d;">isset(</span>$<span style="color: #6699cc;">_SERVER</span>[<span style="color: #66cccc;">'HTTP_REFERER'</span>]) &amp;&amp; <span style="color: #cccccc; background-color: #2d2d2d;">strpos(</span>$<span style="color: #6699cc;">_SERVER</span>[<span style="color: #66cccc;">'HTTP_REFERER'</span>], <span style="color: #66cccc;">'http://</span><span style="color: #66cccc; text-decoration: underline;">XXX.com/'</span><span style="text-decoration: underline;">) === </span><span style="color: #cccccc; background-color: #2d2d2d; text-decoration: underline;">0</span><span style="text-decoration: underline;">) {</span>
-<span style="background-color: #515151;"> </span>   $<span style="color: #ffcc66;">referer_query</span> = <span style="color: #cccccc; background-color: #2d2d2d;">parse_url(</span>$<span style="color: #6699cc;">_SERVER</span>[<span style="color: #66cccc;">'HTTP_REFERER'</span>], <span style="color: #f2777a; font-weight: bold;">PHP_URL_QUERY</span>);
-<span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> ($<span style="color: #ffcc66;">referer_query</span>) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #2d2d2d;">parse_str(</span>$<span style="color: #ffcc66;">referer_query</span>, $<span style="color: #ffcc66;">referer_get</span>);
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span>((!<span style="color: #cccccc; background-color: #2d2d2d;">empty(</span>$<span style="color: #ffcc66;">referer_get</span>[<span style="color: #66cccc;">'fromuid'</span>]) || !<span style="color: #cccccc; background-color: #2d2d2d;">empty(</span>$<span style="color: #ffcc66;">referer_get</span>[<span style="color: #66cccc;">'fromuser'</span>]))<span style="text-decoration: underline;"> &amp;&amp; ($</span><span style="color: #6699cc; text-decoration: underline;">this</span><span style="text-decoration: underline;">-&gt;</span><span style="color: #ffcc66; text-decoration: underline;">var</span><span style="text-decoration: underline;">[</span><span style="color: #66cccc; text-decoration: underline;">'setting'</span><span style="text-decoration: underline;">][</span><span style="color: #66cccc; text-decoration: underline;">'creditspolicy'</span><span style="text-decoration: underline;">][</span><span style="color: #66cccc; text-decoration: underline;">'promotion_visit'</span><span style="text-decoration: underline;">] || $</span><span style="color: #6699cc; text-decoration: underline;">this</span><span style="text-decoration: underline;">-&gt;</span><span style="color: #ffcc66; text-decoration: underline;">var</span><span style="text-decoration: underline;">[</span><span style="color: #66cccc; text-decoration: underline;">'setting'</span><span style="text-decoration: underline;">][</span><span style="color: #66cccc; text-decoration: underline;">'creditspolicy'</span><span style="text-decoration: underline;">][</span><span style="color: #66cccc; text-decoration: underline;">'promotion_register'</span><span style="text-decoration: underline;">])) {</span>
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">require_once</span> <span style="color: #cccccc; background-color: #2d2d2d;">libfile(</span><span style="color: #66cccc;">'misc/promotion'</span>, <span style="color: #66cccc;">'include'</span>);
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   }
-<span style="background-color: #515151;"> </span>   }
-}
-</pre>
-</div>
-
-<p>
-修改source/include/misc/misc_promotion.php文件，将下面的内容：
-</p>
-<div class="org-src-container">
-
-<pre class="src src-php"><span style="color: #99cc99;">if</span>(!<span style="color: #cccccc; background-color: #2d2d2d;">empty(</span>$<span style="color: #6699cc;">_GET</span>[<span style="color: #66cccc;">'fromuid'</span>])) {
-<span style="background-color: #515151;"> </span>   $<span style="color: #ffcc66;">fromuid</span> = <span style="color: #cccccc; background-color: #2d2d2d;">intval(</span>$<span style="color: #6699cc;">_GET</span>[<span style="color: #66cccc;">'fromuid'</span>]);
-<span style="background-color: #515151;"> </span>   $<span style="color: #ffcc66;">fromuser</span> = <span style="color: #66cccc;">''</span>;
-} <span style="color: #99cc99;">else</span> {
-<span style="background-color: #515151;"> </span>   $<span style="color: #ffcc66;">fromuser</span> = $<span style="color: #6699cc;">_GET</span>[<span style="color: #66cccc;">'fromuser'</span>];
-<span style="background-color: #515151;"> </span>   $<span style="color: #ffcc66;">fromuid</span> = <span style="color: #66cccc;">''</span>;
-}
-</pre>
-</div>
-<p>
-改为：
-</p>
-<div class="org-src-container">
-
-<pre class="src src-php"><span style="color: #99cc99;">if</span>(!<span style="color: #cccccc; background-color: #2d2d2d;">empty(</span>$<span style="color: #ffcc66;">referer_get</span>[<span style="color: #66cccc;">'fromuid'</span>])) {
-<span style="background-color: #515151;"> </span>   $<span style="color: #ffcc66;">fromuid</span> = <span style="color: #cccccc; background-color: #2d2d2d;">intval(</span>$<span style="color: #ffcc66;">referer_get</span>[<span style="color: #66cccc;">'fromuid'</span>]);
-<span style="background-color: #515151;"> </span>   $<span style="color: #ffcc66;">fromuser</span> = <span style="color: #66cccc;">''</span>;
-} <span style="color: #99cc99;">else</span> {
-<span style="background-color: #515151;"> </span>   $<span style="color: #ffcc66;">fromuser</span> = $<span style="color: #ffcc66;">referer_get</span>[<span style="color: #66cccc;">'fromuser'</span>];
-<span style="background-color: #515151;"> </span>   $<span style="color: #ffcc66;">fromuid</span> = <span style="color: #66cccc;">''</span>;
-}
-</pre>
-</div>
-</li>
-</ul>
 ]]></content:encoded>
         </item>
         <item>

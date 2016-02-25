@@ -9623,7 +9623,7 @@ class RedisShard {
 * DONE node.js下进行mqtt实践                               :network:IoT:node:
   CLOSED: [2016-02-21 Sun 13:13]
 
-  通过 =mqtt= 可以将设备连接在一起，能够实现将消息（可能来自服务器也可能来自其它设备）推送到设备，如果设备离线，
+  通过 mqtt 可以将设备连接在一起，能够实现将消息（可能来自服务器也可能来自其它设备）推送到设备，如果设备离线，
   服务器可以暂存消息，在设备上线时再推送，有一些特性很关键：
 
   - offline
@@ -9635,11 +9635,11 @@ class RedisShard {
 
   - bridge
 
-    设备连接在不同的 =broker= 上，通过 =bridge= 实现互通。
+    设备连接在不同的 broker 上，通过 bridge 实现互通。
 
-    支持几万台设备在线，估计一台 =broker= 就够了，但是一旦达到数十万、百万甚至上亿，肯定需要搭建 =broker= 集群，参见 [[http://www.kegel.com/c10k.html][The C10K problem]]。
+    支持几万台设备在线，估计一台 broker 就够了，但是一旦达到数十万、百万甚至上亿，肯定需要搭建 broker 集群，参见 [[http://www.kegel.com/c10k.html][The C10K problem]]。
 
-  简单起见， =node.js= 服务器端使用 [[https://github.com/mcollina/mosca][mosca]]， 客户端使用 [[https://github.com/mqttjs/MQTT.js][MQTT.js]]。
+  简单起见， node.js 服务器端使用 [[https://github.com/mcollina/mosca][mosca]]， 客户端使用 [[https://github.com/mqttjs/MQTT.js][MQTT.js]] ，由于 [[https://github.com/mcollina/mosca][mosca]] 不支持 bridge，本文不涉及 bridge 特性。
 
 ** 客户端与服务器通信
 
@@ -9648,7 +9648,6 @@ class RedisShard {
      =server.js=
      #+begin_src js
        var mosca = require('mosca');
-
 
        var settings = {
            port: 1883
@@ -9732,7 +9731,6 @@ class RedisShard {
      #+begin_src js
        var mqtt = require('mqtt');
 
-
        var client = mqtt.connect('mqtt://127.0.0.1:1883');
        client.on('connect', function () {
            client.publish('sub', 'message from pub');
@@ -9777,37 +9775,16 @@ class RedisShard {
 
    - 服务器配置持久存储
 
-   - 订阅方连接服务器时指定 =clean= 为 =false=
+   - 订阅方启用会话状态
+     
+     连接服务器时使用同样的 clientId 并指定 =clean= 为 =false=
    
-   - 发布方发布消息时指定 =qos= 大于 =0= 以及 =retain= 为 =true=
+   - 发布方发布持久消息
+     
+     发布消息时指定 =qos= 大于 =0= 以及 =retain= 为 =true=
 
    下面的例子演示了客户端接收离线消息
    
-   =server.js=
-   #+begin_src js
-     var mosca = require('mosca');
-
-     var server = new mosca.Server({ port: 1883 });
-     var db = new mosca.persistence.Redis({host: '127.0.0.1', port: 6379, db: 13});
-     db.wire(server);
-
-     server.on('ready', function () {
-         console.log('mosca server running');
-     }).on('clientConnected', function (client) {
-         console.log('client(' + client.id + ') connected');
-     }).on('published', function (packet, client) {
-         console.log('client(' + (client ? client.id : 'internal') + ') published topic(' + packet.topic + '): ' + packet.payload);
-     }).on('subscribed', function (topic, client) {
-         console.log('client(' + client.id + ') subscribed topic(' + topic + ')');
-     }).on('unsubscribed', function (topic, client) {
-         console.log('client(' + client.id + ') unsubscribed topic(' + topic + ')');
-     }).on('clientDisconnecting', function (client) {
-         console.log('client(' + client.id + ') disconnecting');
-     }).on('clientDisconnected', function (client) {
-         console.log('client(' + client.id + ') disconnected');
-     });
-   #+end_src
-
    =client_sub.js=
    #+begin_src js
      var mqtt = require('mqtt');
@@ -10195,9 +10172,10 @@ class RedisShard {
 * TODO 快乐去哪里了                                                      :反省:
 
   从什么时候开始，再也难以开怀大笑。
-  需要被逗乐才会笑，所以没事就不自觉得找乐子，可能是笑点越来越低了，找来找去徒烦闷。
-  需要被奖励才会满足，所以总想着努力会有回报，却难以从忙忙碌碌中找到存在感。
+  需要被逗乐才会笑，所以没事就不自觉地找乐子，可能是笑点越来越低了，找来找去徒烦闷。
+  需要被奖励才会满足，所以总想着努力付出会有回报，却难以从忙忙碌碌中找到存在感。
   以为有时间才会快乐，却没了寻找快乐的习惯，在自已的时间里，像一台暂停运行的机器，放在那里生锈。
+  工作的时候想休假，休假的时候却担心自已荒废了时间，总想看点什么学点什么，忙得累闲得也累。
   
   那时候，我看了一部又一部电影。
   那时候，我追了一集又一集美剧。
@@ -10206,5 +10184,200 @@ class RedisShard {
   那时个，我看了一本又一本书。
   那时候，我逛了一个又一个空间。
   那时候，我淘了一个又一个宝贝。
+  那时候，我玩了一夜又一夜游戏。
   
   我找到了一点快乐，但是很快就消失了，快乐为什么没有办法永恒，而要不断寻找。
+* DONE 使用 pm2 管理应用                                               :node:
+  CLOSED: [2016-02-25 Thu 15:18]
+
+  pm2 是使用 node.js 开发的进程管理器，实现统一方式管理进程，如：崩溃后拉起、启动/停止、监控、日志管理等。
+
+** 安装
+
+   #+begin_src sh
+     npm install pm2@latest -g
+   #+end_src
+
+*** 为什么要全局（global）方式安装 pm2？
+
+    pm2 被设计成管理用户的全部应用，pm2 的数据保存在 ~/.pm2 目录下，同一用户只能启动一个 pm2 后台进程（PM2 daemon），不同用户的 pm2 互不影响。
+    不安装为全局的情况下，如果安装多个版本的 pm2，不同版本的 pm2 前端工具程序与 pm2 后台进程（PM2 daemon）交互是有风险的。
+
+** 应用管理
+
+   - 启动应用
+
+     #+begin_src sh
+       pm2 start -n app1 app1.js
+       pm2 start -n app2 app2.js
+     #+end_src
+     
+   - 列出应用
+
+     #+begin_src sh
+       pm2 list
+     #+end_src
+
+   - 应用详情
+
+     #+begin_src sh
+       pm2 describe app1
+     #+end_src
+     
+   - 停止应用
+
+     #+begin_src sh
+       pm2 stop app1
+       pm2 stop app2
+     #+end_src
+
+   - 删除应用
+     
+     #+begin_src sh
+       pm2 delete app1
+       pm2 delete app2
+     #+end_src
+     
+** 开机启动
+
+   应用启动后需要保存，应用才会在开机后由 pm2 服务启动。
+
+   #+begin_src sh
+     pm2 save
+   #+end_src
+
+   创建 pm2 系统服务，开机启动 pm2
+
+   #+begin_src sh
+     sudo pm2 startup systemd -u app
+   #+end_src
+
+   不重启试运行一下，看是否正常
+   
+   #+begin_src sh
+     # 清空进程并退出 pm2，回到干净的系统状态
+     sudo systemctl stop pm2
+     ps aux | grep node
+
+     # 启动 pm2 服务，验证一下应用是否正常启动
+     sudo systemctl start pm2
+     pm2 list
+   #+end_src
+
+** 日志管理
+
+   《 [[http://blog.kankanan.com/article/pm2-768465e55fd77ba17406.html][pm2的日志管理]] 》有详细描述。
+
+** 多 node.js 版本共存
+
+   pm2 本身就是 node.js 开发的程序，依赖 node.js，pm2 应用可以使用不同版本的 node.js。
+   
+   pm2 命令行工具会通过“#!/usr/bin/env node”方式引用 node，如果应用也以同样的方式引用 node.js，就要随时注意切换 node.js 版本，一不小心 pm2 命令行工具和 pm2 应用使用的 node.js 版本会错乱，有一定风险性。一个 node.js 版本安装的模块不能保证与另一个 node.js 版本兼容，特别是一些 c++ 扩展模块。
+
+   我以前的实践中，应用会提供一个环境脚本 .bashrc ，在操作某个应用时，总是会通过 =source .bashrc= 先设置应用的 shell 环境变量，通过 $PATH 环境变量指定 node 命令为应用所需的 node.js 版本不是一个好主意，当操作 pm2 时，pm2 也会使用这个应用的 node.js 版本。
+   
+   从这一点上看，不应该使用 node.js 、php、python、ruby 之类的脚本语言来开发进程管理器，它本身的依赖管理就是个大麻烦，使用 go、c 或 c++ 来开发会好得多。
+   
+   理想情况下，pm2 和 应用（app）总是使用正确的 node.js 版本，可以归为以下三种情形。新应用应该总是假设布署环境为情形 1，不要过多考虑系统运行的 node.js 版本，这也就要求应用能够兼容各种 node.js 版本，但是现实情况是，node.js 以及 javascript 发展得太快了，应用依赖的各种 node.js 模块也往往做不到兼容各种 node.js 版本，很多模块基于实现的简洁性考虑，提供多个版本分别对应不同的 node.js 版本，导致应用也必须从一开始就选择特定的 node.js 版本，不同团队、人员及项目跟进新技术步调不一致时，情形 2 及情形 3 是现实的选择。
+
+*** 情形 1：系统中只有一个 node.js 版本，并且是全局安装
+
+    在专机专用的生产环境下，这种情形会很常见，特别是 docker 容器环境下。
+     
+    这是最简单的一种情况，不需要为 node.js 版本操心，整个开发组织在 node.js 版本选择上共进退，保持一致。
+
+*** 情形 2：系统中有一个全局 node.js 版本，应用有自已的 node.js 版本
+
+    开发环境下，或者同一机器部署大量微服务的情况下，一般就是这种情形。
+
+    这是最复杂的一种情况，在运行应用代码的时候，要确保切到应用所需的 node.js 版本，在执行 pm2 操作的时候，要确保切到 pm2 所需的 node.js 版本，有如履薄冰的感觉。
+
+    node.js 版本需要在以下方面正确匹配：
+
+    - pm2 的 node.js 版本
+
+      pm2 本身就是一套用户全局的进程管理工具，使用全局的 node.js 版本是自然而然的选择。
+
+      否则就一定要记得使用正确的 node.js 版本运行 pm2：/usr/local/node-v5.0.0/bin/node pm2 list，很是不便。
+
+    - 应用的 node.js 版本
+
+      建议使用 =--interpreter= 选项指定 node.js 版本，参见讨论：[[https://github.com/Unitech/PM2/issues/1034][Using different versions of node via nvm for each app · Issue #1034 · Unitech/pm2]] 。
+      
+      这是最关键的一点，应用的 node.js 版本不对，可能导致应用启动失败，中断服务。
+
+    - 应用的辅助脚本的 node.js 版本
+
+      使用 node.js 开发的应用附带命令行工具运行时如果 node.js 版本不对，通常不会对运行中的服务造成影响。
+      
+      可以简单地写一些 shell 脚本封装，在 shell 脚本中指定正确的 node.js 版本，如：
+
+      =dump.sh=
+      #+begin_src sh
+        #!/bin/bash
+
+        /usr/local/node-v5.0.0/bin/node ./dump.js
+      #+end_src
+      
+      也可以直接在 node.js 脚本中引用正确的 node.js 版本，如：
+
+      =dump.js=
+      #+begin_src js
+        #!/usr/local/node-v5.0.0/bin/node
+
+        var fs = require('fs');
+        ...
+      #+end_src
+
+      #+begin_src sh
+        chmod a+x dump.js
+        ./dump.js
+      #+end_src
+
+*** 情形 3：系统没有全局 node.js 版本，应用各自维护 node.js 版本
+
+    这是上面情况的简化版，考验开发、运维团队的纪律性。
+
+    由于 $PATH 中没有 node.js，不会由于没有指定 node.js 绝对路径无意间引用错误的 node.js 版本。
+
+    可以把 node.js 安装在应用根目录下，如下目录结构所示：
+
+    #+begin_example
+      Applications
+      |
+      |
+      |--- Application 1
+      |         |
+      |         |--------- node
+      |         |
+      |         |--------- package.json
+      |         |
+      |         |--------- ...
+      |
+      |    
+      |--- Application 2
+      |         |
+      |         |--------- node
+      |         |
+      |         |--------- package.json
+      |         |
+      |         |--------- ...
+      |
+      |
+      |--- Application 3
+      |         |
+      |         |--------- node
+      |         |
+      |         |--------- package.json
+      |         |
+      |         |--------- ...
+      |
+    #+end_example
+
+    甚至 pm2 也通过以上方式安装自已的 node.js 版本。
+
+    通过 ./node/bin/node 引用 node.js 可执行程序，不要试图通过将 ./node/bin 目录加到 $PATH 中以简化使用，否则操作不同应用或 pm2 时，又会一不小心引用到错误的 node.js 版本。
+
+** 参考
+
+   [[http://pm2.keymetrics.io/docs/usage/pm2-doc-single-page/][PM2 - One page documentation]]

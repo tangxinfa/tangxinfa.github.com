@@ -55,7 +55,7 @@
       
         <div class="article-content">
           <p>
-通过 <code>mqtt</code> 可以将设备连接在一起，能够实现将消息（可能来自服务器也可能来自其它设备）推送到设备，如果设备离线，
+通过 mqtt 可以将设备连接在一起，能够实现将消息（可能来自服务器也可能来自其它设备）推送到设备，如果设备离线，
 服务器可以暂存消息，在设备上线时再推送，有一些特性很关键：
 </p>
 
@@ -75,17 +75,17 @@
 <li>bridge
 
 <p>
-设备连接在不同的 <code>broker</code> 上，通过 <code>bridge</code> 实现互通。
+设备连接在不同的 broker 上，通过 bridge 实现互通。
 </p>
 
 <p>
-支持几万台设备在线，估计一台 <code>broker</code> 就够了，但是一旦达到数十万、百万甚至上亿，肯定需要搭建 <code>broker</code> 集群，参见 <a href="http://www.kegel.com/c10k.html">The C10K problem</a>。
+支持几万台设备在线，估计一台 broker 就够了，但是一旦达到数十万、百万甚至上亿，肯定需要搭建 broker 集群，参见 <a href="http://www.kegel.com/c10k.html">The C10K problem</a>。
 </p>
 </li>
 </ul>
 
 <p>
-简单起见， <code>node.js</code> 服务器端使用 <a href="https://github.com/mcollina/mosca">mosca</a>， 客户端使用 <a href="https://github.com/mqttjs/MQTT.js">MQTT.js</a>。
+简单起见， node.js 服务器端使用 <a href="https://github.com/mcollina/mosca">mosca</a>， 客户端使用 <a href="https://github.com/mqttjs/MQTT.js">MQTT.js</a> ，由于 <a href="https://github.com/mcollina/mosca">mosca</a> 不支持 bridge，本文不涉及 bridge 特性。
 </p>
 
 <div id="outline-container-sec-1" class="outline-2">
@@ -100,7 +100,6 @@
 <div class="org-src-container">
 
 <pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">mosca</span> = require(<span style="color: #66cccc;">'mosca'</span>);
-
 
 <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">settings</span> = {
 <span style="background-color: #515151;"> </span>   port: 1883
@@ -208,7 +207,6 @@ client.on(<span style="color: #66cccc;">'connect'</span>, <span style="color: #9
 
 <pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">mqtt</span> = require(<span style="color: #66cccc;">'mqtt'</span>);
 
-
 <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">client</span> = mqtt.connect(<span style="color: #66cccc;">'mqtt://127.0.0.1:1883'</span>);
 client.on(<span style="color: #66cccc;">'connect'</span>, <span style="color: #99cc99;">function</span> () {
 <span style="background-color: #515151;"> </span>   client.publish(<span style="color: #66cccc;">'sub'</span>, <span style="color: #66cccc;">'message from pub'</span>);
@@ -269,45 +267,24 @@ $ node client_pub.js
 <li>服务器配置持久存储
 </li>
 
-<li>订阅方连接服务器时指定 <code>clean</code> 为 <code>false</code>
+<li>订阅方启用会话状态
+
+<p>
+连接服务器时使用同样的 clientId 并指定 <code>clean</code> 为 <code>false</code>
+</p>
 </li>
 
-<li>发布方发布消息时指定 <code>qos</code> 大于 <code>0</code> 以及 <code>retain</code> 为 <code>true</code>
+<li>发布方发布持久消息
+
+<p>
+发布消息时指定 <code>qos</code> 大于 <code>0</code> 以及 <code>retain</code> 为 <code>true</code>
+</p>
 </li>
 </ul>
 
 <p>
 下面的例子演示了客户端接收离线消息
 </p>
-
-<p>
-<code>server.js</code>
-</p>
-<div class="org-src-container">
-
-<pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">mosca</span> = require(<span style="color: #66cccc;">'mosca'</span>);
-
-<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">server</span> = <span style="color: #99cc99;">new</span> <span style="color: #6699cc;">mosca.Server</span>({ port: 1883 });
-<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">db</span> = <span style="color: #99cc99;">new</span> <span style="color: #6699cc;">mosca.persistence.Redis</span>({host: <span style="color: #66cccc;">'127.0.0.1'</span>, port: 6379, db: 13});
-db.wire(server);
-
-server.on(<span style="color: #66cccc;">'ready'</span>, <span style="color: #99cc99;">function</span> () {
-<span style="background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'mosca server running'</span>);
-}).on(<span style="color: #66cccc;">'clientConnected'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">client</span>) {
-<span style="background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') connected'</span>);
-}).on(<span style="color: #66cccc;">'published'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">packet</span>, <span style="color: #ffcc66;">client</span>) {
-<span style="background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + (client ? client.id : <span style="color: #66cccc;">'internal'</span>) + <span style="color: #66cccc;">') published top</span><span style="color: #66cccc; text-decoration: underline;">ic('</span><span style="text-decoration: underline;"> + packet.topic + </span><span style="color: #66cccc; text-decoration: underline;">'): '</span><span style="text-decoration: underline;"> + packet.payload);</span>
-}).on(<span style="color: #66cccc;">'subscribed'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">topic</span>, <span style="color: #ffcc66;">client</span>) {
-<span style="background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') subscribed topic('</span> + topic + <span style="color: #66cccc;">')'</span>);
-}).on(<span style="color: #66cccc;">'unsubscribed'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">topic</span>, <span style="color: #ffcc66;">client</span>) {
-<span style="background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') unsubscribed topic('</span> + topic + <span style="color: #66cccc;">')'</span>);
-}).on(<span style="color: #66cccc;">'clientDisconnecting'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">client</span>) {
-<span style="background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') disconnecting'</span>);
-}).on(<span style="color: #66cccc;">'clientDisconnected'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">client</span>) {
-<span style="background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') disconnected'</span>);
-});
-</pre>
-</div>
 
 <p>
 <code>client_sub.js</code>
