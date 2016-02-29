@@ -2,7 +2,7 @@
 <html lang="zh-cn">
   <head>
     <meta charset="utf-8"/>
-    <title>计划学一门新语言：Rust | 看看俺 – KanKanAn.com</title>
+    <title>Rust 是 C++ 的继承者 | 看看俺 – KanKanAn.com</title>
     <link rel="shortcut icon" href="/static/favicon.ico" />
     <link rel="stylesheet" type="text/less" href="/style/less/o-blog.less"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -44,7 +44,7 @@
 
       <div class="article">
         <header class="article-header">
-          <h1>计划学一门新语言：Rust</h1>
+          <h1>Rust 是 C++ 的继承者</h1>
       	<div class="qr-code">
       	  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="" alt="" id="qr-code" />
       	  <script>
@@ -55,64 +55,87 @@
       
         <div class="article-content">
           <p>
-常常听到每年学一门新语言的建议，想想还是有道理的，可能主力开发语言还是一两种，但是拓宽视野才是关键。
+刚看完《<a href="http://killercup.github.io/trpl-ebook/trpl-2015-09-26.html">Rust Programming Language</a>》开头章节“A brief introduction to Rust”，第一个例子就可以看出它是 C++ 的继承者，相信每个 C++ 开发者会忍不住会心一笑。
 </p>
 
 <p>
-一开始比较倾向于 golang ，语言设计简单、后台硬，而且有很多杀手级应用。
+看以下代码
+</p>
+<div class="org-src-container">
+
+<pre class="src src-rust"><span style="color: #b5bd68;">fn</span> <span style="color: #de935f;">main</span>() {
+<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #b5bd68;">mut</span> x = <span style="color: #b294bb;">vec!</span>[<span style="color: #8abeb7;">"Hello"</span>, <span style="color: #8abeb7;">"world"</span>];
+
+<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">let</span> y = &amp;x[0];
+
+<span style="background-color: #373b41;"> </span>   x.push(<span style="color: #8abeb7;">"foo"</span>);
+}
+</pre>
+</div>
+
+<p>
+会编译出错
+</p>
+<pre class="example">
+error: cannot borrow `x` as mutable because it is also borrowed as immutable
+      x.push("foo");
+      ^
+  note: previous borrow of `x` occurs here; the immutable borrow prevents
+  subsequent moves or mutable borrows of `x` until the borrow ends
+      let y = &amp;x[0];
+               ^
+  note: previous borrow ends here
+  fn main() {
+
+  }
+  ^
+</pre>
+
+<p>
+可以这样修复
+</p>
+<div class="org-src-container">
+
+<pre class="src src-rust"><span style="color: #b5bd68;">fn</span> <span style="color: #de935f;">main</span>() {
+<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #b5bd68;">mut</span> x = <span style="color: #b294bb;">vec!</span>[<span style="color: #8abeb7;">"Hello"</span>, <span style="color: #8abeb7;">"world"</span>];
+
+<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">let</span> y = x[0].clone();
+
+<span style="background-color: #373b41;"> </span>   x.push(<span style="color: #8abeb7;">"foo"</span>);
+}
+</pre>
+</div>
+
+<p>
+也可以这样修复
+</p>
+<div class="org-src-container">
+
+<pre class="src src-rust"><span style="color: #b5bd68;">fn</span> <span style="color: #de935f;">main</span>() {
+<span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #b5bd68;">mut</span> x = <span style="color: #b294bb;">vec!</span>[<span style="color: #8abeb7;">"Hello"</span>, <span style="color: #8abeb7;">"world"</span>];
+
+<span style="background-color: #373b41;"> </span>   {
+<span style="background-color: #373b41;"> </span>   <span style="background-color: #373b41;"> </span>   <span style="color: #b5bd68;">let</span> y = &amp;x[0];
+<span style="background-color: #373b41;"> </span>   }
+
+<span style="background-color: #373b41;"> </span>   x.push(<span style="color: #8abeb7;">"foo"</span>);
+}
+</pre>
+</div>
+
+<p>
+再多新颖的关键字也掩不住骨子里的 C++ 气息：作用域、引用，还有代码未明确表达的 “move语义”、RAII等。
 </p>
 
 <p>
-但是自已用 node.js 开发后台应用接近两年时间，除了部署时要下载一大堆包，并且包的兼容性变化较大这一点缺陷外，无论是开发效率和运行效率都合我意。再学一门应用领域差不多的 golang 有点动力不够。
-</p>
-
-<p>
-rust 看起来和手头上的语言差异较大，是一门严肃认真的语言，野心不小，反正也没指望立即拿它混饭吃，就暂定它吧。
-</p>
-
-<p>
-学习计划分为以下阶段：
-</p>
-
-<ul class="org-ul">
-<li>学习语言本身并做一些示例练习
-
-<p>
-从 《Rust Programming Language》一书入手。
-</p>
-
-<p>
-预计用一部分 3、4 月份的业余时间。
-</p>
-</li>
-
-<li>用于写一些对自已有用的临时性项目
-
-<p>
-预计用一部分 5、6 月份的业余时间。
-</p>
-</li>
-
-<li>参与一些开源项目
-
-<p>
-预计 7 月份之后的时间吧。
-</p>
-</li>
-
-<li>用于产品开发
-
-<p>
-如果这门语言本身经得起考验的话，不排除在工作中的一些小项目上正式使用。</p>
-</li>
-</ul>
+考虑到 Rust 宣称是一门“安全”、“高效”、“并发”的语言，消除了大量 C++ 的缺陷，对于一个掌握 C++ 的开发人员来说，语法形式上添加的繁锁不是问题，只要是经得起推敲那就是合理的。</p>
 
         </div>
         <br />
         <footer class="article-footer">
           <a class="tag" href="/tag/rust/0.html"><i class="icon-tag icon-white"></i> rust</a>
           <span class="muted">
-            <i class="icon-time icon-white"></i> <time datetime="2016-02-29T17:52:00+0800">2016年2月29日 17时</time>
+            <i class="icon-time icon-white"></i> <time datetime="2016-02-29T19:35:00+0800">2016年2月29日 19时</time>
           </span>
         </footer>
       </div>
