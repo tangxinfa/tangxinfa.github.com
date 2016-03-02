@@ -10522,7 +10522,7 @@ class RedisShard {
 
   再多新颖的关键字也掩不住骨子里的 C++ 气息：作用域、引用，还有代码未明确表达的 “move语义”、RAII等。
 
-  考虑到 Rust 宣称是一门“安全”、“高效”、“并发”的语言，消除了大量 C++ 的缺陷，对于一个掌握 C++ 的开发人员来说，语法形式上添加的繁锁不是问题，只要是经得起推敲那就是合理的。
+  考虑到 Rust 宣称是一门“安全”、“高效”、“并发”的语言，消除了大量 C++ 的缺陷，对于一个掌握 C++ 的开发人员来说，语法形式上添加的繁琐不是问题，只要是经得起推敲那就是合理的。
 
 * DONE Archlinux 下搭建 Rust 开发环境                  :rust:archlinux:emacs:
   CLOSED: [2016-02-29 Mon 20:03]
@@ -10563,3 +10563,64 @@ class RedisShard {
   - 更多配置
 
     可以参考文章《[[http://bassam.co/emacs/2015/08/24/rust-with-emacs/][Configuring Emacs for Rust]]》进行更高级的配置，对于我这种 Rust 还没入门的人来说，前面的配置已经足够，还是一步一个脚印吧。
+
+* DONE Module version mismatch 错误排查                                :node:
+  CLOSED: [2016-03-02 Wed 15:41]
+
+  node.js 应用启动时出现以下错误：
+  #+begin_example
+    Error: Cannot find module '../build/Debug/addon'
+        at Function.Module._resolveFilename (module.js:339:15)
+        at Function.Module._load (module.js:290:25)
+        at Function._load (/usr/lib/node_modules/pm2/node_modules/pmx/lib/transaction.js:62:21)
+        at Module.require (module.js:367:17)
+        at require (internal/module.js:16:19)
+        at Object.<anonymous> (node_modules/heapdump/lib/main.js:18:15)
+        at Module._compile (module.js:413:34)
+        at Object.Module._extensions..js (module.js:422:10)
+        at Module.load (module.js:357:32)
+        at Function.Module._load (module.js:314:12)
+  #+end_example
+
+  改了一下 heapdump/lib/main.js:18:15 附近的代码，输出了真正的错误信息：
+  #+begin_example
+    Error: Module version mismatch. Expected 47, got 46.
+  #+end_example
+
+  根据 node_version.h 中 NODE_MODULE_VERSION 的定义，46 对应 Node.js v4.0.0，47 对应 Node.js v5.0.0。
+  应该是编译 heapdump 模块使用的 Node.js 版本和运行时 Node.js 版本不一致，编译时我通过 $PATH 环境变量，将 Node.js v4.2.3 置为默认的 Node.js 版本了。
+  #+begin_example
+    $ /usr/bin/node --version 
+    v5.7.0
+    $ node --version
+    v4.2.3
+  #+end_example
+
+  我使用的是 pm2 做为进程管理器，cluster 模式运行 node.js 应用，pm2 后台进程使用的是默认版本的 Node.js 版本（v5.7.0）启动，应该是 pm2 也使用同样的 Node.js 版本（v5.7.0）来运行应用，执行 pm2 save 后，~/.pm2/dump.pm2 中我的应用的 $PATH 是正确的，已经将 Node.js v4.2.3 置为默认的 Node.js 版本，不知为何 pm2 并未采用。
+
+  pm2 分为前端命令和后端 daemon 两部分，真正的操作都是由 daemon 来施行，当我们使用 pm2 start 来启动 app 时，只是把命令通过 unix socket 传递给了 daemon，一个合理的猜想是 pm2 命令并没有把当前 shell 的 $PATH 传递给 daemon，或者是 daemon 创建 app 进程时传递过来的 $PATH 设置未生效。
+
+  查看当前的 pm2 版本：
+  #+begin_example
+    $ ps aux | grep PM2 | grep -v grep 
+    tangxin+ 17538  0.1  0.4 1185564 32020 ?       Ssl  2月25   9:29 PM2 v0.14.5: God Daemon
+  #+end_example
+
+  通过 --interpreter 选项启动应用时指定 Node.js v4.2.3： --interpreter=/usr/local/node-v4.2.3/bin/node
+
+  通过 pm2 delete 删除应用后再 start 应用，结果还是一样的错误，查看应用实际使用的 node 版本：
+  #+begin_example
+    $ ls -la /proc/22387/exe
+    lrwxrwxrwx 1 tangxinfa tangxinfa 0 3月   2 14:00 /proc/22387/exe -> /usr/bin/node
+  #+end_example
+  使用的还是系统默认的 Node.js 版本 v5.7.0。
+
+  经过测试，可以确认：
+  #+begin_quote
+  通过 --interpreter 指定其它 node 版本，在 cluster 模式下无效，fork 模式下有效。
+  #+end_quote
+
+  参见相关 Issues：
+  [[https://github.com/Unitech/PM2/issues/1575][interpreter ignored when using cluster mode · Issue #1575 · Unitech/pm2]]
+  [[https://github.com/Unitech/PM2/issues/1034][Using different versions of node via nvm for each app · Issue #1034 · Unitech/pm2]]
+  [[https://github.com/Unitech/PM2/issues/1224#issuecomment-99931316][--interpreter not applied? · Issue #1224 · Unitech/pm2]]
