@@ -4,7 +4,7 @@
         <title>node - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/node.xml</link>
-        <lastBuildDate>Wed, 02 Mar 2016 07:43:14 GMT</lastBuildDate>
+        <lastBuildDate>Thu, 10 Mar 2016 06:09:56 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>node - 看看俺 – KanKanAn.com</title>
@@ -96,9 +96,21 @@ lrwxrwxrwx 1 tangxinfa tangxinfa 0 3月   2 14:00 /proc/22387/exe -&gt; /usr/bin
 
 <p>
 参见相关 Issues：
-<a href="https://github.com/Unitech/PM2/issues/1575">interpreter ignored when using cluster mode · Issue #1575 · Unitech/pm2</a>
-<a href="https://github.com/Unitech/PM2/issues/1034">Using different versions of node via nvm for each app · Issue #1034 · Unitech/pm2</a>
-<a href="https://github.com/Unitech/PM2/issues/1224#issuecomment-99931316">&#x2013;interpreter not applied? · Issue #1224 · Unitech/pm2</a></p>
+</p>
+
+<ul class="org-ul">
+<li><a href="https://github.com/Unitech/PM2/issues/1575">interpreter ignored when using cluster mode · Issue #1575 · Unitech/pm2</a>
+</li>
+
+<li><a href="https://github.com/Unitech/PM2/issues/1034">Using different versions of node via nvm for each app · Issue #1034 · Unitech/pm2</a>
+</li>
+
+<li><a href="https://github.com/Unitech/PM2/issues/1224#issuecomment-99931316">&#x2013;interpreter not applied? · Issue #1224 · Unitech/pm2</a>
+</li>
+</ul>
+
+<p>
+应该可以通过指定不同的 $PM2_HOME 环境变量，跑多套 pm2，各个 pm2 使用不同版本的 Node.js，多个 cluster 模式的 pm2 应用也就会使用不同版本 Node.js。</p>
 ]]></content:encoded>
         </item>
         <item>
@@ -119,7 +131,7 @@ lrwxrwxrwx 1 tangxinfa tangxinfa 0 3月   2 14:00 /proc/22387/exe -&gt; /usr/bin
 
 <div class="org-src-container">
 
-<pre class="src src-sh">wget http://npm.taobao.org/mirrors/node/latest-v4.x/node-v4.3.1-linux-x64.tar.xz
+<pre class="src src-sh">wget http://npm.taobao.org/mirrors/node/latest-v4.x/node-v4.3.1-linux-x64.tar.xz<span style="text-decoration: underline;"> -O node-v4.3.1-linux-x64.tar.xz</span>
 tar xJvf node-v4.3.1-linux-x64.tar.xz --no-same-owner --exclude CHANGELOG.md --e<span style="text-decoration: underline;">xclude LICENSE --exclude README.md --strip-components 1 -C /usr</span>
 </pre>
 </div>
@@ -537,24 +549,24 @@ Applications
 <pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">mosca</span> = require(<span style="color: #66cccc;">'mosca'</span>);
 
 <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">settings</span> = {
-<span style="background-color: #515151;"> </span>   port: 1883
+<span style="color: #cccccc; background-color: #515151;"> </span>   port: 1883
 };
 
 <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">server</span> = <span style="color: #99cc99;">new</span> <span style="color: #6699cc;">mosca.Server</span>(settings);
 server.on(<span style="color: #66cccc;">'ready'</span>, <span style="color: #99cc99;">function</span> () {
-<span style="background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'mosca server running'</span>);
+<span style="color: #cccccc; background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'mosca server running'</span>);
 }).on(<span style="color: #66cccc;">'clientConnected'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">client</span>) {
-<span style="background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') connected'</span>);
+<span style="color: #cccccc; background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') connected'</span>);
 }).on(<span style="color: #66cccc;">'published'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">packet</span>, <span style="color: #ffcc66;">client</span>) {
-<span style="background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + (client ? client.id : <span style="color: #66cccc;">'internal'</span>) + <span style="color: #66cccc;">') published top</span><span style="color: #66cccc; text-decoration: underline;">ic('</span><span style="text-decoration: underline;"> + packet.topic + </span><span style="color: #66cccc; text-decoration: underline;">'): '</span><span style="text-decoration: underline;"> + packet.payload);</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + (client ? client.id : <span style="color: #66cccc;">'internal'</span>) + <span style="color: #66cccc;">') published top</span><span style="color: #66cccc; text-decoration: underline;">ic('</span><span style="text-decoration: underline;"> + packet.topic + </span><span style="color: #66cccc; text-decoration: underline;">'): '</span><span style="text-decoration: underline;"> + packet.payload);</span>
 }).on(<span style="color: #66cccc;">'subscribed'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">topic</span>, <span style="color: #ffcc66;">client</span>) {
-<span style="background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') subscribed topic('</span> + topic + <span style="color: #66cccc;">')'</span>);
+<span style="color: #cccccc; background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') subscribed topic('</span> + topic + <span style="color: #66cccc;">')'</span>);
 }).on(<span style="color: #66cccc;">'unsubscribed'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">topic</span>, <span style="color: #ffcc66;">client</span>) {
-<span style="background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') unsubscribed topic('</span> + topic + <span style="color: #66cccc;">')'</span>);
+<span style="color: #cccccc; background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') unsubscribed topic('</span> + topic + <span style="color: #66cccc;">')'</span>);
 }).on(<span style="color: #66cccc;">'clientDisconnecting'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">client</span>) {
-<span style="background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') disconnecting'</span>);
+<span style="color: #cccccc; background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') disconnecting'</span>);
 }).on(<span style="color: #66cccc;">'clientDisconnected'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">client</span>) {
-<span style="background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') disconnected'</span>);
+<span style="color: #cccccc; background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') disconnected'</span>);
 });
 </pre>
 </div>
@@ -569,11 +581,11 @@ server.on(<span style="color: #66cccc;">'ready'</span>, <span style="color: #99c
 
 <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">client</span> = mqtt.connect(<span style="color: #66cccc;">'mqtt://127.0.0.1:1883'</span>);
 client.on(<span style="color: #66cccc;">'connect'</span>, <span style="color: #99cc99;">function</span> () {
-<span style="background-color: #515151;"> </span>   client.subscribe(<span style="color: #66cccc;">'presence'</span>);
-<span style="background-color: #515151;"> </span>   client.publish(<span style="color: #66cccc;">'presence'</span>, <span style="color: #66cccc;">'a message from myself'</span>);
+<span style="color: #cccccc; background-color: #515151;"> </span>   client.subscribe(<span style="color: #66cccc;">'presence'</span>);
+<span style="color: #cccccc; background-color: #515151;"> </span>   client.publish(<span style="color: #66cccc;">'presence'</span>, <span style="color: #66cccc;">'a message from myself'</span>);
 }).on(<span style="color: #66cccc;">'message'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">topic</span>, <span style="color: #ffcc66;">message</span>) {
-<span style="background-color: #515151;"> </span>   console.log(topic + <span style="color: #66cccc;">': '</span> + message.toString());
-<span style="background-color: #515151;"> </span>   client.end();
+<span style="color: #cccccc; background-color: #515151;"> </span>   console.log(topic + <span style="color: #66cccc;">': '</span> + message.toString());
+<span style="color: #cccccc; background-color: #515151;"> </span>   client.end();
 });
 </pre>
 </div>
@@ -627,10 +639,10 @@ $
 
 <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">client</span> = mqtt.connect(<span style="color: #66cccc;">'mqtt://127.0.0.1:1883'</span>);
 client.on(<span style="color: #66cccc;">'connect'</span>, <span style="color: #99cc99;">function</span> () {
-<span style="background-color: #515151;"> </span>   client.publish(<span style="color: #66cccc;">'sub'</span>, <span style="color: #66cccc;">'message from pub'</span>);
+<span style="color: #cccccc; background-color: #515151;"> </span>   client.publish(<span style="color: #66cccc;">'sub'</span>, <span style="color: #66cccc;">'message from pub'</span>);
 }).on(<span style="color: #66cccc;">'message'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">topic</span>, <span style="color: #ffcc66;">message</span>) {
-<span style="background-color: #515151;"> </span>   console.log(topic + <span style="color: #66cccc;">': '</span> + message.toString());
-<span style="background-color: #515151;"> </span>   client.end();
+<span style="color: #cccccc; background-color: #515151;"> </span>   console.log(topic + <span style="color: #66cccc;">': '</span> + message.toString());
+<span style="color: #cccccc; background-color: #515151;"> </span>   client.end();
 });
 </pre>
 </div>
@@ -644,10 +656,10 @@ client.on(<span style="color: #66cccc;">'connect'</span>, <span style="color: #9
 
 <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">client</span> = mqtt.connect(<span style="color: #66cccc;">'mqtt://127.0.0.1:1883'</span>);
 client.on(<span style="color: #66cccc;">'connect'</span>, <span style="color: #99cc99;">function</span> () {
-<span style="background-color: #515151;"> </span>   client.publish(<span style="color: #66cccc;">'sub'</span>, <span style="color: #66cccc;">'message from pub'</span>);
+<span style="color: #cccccc; background-color: #515151;"> </span>   client.publish(<span style="color: #66cccc;">'sub'</span>, <span style="color: #66cccc;">'message from pub'</span>);
 }).on(<span style="color: #66cccc;">'message'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">topic</span>, <span style="color: #ffcc66;">message</span>) {
-<span style="background-color: #515151;"> </span>   console.log(topic + <span style="color: #66cccc;">': '</span> + message.toString());
-<span style="background-color: #515151;"> </span>   client.end();
+<span style="color: #cccccc; background-color: #515151;"> </span>   console.log(topic + <span style="color: #66cccc;">': '</span> + message.toString());
+<span style="color: #cccccc; background-color: #515151;"> </span>   client.end();
 });
 </pre>
 </div>
@@ -730,10 +742,10 @@ $ node client_pub.js
 
 <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">client</span> = mqtt.connect(<span style="color: #66cccc;">'mqtt://127.0.0.1:1883'</span>, {clientId: <span style="color: #66cccc;">'sub'</span>, clean: <span style="color: #6699cc;">fals</span><span style="color: #6699cc; text-decoration: underline;">e</span><span style="text-decoration: underline;">});</span>
 client.on(<span style="color: #66cccc;">'connect'</span>, <span style="color: #99cc99;">function</span> () {
-<span style="background-color: #515151;"> </span>   client.subscribe(<span style="color: #66cccc;">'sub'</span>);
+<span style="color: #cccccc; background-color: #515151;"> </span>   client.subscribe(<span style="color: #66cccc;">'sub'</span>);
 }).on(<span style="color: #66cccc;">'message'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">topic</span>, <span style="color: #ffcc66;">message</span>) {
-<span style="background-color: #515151;"> </span>   console.log(topic + <span style="color: #66cccc;">': '</span> + message.toString());
-<span style="background-color: #515151;"> </span>   client.end();
+<span style="color: #cccccc; background-color: #515151;"> </span>   console.log(topic + <span style="color: #66cccc;">': '</span> + message.toString());
+<span style="color: #cccccc; background-color: #515151;"> </span>   client.end();
 });
 </pre>
 </div>
@@ -747,10 +759,10 @@ client.on(<span style="color: #66cccc;">'connect'</span>, <span style="color: #9
 
 <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">client</span> = mqtt.connect(<span style="color: #66cccc;">'mqtt://127.0.0.1:1883'</span>, {clientId: <span style="color: #66cccc;">'pub'</span>});
 client.on(<span style="color: #66cccc;">'connect'</span>, <span style="color: #99cc99;">function</span> () {
-<span style="background-color: #515151;"> </span>   client.publish(<span style="color: #66cccc;">'sub'</span>, <span style="color: #66cccc;">'message from pub'</span>, {qos: 1, retain: <span style="color: #6699cc;">true</span>});
+<span style="color: #cccccc; background-color: #515151;"> </span>   client.publish(<span style="color: #66cccc;">'sub'</span>, <span style="color: #66cccc;">'message from pub'</span>, {qos: 1, retain: <span style="color: #6699cc;">true</span>});
 }).on(<span style="color: #66cccc;">'message'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">topic</span>, <span style="color: #ffcc66;">message</span>) {
-<span style="background-color: #515151;"> </span>   console.log(topic + <span style="color: #66cccc;">': '</span> + message.toString());
-<span style="background-color: #515151;"> </span>   client.end();
+<span style="color: #cccccc; background-color: #515151;"> </span>   console.log(topic + <span style="color: #66cccc;">': '</span> + message.toString());
+<span style="color: #cccccc; background-color: #515151;"> </span>   client.end();
 });
 </pre>
 </div>
@@ -988,7 +1000,7 @@ Error: Cannot find module '../encodings'
 <div class="org-src-container">
 
 <pre class="src src-js"><span style="color: #99cc99;">if</span> (!iconv.encodings)
-<span style="background-color: #515151;"> </span>   iconv.encodings = require(<span style="color: #66cccc;">"../encodings"</span>); <span style="color: #999999; font-style: italic;">// </span><span style="color: #999999; font-style: italic;">Lazy load all encoding definit</span><span style="color: #999999; font-style: italic; text-decoration: underline;">ions.</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   iconv.encodings = require(<span style="color: #66cccc;">"../encodings"</span>); <span style="color: #999999; font-style: italic;">// </span><span style="color: #999999; font-style: italic;">Lazy load all encoding definit</span><span style="color: #999999; font-style: italic; text-decoration: underline;">ions.</span>
 </pre>
 </div>
 
@@ -1027,36 +1039,36 @@ node.js后台应用在开始时往往不会搞得太复杂，使用单实例的r
 <pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">redis</span> = require(<span style="color: #66cccc;">'redis'</span>);
 
 <span style="color: #99cc99;">function</span> <span style="color: #f99157;">Database</span>() {
-<span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">self</span> = <span style="color: #6699cc;">this</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">self</span> = <span style="color: #6699cc;">this</span>;
 
-<span style="background-color: #515151;"> </span>   self._redis_host = <span style="color: #66cccc;">'127.0.0.1'</span>;
-<span style="background-color: #515151;"> </span>   self._redis_port = 6379;
-<span style="background-color: #515151;"> </span>   self._redis_db = 2;
+<span style="color: #cccccc; background-color: #515151;"> </span>   self._redis_host = <span style="color: #66cccc;">'127.0.0.1'</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   self._redis_port = 6379;
+<span style="color: #cccccc; background-color: #515151;"> </span>   self._redis_db = 2;
 
-<span style="background-color: #515151;"> </span>   self._redis = <span style="color: #6699cc;">null</span>;
-<span style="background-color: #515151;"> </span>   self._redis_selected = <span style="color: #6699cc;">false</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   self._redis = <span style="color: #6699cc;">null</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   self._redis_selected = <span style="color: #6699cc;">false</span>;
 }
 
 Database.<span style="color: #6699cc;">prototype</span>.redis = <span style="color: #99cc99;">function</span>(<span style="color: #ffcc66;">callback</span>) {
-<span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">self</span> = <span style="color: #6699cc;">this</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">self</span> = <span style="color: #6699cc;">this</span>;
 
-<span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (self._redis &amp;&amp; self._redis_selected) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> callback(<span style="color: #6699cc;">null</span>, self._redis);
-<span style="background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (self._redis &amp;&amp; self._redis_selected) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> callback(<span style="color: #6699cc;">null</span>, self._redis);
+<span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (! self._redis) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   self._redis = redis.createClient(self._redis_port, self._redis_host);
-<span style="background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (! self._redis) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   self._redis = redis.createClient(self._redis_port, self._redis_host);
+<span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="background-color: #515151;"> </span>   self._redis.select(self._redis_db, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">err</span>) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (err) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> callback(err);
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   self._redis.select(self._redis_db, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">err</span>) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (err) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> callback(err);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   self._redis_selected = <span style="color: #6699cc;">true</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   self._redis_selected = <span style="color: #6699cc;">true</span>;
 
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> callback(<span style="color: #6699cc;">null</span>, self._redis);
-<span style="background-color: #515151;"> </span>   });
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> callback(<span style="color: #6699cc;">null</span>, self._redis);
+<span style="color: #cccccc; background-color: #515151;"> </span>   });
 };
 
 
@@ -1078,30 +1090,30 @@ module.exports = <span style="color: #99cc99;">new</span> <span style="color: #6
 <pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">db</span> = require(<span style="color: #66cccc;">'./database'</span>);
 
 db.redis(<span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">err</span>, <span style="color: #ffcc66;">client</span>) {
-<span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span>(err) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   console.error(err.toString());
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> process.exit(1);
-<span style="background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span>(err) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   console.error(err.toString());
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> process.exit(1);
+<span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="background-color: #515151;"> </span>   client.set(<span style="color: #66cccc;">'hello'</span>, <span style="color: #66cccc;">'world'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">err</span>) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span>(err) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   console.error(err.toString());
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> process.exit(1);
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   client.set(<span style="color: #66cccc;">'hello'</span>, <span style="color: #66cccc;">'world'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">err</span>) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span>(err) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   console.error(err.toString());
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> process.exit(1);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   setTimeout(<span style="color: #99cc99;">function</span> () {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   client.get(<span style="color: #66cccc;">'hello'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">err</span>, <span style="color: #ffcc66;">value</span>) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span>(err) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   console.error(err.toString());
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> process.exit(1);
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   setTimeout(<span style="color: #99cc99;">function</span> () {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   client.get(<span style="color: #66cccc;">'hello'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">err</span>, <span style="color: #ffcc66;">value</span>) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span>(err) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   console.error(err.toString());
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> process.exit(1);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'hello: '</span> + value);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'hello: '</span> + value);
 
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   process.exit(0);
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   });
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   }, 20*1000);
-<span style="background-color: #515151;"> </span>   });
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   process.exit(0);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   });
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }, 20*1000);
+<span style="color: #cccccc; background-color: #515151;"> </span>   });
 });
 </pre>
 </div>
@@ -1184,31 +1196,31 @@ ioredis is a robust, full-featured Redis client that is used in the world's bigg
 <pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">Redis</span> = require(<span style="color: #66cccc;">'ioredis'</span>);
 
 <span style="color: #99cc99;">function</span> <span style="color: #f99157;">Database</span>() {
-<span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">self</span> = <span style="color: #6699cc;">this</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">self</span> = <span style="color: #6699cc;">this</span>;
 
-<span style="background-color: #515151;"> </span>   self._redis_options = {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   name: <span style="color: #66cccc;">'mymaster'</span>,
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   sentinels: [{
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   host: <span style="color: #66cccc;">'127.0.0.1'</span>,
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   port: 5000
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   }, {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   host: <span style="color: #66cccc;">'127.0.0.1'</span>,
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   port: 5001
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   }],
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   db: 2
-<span style="background-color: #515151;"> </span>   };
+<span style="color: #cccccc; background-color: #515151;"> </span>   self._redis_options = {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   name: <span style="color: #66cccc;">'mymaster'</span>,
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   sentinels: [{
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   host: <span style="color: #66cccc;">'127.0.0.1'</span>,
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   port: 5000
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }, {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   host: <span style="color: #66cccc;">'127.0.0.1'</span>,
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   port: 5001
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }],
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   db: 2
+<span style="color: #cccccc; background-color: #515151;"> </span>   };
 
-<span style="background-color: #515151;"> </span>   self._redis = <span style="color: #6699cc;">null</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   self._redis = <span style="color: #6699cc;">null</span>;
 }
 
 Database.<span style="color: #6699cc;">prototype</span>.redis = <span style="color: #99cc99;">function</span>(<span style="color: #ffcc66;">callback</span>) {
-<span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">self</span> = <span style="color: #6699cc;">this</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">self</span> = <span style="color: #6699cc;">this</span>;
 
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span><span style="color: #99cc99;">if</span> (! self._redis) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   self._redis = <span style="color: #99cc99;">new</span> <span style="color: #6699cc;">Redis</span>(self._redis_options);
-<span style="background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span><span style="color: #99cc99;">if</span> (! self._redis) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   self._redis = <span style="color: #99cc99;">new</span> <span style="color: #6699cc;">Redis</span>(self._redis_options);
+<span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> callback(<span style="color: #6699cc;">null</span>, self._redis);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> callback(<span style="color: #6699cc;">null</span>, self._redis);
 };
 
 module.exports = <span style="color: #99cc99;">new</span> <span style="color: #6699cc;">Database</span>();
@@ -1441,49 +1453,49 @@ pm2-logrotate 现阶段小问题还是比较多的（详见项目的 <a href="ht
 <div class="org-src-container">
 
 <pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">tls</span>         = require(<span style="color: #66cccc;">'tls'</span>),
-<span style="background-color: #515151;"> </span>   fs          = require(<span style="color: #66cccc;">'fs'</span>);
+<span style="color: #cccccc; background-color: #515151;"> </span>   fs          = require(<span style="color: #66cccc;">'fs'</span>);
 
 
 <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">options</span> = {
-<span style="background-color: #515151;"> </span>   key: fs.readFileSync(<span style="color: #66cccc;">'server.key'</span>),
-<span style="background-color: #515151;"> </span>   cert: fs.readFileSync(<span style="color: #66cccc;">'server.cert'</span>),
-<span style="background-color: #515151;"> </span>   handshakeTimeout: 10*1000,
-<span style="background-color: #515151;"> </span>   plain: <span style="color: #6699cc;">true</span>,
-<span style="background-color: #515151;"> </span>   ssl: <span style="color: #6699cc;">true</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   key: fs.readFileSync(<span style="color: #66cccc;">'server.key'</span>),
+<span style="color: #cccccc; background-color: #515151;"> </span>   cert: fs.readFileSync(<span style="color: #66cccc;">'server.cert'</span>),
+<span style="color: #cccccc; background-color: #515151;"> </span>   handshakeTimeout: 10*1000,
+<span style="color: #cccccc; background-color: #515151;"> </span>   plain: <span style="color: #6699cc;">true</span>,
+<span style="color: #cccccc; background-color: #515151;"> </span>   ssl: <span style="color: #6699cc;">true</span>
 };
 
 <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">port</span> = 1234;
 <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">tlsServer</span> = tls.createServer(options, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">socket</span>) {
-<span style="background-color: #515151;"> </span>   socket.on(<span style="color: #66cccc;">"close"</span>, <span style="color: #99cc99;">function</span> () {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   console.warn(<span style="color: #66cccc;">'tls client('</span> + socket.remoteAddress + <span style="color: #66cccc;">':'</span> + socket.remoteP<span style="text-decoration: underline;">ort +</span><span style="color: #66cccc; text-decoration: underline;">') closed'</span><span style="text-decoration: underline;">);</span>
-<span style="background-color: #515151;"> </span>   });
+<span style="color: #cccccc; background-color: #515151;"> </span>   socket.on(<span style="color: #66cccc;">"close"</span>, <span style="color: #99cc99;">function</span> () {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   console.warn(<span style="color: #66cccc;">'tls client('</span> + socket.remoteAddress + <span style="color: #66cccc;">':'</span> + socket.remoteP<span style="text-decoration: underline;">ort +</span><span style="color: #66cccc; text-decoration: underline;">') closed'</span><span style="text-decoration: underline;">);</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   });
 }).listen(port, <span style="color: #66cccc;">"0.0.0.0"</span>, <span style="color: #99cc99;">function</span>(){
-<span style="background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'tls server listening on port('</span> + port + <span style="color: #66cccc;">')'</span>);
+<span style="color: #cccccc; background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'tls server listening on port('</span> + port + <span style="color: #66cccc;">')'</span>);
 });
 tlsServer.maxConnections = 10000;
 tlsServer.on(<span style="color: #66cccc;">'clientError'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">exception</span>, <span style="color: #ffcc66;">socket</span>) {
-<span style="background-color: #515151;"> </span>   console.warn(<span style="color: #66cccc;">'tls client('</span> + socket.remoteAddress + <span style="color: #66cccc;">':'</span> + socket.remotePort <span style="text-decoration: underline;">+</span><span style="color: #66cccc; text-decoration: underline;">') error('</span><span style="text-decoration: underline;"> + exception + </span><span style="color: #66cccc; text-decoration: underline;">')'</span><span style="text-decoration: underline;">);</span>
-<span style="background-color: #515151;"> </span>   socket.destroy();
+<span style="color: #cccccc; background-color: #515151;"> </span>   console.warn(<span style="color: #66cccc;">'tls client('</span> + socket.remoteAddress + <span style="color: #66cccc;">':'</span> + socket.remotePort <span style="text-decoration: underline;">+</span><span style="color: #66cccc; text-decoration: underline;">') error('</span><span style="text-decoration: underline;"> + exception + </span><span style="color: #66cccc; text-decoration: underline;">')'</span><span style="text-decoration: underline;">);</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   socket.destroy();
 });
 
 <span style="color: #99cc99;">function</span> <span style="color: #f99157;">memoryUsage</span>() {
-<span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">mem</span> = process.memoryUsage();
-<span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">format</span> = <span style="color: #99cc99;">function</span>(<span style="color: #ffcc66;">bytes</span>) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> (bytes/1024/1024).toFixed(2)+<span style="color: #66cccc;">'MB'</span>;
-<span style="background-color: #515151;"> </span>   };
-<span style="background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'Process: heapTotal '</span>+format(mem.heapTotal) + <span style="color: #66cccc;">' heapUsed '</span> + for<span style="text-decoration: underline;">mat(mem.heapUsed) + </span><span style="color: #66cccc; text-decoration: underline;">' rss '</span><span style="text-decoration: underline;"> + format(mem.rss));</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">mem</span> = process.memoryUsage();
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">format</span> = <span style="color: #99cc99;">function</span>(<span style="color: #ffcc66;">bytes</span>) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> (bytes/1024/1024).toFixed(2)+<span style="color: #66cccc;">'MB'</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   };
+<span style="color: #cccccc; background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'Process: heapTotal '</span>+format(mem.heapTotal) + <span style="color: #66cccc;">' heapUsed '</span> + for<span style="text-decoration: underline;">mat(mem.heapUsed) + </span><span style="color: #66cccc; text-decoration: underline;">' rss '</span><span style="text-decoration: underline;"> + format(mem.rss));</span>
 }
 
 setInterval(<span style="color: #99cc99;">function</span> () {
-<span style="background-color: #515151;"> </span>   tlsServer.getConnections(<span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">err</span>, <span style="color: #ffcc66;">tlsCount</span>) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (err) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   console.error(<span style="color: #66cccc;">"get tls connections count error("</span> + err.toString() + <span style="color: #66cccc; text-decoration: underline;">")"</span><span style="text-decoration: underline;">);</span>
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   tlsServer.getConnections(<span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">err</span>, <span style="color: #ffcc66;">tlsCount</span>) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (err) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   console.error(<span style="color: #66cccc;">"get tls connections count error("</span> + err.toString() + <span style="color: #66cccc; text-decoration: underline;">")"</span><span style="text-decoration: underline;">);</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   console.warn(<span style="color: #66cccc;">"server: tls connections("</span> + tlsCount + <span style="color: #66cccc;">")"</span>);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   console.warn(<span style="color: #66cccc;">"server: tls connections("</span> + tlsCount + <span style="color: #66cccc;">")"</span>);
 
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   memoryUsage();
-<span style="background-color: #515151;"> </span>   });
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   memoryUsage();
+<span style="color: #cccccc; background-color: #515151;"> </span>   });
 }, 1*1000);
 </pre>
 </div>
@@ -1500,37 +1512,37 @@ setInterval(<span style="color: #99cc99;">function</span> () {
 <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">tlsCount</span> = 0;
 
 <span style="color: #99cc99;">function</span> <span style="color: #f99157;">connect</span>() {
-<span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">socket</span> = tls.connect(1234, {rejectUnauthorized: <span style="color: #6699cc;">false</span>}, <span style="color: #99cc99;">function</span> () {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   tlsCount += 1;
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   socket.setEncoding(<span style="color: #66cccc;">'utf8'</span>);
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   socket.on(<span style="color: #66cccc;">'data'</span>, <span style="color: #99cc99;">function</span>(<span style="color: #ffcc66;">data</span>) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   });
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   socket.on(<span style="color: #66cccc;">'close'</span>, <span style="color: #99cc99;">function</span>() {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   tlsCount -= 1;
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   });
-<span style="background-color: #515151;"> </span>   });
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">socket</span> = tls.connect(1234, {rejectUnauthorized: <span style="color: #6699cc;">false</span>}, <span style="color: #99cc99;">function</span> () {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   tlsCount += 1;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   socket.setEncoding(<span style="color: #66cccc;">'utf8'</span>);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   socket.on(<span style="color: #66cccc;">'data'</span>, <span style="color: #99cc99;">function</span>(<span style="color: #ffcc66;">data</span>) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   });
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   socket.on(<span style="color: #66cccc;">'close'</span>, <span style="color: #99cc99;">function</span>() {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   tlsCount -= 1;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   });
+<span style="color: #cccccc; background-color: #515151;"> </span>   });
 }
 
 <span style="color: #99cc99;">function</span> <span style="color: #f99157;">memoryUsage</span>() {
-<span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">mem</span> = process.memoryUsage();
-<span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">format</span> = <span style="color: #99cc99;">function</span>(<span style="color: #ffcc66;">bytes</span>) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> (bytes/1024/1024).toFixed(2)+<span style="color: #66cccc;">'MB'</span>;
-<span style="background-color: #515151;"> </span>   };
-<span style="background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'Process: heapTotal '</span>+format(mem.heapTotal) + <span style="color: #66cccc;">' heapUsed '</span> + for<span style="text-decoration: underline;">mat(mem.heapUsed) + </span><span style="color: #66cccc; text-decoration: underline;">' rss '</span><span style="text-decoration: underline;"> + format(mem.rss));</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">mem</span> = process.memoryUsage();
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">format</span> = <span style="color: #99cc99;">function</span>(<span style="color: #ffcc66;">bytes</span>) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> (bytes/1024/1024).toFixed(2)+<span style="color: #66cccc;">'MB'</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   };
+<span style="color: #cccccc; background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'Process: heapTotal '</span>+format(mem.heapTotal) + <span style="color: #66cccc;">' heapUsed '</span> + for<span style="text-decoration: underline;">mat(mem.heapUsed) + </span><span style="color: #66cccc; text-decoration: underline;">' rss '</span><span style="text-decoration: underline;"> + format(mem.rss));</span>
 }
 
 <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">round</span> = 0;
 setInterval(<span style="color: #99cc99;">function</span> () {
-<span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (round &lt; 10) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">for</span>(<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">i</span> = 0; i &lt; 100; ++i) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   connect();
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   }
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   round += 1;
-<span style="background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (round &lt; 10) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">for</span>(<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">i</span> = 0; i &lt; 100; ++i) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   connect();
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   round += 1;
+<span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="background-color: #515151;"> </span>   console.warn(<span style="color: #66cccc;">"client: tls connections("</span> + tlsCount + <span style="color: #66cccc;">")"</span>);
+<span style="color: #cccccc; background-color: #515151;"> </span>   console.warn(<span style="color: #66cccc;">"client: tls connections("</span> + tlsCount + <span style="color: #66cccc;">")"</span>);
 
-<span style="background-color: #515151;"> </span>   memoryUsage();
+<span style="color: #cccccc; background-color: #515151;"> </span>   memoryUsage();
 }, 1000);
 </pre>
 </div>
@@ -1665,13 +1677,13 @@ Process: heapTotal 33.74MB heapUsed 19.24MB rss 59.38MB
 
 });
 socket.on(<span style="color: #66cccc;">"error"</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">err</span>) {
-<span style="background-color: #515151;"> </span>   console.warn(<span style="color: #66cccc;">'tls client('</span> + socket.remoteAddress + <span style="color: #66cccc;">':'</span> + socket.remotePort <span style="text-decoration: underline;">+</span><span style="color: #66cccc; text-decoration: underline;">') error('</span><span style="text-decoration: underline;"> + err.toString() + </span><span style="color: #66cccc; text-decoration: underline;">')'</span><span style="text-decoration: underline;">);</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   console.warn(<span style="color: #66cccc;">'tls client('</span> + socket.remoteAddress + <span style="color: #66cccc;">':'</span> + socket.remotePort <span style="text-decoration: underline;">+</span><span style="color: #66cccc; text-decoration: underline;">') error('</span><span style="text-decoration: underline;"> + err.toString() + </span><span style="color: #66cccc; text-decoration: underline;">')'</span><span style="text-decoration: underline;">);</span>
 });
 socket.on(<span style="color: #66cccc;">"close"</span>, <span style="color: #99cc99;">function</span> () {
-<span style="background-color: #515151;"> </span>   console.warn(<span style="color: #66cccc;">'tls client('</span> + socket.remoteAddress + <span style="color: #66cccc;">':'</span> + socket.remotePort <span style="text-decoration: underline;">+</span><span style="color: #66cccc; text-decoration: underline;">') closed'</span><span style="text-decoration: underline;">);</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   console.warn(<span style="color: #66cccc;">'tls client('</span> + socket.remoteAddress + <span style="color: #66cccc;">':'</span> + socket.remotePort <span style="text-decoration: underline;">+</span><span style="color: #66cccc; text-decoration: underline;">') closed'</span><span style="text-decoration: underline;">);</span>
 });
 socket.on(<span style="color: #66cccc;">"timeout"</span>, <span style="color: #99cc99;">function</span> () {
-<span style="background-color: #515151;"> </span>   socket.destroy();
+<span style="color: #cccccc; background-color: #515151;"> </span>   socket.destroy();
 });
 </pre>
 </div>
@@ -2081,15 +2093,15 @@ The console functions are synchronous when the destination is a terminal or a fi
 <div class="org-src-container">
 
 <pre class="src src-js"><span style="color: #66cccc;">"dependencies"</span>: {
-<span style="background-color: #515151;"> </span>   <span style="color: #66cccc;">"async"</span>: <span style="color: #66cccc;">"1.2.1"</span>,
-<span style="background-color: #515151;"> </span>   <span style="color: #66cccc;">"chokidar"</span>: <span style="color: #66cccc;">"^1.0.0"</span>,
-<span style="background-color: #515151;"> </span>   <span style="color: #66cccc;">"vizion"</span>: <span style="color: #66cccc;">"latest"</span>,
-<span style="background-color: #515151;"> </span>   <span style="color: #66cccc;">"babel"</span>: <span style="color: #66cccc;">"^5.x"</span>,
-<span style="background-color: #515151;"> </span>   <span style="color: #66cccc;">"pm2-logs"</span>: <span style="color: #66cccc;">"~0.1.1"</span>,
-<span style="background-color: #515151;"> </span>   <span style="color: #66cccc;">"ikt"</span>: <span style="color: #66cccc;">"git+http://ikt.pm2.io/ikt.git#master"</span>,
-<span style="background-color: #515151;"> </span>   <span style="color: #66cccc;">"punt"</span>: <span style="color: #66cccc;">"*"</span>,
-<span style="background-color: #515151;"> </span>   <span style="color: #66cccc;">"express"</span>: <span style="color: #66cccc;">"&gt;=3.0.0"</span>,
-<span style="background-color: #515151;"> </span>   <span style="color: #66cccc;">"connect"</span>: <span style="color: #66cccc;">"1.30.2 - 2.30.2"</span>,
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #66cccc;">"async"</span>: <span style="color: #66cccc;">"1.2.1"</span>,
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #66cccc;">"chokidar"</span>: <span style="color: #66cccc;">"^1.0.0"</span>,
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #66cccc;">"vizion"</span>: <span style="color: #66cccc;">"latest"</span>,
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #66cccc;">"babel"</span>: <span style="color: #66cccc;">"^5.x"</span>,
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #66cccc;">"pm2-logs"</span>: <span style="color: #66cccc;">"~0.1.1"</span>,
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #66cccc;">"ikt"</span>: <span style="color: #66cccc;">"git+http://ikt.pm2.io/ikt.git#master"</span>,
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #66cccc;">"punt"</span>: <span style="color: #66cccc;">"*"</span>,
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #66cccc;">"express"</span>: <span style="color: #66cccc;">"&gt;=3.0.0"</span>,
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #66cccc;">"connect"</span>: <span style="color: #66cccc;">"1.30.2 - 2.30.2"</span>,
 }
 </pre>
 </div>
@@ -2244,16 +2256,16 @@ The console functions are synchronous when the destination is a terminal or a fi
 <div class="org-src-container">
 
 <pre class="src src-js">app.post(<span style="color: #66cccc;">'/products'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">req</span>, <span style="color: #ffcc66;">res</span>) {
-<span style="background-color: #515151;"> </span>   service.add(req.body, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">err</span>) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (err) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   logger.error(err.toString());
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   res.statusCode = 500;
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> res.end({error: err.message});
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   service.add(req.body, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">err</span>) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (err) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   logger.error(err.toString());
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   res.statusCode = 500;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> res.end({error: err.message});
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   res.statusCode = 200;
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   res.end();
-<span style="background-color: #515151;"> </span>   });
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   res.statusCode = 200;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   res.end();
+<span style="color: #cccccc; background-color: #515151;"> </span>   });
 }};
 </pre>
 </div>
@@ -2315,21 +2327,21 @@ The console functions are synchronous when the destination is a terminal or a fi
 <div class="org-src-container">
 
 <pre class="src src-js">app.post(<span style="color: #66cccc;">'/products'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">req</span>, <span style="color: #ffcc66;">res</span>) {
-<span style="background-color: #515151;"> </span>   service.add(req.body, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">err</span>) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (err) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   logger.error(err.toString());
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (err.name === <span style="color: #66cccc;">'ProductAlreadyExists'</span>) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   res.statusCode = 400;
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   } <span style="color: #99cc99;">else</span> {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   err.message = <span style="color: #66cccc;">'&#20869;&#37096;&#38169;&#35823;'</span>;
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   res.statusCode = 500;
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   }
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> res.end({error: err.message});
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   service.add(req.body, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">err</span>) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (err) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   logger.error(err.toString());
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (err.name === <span style="color: #66cccc;">'ProductAlreadyExists'</span>) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   res.statusCode = 400;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   } <span style="color: #99cc99;">else</span> {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   err.message = <span style="color: #66cccc;">'&#20869;&#37096;&#38169;&#35823;'</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   res.statusCode = 500;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> res.end({error: err.message});
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   res.statusCode = 200;
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   res.end();
-<span style="background-color: #515151;"> </span>   });
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   res.statusCode = 200;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   res.end();
+<span style="color: #cccccc; background-color: #515151;"> </span>   });
 }};
 </pre>
 </div>
@@ -2405,7 +2417,7 @@ Error对象详解
 <div class="org-src-container">
 
 <pre class="src src-js"><span style="color: #99cc99;">for</span>(<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">i</span> = 0; i &lt; 10000; ++i) {
-<span style="background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">"this is long long long long long long long long long long long </span><span style="color: #66cccc; text-decoration: underline;">long long long long long long long long long long long long long long long long long long log "</span><span style="text-decoration: underline;"> + i);</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">"this is long long long long long long long long long long long </span><span style="color: #66cccc; text-decoration: underline;">long long long long long long long long long long long long long long long long long long log "</span><span style="text-decoration: underline;"> + i);</span>
 }
 process.exit(0);
 </pre>
@@ -2487,11 +2499,11 @@ The console functions are synchronous when the destination is a terminal or a fi
 
 <pre class="src src-js"><span class="linenr">1: </span><span style="color: #999999; font-style: italic;">/// </span><span style="color: #999999; font-style: italic;">Safe exit. Makesure log output flushed to console.</span>
 <span class="linenr">2: </span><span style="color: #99cc99;">function</span> <span style="color: #f99157;">exit</span>(<span style="color: #ffcc66;">code</span>) {
-<span class="linenr">3: </span><span style="background-color: #515151;"> </span>   process.stdout.write(<span style="color: #66cccc;">''</span>, <span style="color: #99cc99;">function</span> () {
-<span id="coderef-stderr-write" class="coderef-off"><span class="linenr">4: </span><span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   process.stderr.write(<span style="color: #66cccc;">''</span>, <span style="color: #99cc99;">function</span> () {</span>
-<span class="linenr">5: </span><span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   process.exit(code);
-<span class="linenr">6: </span><span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   });
-<span class="linenr">7: </span><span style="background-color: #515151;"> </span>   });
+<span class="linenr">3: </span><span style="color: #cccccc; background-color: #515151;"> </span>   process.stdout.write(<span style="color: #66cccc;">''</span>, <span style="color: #99cc99;">function</span> () {
+<span id="coderef-stderr-write" class="coderef-off"><span class="linenr">4: </span><span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   process.stderr.write(<span style="color: #66cccc;">''</span>, <span style="color: #99cc99;">function</span> () {</span>
+<span class="linenr">5: </span><span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   process.exit(code);
+<span class="linenr">6: </span><span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   });
+<span class="linenr">7: </span><span style="color: #cccccc; background-color: #515151;"> </span>   });
 <span class="linenr">8: </span>}
 </pre>
 </div>
@@ -2766,10 +2778,10 @@ node.js下最常用的后台服务监护工具有：<a href="https://github.com/
 <span style="color: #ffcc66;">running</span>=<span style="color: #cc99cc;">`forever list | grep "$SCRIPT" | grep -v grep | wc -l`</span>
 
 <span style="color: #99cc99;">if</span> [ $<span style="color: #ffcc66;">running</span> -lt 1 ]; <span style="color: #99cc99;">then</span>
-<span style="background-color: #515151;"> </span>   forever start --spinSleepTime=10000 --killSignal=SIGINT --pidFile=<span style="color: #cc99cc;">`pwd`</span>/run.<span style="text-decoration: underline;">pid -l $</span><span style="color: #ffcc66; text-decoration: underline;">LOGFILE</span><span style="text-decoration: underline;"> -a -w --watchDirectory=</span><span style="color: #cc99cc; text-decoration: underline;">`pwd`</span><span style="text-decoration: underline;">/src --watchIgnore=</span><span style="color: #66cccc; text-decoration: underline;">".svn/*"</span><span style="text-decoration: underline;"> </span><span style="color: #66cccc; text-decoration: underline;">"$SCRIPT"</span>
-<span style="background-color: #515151;"> </span>   <span style="color: #cc99cc;">echo</span> -e <span style="color: #66cccc;">"\nRunning."</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   forever start --spinSleepTime=10000 --killSignal=SIGINT --pidFile=<span style="color: #cc99cc;">`pwd`</span>/run.<span style="text-decoration: underline;">pid -l $</span><span style="color: #ffcc66; text-decoration: underline;">LOGFILE</span><span style="text-decoration: underline;"> -a -w --watchDirectory=</span><span style="color: #cc99cc; text-decoration: underline;">`pwd`</span><span style="text-decoration: underline;">/src --watchIgnore=</span><span style="color: #66cccc; text-decoration: underline;">".svn/*"</span><span style="text-decoration: underline;"> </span><span style="color: #66cccc; text-decoration: underline;">"$SCRIPT"</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cc99cc;">echo</span> -e <span style="color: #66cccc;">"\nRunning."</span>
 <span style="color: #99cc99;">else</span>
-<span style="background-color: #515151;"> </span>   <span style="color: #cc99cc;">echo</span> -e <span style="color: #66cccc;">"\nAlready running."</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cc99cc;">echo</span> -e <span style="color: #66cccc;">"\nAlready running."</span>
 <span style="color: #99cc99;">fi</span>
 
 forever list | grep <span style="color: #66cccc;">"$SCRIPT"</span>
@@ -3105,7 +3117,7 @@ redis中很多数据结构取出时都是字符串值（如：set、hash），�
 <div class="org-src-container">
 
 <pre class="src src-js"><span style="color: #99cc99;">if</span> ((String(model.stoped) == <span style="color: #66cccc;">'true'</span>)) {
-<span style="background-color: #515151;"> </span>   <span style="color: #999999; font-style: italic;">// </span><span style="color: #999999; font-style: italic;">Do something when stoped.</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #999999; font-style: italic;">// </span><span style="color: #999999; font-style: italic;">Do something when stoped.</span>
 }
 </pre>
 </div>
@@ -3140,77 +3152,77 @@ redis中很多数据结构取出时都是字符串值（如：set、hash），�
 <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">client</span> = redis.createClient(6379, <span style="color: #66cccc;">'127.0.0.1'</span>);
 
 <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">User</span> = <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">options</span>) {
-<span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (! options) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   options = {};
-<span style="background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (! options) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   options = {};
+<span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="background-color: #515151;"> </span>   <span style="color: #6699cc;">this</span>.id = options.id || 0;
-<span style="background-color: #515151;"> </span>   <span style="color: #6699cc;">this</span>.name = options.name || <span style="color: #66cccc;">''</span>;
-<span style="background-color: #515151;"> </span>   <span style="color: #6699cc;">this</span>.male = options.male || <span style="color: #6699cc;">true</span>;
-<span style="background-color: #515151;"> </span>   <span style="color: #6699cc;">this</span>.birthday = options.birthday;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #6699cc;">this</span>.id = options.id || 0;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #6699cc;">this</span>.name = options.name || <span style="color: #66cccc;">''</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #6699cc;">this</span>.male = options.male || <span style="color: #6699cc;">true</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #6699cc;">this</span>.birthday = options.birthday;
 };
 
 User.schema = joi.object().keys({
-<span style="background-color: #515151;"> </span>   id: joi.number().integer().min(1),
-<span style="background-color: #515151;"> </span>   name: joi.string().required(),
-<span style="background-color: #515151;"> </span>   male: joi.<span style="color: #6699cc;">boolean</span>().<span style="color: #99cc99;">default</span>(<span style="color: #6699cc;">true</span>),
-<span style="background-color: #515151;"> </span>   birthday: joi.date().required()
+<span style="color: #cccccc; background-color: #515151;"> </span>   id: joi.number().integer().min(1),
+<span style="color: #cccccc; background-color: #515151;"> </span>   name: joi.string().required(),
+<span style="color: #cccccc; background-color: #515151;"> </span>   male: joi.<span style="color: #6699cc;">boolean</span>().<span style="color: #99cc99;">default</span>(<span style="color: #6699cc;">true</span>),
+<span style="color: #cccccc; background-color: #515151;"> </span>   birthday: joi.date().required()
 });
 
 User.find = <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">id</span>, <span style="color: #ffcc66;">callback</span>) {
-<span style="background-color: #515151;"> </span>   client.hgetall(<span style="color: #66cccc;">"user:"</span> + id, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">err</span>, <span style="color: #ffcc66;">value</span>) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (err) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> callback(err);
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   } <span style="color: #99cc99;">else</span> <span style="color: #99cc99;">if</span> (! value) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> callback(<span style="color: #99cc99;">new</span> <span style="color: #6699cc;">Error</span>(<span style="color: #66cccc;">"User not found"</span>));
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   client.hgetall(<span style="color: #66cccc;">"user:"</span> + id, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">err</span>, <span style="color: #ffcc66;">value</span>) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (err) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> callback(err);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   } <span style="color: #99cc99;">else</span> <span style="color: #99cc99;">if</span> (! value) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> callback(<span style="color: #99cc99;">new</span> <span style="color: #6699cc;">Error</span>(<span style="color: #66cccc;">"User not found"</span>));
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   joi.validate(value, User.schema, callback);
-<span style="background-color: #515151;"> </span>   });
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   joi.validate(value, User.schema, callback);
+<span style="color: #cccccc; background-color: #515151;"> </span>   });
 };
 
 User.<span style="color: #6699cc;">prototype</span>.save = <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">callback</span>) {
-<span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">value</span> = {};
-<span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">for</span>(<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">fieldName</span> <span style="color: #99cc99;">in</span> <span style="color: #6699cc;">this</span>) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (<span style="color: #99cc99;">typeof</span>(<span style="color: #6699cc;">this</span>[fieldName]) != <span style="color: #66cccc;">'function'</span>) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   value[fieldName] = <span style="color: #6699cc;">this</span>[fieldName];
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   }
-<span style="background-color: #515151;"> </span>   }
-<span style="background-color: #515151;"> </span>   joi.validate(value, User.schema, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">err</span>, <span style="color: #ffcc66;">validatedValue</span>) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (err) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> callback(err);
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">value</span> = {};
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">for</span>(<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">fieldName</span> <span style="color: #99cc99;">in</span> <span style="color: #6699cc;">this</span>) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (<span style="color: #99cc99;">typeof</span>(<span style="color: #6699cc;">this</span>[fieldName]) != <span style="color: #66cccc;">'function'</span>) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   value[fieldName] = <span style="color: #6699cc;">this</span>[fieldName];
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   joi.validate(value, User.schema, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">err</span>, <span style="color: #ffcc66;">validatedValue</span>) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (err) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> callback(err);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   client.hmset(<span style="color: #66cccc;">"user:"</span> + validatedValue.id, validatedValue, callback);
-<span style="background-color: #515151;"> </span>   });
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   client.hmset(<span style="color: #66cccc;">"user:"</span> + validatedValue.id, validatedValue, callback);
+<span style="color: #cccccc; background-color: #515151;"> </span>   });
 };
 
 
 <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">user</span> = <span style="color: #99cc99;">new</span> <span style="color: #6699cc;">User</span>({
-<span style="background-color: #515151;"> </span>   id: 1,
-<span style="background-color: #515151;"> </span>   name: <span style="color: #66cccc;">"txf"</span>,
-<span style="background-color: #515151;"> </span>   male: <span style="color: #6699cc;">true</span>,
-<span style="background-color: #515151;"> </span>   birthday: <span style="color: #99cc99;">new</span> <span style="color: #6699cc;">Date</span>(<span style="color: #66cccc;">"1983-03-22"</span>)
+<span style="color: #cccccc; background-color: #515151;"> </span>   id: 1,
+<span style="color: #cccccc; background-color: #515151;"> </span>   name: <span style="color: #66cccc;">"txf"</span>,
+<span style="color: #cccccc; background-color: #515151;"> </span>   male: <span style="color: #6699cc;">true</span>,
+<span style="color: #cccccc; background-color: #515151;"> </span>   birthday: <span style="color: #99cc99;">new</span> <span style="color: #6699cc;">Date</span>(<span style="color: #66cccc;">"1983-03-22"</span>)
 });
 
 user.save(<span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">err</span>) {
-<span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (err) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   console.error(<span style="color: #66cccc;">"user save error("</span> + err.toString() + <span style="color: #66cccc;">")"</span>);
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   client.quit();
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span>;
-<span style="background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (err) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   console.error(<span style="color: #66cccc;">"user save error("</span> + err.toString() + <span style="color: #66cccc;">")"</span>);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   client.quit();
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="background-color: #515151;"> </span>   console.info(<span style="color: #66cccc;">"user saved"</span>);
+<span style="color: #cccccc; background-color: #515151;"> </span>   console.info(<span style="color: #66cccc;">"user saved"</span>);
 
-<span style="background-color: #515151;"> </span>   User.find(user.id, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">err</span>, <span style="color: #ffcc66;">user</span>) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   client.quit();
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (err) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   console.error(<span style="color: #66cccc;">"user find error("</span> + err.toString() + <span style="color: #66cccc;">")"</span>);
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span>;
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   User.find(user.id, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">err</span>, <span style="color: #ffcc66;">user</span>) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   client.quit();
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (err) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   console.error(<span style="color: #66cccc;">"user find error("</span> + err.toString() + <span style="color: #66cccc;">")"</span>);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">"user found: "</span> + JSON.stringify(user));
-<span style="background-color: #515151;"> </span>   });
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">"user found: "</span> + JSON.stringify(user));
+<span style="color: #cccccc; background-color: #515151;"> </span>   });
 });
 </pre>
 </div>
@@ -3257,19 +3269,19 @@ TCP死连接一般在一方（或中间线路上的设备）断电、死机后�
 <div class="org-src-container">
 
 <pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">options</span> = {
-<span style="background-color: #515151;"> </span>   key: <span style="color: #66cccc;">"..."</span>,
-<span style="background-color: #515151;"> </span>   cert: <span style="color: #66cccc;">"..."</span>,
-<span style="background-color: #515151;"> </span>   handshakeTimeout: 10*1000,
-<span style="background-color: #515151;"> </span>   plain: <span style="color: #6699cc;">true</span>,
-<span style="background-color: #515151;"> </span>   ssl: <span style="color: #6699cc;">true</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   key: <span style="color: #66cccc;">"..."</span>,
+<span style="color: #cccccc; background-color: #515151;"> </span>   cert: <span style="color: #66cccc;">"..."</span>,
+<span style="color: #cccccc; background-color: #515151;"> </span>   handshakeTimeout: 10*1000,
+<span style="color: #cccccc; background-color: #515151;"> </span>   plain: <span style="color: #6699cc;">true</span>,
+<span style="color: #cccccc; background-color: #515151;"> </span>   ssl: <span style="color: #6699cc;">true</span>
 };
 
 <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">tlsServer</span> = tls.createServer(options, app).listen(5433, 8192, <span style="color: #99cc99;">function</span>(){
-<span style="background-color: #515151;"> </span>   logger.log(<span style="color: #66cccc;">'tls server listening on port 5433'</span>);
+<span style="color: #cccccc; background-color: #515151;"> </span>   logger.log(<span style="color: #66cccc;">'tls server listening on port 5433'</span>);
 });
 
 tlsServer.on(<span style="color: #66cccc;">'clientError'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">exception</span>, <span style="color: #ffcc66;">socket</span>) {
-<span style="background-color: #515151;"> </span>   logger.warn(<span style="color: #66cccc;">'tls server client('</span> + socket.remoteAddress + <span style="color: #66cccc;">':'</span> + socket.remot<span style="text-decoration: underline;">ePort +</span><span style="color: #66cccc; text-decoration: underline;">') error('</span><span style="text-decoration: underline;"> + exception + </span><span style="color: #66cccc; text-decoration: underline;">')'</span><span style="text-decoration: underline;">);</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   logger.warn(<span style="color: #66cccc;">'tls server client('</span> + socket.remoteAddress + <span style="color: #66cccc;">':'</span> + socket.remot<span style="text-decoration: underline;">ePort +</span><span style="color: #66cccc; text-decoration: underline;">') error('</span><span style="text-decoration: underline;"> + exception + </span><span style="color: #66cccc; text-decoration: underline;">')'</span><span style="text-decoration: underline;">);</span>
 });
 </pre>
 </div>
@@ -3412,7 +3424,7 @@ console.log(err.message);
 <div class="org-src-container">
 
 <pre class="src src-js"><span style="color: #99cc99;">function</span> <span style="color: #f99157;">MyError</span>(<span style="color: #ffcc66;">message</span>) {
-<span style="background-color: #515151;"> </span> <span style="color: #6699cc;">this</span>.message = message || <span style="color: #66cccc;">''</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span> <span style="color: #6699cc;">this</span>.message = message || <span style="color: #66cccc;">''</span>;
 }
 
 MyError.<span style="color: #6699cc;">prototype</span> = <span style="color: #99cc99;">new</span> <span style="color: #6699cc;">Error</span>();
@@ -3454,8 +3466,8 @@ myerr.stack <span style="color: #999999; font-style: italic;">/*</span><span sty
 <div class="org-src-container">
 
 <pre class="src src-js"><span style="color: #99cc99;">function</span> <span style="color: #f99157;">MyError</span>(<span style="color: #ffcc66;">message</span>) {
-<span style="background-color: #515151;"> </span> Error.captureStackTrace(<span style="color: #6699cc;">this</span>, <span style="color: #6699cc;">this</span>.constructor)
-<span style="background-color: #515151;"> </span> <span style="color: #6699cc;">this</span>.message = message || <span style="color: #66cccc;">''</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span> Error.captureStackTrace(<span style="color: #6699cc;">this</span>, <span style="color: #6699cc;">this</span>.constructor)
+<span style="color: #cccccc; background-color: #515151;"> </span> <span style="color: #6699cc;">this</span>.message = message || <span style="color: #66cccc;">''</span>;
 }
 
 MyError.<span style="color: #6699cc;">prototype</span> = <span style="color: #99cc99;">new</span> <span style="color: #6699cc;">Error</span>();
@@ -3471,11 +3483,11 @@ MyError.<span style="color: #6699cc;">prototype</span>.name = <span style="color
 <div class="org-src-container">
 
 <pre class="src src-js"><span style="color: #99cc99;">function</span> <span style="color: #f99157;">MyError</span>(<span style="color: #ffcc66;">message</span>) {
-<span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (!(<span style="color: #6699cc;">this</span> <span style="color: #99cc99;">instanceof</span> <span style="color: #6699cc;">MyError</span>)) {
-<span style="background-color: #515151;"> </span>   <span style="background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> <span style="color: #99cc99;">new</span> <span style="color: #6699cc;">MyError</span>(message);
-<span style="background-color: #515151;"> </span>   }
-<span style="background-color: #515151;"> </span>   Error.captureStackTrace(<span style="color: #6699cc;">this</span>, <span style="color: #6699cc;">this</span>.constructor)
-<span style="background-color: #515151;"> </span>   <span style="color: #6699cc;">this</span>.message = message || <span style="color: #66cccc;">''</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (!(<span style="color: #6699cc;">this</span> <span style="color: #99cc99;">instanceof</span> <span style="color: #6699cc;">MyError</span>)) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> <span style="color: #99cc99;">new</span> <span style="color: #6699cc;">MyError</span>(message);
+<span style="color: #cccccc; background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   Error.captureStackTrace(<span style="color: #6699cc;">this</span>, <span style="color: #6699cc;">this</span>.constructor)
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #6699cc;">this</span>.message = message || <span style="color: #66cccc;">''</span>;
 }
 
 util.inherits(MyError, Error)

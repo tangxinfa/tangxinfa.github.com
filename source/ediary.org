@@ -10409,7 +10409,7 @@ class RedisShard {
     当前 [[https://nodejs.org/en/][官方]] 推荐的 LTS 版本为 v4.3.1，通过淘宝镜像下载速度快一些，直接安装在系统目录中 /usr 下，便于使用。
     
     #+begin_src sh
-      wget http://npm.taobao.org/mirrors/node/latest-v4.x/node-v4.3.1-linux-x64.tar.xz
+      wget http://npm.taobao.org/mirrors/node/latest-v4.x/node-v4.3.1-linux-x64.tar.xz -O node-v4.3.1-linux-x64.tar.xz
       tar xJvf node-v4.3.1-linux-x64.tar.xz --no-same-owner --exclude CHANGELOG.md --exclude LICENSE --exclude README.md --strip-components 1 -C /usr
     #+end_src
 
@@ -10621,6 +10621,220 @@ class RedisShard {
   #+end_quote
 
   参见相关 Issues：
-  [[https://github.com/Unitech/PM2/issues/1575][interpreter ignored when using cluster mode · Issue #1575 · Unitech/pm2]]
-  [[https://github.com/Unitech/PM2/issues/1034][Using different versions of node via nvm for each app · Issue #1034 · Unitech/pm2]]
-  [[https://github.com/Unitech/PM2/issues/1224#issuecomment-99931316][--interpreter not applied? · Issue #1224 · Unitech/pm2]]
+  
+  - [[https://github.com/Unitech/PM2/issues/1575][interpreter ignored when using cluster mode · Issue #1575 · Unitech/pm2]]
+  
+  - [[https://github.com/Unitech/PM2/issues/1034][Using different versions of node via nvm for each app · Issue #1034 · Unitech/pm2]]
+
+  - [[https://github.com/Unitech/PM2/issues/1224#issuecomment-99931316][--interpreter not applied? · Issue #1224 · Unitech/pm2]]
+
+  应该可以通过指定不同的 $PM2_HOME 环境变量，跑多套 pm2，各个 pm2 使用不同版本的 Node.js，多个 cluster 模式的 pm2 应用也就会使用不同版本 Node.js。
+
+* DONE linux 系统时间同步                                             :linux:
+  CLOSED: [2016-03-10 Thu 14:07]
+
+  - ntp :: Network Time Protocol，即网络时间同步协议。
+
+** 安装 ntp
+
+   ntpdate 和 ntpd 通常包含在 ntp 软件包里，但有的系统是单独打包。
+
+   ntpdate 命令用于直接同步时间。
+
+   ntpd 服务用于平滑同步时间。
+
+   #+begin_src sh
+     yaourt -S ntp
+   #+end_src
+
+** 使用 ntpdate 命令同步时间
+
+   ntpdate 命令用于强制性的将系统时间设置为 ntp 服务器时间，导致时钟跃变，可能会引起系统不稳定。
+
+*** 手工同步一次
+
+    带 -d 选项，调试运行，不修改本地时间
+    #+begin_example +n -r
+      # ntpdate -d s1a.time.edu.cn
+       9 Mar 18:46:29 ntpdate[20537]: ntpdate 4.2.4p8@1.1612-o Fri Feb 22 11:23:28 UTC 2013 (1)
+      Looking for host s1a.time.edu.cn and service ntp
+      host found : 202.112.10.60
+      transmit(202.112.10.60)
+      receive(202.112.10.60)
+      transmit(202.112.10.60)
+      receive(202.112.10.60)
+      transmit(202.112.10.60)
+      receive(202.112.10.60)
+      transmit(202.112.10.60)
+      receive(202.112.10.60)
+      transmit(202.112.10.60)
+      server 202.112.10.60, port 123
+      stratum 1, precision -20, leap 00, trust 000
+      refid [PPS], delay 0.06285, dispersion 0.00003
+      transmitted 4, in filter 4
+      reference time:    da8a8b53.73391350  Wed, Mar  9 2016 19:45:23.450
+      originate timestamp: da8a8b5c.3f42dc7c  Wed, Mar  9 2016 19:45:32.247
+      transmit timestamp:  da8a7d86.32fde4c3  Wed, Mar  9 2016 18:46:30.199
+      filter delay:  0.06323  0.06317  0.06299  0.06285 
+               0.00000  0.00000  0.00000  0.00000 
+      filter offset: 3542.028 3542.028 3542.028 3542.028
+               0.000000 0.000000 0.000000 0.000000
+      delay 0.06285, dispersion 0.00003
+      offset 3542.028898  (ref:ntpdate_debug_offset)
+
+       9 Mar 18:46:30 ntpdate[20537]: step time server 202.112.10.60 offset 3542.028898 sec
+    #+end_example
+
+    - 行 [[(ntpdate_debug_offset)]]  :: 本机时间比时间服务器慢了 3542.028898 秒
+
+    不带 -d 选项，修改本地时间
+    #+begin_example
+      # ntpdate s1a.time.edu.cn
+      ntpdate s1a.time.edu.cn
+       9 Mar 19:51:51 ntpdate[20553]: step time server 202.112.10.60 offset 3542.052347 sec
+    #+end_example
+
+*** 定期自动同步时间
+
+    长时间运行的系统，会与标准时间偏差，通过 crontab 每日运行一次
+
+    =/etc/cron.daily/ntpdate=
+    #+begin_src sh
+      #!/bin/bash
+
+      /usr/sbin/ntpdate s1a.time.edu.cn >/dev/null 2>&1
+    #+end_src
+
+    请记得为 =/etc/cron.daily/ntpdate= 添加可执行权限。
+
+** 使用 ntpd 服务同步时间
+
+   - ntpd :: Network Time Protocol (NTP) Daemon
+             The ntpd program is an operating system daemon that synchronizes the system clock to remote NTP time servers or local reference clocks.
+
+
+   ntpd 服务的配置文件为 /etc/ntp.conf 。
+
+   ntpd 如果时间偏差过大（默认 1000 秒钟），ntpd 会输出错误到系统日志后退出，所以在服务启动前需要先同步好时间。
+
+   如下启动脚本所示：
+
+   =/etc/init.d/S49ntp=
+   #+begin_src sh
+     #! /bin/sh
+     #
+     # System-V init script for the openntp daemon
+     #
+
+     PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+     DESC="network time protocol daemon"
+     NAME=ntpd
+     DAEMON=/usr/sbin/$NAME
+     NTPDATE_BIN=/usr/bin/ntpdate
+
+     # Gracefully exit if the package has been removed.
+     test -x $DAEMON || exit 0
+
+     # Read config file if it is present.
+     if [ -r /etc/default/$NAME ]
+     then
+         . /etc/default/$NAME
+     fi
+
+     case "$1" in
+       start)
+         if [ -x $NTPDATE_BIN ] ; then
+             echo -n "Getting initial time via ntp"
+             $NTPDATE_BIN $NTPDATE_OPTS $NTPSERVERS > /dev/null 2>&1
+             echo "."
+         fi
+
+         echo -n "Starting $DESC: $NAME"
+         start-stop-daemon -S -q -x $DAEMON
+         echo "."
+         ;;
+       stop) echo -n "Stopping $DESC: $NAME"
+         start-stop-daemon -K -q -n $NAME
+         echo "."
+         ;;
+       reload|force-reload) echo -n "Reloading $DESC configuration..."
+         start-stop-daemon -K -q -n $NAME -s 1
+         echo "done."
+       ;;
+       restart) echo "Restarting $DESC: $NAME"
+         $0 stop
+         sleep 1
+         $0 start
+         ;;
+       ,*) echo "Usage: $SCRIPTNAME {start|stop|restart|reload|force-reload}" >&2
+         exit 1
+         ;;
+     esac
+
+     exit 0
+   #+end_src
+
+   其中 $NTPDATE_OPTS 定义在 /etc/default/ntpd 中：
+
+   #+begin_src sh
+     NTPDATE_OPTS="-t 5"
+   #+end_src
+
+   通过 ntpdate 同步初始时间失败，ntpd 服务可能因为当前系统时间与时间服务器偏差过大而退出。
+
+   同步失败的原因：
+
+   - 开机后网络尚未连通
+
+   - 时间服务器繁忙
+
+   - 网络环境限制使用 NTP 协议
+
+   - 命令执行超时
+     
+     域名解析、网络请求处理都会占用时间，5 秒钟不一定能完成。
+
+   由于脚本是在系统启动过程中运行，再延长超时时间可能导致开机启动时间变长。
+
+   可以配置 ntpd 在时间偏差过大时仍然同步时间，有以下两种方法：
+
+   - 添加 -g 命令行选项
+
+   - 设置 NTPD_PANICGATE 环境变量
+
+     绝大部分命令行选项都可以通过加 NTPD_ 前缀的环境变量进行设置。
+     
+   - 修改配置文件
+
+     将以下内容添加到 /etc/ntp.conf 最前面
+     #+begin_src sh
+       tinker panic 0
+     #+end_src
+
+*** 手工同步一次
+
+    通过 ntpd 的命令行选项可以更好地完成 ntpdate 的功能。
+
+    =-g= 本地时间与时间服务器偏差达过大（默认为 1000 秒）时，不退出，同步一次时间。
+
+    =-q= 同步一次后退出。
+
+    #+begin_src sh
+      ntpd -g -q
+    #+end_src
+
+    上面的命令会确保同步一次时间后结束。
+
+** 参考
+
+   - [[http://blog.csdn.net/suer0101/article/details/7868813][使用ntpdate更新系统时间]]
+     
+   - [[http://acooly.iteye.com/blog/1993484][NTP服务及时间同步(CentOS6.x)]]
+
+   - [[http://www.psce.com/blog/kb/how-to-periodically-synchronize-time-in-linux/][How to periodically synchronize time in Linux?]]
+
+   - [[http://www.tldp.org/LDP/sag/html/basic-ntp-config.html][Basic NTP configuration]]
+
+   - [[http://linux.die.net/man/8/ntpd][ntpd(8): Network Time Protocol daemon - Linux man page]]
+
+   - [[http://askubuntu.com/a/443077/397632][How to force a clock update using ntp? - Ask Ubuntu]]
