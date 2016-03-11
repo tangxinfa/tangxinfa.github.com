@@ -156,9 +156,29 @@ The console functions are synchronous when the destination is a terminal or a fi
 </p>
 
 <p>
-警告：在 <code>node.js</code> 开发的一个后台服务（使用 <a href="https://github.com/Unitech/pm2">pm2</a> 管理进程）中， <code>process.stderr.write</code> (<i>stderr-write</i>) 的回调函数未调用，
-导致程序未能异常退出，而在终端执行的命令行脚本中则工作正常，原因尚未查明（可能是用户权限导致写日志卡住）。
+通过 <a href="https://github.com/Unitech/pm2">pm2</a> 运行 node.js 应用时会接管标准输出和错误输出到日志文件，不存在进程退出日志输出丢失的问题，
+由于 <a href="https://github.com/Unitech/pm2">pm2</a> 会改写 process.stdout.write 和 process.stderr.write ，改写后的函数无返回值并忽略传入的回调函数，
+导致前面封装的 exit 函数无效，需要针对 <a href="https://github.com/Unitech/pm2">pm2</a> 做处理：
 </p>
+
+<div class="org-src-container">
+
+<pre class="src src-js"><span style="color: #999999; font-style: italic;">/// </span><span style="color: #999999; font-style: italic;">Safe exit, Makesure log output flushed to console.</span>
+<span style="color: #999999; font-style: italic;">/// </span><span style="color: #999999; font-style: italic;">PM2 changed process.stderr.write and process.stdout.write's behavior,</span>
+<span style="color: #999999; font-style: italic;">/// </span><span style="color: #999999; font-style: italic;">log output write to file will flushed automatically,</span>
+<span style="color: #99cc99;">function</span> <span style="color: #f99157;">exit</span>(<span style="color: #ffcc66;">code</span>) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (<span style="color: #99cc99;">typeof</span>(process.env.pm_id) == <span style="color: #66cccc;">'undefined'</span>) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   process.stdout.write(<span style="color: #66cccc;">''</span>, <span style="color: #99cc99;">function</span> () {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   process.stderr.write(<span style="color: #66cccc;">''</span>, <span style="color: #99cc99;">function</span> () {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   process.exit(code);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   });
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   });
+<span style="color: #cccccc; background-color: #515151;"> </span>   } <span style="color: #99cc99;">else</span> {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   process.exit(code);
+<span style="color: #cccccc; background-color: #515151;"> </span>   }
+}
+</pre>
+</div>
 </li>
 </ul>
 
