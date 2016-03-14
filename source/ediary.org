@@ -10856,3 +10856,132 @@ class RedisShard {
    - [[http://linux.die.net/man/8/ntpd][ntpd(8): Network Time Protocol daemon - Linux man page]]
 
    - [[http://askubuntu.com/a/443077/397632][How to force a clock update using ntp? - Ask Ubuntu]]
+
+* DONE 修复 SSL certificate problem: unable to get local issuer certificate :openssl:security:network:
+  CLOSED: [2016-03-14 Mon 20:36]
+
+  在嵌入式 linux 设备上使用 curl 访问 https 站点会报错：
+  #+begin_example
+    # curl https://www.google.com
+    curl: (60) SSL certificate problem: unable to get local issuer certificate
+    More details here: http://curl.haxx.se/docs/sslcerts.html
+
+    curl performs SSL certificate verification by default, using a "bundle"
+     of Certificate Authority (CA) public keys (CA certs). If the default
+     bundle file isn't adequate, you can specify an alternate file
+     using the --cacert option.
+    If this HTTPS server uses a certificate signed by a CA represented in
+     the bundle, the certificate verification probably failed due to a
+     problem with the certificate (it might be expired, or the name might
+     not match the domain name in the URL).
+    If you'd like to turn off curl's verification of the certificate, use
+     the -k (or --insecure) option.
+  #+end_example
+
+  而 linux 桌面上使用 curl 访问 https 站点则正常：
+  #+begin_example
+    $ curl https://www.google.com
+    <HTML><HEAD><meta http-equiv="content-type" content="text/html;charset=utf-8">
+    <TITLE>302 Moved</TITLE></HEAD><BODY>
+    <H1>302 Moved</H1>
+    The document has moved
+    <A HREF="https://www.google.com.hk/?gfe_rd=cr&amp;ei=i2DmVtXLDOzN8geg-afACA">here</A>.
+    </BODY></HTML>
+  #+end_example
+
+  嵌入式 linux 设备上缺少了 CA 证书。
+
+** 获取 CA 证书
+
+   linux 桌面的 CA 证书由操作系统本身负责维护，没有统一的标准规定如何维护和管理 CA 证书。
+
+   比较有名的 CA 证书列表由 mozilla 维护，[[https://curl.haxx.se/][curl]] 提供了命令行工具 [[https://github.com/curl/curl/raw/master/lib/mk-ca-bundle.pl][mk-ca-bundle.pl]] 用于下载 mozilla 维护的 CA 证书列表并转换成 SSL 的应用程序直接使用的格式。
+
+   Archlinux 的 CA 证书由 [[https://www.archlinux.org/packages/core/any/ca-certificates/][ca-certificates]] 包维护，CA 证书来自依赖的包 [[https://www.archlinux.org/packages/core/i686/ca-certificates-mozilla/][ca-certificates-mozilla]] 及 [[https://www.archlinux.org/packages/core/any/ca-certificates-cacert/][ca-certificates-cacert]] 。
+   #+begin_example
+     $ pacman -Qi ca-certificates
+     Name            : ca-certificates
+     Version         : 20150402-1
+     Description     : Common CA certificates (default providers)
+     Architecture    : any
+     URL             : http://pkgs.fedoraproject.org/cgit/ca-certificates.git
+     Licenses        : GPL2
+     Groups          : None
+     Provides        : None
+     Depends On      : ca-certificates-mozilla  ca-certificates-cacert
+     Optional Deps   : None
+     Required By     : curl  glib-networking  mono  neon  perl-lwp-protocol-https  qt4
+     Optional For    : lib32-openssl  openssl  wget
+     Conflicts With  : None
+     Replaces        : None
+     Installed Size  : 1024.00 B
+     Packager        : Jan Alexander Steffens (heftig) <jan.steffens@gmail.com>
+     Build Date      : 2015年04月03日 星期五 04时36分52秒
+     Install Date    : 2015年04月13日 星期一 16时04分37秒
+     Install Reason  : Installed as a dependency for another package
+     Install Script  : No
+     Validated By    : Signature
+     $ pacman -Ql ca-certificates
+     $ pacman -Ql ca-certificates-cacert
+     ca-certificates-cacert /usr/
+     ca-certificates-cacert /usr/share/
+     ca-certificates-cacert /usr/share/ca-certificates/
+     ca-certificates-cacert /usr/share/ca-certificates/trust-source/
+     ca-certificates-cacert /usr/share/ca-certificates/trust-source/anchors/
+     ca-certificates-cacert /usr/share/ca-certificates/trust-source/anchors/CAcert.org_class3.crt
+     ca-certificates-cacert /usr/share/ca-certificates/trust-source/anchors/CAcert.org_root.crt
+     ca-certificates-cacert /usr/share/licenses/
+     ca-certificates-cacert /usr/share/licenses/ca-certificates-cacert/
+     ca-certificates-cacert /usr/share/licenses/ca-certificates-cacert/LICENSE
+     $ pacman -Ql ca-certificates-mozilla
+     ca-certificates-mozilla /usr/
+     ca-certificates-mozilla /usr/share/
+     ca-certificates-mozilla /usr/share/ca-certificates/
+     ca-certificates-mozilla /usr/share/ca-certificates/trust-source/
+     ca-certificates-mozilla /usr/share/ca-certificates/trust-source/mozilla.neutral-trust.crt
+     ca-certificates-mozilla /usr/share/ca-certificates/trust-source/mozilla.supplement.p11-kit
+     ca-certificates-mozilla /usr/share/ca-certificates/trust-source/mozilla.trust.crt
+   #+end_example
+
+   拷贝 Archlinux 的 CA 证书文件 /etc/ssl/certs/ca-certificates.crt 到嵌入式 linux 设备，就可以通过 curl 访问 https 站点。
+   由于嵌入式 linux 设备上 curl 使用的默认 CA 证书文件路径不同，需要通过 --cacert 选项明确指定
+   #+begin_example
+     # curl https://www.google.com --cacert /etc/ssl/certs/ca-certificates.crt
+     <HTML><HEAD><meta http-equiv="content-type" content="text/html;charset=utf-8">
+     <TITLE>302 Moved</TITLE></HEAD><BODY>
+     <H1>302 Moved</H1>
+     The document has moved
+     <A HREF="https://www.google.com.hk/?gfe_rd=cr&amp;ei=LoDmVuXlB9TC8gecrZv4DA">here</A>.
+     </BODY></HTML>
+   #+end_example
+
+** 更新 CA 证书
+
+   使用 openwrt 的嵌入式设备，可以通过 opkg 进行安装和更新 CA 证书文件
+   #+begin_src sh
+     opkg install ca-certificates
+     opkg upgrade ca-certificates
+   #+end_src
+
+
+   使用 linux 的嵌入式设备，如果没有软件包管理器，可以从 linux 服务器上定时下载最新的 CA 证书文件。
+
+   linux 服务器上的 CA 证书文件可以通过两种方式生成：
+
+   - linux 服务器自动更新 ca-certificates 软件包，确保 CA 证书文件保持最新。
+   
+   
+   - [[https://github.com/curl/curl/raw/master/lib/mk-ca-bundle.pl][mk-ca-bundle.pl]] 脚本生成 CA 证书文件 
+
+
+** 参考
+
+   - [[https://en.wikipedia.org/wiki/Root_certificate][Root certificate - Wikipedia, the free encyclopedia]]
+
+   - [[https://curl.haxx.se/docs/sslcerts.html][cURL - SSL CA Certificates]]
+
+   - [[https://gist.github.com/jjb/996292][How to securely acquire the Mozilla root certificate bundle for use with curl, Net::HTTP, etc.]]
+
+   - [[https://curl.haxx.se/docs/mk-ca-bundle.html][mk-ca-bundle]]
+
+   - [[https://wiki.openwrt.org/doc/howto/wget-ssl-certs][SSL and Certificates in wget - OpenWrt Wiki]]

@@ -4,7 +4,7 @@
         <title>network - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/network.xml</link>
-        <lastBuildDate>Fri, 11 Mar 2016 05:58:20 GMT</lastBuildDate>
+        <lastBuildDate>Mon, 14 Mar 2016 12:38:27 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>network - 看看俺 – KanKanAn.com</title>
@@ -14,6 +14,182 @@
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <generator>Feed for Node.js</generator>
         <category>技术</category>
+        <item>
+            <title><![CDATA[修复 SSL certificate problem: unable to get local issuer certificate]]></title>
+            <link>/article/4fee590d-ssl-certificate-problem-unable-to-get-local-issuer-certificate.html</link>
+            <guid>/article/4fee590d-ssl-certificate-problem-unable-to-get-local-issuer-certificate.html</guid>
+            <pubDate>Mon, 14 Mar 2016 12:36:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+在嵌入式 linux 设备上使用 curl 访问 https 站点会报错：
+</p>
+<pre class="example">
+# curl https://www.google.com
+curl: (60) SSL certificate problem: unable to get local issuer certificate
+More details here: http://curl.haxx.se/docs/sslcerts.html
+
+curl performs SSL certificate verification by default, using a "bundle"
+ of Certificate Authority (CA) public keys (CA certs). If the default
+ bundle file isn't adequate, you can specify an alternate file
+ using the --cacert option.
+If this HTTPS server uses a certificate signed by a CA represented in
+ the bundle, the certificate verification probably failed due to a
+ problem with the certificate (it might be expired, or the name might
+ not match the domain name in the URL).
+If you'd like to turn off curl's verification of the certificate, use
+ the -k (or --insecure) option.
+</pre>
+
+<p>
+而 linux 桌面上使用 curl 访问 https 站点则正常：
+</p>
+<pre class="example">
+$ curl https://www.google.com
+&lt;HTML&gt;&lt;HEAD&gt;&lt;meta http-equiv="content-type" content="text/html;charset=utf-8"&gt;
+&lt;TITLE&gt;302 Moved&lt;/TITLE&gt;&lt;/HEAD&gt;&lt;BODY&gt;
+&lt;H1&gt;302 Moved&lt;/H1&gt;
+The document has moved
+&lt;A HREF="https://www.google.com.hk/?gfe_rd=cr&amp;amp;ei=i2DmVtXLDOzN8geg-afACA"&gt;here&lt;/A&gt;.
+&lt;/BODY&gt;&lt;/HTML&gt;
+</pre>
+
+<p>
+嵌入式 linux 设备上缺少了 CA 证书。
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">获取 CA 证书</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+linux 桌面的 CA 证书由操作系统本身负责维护，没有统一的标准规定如何维护和管理 CA 证书。
+</p>
+
+<p>
+比较有名的 CA 证书列表由 mozilla 维护，<a href="https://curl.haxx.se/">curl</a> 提供了命令行工具 <a href="https://github.com/curl/curl/raw/master/lib/mk-ca-bundle.pl">mk-ca-bundle.pl</a> 用于下载 mozilla 维护的 CA 证书列表并转换成 SSL 的应用程序直接使用的格式。
+</p>
+
+<p>
+Archlinux 的 CA 证书由 <a href="https://www.archlinux.org/packages/core/any/ca-certificates/">ca-certificates</a> 包维护，CA 证书来自依赖的包 <a href="https://www.archlinux.org/packages/core/i686/ca-certificates-mozilla/">ca-certificates-mozilla</a> 及 <a href="https://www.archlinux.org/packages/core/any/ca-certificates-cacert/">ca-certificates-cacert</a> 。
+</p>
+<pre class="example">
+$ pacman -Qi ca-certificates
+Name            : ca-certificates
+Version         : 20150402-1
+Description     : Common CA certificates (default providers)
+Architecture    : any
+URL             : http://pkgs.fedoraproject.org/cgit/ca-certificates.git
+Licenses        : GPL2
+Groups          : None
+Provides        : None
+Depends On      : ca-certificates-mozilla  ca-certificates-cacert
+Optional Deps   : None
+Required By     : curl  glib-networking  mono  neon  perl-lwp-protocol-https  qt4
+Optional For    : lib32-openssl  openssl  wget
+Conflicts With  : None
+Replaces        : None
+Installed Size  : 1024.00 B
+Packager        : Jan Alexander Steffens (heftig) &lt;jan.steffens@gmail.com&gt;
+Build Date      : 2015年04月03日 星期五 04时36分52秒
+Install Date    : 2015年04月13日 星期一 16时04分37秒
+Install Reason  : Installed as a dependency for another package
+Install Script  : No
+Validated By    : Signature
+$ pacman -Ql ca-certificates
+$ pacman -Ql ca-certificates-cacert
+ca-certificates-cacert /usr/
+ca-certificates-cacert /usr/share/
+ca-certificates-cacert /usr/share/ca-certificates/
+ca-certificates-cacert /usr/share/ca-certificates/trust-source/
+ca-certificates-cacert /usr/share/ca-certificates/trust-source/anchors/
+ca-certificates-cacert /usr/share/ca-certificates/trust-source/anchors/CAcert.org_class3.crt
+ca-certificates-cacert /usr/share/ca-certificates/trust-source/anchors/CAcert.org_root.crt
+ca-certificates-cacert /usr/share/licenses/
+ca-certificates-cacert /usr/share/licenses/ca-certificates-cacert/
+ca-certificates-cacert /usr/share/licenses/ca-certificates-cacert/LICENSE
+$ pacman -Ql ca-certificates-mozilla
+ca-certificates-mozilla /usr/
+ca-certificates-mozilla /usr/share/
+ca-certificates-mozilla /usr/share/ca-certificates/
+ca-certificates-mozilla /usr/share/ca-certificates/trust-source/
+ca-certificates-mozilla /usr/share/ca-certificates/trust-source/mozilla.neutral-trust.crt
+ca-certificates-mozilla /usr/share/ca-certificates/trust-source/mozilla.supplement.p11-kit
+ca-certificates-mozilla /usr/share/ca-certificates/trust-source/mozilla.trust.crt
+</pre>
+
+<p>
+拷贝 Archlinux 的 CA 证书文件 /etc/ssl/certs/ca-certificates.crt 到嵌入式 linux 设备，就可以通过 curl 访问 https 站点。
+由于嵌入式 linux 设备上 curl 使用的默认 CA 证书文件路径不同，需要通过 &#x2013;cacert 选项明确指定
+</p>
+<pre class="example">
+# curl https://www.google.com --cacert /etc/ssl/certs/ca-certificates.crt
+&lt;HTML&gt;&lt;HEAD&gt;&lt;meta http-equiv="content-type" content="text/html;charset=utf-8"&gt;
+&lt;TITLE&gt;302 Moved&lt;/TITLE&gt;&lt;/HEAD&gt;&lt;BODY&gt;
+&lt;H1&gt;302 Moved&lt;/H1&gt;
+The document has moved
+&lt;A HREF="https://www.google.com.hk/?gfe_rd=cr&amp;amp;ei=LoDmVuXlB9TC8gecrZv4DA"&gt;here&lt;/A&gt;.
+&lt;/BODY&gt;&lt;/HTML&gt;
+</pre>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">更新 CA 证书</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+使用 openwrt 的嵌入式设备，可以通过 opkg 进行安装和更新 CA 证书文件
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">opkg install ca-certificates
+opkg upgrade ca-certificates
+</pre>
+</div>
+
+
+<p>
+使用 linux 的嵌入式设备，如果没有软件包管理器，可以从 linux 服务器上定时下载最新的 CA 证书文件。
+</p>
+
+<p>
+linux 服务器上的 CA 证书文件可以通过两种方式生成：
+</p>
+
+<ul class="org-ul">
+<li>linux 服务器自动更新 ca-certificates 软件包，确保 CA 证书文件保持最新。
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><a href="https://github.com/curl/curl/raw/master/lib/mk-ca-bundle.pl">mk-ca-bundle.pl</a> 脚本生成 CA 证书文件 
+</li>
+</ul>
+</div>
+</div>
+
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">参考</h2>
+<div class="outline-text-2" id="text-3">
+<ul class="org-ul">
+<li><a href="https://en.wikipedia.org/wiki/Root_certificate">Root certificate - Wikipedia, the free encyclopedia</a>
+</li>
+
+<li><a href="https://curl.haxx.se/docs/sslcerts.html">cURL - SSL CA Certificates</a>
+</li>
+
+<li><a href="https://gist.github.com/jjb/996292">How to securely acquire the Mozilla root certificate bundle for use with curl, Net::HTTP, etc.</a>
+</li>
+
+<li><a href="https://curl.haxx.se/docs/mk-ca-bundle.html">mk-ca-bundle</a>
+</li>
+
+<li><a href="https://wiki.openwrt.org/doc/howto/wget-ssl-certs">SSL and Certificates in wget - OpenWrt Wiki</a>
+</li>
+</ul>
+</div>
+</div>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[node.js下进行mqtt实践]]></title>
             <link>/article/node.js-4e0b8fdb884c-mqtt-5b9e8df5.html</link>
@@ -64,27 +240,27 @@
 </p>
 <div class="org-src-container">
 
-<pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">mosca</span> = require(<span style="color: #66cccc;">'mosca'</span>);
+<pre class="src src-js"><span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">mosca</span> = require(<span style="color: #70c0b1;">'mosca'</span>);
 
-<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">settings</span> = {
-<span style="color: #cccccc; background-color: #515151;"> </span>   port: 1883
+<span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">settings</span> = {
+<span style="color: #eaeaea; background-color: #424242;"> </span>   port: 1883
 };
 
-<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">server</span> = <span style="color: #99cc99;">new</span> <span style="color: #6699cc;">mosca.Server</span>(settings);
-server.on(<span style="color: #66cccc;">'ready'</span>, <span style="color: #99cc99;">function</span> () {
-<span style="color: #cccccc; background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'mosca server running'</span>);
-}).on(<span style="color: #66cccc;">'clientConnected'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">client</span>) {
-<span style="color: #cccccc; background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') connected'</span>);
-}).on(<span style="color: #66cccc;">'published'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">packet</span>, <span style="color: #ffcc66;">client</span>) {
-<span style="color: #cccccc; background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + (client ? client.id : <span style="color: #66cccc;">'internal'</span>) + <span style="color: #66cccc;">') published top</span><span style="color: #66cccc; text-decoration: underline;">ic('</span><span style="text-decoration: underline;"> + packet.topic + </span><span style="color: #66cccc; text-decoration: underline;">'): '</span><span style="text-decoration: underline;"> + packet.payload);</span>
-}).on(<span style="color: #66cccc;">'subscribed'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">topic</span>, <span style="color: #ffcc66;">client</span>) {
-<span style="color: #cccccc; background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') subscribed topic('</span> + topic + <span style="color: #66cccc;">')'</span>);
-}).on(<span style="color: #66cccc;">'unsubscribed'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">topic</span>, <span style="color: #ffcc66;">client</span>) {
-<span style="color: #cccccc; background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') unsubscribed topic('</span> + topic + <span style="color: #66cccc;">')'</span>);
-}).on(<span style="color: #66cccc;">'clientDisconnecting'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">client</span>) {
-<span style="color: #cccccc; background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') disconnecting'</span>);
-}).on(<span style="color: #66cccc;">'clientDisconnected'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">client</span>) {
-<span style="color: #cccccc; background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') disconnected'</span>);
+<span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">server</span> = <span style="color: #b9ca4a;">new</span> <span style="color: #7aa6da;">mosca.Server</span>(settings);
+server.on(<span style="color: #70c0b1;">'ready'</span>, <span style="color: #b9ca4a;">function</span> () {
+<span style="color: #eaeaea; background-color: #424242;"> </span>   console.log(<span style="color: #70c0b1;">'mosca server running'</span>);
+}).on(<span style="color: #70c0b1;">'clientConnected'</span>, <span style="color: #b9ca4a;">function</span> (<span style="color: #e7c547;">client</span>) {
+<span style="color: #eaeaea; background-color: #424242;"> </span>   console.log(<span style="color: #70c0b1;">'client('</span> + client.id + <span style="color: #70c0b1;">') connected'</span>);
+}).on(<span style="color: #70c0b1;">'published'</span>, <span style="color: #b9ca4a;">function</span> (<span style="color: #e7c547;">packet</span>, <span style="color: #e7c547;">client</span>) {
+<span style="color: #eaeaea; background-color: #424242;"> </span>   console.log(<span style="color: #70c0b1;">'client('</span> + (client ? client.id : <span style="color: #70c0b1;">'internal'</span>) + <span style="color: #70c0b1;">') published top</span><span style="color: #70c0b1; text-decoration: underline;">ic('</span><span style="text-decoration: underline;"> + packet.topic + </span><span style="color: #70c0b1; text-decoration: underline;">'): '</span><span style="text-decoration: underline;"> + packet.payload);</span>
+}).on(<span style="color: #70c0b1;">'subscribed'</span>, <span style="color: #b9ca4a;">function</span> (<span style="color: #e7c547;">topic</span>, <span style="color: #e7c547;">client</span>) {
+<span style="color: #eaeaea; background-color: #424242;"> </span>   console.log(<span style="color: #70c0b1;">'client('</span> + client.id + <span style="color: #70c0b1;">') subscribed topic('</span> + topic + <span style="color: #70c0b1;">')'</span>);
+}).on(<span style="color: #70c0b1;">'unsubscribed'</span>, <span style="color: #b9ca4a;">function</span> (<span style="color: #e7c547;">topic</span>, <span style="color: #e7c547;">client</span>) {
+<span style="color: #eaeaea; background-color: #424242;"> </span>   console.log(<span style="color: #70c0b1;">'client('</span> + client.id + <span style="color: #70c0b1;">') unsubscribed topic('</span> + topic + <span style="color: #70c0b1;">')'</span>);
+}).on(<span style="color: #70c0b1;">'clientDisconnecting'</span>, <span style="color: #b9ca4a;">function</span> (<span style="color: #e7c547;">client</span>) {
+<span style="color: #eaeaea; background-color: #424242;"> </span>   console.log(<span style="color: #70c0b1;">'client('</span> + client.id + <span style="color: #70c0b1;">') disconnecting'</span>);
+}).on(<span style="color: #70c0b1;">'clientDisconnected'</span>, <span style="color: #b9ca4a;">function</span> (<span style="color: #e7c547;">client</span>) {
+<span style="color: #eaeaea; background-color: #424242;"> </span>   console.log(<span style="color: #70c0b1;">'client('</span> + client.id + <span style="color: #70c0b1;">') disconnected'</span>);
 });
 </pre>
 </div>
@@ -94,16 +270,16 @@ server.on(<span style="color: #66cccc;">'ready'</span>, <span style="color: #99c
 </p>
 <div class="org-src-container">
 
-<pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">mqtt</span> = require(<span style="color: #66cccc;">'mqtt'</span>);
+<pre class="src src-js"><span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">mqtt</span> = require(<span style="color: #70c0b1;">'mqtt'</span>);
 
 
-<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">client</span> = mqtt.connect(<span style="color: #66cccc;">'mqtt://127.0.0.1:1883'</span>);
-client.on(<span style="color: #66cccc;">'connect'</span>, <span style="color: #99cc99;">function</span> () {
-<span style="color: #cccccc; background-color: #515151;"> </span>   client.subscribe(<span style="color: #66cccc;">'presence'</span>);
-<span style="color: #cccccc; background-color: #515151;"> </span>   client.publish(<span style="color: #66cccc;">'presence'</span>, <span style="color: #66cccc;">'a message from myself'</span>);
-}).on(<span style="color: #66cccc;">'message'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">topic</span>, <span style="color: #ffcc66;">message</span>) {
-<span style="color: #cccccc; background-color: #515151;"> </span>   console.log(topic + <span style="color: #66cccc;">': '</span> + message.toString());
-<span style="color: #cccccc; background-color: #515151;"> </span>   client.end();
+<span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">client</span> = mqtt.connect(<span style="color: #70c0b1;">'mqtt://127.0.0.1:1883'</span>);
+client.on(<span style="color: #70c0b1;">'connect'</span>, <span style="color: #b9ca4a;">function</span> () {
+<span style="color: #eaeaea; background-color: #424242;"> </span>   client.subscribe(<span style="color: #70c0b1;">'presence'</span>);
+<span style="color: #eaeaea; background-color: #424242;"> </span>   client.publish(<span style="color: #70c0b1;">'presence'</span>, <span style="color: #70c0b1;">'a message from myself'</span>);
+}).on(<span style="color: #70c0b1;">'message'</span>, <span style="color: #b9ca4a;">function</span> (<span style="color: #e7c547;">topic</span>, <span style="color: #e7c547;">message</span>) {
+<span style="color: #eaeaea; background-color: #424242;"> </span>   console.log(topic + <span style="color: #70c0b1;">': '</span> + message.toString());
+<span style="color: #eaeaea; background-color: #424242;"> </span>   client.end();
 });
 </pre>
 </div>
@@ -153,14 +329,14 @@ $
 </p>
 <div class="org-src-container">
 
-<pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">mqtt</span> = require(<span style="color: #66cccc;">'mqtt'</span>);
+<pre class="src src-js"><span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">mqtt</span> = require(<span style="color: #70c0b1;">'mqtt'</span>);
 
-<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">client</span> = mqtt.connect(<span style="color: #66cccc;">'mqtt://127.0.0.1:1883'</span>);
-client.on(<span style="color: #66cccc;">'connect'</span>, <span style="color: #99cc99;">function</span> () {
-<span style="color: #cccccc; background-color: #515151;"> </span>   client.publish(<span style="color: #66cccc;">'sub'</span>, <span style="color: #66cccc;">'message from pub'</span>);
-}).on(<span style="color: #66cccc;">'message'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">topic</span>, <span style="color: #ffcc66;">message</span>) {
-<span style="color: #cccccc; background-color: #515151;"> </span>   console.log(topic + <span style="color: #66cccc;">': '</span> + message.toString());
-<span style="color: #cccccc; background-color: #515151;"> </span>   client.end();
+<span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">client</span> = mqtt.connect(<span style="color: #70c0b1;">'mqtt://127.0.0.1:1883'</span>);
+client.on(<span style="color: #70c0b1;">'connect'</span>, <span style="color: #b9ca4a;">function</span> () {
+<span style="color: #eaeaea; background-color: #424242;"> </span>   client.publish(<span style="color: #70c0b1;">'sub'</span>, <span style="color: #70c0b1;">'message from pub'</span>);
+}).on(<span style="color: #70c0b1;">'message'</span>, <span style="color: #b9ca4a;">function</span> (<span style="color: #e7c547;">topic</span>, <span style="color: #e7c547;">message</span>) {
+<span style="color: #eaeaea; background-color: #424242;"> </span>   console.log(topic + <span style="color: #70c0b1;">': '</span> + message.toString());
+<span style="color: #eaeaea; background-color: #424242;"> </span>   client.end();
 });
 </pre>
 </div>
@@ -170,14 +346,14 @@ client.on(<span style="color: #66cccc;">'connect'</span>, <span style="color: #9
 </p>
 <div class="org-src-container">
 
-<pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">mqtt</span> = require(<span style="color: #66cccc;">'mqtt'</span>);
+<pre class="src src-js"><span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">mqtt</span> = require(<span style="color: #70c0b1;">'mqtt'</span>);
 
-<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">client</span> = mqtt.connect(<span style="color: #66cccc;">'mqtt://127.0.0.1:1883'</span>);
-client.on(<span style="color: #66cccc;">'connect'</span>, <span style="color: #99cc99;">function</span> () {
-<span style="color: #cccccc; background-color: #515151;"> </span>   client.publish(<span style="color: #66cccc;">'sub'</span>, <span style="color: #66cccc;">'message from pub'</span>);
-}).on(<span style="color: #66cccc;">'message'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">topic</span>, <span style="color: #ffcc66;">message</span>) {
-<span style="color: #cccccc; background-color: #515151;"> </span>   console.log(topic + <span style="color: #66cccc;">': '</span> + message.toString());
-<span style="color: #cccccc; background-color: #515151;"> </span>   client.end();
+<span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">client</span> = mqtt.connect(<span style="color: #70c0b1;">'mqtt://127.0.0.1:1883'</span>);
+client.on(<span style="color: #70c0b1;">'connect'</span>, <span style="color: #b9ca4a;">function</span> () {
+<span style="color: #eaeaea; background-color: #424242;"> </span>   client.publish(<span style="color: #70c0b1;">'sub'</span>, <span style="color: #70c0b1;">'message from pub'</span>);
+}).on(<span style="color: #70c0b1;">'message'</span>, <span style="color: #b9ca4a;">function</span> (<span style="color: #e7c547;">topic</span>, <span style="color: #e7c547;">message</span>) {
+<span style="color: #eaeaea; background-color: #424242;"> </span>   console.log(topic + <span style="color: #70c0b1;">': '</span> + message.toString());
+<span style="color: #eaeaea; background-color: #424242;"> </span>   client.end();
 });
 </pre>
 </div>
@@ -256,14 +432,14 @@ $ node client_pub.js
 </p>
 <div class="org-src-container">
 
-<pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">mqtt</span> = require(<span style="color: #66cccc;">'mqtt'</span>);
+<pre class="src src-js"><span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">mqtt</span> = require(<span style="color: #70c0b1;">'mqtt'</span>);
 
-<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">client</span> = mqtt.connect(<span style="color: #66cccc;">'mqtt://127.0.0.1:1883'</span>, {clientId: <span style="color: #66cccc;">'sub'</span>, clean: <span style="color: #6699cc;">fals</span><span style="color: #6699cc; text-decoration: underline;">e</span><span style="text-decoration: underline;">});</span>
-client.on(<span style="color: #66cccc;">'connect'</span>, <span style="color: #99cc99;">function</span> () {
-<span style="color: #cccccc; background-color: #515151;"> </span>   client.subscribe(<span style="color: #66cccc;">'sub'</span>);
-}).on(<span style="color: #66cccc;">'message'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">topic</span>, <span style="color: #ffcc66;">message</span>) {
-<span style="color: #cccccc; background-color: #515151;"> </span>   console.log(topic + <span style="color: #66cccc;">': '</span> + message.toString());
-<span style="color: #cccccc; background-color: #515151;"> </span>   client.end();
+<span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">client</span> = mqtt.connect(<span style="color: #70c0b1;">'mqtt://127.0.0.1:1883'</span>, {clientId: <span style="color: #70c0b1;">'sub'</span>, clean: <span style="color: #7aa6da;">fals</span><span style="color: #7aa6da; text-decoration: underline;">e</span><span style="text-decoration: underline;">});</span>
+client.on(<span style="color: #70c0b1;">'connect'</span>, <span style="color: #b9ca4a;">function</span> () {
+<span style="color: #eaeaea; background-color: #424242;"> </span>   client.subscribe(<span style="color: #70c0b1;">'sub'</span>);
+}).on(<span style="color: #70c0b1;">'message'</span>, <span style="color: #b9ca4a;">function</span> (<span style="color: #e7c547;">topic</span>, <span style="color: #e7c547;">message</span>) {
+<span style="color: #eaeaea; background-color: #424242;"> </span>   console.log(topic + <span style="color: #70c0b1;">': '</span> + message.toString());
+<span style="color: #eaeaea; background-color: #424242;"> </span>   client.end();
 });
 </pre>
 </div>
@@ -273,14 +449,14 @@ client.on(<span style="color: #66cccc;">'connect'</span>, <span style="color: #9
 </p>
 <div class="org-src-container">
 
-<pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">mqtt</span> = require(<span style="color: #66cccc;">'mqtt'</span>);
+<pre class="src src-js"><span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">mqtt</span> = require(<span style="color: #70c0b1;">'mqtt'</span>);
 
-<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">client</span> = mqtt.connect(<span style="color: #66cccc;">'mqtt://127.0.0.1:1883'</span>, {clientId: <span style="color: #66cccc;">'pub'</span>});
-client.on(<span style="color: #66cccc;">'connect'</span>, <span style="color: #99cc99;">function</span> () {
-<span style="color: #cccccc; background-color: #515151;"> </span>   client.publish(<span style="color: #66cccc;">'sub'</span>, <span style="color: #66cccc;">'message from pub'</span>, {qos: 1, retain: <span style="color: #6699cc;">true</span>});
-}).on(<span style="color: #66cccc;">'message'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">topic</span>, <span style="color: #ffcc66;">message</span>) {
-<span style="color: #cccccc; background-color: #515151;"> </span>   console.log(topic + <span style="color: #66cccc;">': '</span> + message.toString());
-<span style="color: #cccccc; background-color: #515151;"> </span>   client.end();
+<span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">client</span> = mqtt.connect(<span style="color: #70c0b1;">'mqtt://127.0.0.1:1883'</span>, {clientId: <span style="color: #70c0b1;">'pub'</span>});
+client.on(<span style="color: #70c0b1;">'connect'</span>, <span style="color: #b9ca4a;">function</span> () {
+<span style="color: #eaeaea; background-color: #424242;"> </span>   client.publish(<span style="color: #70c0b1;">'sub'</span>, <span style="color: #70c0b1;">'message from pub'</span>, {qos: 1, retain: <span style="color: #7aa6da;">true</span>});
+}).on(<span style="color: #70c0b1;">'message'</span>, <span style="color: #b9ca4a;">function</span> (<span style="color: #e7c547;">topic</span>, <span style="color: #e7c547;">message</span>) {
+<span style="color: #eaeaea; background-color: #424242;"> </span>   console.log(topic + <span style="color: #70c0b1;">': '</span> + message.toString());
+<span style="color: #eaeaea; background-color: #424242;"> </span>   client.end();
 });
 </pre>
 </div>
@@ -844,20 +1020,20 @@ TCP死连接一般在一方（或中间线路上的设备）断电、死机后�
 
 <div class="org-src-container">
 
-<pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">options</span> = {
-<span style="color: #cccccc; background-color: #515151;"> </span>   key: <span style="color: #66cccc;">"..."</span>,
-<span style="color: #cccccc; background-color: #515151;"> </span>   cert: <span style="color: #66cccc;">"..."</span>,
-<span style="color: #cccccc; background-color: #515151;"> </span>   handshakeTimeout: 10*1000,
-<span style="color: #cccccc; background-color: #515151;"> </span>   plain: <span style="color: #6699cc;">true</span>,
-<span style="color: #cccccc; background-color: #515151;"> </span>   ssl: <span style="color: #6699cc;">true</span>
+<pre class="src src-js"><span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">options</span> = {
+<span style="color: #eaeaea; background-color: #424242;"> </span>   key: <span style="color: #70c0b1;">"..."</span>,
+<span style="color: #eaeaea; background-color: #424242;"> </span>   cert: <span style="color: #70c0b1;">"..."</span>,
+<span style="color: #eaeaea; background-color: #424242;"> </span>   handshakeTimeout: 10*1000,
+<span style="color: #eaeaea; background-color: #424242;"> </span>   plain: <span style="color: #7aa6da;">true</span>,
+<span style="color: #eaeaea; background-color: #424242;"> </span>   ssl: <span style="color: #7aa6da;">true</span>
 };
 
-<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">tlsServer</span> = tls.createServer(options, app).listen(5433, 8192, <span style="color: #99cc99;">function</span>(){
-<span style="color: #cccccc; background-color: #515151;"> </span>   logger.log(<span style="color: #66cccc;">'tls server listening on port 5433'</span>);
+<span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">tlsServer</span> = tls.createServer(options, app).listen(5433, 8192, <span style="color: #b9ca4a;">function</span>(){
+<span style="color: #eaeaea; background-color: #424242;"> </span>   logger.log(<span style="color: #70c0b1;">'tls server listening on port 5433'</span>);
 });
 
-tlsServer.on(<span style="color: #66cccc;">'clientError'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">exception</span>, <span style="color: #ffcc66;">socket</span>) {
-<span style="color: #cccccc; background-color: #515151;"> </span>   logger.warn(<span style="color: #66cccc;">'tls server client('</span> + socket.remoteAddress + <span style="color: #66cccc;">':'</span> + socket.remot<span style="text-decoration: underline;">ePort +</span><span style="color: #66cccc; text-decoration: underline;">') error('</span><span style="text-decoration: underline;"> + exception + </span><span style="color: #66cccc; text-decoration: underline;">')'</span><span style="text-decoration: underline;">);</span>
+tlsServer.on(<span style="color: #70c0b1;">'clientError'</span>, <span style="color: #b9ca4a;">function</span> (<span style="color: #e7c547;">exception</span>, <span style="color: #e7c547;">socket</span>) {
+<span style="color: #eaeaea; background-color: #424242;"> </span>   logger.warn(<span style="color: #70c0b1;">'tls server client('</span> + socket.remoteAddress + <span style="color: #70c0b1;">':'</span> + socket.remot<span style="text-decoration: underline;">ePort +</span><span style="color: #70c0b1; text-decoration: underline;">') error('</span><span style="text-decoration: underline;"> + exception + </span><span style="color: #70c0b1; text-decoration: underline;">')'</span><span style="text-decoration: underline;">);</span>
 });
 </pre>
 </div>
