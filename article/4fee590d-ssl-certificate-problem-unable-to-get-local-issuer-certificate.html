@@ -92,14 +92,32 @@ The document has moved
 </p>
 
 <div id="outline-container-sec-1" class="outline-2">
-<h2 id="sec-1">获取 CA 证书</h2>
+<h2 id="sec-1">什么是 CA 证书</h2>
 <div class="outline-text-2" id="text-1">
+<blockquote>
 <p>
-linux 桌面的 CA 证书由操作系统本身负责维护，没有统一的标准规定如何维护和管理 CA 证书。
+Certificate Authority (CA) Certificates
 </p>
 
 <p>
-比较有名的 CA 证书列表由 mozilla 维护，<a href="https://curl.haxx.se/">curl</a> 提供了命令行工具 <a href="https://github.com/curl/curl/raw/master/lib/mk-ca-bundle.pl">mk-ca-bundle.pl</a> 用于下载 mozilla 维护的 CA 证书列表并转换成 SSL 的应用程序直接使用的格式。
+A certificate authority (CA) is a trusted entity that issues electronic documents that verify a digital entity’s identity on the Internet. The electronic documents, which are called digital certificates, are an essential part of secure communication and play an important part in the public key infrastructure (PKI). Certificates typically include the owner's public key, the expiration date of the certificate, the owner's name and other information about the public key owner.
+</p>
+</blockquote>
+<p>
+引用自 <a href="http://searchsecurity.techtarget.com/definition/certificate-authority">What is certificate authority (CA)? - Definition from WhatIs.com</a>
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">获取 CA 证书</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+比较有名的 CA 证书列表由 mozilla 维护，<a href="https://curl.haxx.se/">curl</a> 提供了命令行工具 <a href="https://github.com/curl/curl/raw/master/lib/mk-ca-bundle.pl">mk-ca-bundle.pl</a> ，用于下载 mozilla 维护的 CA 证书列表，转换成 SSL 应用程序可直接使用的格式。
+</p>
+
+<p>
+linux 系统的 CA 证书由操作系统发行版负责维护，没有统一的标准规定如何维护和管理 CA 证书。
 </p>
 
 <p>
@@ -151,7 +169,8 @@ ca-certificates-mozilla /usr/share/ca-certificates/trust-source/mozilla.trust.cr
 </pre>
 
 <p>
-拷贝 Archlinux 的 CA 证书文件 /etc/ssl/certs/ca-certificates.crt 到嵌入式 linux 设备，就可以通过 curl 访问 https 站点。
+拷贝 Archlinux 的 CA 证书文件 /etc/ssl/certs/ca-certificates.crt 到嵌入式 linux 设备，
+修复 curl 无法访问 https 站点的问题。
 由于嵌入式 linux 设备上 curl 使用的默认 CA 证书文件路径不同，需要通过 &#x2013;cacert 选项明确指定
 </p>
 <pre class="example">
@@ -166,45 +185,73 @@ The document has moved
 </div>
 </div>
 
-<div id="outline-container-sec-2" class="outline-2">
-<h2 id="sec-2">更新 CA 证书</h2>
-<div class="outline-text-2" id="text-2">
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">更新 CA 证书</h2>
+<div class="outline-text-2" id="text-3">
+</div><div id="outline-container-sec-3-1" class="outline-3">
+<h3 id="sec-3-1">使用 openwrt 的嵌入式设备</h3>
+<div class="outline-text-3" id="text-3-1">
 <p>
-使用 openwrt 的嵌入式设备，可以通过 opkg 进行安装和更新 CA 证书文件
+可以通过 opkg 进行安装和更新 CA 证书文件
 </p>
+
 <div class="org-src-container">
 
 <pre class="src src-sh">opkg install ca-certificates
 opkg upgrade ca-certificates
 </pre>
 </div>
+</div>
+</div>
 
-
+<div id="outline-container-sec-3-2" class="outline-3">
+<h3 id="sec-3-2">使用 linux 的嵌入式设备</h3>
+<div class="outline-text-3" id="text-3-2">
 <p>
-使用 linux 的嵌入式设备，如果没有软件包管理器，可以从 linux 服务器上定时下载最新的 CA 证书文件。
+如果没有软件包管理器，可以从 linux 服务器上定时下载最新的 CA 证书文件。
 </p>
 
 <p>
-linux 服务器上的 CA 证书文件可以通过两种方式生成：
+linux 服务器上的 CA 证书文件可以通过两种方式更新
 </p>
 
 <ul class="org-ul">
-<li>linux 服务器自动更新 ca-certificates 软件包，确保 CA 证书文件保持最新。
+<li>更新 ca-certificates 软件包
+
+<p>
+CentOS 6.4
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">yum update ca-certificates
+</pre>
+</div>
+
+<p>
+CentOS 6.4 的 CA 证书文件 /etc/pki/tls/certs/ca-bundle.crt
+</p>
 </li>
-</ul>
 
+<li><a href="https://github.com/curl/curl/raw/master/lib/mk-ca-bundle.pl">mk-ca-bundle.pl</a> 脚本生成最新的 CA 证书文件
 
-<ul class="org-ul">
-<li><a href="https://github.com/curl/curl/raw/master/lib/mk-ca-bundle.pl">mk-ca-bundle.pl</a> 脚本生成 CA 证书文件 
+<p>
+该脚本生成的 CA 证书文件包含 mozilla 维护的证书
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">mk-ca-bundle.pl -q ca-bundle.crt
+</pre>
+</div>
 </li>
 </ul>
 </div>
 </div>
+</div>
 
-
-<div id="outline-container-sec-3" class="outline-2">
-<h2 id="sec-3">参考</h2>
-<div class="outline-text-2" id="text-3">
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4">参考</h2>
+<div class="outline-text-2" id="text-4">
 <ul class="org-ul">
 <li><a href="https://en.wikipedia.org/wiki/Root_certificate">Root certificate - Wikipedia, the free encyclopedia</a>
 </li>
@@ -219,6 +266,12 @@ linux 服务器上的 CA 证书文件可以通过两种方式生成：
 </li>
 
 <li><a href="https://wiki.openwrt.org/doc/howto/wget-ssl-certs">SSL and Certificates in wget - OpenWrt Wiki</a>
+</li>
+
+<li><a href="https://www.happyassassin.net/2015/01/12/a-note-about-ssltls-trusted-certificate-stores-and-platforms/">A note about SSL/TLS trusted certificate stores, and platforms (OpenSSL and GnuTLS)</a>
+</li>
+
+<li><a href="http://searchsecurity.techtarget.com/definition/certificate-authority">What is certificate authority (CA)? - Definition from WhatIs.com</a>
 </li>
 </ul>
 </div>

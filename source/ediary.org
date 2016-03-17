@@ -32,18 +32,21 @@
 ** 配置
 
    在配置文件~/.xprofile中添加以下内容：
-   #+BEGIN_EXAMPLE
+   #+BEGIN_SRC sh
      export GTK_IM_MODULE=fcitx
      export QT_IM_MODULE=fcitx
      export XMODIFIERS="@im=fcitx"
      export LC_CTYPE="zh_CN.UTF-8"
-   #+END_EXAMPLE
+   #+END_SRC
 
    因为用的是gnome3桌面，需要禁用ibus：
-   #+BEGIN_EXAMPLE
+   #+BEGIN_SRC
      gsettings set org.gnome.settings-daemon.plugins.keyboard active false
-   #+END_EXAMPLE
+   #+END_SRC
    还需要在键盘快捷键设置界面中将输入源切换的快捷键清除。
+
+   打开 fcitx-configtool 在 Input Method 中添加 Keyboard - English(US) 和 WubiPinyin，
+   现在可以 Ctrl + Space 切换输入法，进行中英文输入了。
   
 * DONE Archlinux下安装cups打印系统                                :archlinux:
    CLOSED: <2013-03-27 三 21:56>
@@ -6748,6 +6751,8 @@ class RedisShard {
 
   但是，此时也不好判断密码是否改成功了，需要验证一下。
 
+  linux 系统的密码编码（不可逆）后存储在 /etc/shadow（以前是 /etc/passwd） 文件里。
+
   参考文章《[[http://www.xinotes.net/notes/note/1833/][Check Linux user password in C]] 》编写了以下程序用于非交互式修改密码：
 
   [[file:../static/change_password.c][change_password.c]]
@@ -6761,6 +6766,10 @@ class RedisShard {
   #+begin_src sh
     ./change_password root 123456
   #+end_src
+
+  参考：
+
+  - [[http://tldp.org/HOWTO/Shadow-Password-HOWTO-2.html][Why shadow your passwd file?]]
 
 * DONE 轻断食日（2015-6-16）                                             :轻断食:
   CLOSED: [2015-06-16 Tue 18:52]
@@ -10891,11 +10900,20 @@ class RedisShard {
 
   嵌入式 linux 设备上缺少了 CA 证书。
 
+** 什么是 CA 证书
+
+   #+begin_quote
+   Certificate Authority (CA) Certificates
+   
+   A certificate authority (CA) is a trusted entity that issues electronic documents that verify a digital entity’s identity on the Internet. The electronic documents, which are called digital certificates, are an essential part of secure communication and play an important part in the public key infrastructure (PKI). Certificates typically include the owner's public key, the expiration date of the certificate, the owner's name and other information about the public key owner.
+   #+end_quote
+   引用自 [[http://searchsecurity.techtarget.com/definition/certificate-authority][What is certificate authority (CA)? - Definition from WhatIs.com]]
+
 ** 获取 CA 证书
-
-   linux 桌面的 CA 证书由操作系统本身负责维护，没有统一的标准规定如何维护和管理 CA 证书。
-
-   比较有名的 CA 证书列表由 mozilla 维护，[[https://curl.haxx.se/][curl]] 提供了命令行工具 [[https://github.com/curl/curl/raw/master/lib/mk-ca-bundle.pl][mk-ca-bundle.pl]] 用于下载 mozilla 维护的 CA 证书列表并转换成 SSL 的应用程序直接使用的格式。
+   
+   比较有名的 CA 证书列表由 mozilla 维护，[[https://curl.haxx.se/][curl]] 提供了命令行工具 [[https://github.com/curl/curl/raw/master/lib/mk-ca-bundle.pl][mk-ca-bundle.pl]] ，用于下载 mozilla 维护的 CA 证书列表，转换成 SSL 应用程序可直接使用的格式。
+   
+   linux 系统的 CA 证书由操作系统发行版负责维护，没有统一的标准规定如何维护和管理 CA 证书。
 
    Archlinux 的 CA 证书由 [[https://www.archlinux.org/packages/core/any/ca-certificates/][ca-certificates]] 包维护，CA 证书来自依赖的包 [[https://www.archlinux.org/packages/core/i686/ca-certificates-mozilla/][ca-certificates-mozilla]] 及 [[https://www.archlinux.org/packages/core/any/ca-certificates-cacert/][ca-certificates-cacert]] 。
    #+begin_example
@@ -10943,7 +10961,8 @@ class RedisShard {
      ca-certificates-mozilla /usr/share/ca-certificates/trust-source/mozilla.trust.crt
    #+end_example
 
-   拷贝 Archlinux 的 CA 证书文件 /etc/ssl/certs/ca-certificates.crt 到嵌入式 linux 设备，就可以通过 curl 访问 https 站点。
+   拷贝 Archlinux 的 CA 证书文件 /etc/ssl/certs/ca-certificates.crt 到嵌入式 linux 设备，
+   修复 curl 无法访问 https 站点的问题。
    由于嵌入式 linux 设备上 curl 使用的默认 CA 证书文件路径不同，需要通过 --cacert 选项明确指定
    #+begin_example
      # curl https://www.google.com --cacert /etc/ssl/certs/ca-certificates.crt
@@ -10957,22 +10976,37 @@ class RedisShard {
 
 ** 更新 CA 证书
 
-   使用 openwrt 的嵌入式设备，可以通过 opkg 进行安装和更新 CA 证书文件
-   #+begin_src sh
-     opkg install ca-certificates
-     opkg upgrade ca-certificates
-   #+end_src
+*** 使用 openwrt 的嵌入式设备
+     
+    可以通过 opkg 进行安装和更新 CA 证书文件
 
+    #+begin_src sh
+      opkg install ca-certificates
+      opkg upgrade ca-certificates
+    #+end_src
 
-   使用 linux 的嵌入式设备，如果没有软件包管理器，可以从 linux 服务器上定时下载最新的 CA 证书文件。
+*** 使用 linux 的嵌入式设备
+     
+    如果没有软件包管理器，可以从 linux 服务器上定时下载最新的 CA 证书文件。
 
-   linux 服务器上的 CA 证书文件可以通过两种方式生成：
+    linux 服务器上的 CA 证书文件可以通过两种方式更新
 
-   - linux 服务器自动更新 ca-certificates 软件包，确保 CA 证书文件保持最新。
-   
-   
-   - [[https://github.com/curl/curl/raw/master/lib/mk-ca-bundle.pl][mk-ca-bundle.pl]] 脚本生成 CA 证书文件 
+    - 更新 ca-certificates 软件包
+      
+      CentOS 6.4
+      #+begin_src sh
+        yum update ca-certificates
+      #+end_src
 
+      CentOS 6.4 的 CA 证书文件 /etc/pki/tls/certs/ca-bundle.crt
+
+    - [[https://github.com/curl/curl/raw/master/lib/mk-ca-bundle.pl][mk-ca-bundle.pl]] 脚本生成最新的 CA 证书文件
+
+      该脚本生成的 CA 证书文件包含 mozilla 维护的证书
+
+      #+begin_src sh
+        mk-ca-bundle.pl -q ca-bundle.crt
+      #+end_src
 
 ** 参考
 
@@ -10985,3 +11019,145 @@ class RedisShard {
    - [[https://curl.haxx.se/docs/mk-ca-bundle.html][mk-ca-bundle]]
 
    - [[https://wiki.openwrt.org/doc/howto/wget-ssl-certs][SSL and Certificates in wget - OpenWrt Wiki]]
+
+   - [[https://www.happyassassin.net/2015/01/12/a-note-about-ssltls-trusted-certificate-stores-and-platforms/][A note about SSL/TLS trusted certificate stores, and platforms (OpenSSL and GnuTLS)]]
+
+   - [[http://searchsecurity.techtarget.com/definition/certificate-authority][What is certificate authority (CA)? - Definition from WhatIs.com]]
+
+* DONE Thinkpad T540p 安装 Archlinux                     :thinkpad:archlinux:
+  CLOSED: [2016-03-17 Thu 18:09]
+
+  如果你是重新安装 Archlinux 则建议在安装前记录一下现有系统的软件列表，方便装完新系统后继续安装需要的软件
+
+  #+begin_src sh
+    pacman -Qqe | grep -vx "$(pacman -Qqm)" > Packages
+    pacman -Qqm > Packages.aur
+  #+end_src
+
+  参考
+  
+  - [[https://wiki.archlinux.org/index.php/migrate_installation_to_new_hardware][Migrate installation to new hardware - ArchWiki]]
+
+** 下载 ISO
+
+   从 [[https://www.archlinux.org][Archlinux 官网]] 下载最新的安装包 [[https://www.archlinux.org/download/][archlinux-2016.03.01-dual.iso]]
+
+** 创建安装盘
+
+   通过 dd 将 ISO 写入 U 盘创建安装盘。
+
+   参考
+   
+   - [[https://wiki.archlinux.org/index.php/USB_flash_installation_media_%28%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87%29#GNU.2FLinux][USB flash installation media (简体中文) - ArchWiki]]
+
+** BIOS 启用 UEFI
+
+** 开始安装
+
+   按照 [[https://wiki.archlinux.org/index.php/Beginners'_guide][Beginners' guide - ArchWiki]] 一步步安装到 [[https://wiki.archlinux.org/index.php/Beginners'_guide#Initramfs][Initramfs]] ，分区分案选 [[https://wiki.archlinux.org/index.php/Beginners'_guide#UEFI.2FGPT_examples][UEFI/GPT]]。
+
+   [[https://wiki.archlinux.org/index.php/Beginners'_guide#Install_a_boot_loader][Install a boot loader]] 这一步改成 [[使用 UEFI 做为启动管理器]] 。
+
+
+   针对固态硬盘的优化建议
+
+   - 格式化 ext4 分区时添加选项 4K 对齐
+
+     #+begin_src sh
+       mkfs.ext4 -b 4096 /dev/sdXX
+     #+end_src
+   
+   - 挂载 ext4 分区时添加选项 discard,noatime
+
+     #+begin_src sh
+       mount -t ext4 /dev/sdXX /mnt -o discard,noatime
+     #+end_src
+
+     noatime 读取文件的时候不修改读取的时间，减少对 ssd 的写入次数
+     discard 启动 trim
+
+** 使用 UEFI 做为启动管理器
+
+   由于主板直接支持 UEFI 启动，使用 efibootmgr 来创建 Boot Loader 不但更简单，而且系统启动更快。
+
+   参考
+   
+   - [[https://wiki.archlinux.org/index.php/EFISTUB#Using_UEFI_directly_.28efibootmgr.29][EFISTUB - Using UEFI directly (efibootmgr) - ArchWiki]]
+
+   - [[http://superuser.com/questions/912417/i-wanted-to-install-arch-linux-on-a-uefi-gpt-system-and-had-questions-about-the/912435#912435][I wanted to install arch linux on a UEFI/GPT system and had questions about the process - Super User]]
+
+** 开通 sudo 权限组
+
+   运行 sudoedit，修改如下
+
+   #+begin_example
+     ## Uncomment to allow members of group wheel to execute any command
+     %wheel ALL=(ALL) ALL
+   #+end_example
+
+   - wheel :: 为 sudo 权限组   
+
+** 创建个人帐号
+
+   加入 sudo 权限组
+
+   #+begin_src sh
+     useradd tangxinfa -m -G wheel -p
+   #+end_src
+
+   - tangxinfa :: 为个人帐号名称，请自行修改
+
+   - wheel :: 为 sudo 权限组
+
+              
+   接下来的操作可以切到个人帐号了。
+
+** 安装 fcitx 输入法
+
+   参考
+
+   - [[http://blog.kankanan.com/article/archlinux-4e0b5b8988c5-fcitx-8f9351656cd5.html][Archlinux下安装fcitx输入法 | 看看俺 – KanKanAn.com]]
+
+   - [[https://wiki.archlinux.org/index.php/Fcitx][Fcitx - ArchWiki]]
+
+** 触摸板
+
+   #+begin_src sh
+     yaourt -S xf86-input-synaptics
+   #+end_src
+
+   - 触摸板区域调优
+   
+     [[http://blog.kankanan.com/article/thinkpad-t540p-4fee590d-linux-4e0b89e66478677f63094e0b65f6514968074f4d7f6e79fb52a895ee9898.html][Thinkpad T540p修复linux下触摸板按下时光标位置移动问题 | 看看俺 – KanKanAn.com]]
+
+** 定制 gnome3
+
+   安装扩展
+
+   - 程序托盘图标回到屏幕右上角
+
+     [[https://extensions.gnome.org/extension/495/topicons/][TopIcons]]
+
+   - 窗口标题栏融入活动栏
+
+     [[https://extensions.gnome.org/extension/723/pixel-saver/][Pixel Saver]]
+
+** 避免启动后总是静音
+
+   安装 alsa-utils，保存音量设置。
+
+* TODO 修复 offlineimap 无法收邮件的问题                              :linux:
+
+** 诊断问题
+   
+   命令行上执行 offlineimap
+
+   #+begin_example
+     $ offlineimap -d all
+     ...
+      Establishing connection to imap.xxxxxx.com:143
+     ...
+      [imap]:   34:31.28 imap.xxxxxx.com reader socket error: <class 'socket.error'> - [Errno 104] Connection reset by peer
+     ...
+   #+end_example
+   

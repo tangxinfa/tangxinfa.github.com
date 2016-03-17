@@ -4,7 +4,7 @@
         <title>archlinux - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/archlinux.xml</link>
-        <lastBuildDate>Mon, 14 Mar 2016 12:38:27 GMT</lastBuildDate>
+        <lastBuildDate>Thu, 17 Mar 2016 10:18:35 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>archlinux - 看看俺 – KanKanAn.com</title>
@@ -14,6 +14,244 @@
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <generator>Feed for Node.js</generator>
         <category>技术</category>
+        <item>
+            <title><![CDATA[Thinkpad T540p 安装 Archlinux]]></title>
+            <link>/article/thinkpad-t540p-5b8988c5-archlinux.html</link>
+            <guid>/article/thinkpad-t540p-5b8988c5-archlinux.html</guid>
+            <pubDate>Thu, 17 Mar 2016 10:09:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+如果你是重新安装 Archlinux 则建议在安装前记录一下现有系统的软件列表，方便装完新系统后继续安装需要的软件
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">pacman -Qqe | grep -vx <span style="color: #8abeb7;">"$(</span><span style="color: #b294bb;">pacman</span><span style="color: #8abeb7;"> -Qqm)"</span> &gt; Packages
+pacman -Qqm &gt; Packages.aur
+</pre>
+</div>
+
+<p>
+参考
+</p>
+
+<ul class="org-ul">
+<li><a href="https://wiki.archlinux.org/index.php/migrate_installation_to_new_hardware">Migrate installation to new hardware - ArchWiki</a>
+</li>
+</ul>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">下载 ISO</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+从 <a href="https://www.archlinux.org">Archlinux 官网</a> 下载最新的安装包 <a href="https://www.archlinux.org/download/">archlinux-2016.03.01-dual.iso</a>
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">创建安装盘</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+通过 dd 将 ISO 写入 U 盘创建安装盘。
+</p>
+
+<p>
+参考
+</p>
+
+<ul class="org-ul">
+<li><a href="https://wiki.archlinux.org/index.php/USB_flash_installation_media_(%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87)#GNU.2FLinux">USB flash installation media (简体中文) - ArchWiki</a>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">BIOS 启用 UEFI</h2>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4">开始安装</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+按照 <a href="https://wiki.archlinux.org/index.php/Beginners'_guide">Beginners' guide - ArchWiki</a> 一步步安装到 <a href="https://wiki.archlinux.org/index.php/Beginners'_guide#Initramfs">Initramfs</a> ，分区分案选 <a href="https://wiki.archlinux.org/index.php/Beginners'_guide#UEFI.2FGPT_examples">UEFI/GPT</a>。
+</p>
+
+<p>
+<a href="https://wiki.archlinux.org/index.php/Beginners'_guide#Install_a_boot_loader">Install a boot loader</a> 这一步改成 <a href="#sec-5">使用 UEFI 做为启动管理器</a> 。
+</p>
+
+
+<p>
+针对固态硬盘的优化建议
+</p>
+
+<ul class="org-ul">
+<li>格式化 ext4 分区时添加选项 4K 对齐
+
+<div class="org-src-container">
+
+<pre class="src src-sh">mkfs.ext4 -b 4096 /dev/sdXX
+</pre>
+</div>
+</li>
+
+<li>挂载 ext4 分区时添加选项 discard,noatime
+
+<div class="org-src-container">
+
+<pre class="src src-sh">mount -t ext4 /dev/sdXX /mnt -o discard,noatime
+</pre>
+</div>
+
+<p>
+noatime 读取文件的时候不修改读取的时间，减少对 ssd 的写入次数
+discard 启动 trim
+</p>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5">使用 UEFI 做为启动管理器</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+由于主板直接支持 UEFI 启动，使用 efibootmgr 来创建 Boot Loader 不但更简单，而且系统启动更快。
+</p>
+
+<p>
+参考
+</p>
+
+<ul class="org-ul">
+<li><a href="https://wiki.archlinux.org/index.php/EFISTUB#Using_UEFI_directly_.28efibootmgr.29">EFISTUB - Using UEFI directly (efibootmgr) - ArchWiki</a>
+</li>
+
+<li><a href="http://superuser.com/questions/912417/i-wanted-to-install-arch-linux-on-a-uefi-gpt-system-and-had-questions-about-the/912435#912435">I wanted to install arch linux on a UEFI/GPT system and had questions about the process - Super User</a>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-6" class="outline-2">
+<h2 id="sec-6">开通 sudo 权限组</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+运行 sudoedit，修改如下
+</p>
+
+<pre class="example">
+## Uncomment to allow members of group wheel to execute any command
+%wheel ALL=(ALL) ALL
+</pre>
+
+<dl class="org-dl">
+<dt> wheel </dt><dd>为 sudo 权限组   
+</dd>
+</dl>
+</div>
+</div>
+
+<div id="outline-container-sec-7" class="outline-2">
+<h2 id="sec-7">创建个人帐号</h2>
+<div class="outline-text-2" id="text-7">
+<p>
+加入 sudo 权限组
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">useradd tangxinfa -m -G wheel -p
+</pre>
+</div>
+
+<dl class="org-dl">
+<dt> tangxinfa </dt><dd>为个人帐号名称，请自行修改
+</dd>
+
+<dt> wheel </dt><dd>为 sudo 权限组
+</dd>
+</dl>
+
+
+<p>
+接下来的操作可以切到个人帐号了。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-8" class="outline-2">
+<h2 id="sec-8">安装 fcitx 输入法</h2>
+<div class="outline-text-2" id="text-8">
+<p>
+参考
+</p>
+
+<ul class="org-ul">
+<li><a href="http://blog.kankanan.com/article/archlinux-4e0b5b8988c5-fcitx-8f9351656cd5.html">Archlinux下安装fcitx输入法 | 看看俺 – KanKanAn.com</a>
+</li>
+
+<li><a href="https://wiki.archlinux.org/index.php/Fcitx">Fcitx - ArchWiki</a>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-9" class="outline-2">
+<h2 id="sec-9">触摸板</h2>
+<div class="outline-text-2" id="text-9">
+<div class="org-src-container">
+
+<pre class="src src-sh">yaourt -S xf86-input-synaptics
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>触摸板区域调优
+
+<p>
+<a href="http://blog.kankanan.com/article/thinkpad-t540p-4fee590d-linux-4e0b89e66478677f63094e0b65f6514968074f4d7f6e79fb52a895ee9898.html">Thinkpad T540p修复linux下触摸板按下时光标位置移动问题 | 看看俺 – KanKanAn.com</a>
+</p>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-10" class="outline-2">
+<h2 id="sec-10">定制 gnome3</h2>
+<div class="outline-text-2" id="text-10">
+<p>
+安装扩展
+</p>
+
+<ul class="org-ul">
+<li>程序托盘图标回到屏幕右上角
+
+<p>
+<a href="https://extensions.gnome.org/extension/495/topicons/">TopIcons</a>
+</p>
+</li>
+
+<li>窗口标题栏融入活动栏
+
+<p>
+<a href="https://extensions.gnome.org/extension/723/pixel-saver/">Pixel Saver</a>
+</p>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-11" class="outline-2">
+<h2 id="sec-11">避免启动后总是静音</h2>
+<div class="outline-text-2" id="text-11">
+<p>
+安装 alsa-utils，保存音量设置。</p>
+</div>
+</div>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[Archlinux 下搭建 Rust 开发环境]]></title>
             <link>/article/archlinux-4e0b642d5efa-rust-5f0053d173af5883.html</link>
@@ -52,8 +290,8 @@ cargo 0.8.0 (28a0cbb 2016-01-17)
 </p>
 <div class="org-src-container">
 
-<pre class="src src-rust"><span style="color: #b9ca4a;">fn</span> <span style="color: #e78c45;">main</span>() {
-<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #c397d8;">println!</span>(<span style="color: #70c0b1;">"Hello, world!"</span>);
+<pre class="src src-rust"><span style="color: #b5bd68;">fn</span> <span style="color: #de935f;">main</span>() {
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b294bb;">println!</span>(<span style="color: #8abeb7;">"Hello, world!"</span>);
 }
 </pre>
 </div>
@@ -298,7 +536,7 @@ ExecStart=/usr/bin/docker daemon --insecure-registry dl.dockerpool.com:5000 -H f
 
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo docker pull <span style="color: #70c0b1;">'dl.dockerpool.com:5000/ubuntu:14.04'</span>
+<pre class="src src-sh">sudo docker pull <span style="color: #8abeb7;">'dl.dockerpool.com:5000/ubuntu:14.04'</span>
 </pre>
 </div>
 </li>
@@ -307,7 +545,7 @@ ExecStart=/usr/bin/docker daemon --insecure-registry dl.dockerpool.com:5000 -H f
 
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo docker run -t -i <span style="color: #70c0b1;">'dl.dockerpool.com:5000/ubuntu:14.04'</span> /bin/bash
+<pre class="src src-sh">sudo docker run -t -i <span style="color: #8abeb7;">'dl.dockerpool.com:5000/ubuntu:14.04'</span> /bin/bash
 </pre>
 </div>
 </li>
@@ -337,7 +575,7 @@ ExecStart=/usr/bin/docker daemon --insecure-registry dl.dockerpool.com:5000 -H f
 <div class="org-src-container">
 
 <pre class="src src-sh">git clone https://github.com/facebook/flashcache.git
-<span style="color: #c397d8;">cd</span> flashcache
+<span style="color: #b294bb;">cd</span> flashcache
 make
 sudo make install
 </pre>
@@ -350,7 +588,7 @@ sudo make install
 <div class="outline-text-2" id="text-2">
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo insmod /lib/modules/<span style="color: #c397d8;">`uname -r`</span>/extra/flashcache/flashcache.ko
+<pre class="src src-sh">sudo insmod /lib/modules/<span style="color: #b294bb;">`uname -r`</span>/extra/flashcache/flashcache.ko
 </pre>
 </div>
 
@@ -390,7 +628,7 @@ insmod: ERROR: could not insert module /lib/modules/3.19.3-3-ARCH/extra/flashcac
 <div class="org-src-container">
 
 <pre class="src src-sh">sudo modprobe dm-mod
-sudo insmod /lib/modules/<span style="color: #c397d8;">`uname -r`</span>/extra/flashcache/flashcache.ko
+sudo insmod /lib/modules/<span style="color: #b294bb;">`uname -r`</span>/extra/flashcache/flashcache.ko
 </pre>
 </div>
 
@@ -418,7 +656,7 @@ sudo insmod /lib/modules/<span style="color: #c397d8;">`uname -r`</span>/extra/f
 
 <div class="org-src-container">
 
-<pre class="src src-sh">dd <span style="color: #e7c547;">if</span>=/dev/zero <span style="color: #e7c547;">of</span>=/dev/shm/ssd.img <span style="color: #e7c547;">bs</span>=1024k <span style="color: #e7c547;">count</span>=1024
+<pre class="src src-sh">dd <span style="color: #f0c674;">if</span>=/dev/zero <span style="color: #f0c674;">of</span>=/dev/shm/ssd.img <span style="color: #f0c674;">bs</span>=1024k <span style="color: #f0c674;">count</span>=1024
 sudo losetup /dev/loop1 /dev/shm/ssd.img
 </pre>
 </div>
@@ -432,7 +670,7 @@ sudo losetup /dev/loop1 /dev/shm/ssd.img
 
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo dd <span style="color: #e7c547;">if</span>=/dev/zero <span style="color: #e7c547;">of</span>=/hdd.img <span style="color: #e7c547;">bs</span>=1024k <span style="color: #e7c547;">count</span>=5120
+<pre class="src src-sh">sudo dd <span style="color: #f0c674;">if</span>=/dev/zero <span style="color: #f0c674;">of</span>=/hdd.img <span style="color: #f0c674;">bs</span>=1024k <span style="color: #f0c674;">count</span>=5120
 sudo losetup /dev/loop2 /hdd.img
 </pre>
 </div>
@@ -468,7 +706,7 @@ sudo mount /dev/mapper/cachedev /data
 
 <div class="org-src-container">
 
-<pre class="src src-sh">dd <span style="color: #e7c547;">if</span>=/dev/urandom <span style="color: #e7c547;">of</span>=/dev/shm/test.dat <span style="color: #e7c547;">bs</span>=1024k <span style="color: #e7c547;">count</span>=1024
+<pre class="src src-sh">dd <span style="color: #f0c674;">if</span>=/dev/urandom <span style="color: #f0c674;">of</span>=/dev/shm/test.dat <span style="color: #f0c674;">bs</span>=1024k <span style="color: #f0c674;">count</span>=1024
 </pre>
 </div>
 </li>
@@ -477,7 +715,7 @@ sudo mount /dev/mapper/cachedev /data
 
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo sh -c <span style="color: #70c0b1;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /dev/shm/test.dat /'</span>
+<pre class="src src-sh">sudo sh -c <span style="color: #8abeb7;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /dev/shm/test.dat /'</span>
 </pre>
 </div>
 
@@ -496,7 +734,7 @@ sys 0m0.600s
 
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo sh -c <span style="color: #70c0b1;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /test.dat /dev/shm/</span>
+<pre class="src src-sh">sudo sh -c <span style="color: #8abeb7;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /test.dat /dev/shm/</span>
 </pre>
 </div>
 
@@ -515,7 +753,7 @@ sys 0m0.727s
 
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo sh -c <span style="color: #70c0b1;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /dev/shm/test.dat /data/'</span>
+<pre class="src src-sh">sudo sh -c <span style="color: #8abeb7;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /dev/shm/test.dat /data/'</span>
 </pre>
 </div>
 
@@ -538,7 +776,7 @@ sys 0m0.760s
 
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo sh -c <span style="color: #70c0b1;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /data/test.dat /dev/shm/'</span>
+<pre class="src src-sh">sudo sh -c <span style="color: #8abeb7;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /data/test.dat /dev/shm/'</span>
 </pre>
 </div>
 
@@ -558,7 +796,7 @@ sys 0m1.157s
 
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo sh -c <span style="color: #70c0b1;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /data/test.dat /dev/shm/'</span>
+<pre class="src src-sh">sudo sh -c <span style="color: #8abeb7;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /data/test.dat /dev/shm/'</span>
 </pre>
 </div>
 
@@ -637,7 +875,7 @@ sudo rmdir /data
 <div class="outline-text-2" id="text-2">
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #c397d8;">echo</span> <span style="color: #70c0b1;">"This is an example. Arch is the best."</span> | festival --tts
+<pre class="src src-sh"><span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"This is an example. Arch is the best."</span> | festival --tts
 </pre>
 </div>
 
@@ -653,7 +891,7 @@ sudo rmdir /data
 <div class="org-src-container">
 
 <pre class="src src-lisp">(Parameter.set 'Audio_Method 'Audio_Command)
-(Parameter.set 'Audio_Command <span style="color: #70c0b1;">"aplay -q -c 1 -t raw -f s16 -r $SR $FILE"</span>)
+(Parameter.set 'Audio_Command <span style="color: #8abeb7;">"aplay -q -c 1 -t raw -f s16 -r $SR $FILE"</span>)
 </pre>
 </div>
 </div>
@@ -792,12 +1030,14 @@ ln -s /etc/xdg/autostart/fcitx-autostart.desktop  ~/.config/autostart/
 <p>
 在配置文件~/.xprofile中添加以下内容：
 </p>
-<pre class="example">
-export GTK_IM_MODULE=fcitx
-export QT_IM_MODULE=fcitx
-export XMODIFIERS="@im=fcitx"
-export LC_CTYPE="zh_CN.UTF-8"
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #b294bb;">export</span> <span style="color: #f0c674;">GTK_IM_MODULE</span>=fcitx
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">QT_IM_MODULE</span>=fcitx
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">XMODIFIERS</span>=<span style="color: #8abeb7;">"@im=fcitx"</span>
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">LC_CTYPE</span>=<span style="color: #8abeb7;">"zh_CN.UTF-8"</span>
 </pre>
+</div>
 
 <p>
 因为用的是gnome3桌面，需要禁用ibus：
@@ -807,6 +1047,11 @@ gsettings set org.gnome.settings-daemon.plugins.keyboard active false
 </pre>
 <p>
 还需要在键盘快捷键设置界面中将输入源切换的快捷键清除。
+</p>
+
+<p>
+打开 fcitx-configtool 在 Input Method 中添加 Keyboard - English(US) 和 WubiPinyin，
+现在可以 Ctrl + Space 切换输入法，进行中英文输入了。
 </p>
 </div>
 </div>
