@@ -47,6 +47,20 @@
 
    打开 fcitx-configtool 在 Input Method 中添加 Keyboard - English(US) 和 WubiPinyin，
    现在可以 Ctrl + Space 切换输入法，进行中英文输入了。
+
+   可以取消 fcitx 绑定的全局快捷键，如 emacs 要用 Ctrl+Alt+P，
+   fcitx-configtool GUI 工具不能将全局快捷键置空，
+   可以直接修改配置文件 ~/.config/fcitx/config 删除快捷键。
+   #+begin_src sh
+     # Switch Embeded Preedit
+     #SwitchPreedit=CTRL_ALT_P
+   #+end_src
+   改成
+   #+begin_src sh
+     # Switch Embeded Preedit
+     SwitchPreedit=
+   #+end_src
+   这是因为 fcitx 的配置如果为默认值，则直接注释掉，重启 fcitx 生效配置。
   
 * DONE Archlinux下安装cups打印系统                                :archlinux:
    CLOSED: <2013-03-27 三 21:56>
@@ -11170,47 +11184,138 @@ class RedisShard {
 * DONE 修复 offlineimap 无法收邮件的问题               :linux:network:python:
   CLOSED: [2016-03-18 Fri 10:44]
 
-  offlineimap 收邮件出错
-  #+begin_example
+** 不使用 ssl
+
+   .offlineimaprc 配置
+   #+begin_example
+     ssl = no
+   #+end_example
+
+
+   offlineimap 收邮件出错
+   #+begin_example
      $ offlineimap
      ...
       Establishing connection to imap.xxxxxx.com:143
       ERROR: Could not connect via SSL to host 'imap.xxxxxx.com' and non-standard ssl port 143 configured. Make sure you connect to the correct port.
      ... 
-  #+end_example
+   #+end_example
+   意外地使用了 ssl 进行连接。
 
-  offlineimap 配置配置的是普通端口（143），但是使用 tls 进行了连接。
-
-
-  telnet 邮件服务器输出的 CAPABILITY 有 STARTTLS，应该是邮件服务器配置有误
-  #+begin_example
-    $ telnet imap.xxxxxx.com 143
-    Connected to imap.xxxxxx.com.
-    Escape character is '^]'.
-    ,* OK [CAPABILITY IMAP4rev1 UIDPLUS CHILDREN NAMESPACE THREAD=ORDEREDSUBJECT THREAD=REFERENCES SORT QUOTA IDLE ACL ACL2=UNION STARTTLS] Courier-IMAP ready. Copyright 1998-2011 Double Precision, Inc.  See COPYING for distribution information.
-  #+end_example
+   
+   telnet 邮件服务器进行诊断
+   #+begin_example
+     $ telnet imap.xxxxxx.com 143
+     Connected to imap.xxxxxx.com.
+     Escape character is '^]'.
+     ,* OK [CAPABILITY IMAP4rev1 UIDPLUS CHILDREN NAMESPACE THREAD=ORDEREDSUBJECT THREAD=REFERENCES SORT QUOTA IDLE ACL ACL2=UNION STARTTLS] Courier-IMAP ready. Copyright 1998-2011 Double Precision, Inc.  See COPYING for distribution information.
+   #+end_example
+   输出的 CAPABILITY 包含 STARTTLS，应该是邮件服务器配置有误
   
   
-  修改 offlineimap 的源代码文件 [[file:///usr/lib/python2.7/site-packages/offlineimap/imapserver.py][imapserver.py]] ，不使用 tls
-  #+begin_src python
-  269  def __start_tls(self, imapobj):
-  270          if 'STARTTLS' in imapobj.capabilities and not self.usessl:
-  #+end_src
+   修改 offlineimap 的源代码文件 [[file:///usr/lib/python2.7/site-packages/offlineimap/imapserver.py][imapserver.py]] ，我们的邮箱不使用 tls
+   #+begin_src python
+     269  def __start_tls(self, imapobj):
+     270          if 'STARTTLS' in imapobj.capabilities and not self.usessl:
+   #+end_src
 
-  改成
-  #+begin_src python
-  269  def __start_tls(self, imapobj):
-  270          if 'STARTTLS' in imapobj.capabilities and not self.usessl and self.repos.account.name != 'xxxxxx':
-  #+end_src
+   改成
+   #+begin_src python
+     269  def __start_tls(self, imapobj):
+     270          if 'STARTTLS' in imapobj.capabilities and not self.usessl and self.repos.account.name != 'xxxxxx':
+   #+end_src
 
   
-  - 更好的做法
+   - 更好的做法
 
-    在 imap 协议许可的情况下，加强容错性，tls 连接失败后，使用普通连接重连。
-    .offlineimaprc 新加禁用 tls 的配置项，警告用户服务器可能配置有误，提示用户禁用 tls。
+     在 imap 协议许可的情况下，加强容错性，tls 连接失败后，使用普通连接重连。
+     .offlineimaprc 新加禁用 tls 的配置项，警告用户服务器可能配置有误，提示用户禁用 tls。
 
-  - 相关的问题
+   - 相关的问题
 
-    [[https://github.com/OfflineIMAP/offlineimap/pull/54][Optional TLS by mativs · Pull Request #54 · OfflineIMAP/offlineimap]]
+     [[https://github.com/OfflineIMAP/offlineimap/pull/54][Optional TLS by mativs · Pull Request #54 · OfflineIMAP/offlineimap]]
 
-    有这个问题的 patch，但是没有下文。
+     有这个问题的 patch，但是没有下文。
+
+** 使用 ssl
+
+   .offlineimaprc 配置
+   #+begin_example
+     ssl = yes
+   #+end_example
+
+
+   offlineimap 收邮件出错
+   #+begin_example
+     $ offlineimap
+     ...
+      Establishing connection to imap.xxxxxx.com:993
+      ERROR: Unknown SSL protocol connecting to host 'imap.xxxxxx.com' for repository 'XxxxxxRemote'. OpenSSL responded:
+     [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:590)
+     ... 
+   #+end_example
+   ssl 证书验证失败。
+
+   curl 邮件服务器进行诊断
+   #+begin_example
+     $ curl https://imap.xxxxxx.com:993/
+     curl: (60) SSL certificate problem: self signed certificate
+   #+end_example
+   邮件服务器的 ssl 证书是自签名的
+
+   从服务器提取证书
+   #+begin_src sh
+     echo | openssl s_client -connect imap.xxxxxx.com:993 2>&1 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > ~/imap.xxxxxx.com.pem
+   #+end_src
+
+   .offlineimaprc 指定证书
+   #+begin_example
+     ssl = yes
+     sslcacertfile = /home/xxxxxxxx/imap.xxxxxx.com.pem
+   #+end_example
+   
+
+   offlineimap 收邮件出错
+   #+begin_example
+     $ offlineimap
+     ...
+      Establishing connection to imap.xxxxxx.com:993
+      ERROR: Unknown SSL protocol connecting to host 'imap.xxxxxx.com' for repository 'XxxxxxRemote'. OpenSSL responded:
+     [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:590)
+     ...
+   #+end_example
+   ssl 证书验证失败。
+
+   curl 邮件服务器进行诊断
+   #+begin_example
+     $ curl https://imap.xxxxxx.com:993/ --cacert /home/xxxxxxxx/imap.xxxxxx.com.pem
+     curl: (60) SSL certificate problem: certificate has expired
+   #+end_example
+   邮件服务器的 ssl 证书已过期。
+
+   
+   提取 ssl 证书指纹
+   #+begin_example
+     $ openssl x509 -noout -in ~/imap.xxxxxx.com.pem -fingerprint -sha1
+     SHA1 Fingerprint=XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX
+   #+end_example
+
+   .offlineimaprc 使用证书指纹
+   #+begin_example
+     ssl = yes
+     #sslcacertfile = /home/xxxxxxxx/imap.xxxxxx.com.pem
+     cert_fingerprint = xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+   #+end_example
+   参考 [[https://github.com/OfflineIMAP/offlineimap/pull/8][Adding support for multi-fingerprint IMAP servers by Kdecherf · Pull Request #8 · OfflineIMAP/offlineimap]]
+
+   offlineimap 收邮件出错
+   #+begin_example
+     $ offlineimap
+      Establishing connection to imap.xxxxxx.com:993
+      ERROR: Unknown SSL protocol connecting to host 'imap.xxxxxx.com' for repository 'XxxxxxRemote'. OpenSSL responded:
+     [SSL: SSL_NEGATIVE_LENGTH] dh key too small (_ssl.c:590)
+   #+end_example
+   邮件服务器的 openssl 可能太老了，生成的 DH KEY 文件只有 768 位不安全，需要重新生成更安全的 KEY 文件。
+   参考 [[http://offlineimap-project.alioth.debian.narkive.com/dVTlxZyP/ssl-error-with-offlineimap-version-6-6-1-debian-package][Ssl error with offlineimap version 6.6.1 (debian package)]]
+
+   使用 ssl 折腾失败，还是邮件服务器配置问题，除非 offlineimap 支持对服务器不进行安全验证，否则只能服务器管理员才能解决。

@@ -54,7 +54,19 @@
         </header>
       
         <div class="article-content">
-          <p>
+          
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">不使用 ssl</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+.offlineimaprc 配置
+</p>
+<pre class="example">
+ssl = no
+</pre>
+
+
+<p>
 offlineimap 收邮件出错
 </p>
 <pre class="example">
@@ -64,14 +76,13 @@ $ offlineimap
  ERROR: Could not connect via SSL to host 'imap.xxxxxx.com' and non-standard ssl port 143 configured. Make sure you connect to the correct port.
 ...
 </pre>
-
 <p>
-offlineimap 配置配置的是普通端口（143），但是使用 tls 进行了连接。
+意外地使用了 ssl 进行连接。
 </p>
 
 
 <p>
-telnet 邮件服务器输出的 CAPABILITY 有 STARTTLS，应该是邮件服务器配置有误
+telnet 邮件服务器进行诊断
 </p>
 <pre class="example">
 $ telnet imap.xxxxxx.com 143
@@ -79,15 +90,18 @@ Connected to imap.xxxxxx.com.
 Escape character is '^]'.
 * OK [CAPABILITY IMAP4rev1 UIDPLUS CHILDREN NAMESPACE THREAD=ORDEREDSUBJECT THREAD=REFERENCES SORT QUOTA IDLE ACL ACL2=UNION STARTTLS] Courier-IMAP ready. Copyright 1998-2011 Double Precision, Inc.  See COPYING for distribution information.
 </pre>
+<p>
+输出的 CAPABILITY 包含 STARTTLS，应该是邮件服务器配置有误
+</p>
 
 
 <p>
-修改 offlineimap 的源代码文件 <a href="file:///usr/lib/python2.7/site-packages/offlineimap/imapserver.py">imapserver.py</a> ，不使用 tls
+修改 offlineimap 的源代码文件 <a href="file:///usr/lib/python2.7/site-packages/offlineimap/imapserver.py">imapserver.py</a> ，我们的邮箱不使用 tls
 </p>
 <div class="org-src-container">
 
-<pre class="src src-python">269  <span style="color: #718c00;">def</span> <span style="color: #f5871f;">__start_tls</span>(<span style="color: #718c00;">self</span>, imapobj):
-270          <span style="color: #718c00;">if</span> <span style="color: #3e999f;">'STARTTLS'</span> <span style="color: #718c00;">in</span> imapobj.capabilities <span style="color: #718c00;">and</span> <span style="color: #718c00;">not</span> <span style="color: #718c00;">self</span>.usessl:
+<pre class="src src-python">269  <span style="color: #99cc99;">def</span> <span style="color: #f99157;">__start_tls</span>(<span style="color: #99cc99;">self</span>, imapobj):
+270          <span style="color: #99cc99;">if</span> <span style="color: #66cccc;">'STARTTLS'</span> <span style="color: #99cc99;">in</span> imapobj.capabilities <span style="color: #99cc99;">and</span> <span style="color: #99cc99;">not</span> <span style="color: #99cc99;">self</span>.usessl:
 </pre>
 </div>
 
@@ -96,8 +110,8 @@ Escape character is '^]'.
 </p>
 <div class="org-src-container">
 
-<pre class="src src-python">269  <span style="color: #718c00;">def</span> <span style="color: #f5871f;">__start_tls</span>(<span style="color: #718c00;">self</span>, imapobj):
-270          <span style="color: #718c00;">if</span> <span style="color: #3e999f;">'STARTTLS'</span> <span style="color: #718c00;">in</span> imapobj.capabilities <span style="color: #718c00;">and</span> <span style="color: #718c00;">not</span> <span style="color: #718c00;">self</span>.usessl <span style="color: #718c00;">and</span> <span style="color: #718c00;">self</span>.<span style="text-decoration: underline;">repos.account.name != </span><span style="color: #3e999f; text-decoration: underline;">'xxxxxx'</span><span style="text-decoration: underline;">:</span>
+<pre class="src src-python">269  <span style="color: #99cc99;">def</span> <span style="color: #f99157;">__start_tls</span>(<span style="color: #99cc99;">self</span>, imapobj):
+270          <span style="color: #99cc99;">if</span> <span style="color: #66cccc;">'STARTTLS'</span> <span style="color: #99cc99;">in</span> imapobj.capabilities <span style="color: #99cc99;">and</span> <span style="color: #99cc99;">not</span> <span style="color: #99cc99;">self</span>.usessl <span style="color: #99cc99;">and</span> <span style="color: #99cc99;">self</span>.<span style="text-decoration: underline;">repos.account.name != </span><span style="color: #66cccc; text-decoration: underline;">'xxxxxx'</span><span style="text-decoration: underline;">:</span>
 </pre>
 </div>
 
@@ -118,9 +132,133 @@ Escape character is '^]'.
 </p>
 
 <p>
-有这个问题的 patch，但是没有下文。</p>
+有这个问题的 patch，但是没有下文。
+</p>
 </li>
 </ul>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">使用 ssl</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+.offlineimaprc 配置
+</p>
+<pre class="example">
+ssl = yes
+</pre>
+
+
+<p>
+offlineimap 收邮件出错
+</p>
+<pre class="example">
+$ offlineimap
+...
+ Establishing connection to imap.xxxxxx.com:993
+ ERROR: Unknown SSL protocol connecting to host 'imap.xxxxxx.com' for repository 'XxxxxxRemote'. OpenSSL responded:
+[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:590)
+...
+</pre>
+<p>
+ssl 证书验证失败。
+</p>
+
+<p>
+curl 邮件服务器进行诊断
+</p>
+<pre class="example">
+$ curl https://imap.xxxxxx.com:993/
+curl: (60) SSL certificate problem: self signed certificate
+</pre>
+<p>
+邮件服务器的 ssl 证书是自签名的
+</p>
+
+<p>
+从服务器提取证书
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #cc99cc;">echo</span> | openssl s_client -connect imap.xxxxxx.com:993 2&gt;&amp;1 | sed -ne <span style="color: #66cccc;">'/-BEGIN CER</span><span style="color: #66cccc; text-decoration: underline;">TIFICATE-/,/-END CERTIFICATE-/p'</span><span style="text-decoration: underline;"> &gt; ~/imap.xxxxxx.com.pem</span>
+</pre>
+</div>
+
+<p>
+.offlineimaprc 指定证书
+</p>
+<pre class="example">
+ssl = yes
+sslcacertfile = /home/xxxxxxxx/imap.xxxxxx.com.pem
+</pre>
+
+
+<p>
+offlineimap 收邮件出错
+</p>
+<pre class="example">
+$ offlineimap
+...
+ Establishing connection to imap.xxxxxx.com:993
+ ERROR: Unknown SSL protocol connecting to host 'imap.xxxxxx.com' for repository 'XxxxxxRemote'. OpenSSL responded:
+[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:590)
+...
+</pre>
+<p>
+ssl 证书验证失败。
+</p>
+
+<p>
+curl 邮件服务器进行诊断
+</p>
+<pre class="example">
+$ curl https://imap.xxxxxx.com:993/ --cacert /home/xxxxxxxx/imap.xxxxxx.com.pem
+curl: (60) SSL certificate problem: certificate has expired
+</pre>
+<p>
+邮件服务器的 ssl 证书已过期。
+</p>
+
+
+<p>
+提取 ssl 证书指纹
+</p>
+<pre class="example">
+$ openssl x509 -noout -in ~/imap.xxxxxx.com.pem -fingerprint -sha1
+SHA1 Fingerprint=XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX
+</pre>
+
+<p>
+.offlineimaprc 使用证书指纹
+</p>
+<pre class="example">
+ssl = yes
+#sslcacertfile = /home/xxxxxxxx/imap.xxxxxx.com.pem
+cert_fingerprint = xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+</pre>
+<p>
+参考 <a href="https://github.com/OfflineIMAP/offlineimap/pull/8">Adding support for multi-fingerprint IMAP servers by Kdecherf · Pull Request #8 · OfflineIMAP/offlineimap</a>
+</p>
+
+<p>
+offlineimap 收邮件出错
+</p>
+<pre class="example">
+$ offlineimap
+ Establishing connection to imap.xxxxxx.com:993
+ ERROR: Unknown SSL protocol connecting to host 'imap.xxxxxx.com' for repository 'XxxxxxRemote'. OpenSSL responded:
+[SSL: SSL_NEGATIVE_LENGTH] dh key too small (_ssl.c:590)
+</pre>
+<p>
+邮件服务器的 openssl 可能太老了，生成的 DH KEY 文件只有 768 位不安全，需要重新生成更安全的 KEY 文件。
+参考 <a href="http://offlineimap-project.alioth.debian.narkive.com/dVTlxZyP/ssl-error-with-offlineimap-version-6-6-1-debian-package">Ssl error with offlineimap version 6.6.1 (debian package)</a>
+</p>
+
+<p>
+使用 ssl 折腾失败，还是邮件服务器配置问题，除非 offlineimap 支持对服务器不进行安全验证，否则只能服务器管理员才能解决。</p>
+</div>
+</div>
 
         </div>
         <br />
