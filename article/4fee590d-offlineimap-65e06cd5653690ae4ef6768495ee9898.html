@@ -2,7 +2,7 @@
 <html lang="zh-cn">
   <head>
     <meta charset="utf-8"/>
-    <title>Zabbix添加Flashcache监控 | 看看俺 – KanKanAn.com</title>
+    <title>修复 offlineimap 无法收邮件的问题 | 看看俺 – KanKanAn.com</title>
     <link rel="shortcut icon" href="/static/favicon.ico" />
     <link rel="stylesheet" type="text/less" href="/style/less/o-blog.less"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -44,7 +44,7 @@
 
       <div class="article">
         <header class="article-header">
-          <h1>Zabbix添加Flashcache监控</h1>
+          <h1>修复 offlineimap 无法收邮件的问题</h1>
       	<div class="qr-code">
       	  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="" alt="" id="qr-code" />
       	  <script>
@@ -54,68 +54,82 @@
         </header>
       
         <div class="article-content">
-          
-<div id="outline-container-sec-1" class="outline-2">
-<h2 id="sec-1">下载 <code>Zabbix</code> 的 <code>Flashcache</code> 开源模板</h2>
-<div class="outline-text-2" id="text-1">
-<div class="org-src-container">
-
-<pre class="src src-sh">git clone https://github.com/lesovsky/zabbix-extensions.git
-</pre>
-</div>
-</div>
-</div>
-
-<div id="outline-container-sec-2" class="outline-2">
-<h2 id="sec-2">设置 <code>zabbix_agentd</code></h2>
-<div class="outline-text-2" id="text-2">
-<div class="org-src-container">
-
-<pre class="src src-sh"><span style="color: #8e908c; font-style: italic;"># </span><span style="color: #8e908c; font-style: italic;">&#23433;&#35013;&#37197;&#32622;&#25991;&#20214;</span>
-cp zabbix-extensions/files/flashcache/flashcache.conf /usr/local/etc/zabbix_agen<span style="text-decoration: underline;">td.conf.d/</span>
-<span style="color: #8e908c; font-style: italic;"># </span><span style="color: #8e908c; font-style: italic;">&#23433;&#35013;&#33050;&#26412;</span>
-mkdir /usr/local/etc/zabbix_scripts
-cp zabbix-extensions/files/flashcache/scripts/* /usr/local/etc/zabbix_scripts/
-<span style="color: #8e908c; font-style: italic;"># </span><span style="color: #8e908c; font-style: italic;">&#20462;&#25913;&#37197;&#32622;&#25991;&#20214;&#20013;&#24341;&#29992;&#30340;&#33050;&#26412;&#36335;&#24452;</span>
-sed --in-place -e <span style="color: #3e999f;">'s/\/usr\/libexec\/zabbix-extensions\//\/usr\/local\/etc\/zabb</span><span style="color: #3e999f; text-decoration: underline;">ix_/g'</span><span style="text-decoration: underline;"> /usr/local/etc/zabbix_agentd.conf.d/flashcache.conf</span>
-<span style="color: #8e908c; font-style: italic;"># </span><span style="color: #8e908c; font-style: italic;">&#21253;&#21547;&#37197;&#32622;&#25991;&#20214;&#30446;&#24405;</span>
-sed --in-place -e <span style="color: #3e999f;">'s/# Include=\/usr\/local\/etc\/zabbix_agentd\.conf\.d\//Inclu</span><span style="color: #3e999f; text-decoration: underline;">de=\/usr\/local\/etc\/zabbix_agentd\.conf\.d\//g'</span><span style="text-decoration: underline;"> /usr/local/etc/zabbix_agentd.conf</span>
-</pre>
-</div>
-
-<p>
-重启 <code>zabbix_agentd</code> 生效配置。
+          <p>
+offlineimap 收邮件出错
 </p>
-</div>
-</div>
-
-<div id="outline-container-sec-3" class="outline-2">
-<h2 id="sec-3">设置 <code>Zabbix</code> 后台</h2>
-<div class="outline-text-2" id="text-3">
-<ul class="org-ul">
-<li>导入 <code>Flashcache</code> 模板
+<pre class="example">
+$ offlineimap
+...
+ Establishing connection to imap.xxxxxx.com:143
+ ERROR: Could not connect via SSL to host 'imap.xxxxxx.com' and non-standard ssl port 143 configured. Make sure you connect to the correct port.
+...
+</pre>
 
 <p>
-Configuration -&gt; Templates -&gt; Import -&gt; Import file 选择之前下载的 <code>zabbix-extensions/files/flashcache/flashcache-template.xml</code>
+offlineimap 配置配置的是普通端口（143），但是使用 tls 进行了连接。
+</p>
+
+
+<p>
+telnet 邮件服务器输出的 CAPABILITY 有 STARTTLS，应该是邮件服务器配置有误
+</p>
+<pre class="example">
+$ telnet imap.xxxxxx.com 143
+Connected to imap.xxxxxx.com.
+Escape character is '^]'.
+* OK [CAPABILITY IMAP4rev1 UIDPLUS CHILDREN NAMESPACE THREAD=ORDEREDSUBJECT THREAD=REFERENCES SORT QUOTA IDLE ACL ACL2=UNION STARTTLS] Courier-IMAP ready. Copyright 1998-2011 Double Precision, Inc.  See COPYING for distribution information.
+</pre>
+
+
+<p>
+修改 offlineimap 的源代码文件 <a href="file:///usr/lib/python2.7/site-packages/offlineimap/imapserver.py">imapserver.py</a> ，不使用 tls
+</p>
+<div class="org-src-container">
+
+<pre class="src src-python">269  <span style="color: #718c00;">def</span> <span style="color: #f5871f;">__start_tls</span>(<span style="color: #718c00;">self</span>, imapobj):
+270          <span style="color: #718c00;">if</span> <span style="color: #3e999f;">'STARTTLS'</span> <span style="color: #718c00;">in</span> imapobj.capabilities <span style="color: #718c00;">and</span> <span style="color: #718c00;">not</span> <span style="color: #718c00;">self</span>.usessl:
+</pre>
+</div>
+
+<p>
+改成
+</p>
+<div class="org-src-container">
+
+<pre class="src src-python">269  <span style="color: #718c00;">def</span> <span style="color: #f5871f;">__start_tls</span>(<span style="color: #718c00;">self</span>, imapobj):
+270          <span style="color: #718c00;">if</span> <span style="color: #3e999f;">'STARTTLS'</span> <span style="color: #718c00;">in</span> imapobj.capabilities <span style="color: #718c00;">and</span> <span style="color: #718c00;">not</span> <span style="color: #718c00;">self</span>.usessl <span style="color: #718c00;">and</span> <span style="color: #718c00;">self</span>.<span style="text-decoration: underline;">repos.account.name != </span><span style="color: #3e999f; text-decoration: underline;">'xxxxxx'</span><span style="text-decoration: underline;">:</span>
+</pre>
+</div>
+
+
+<ul class="org-ul">
+<li>更好的做法
+
+<p>
+在 imap 协议许可的情况下，加强容错性，tls 连接失败后，使用普通连接重连。
+.offlineimaprc 新加禁用 tls 的配置项，警告用户服务器可能配置有误，提示用户禁用 tls。
 </p>
 </li>
 
-<li>应用 <code>Flashcache</code> 模板
+<li>相关的问题
 
 <p>
-Configuration -&gt; Hosts 下选择要应用到的主机 -&gt; Templates -&gt; Link new templates 选择 <code>Flashcache-Template</code></p>
+<a href="https://github.com/OfflineIMAP/offlineimap/pull/54">Optional TLS by mativs · Pull Request #54 · OfflineIMAP/offlineimap</a>
+</p>
+
+<p>
+有这个问题的 patch，但是没有下文。</p>
 </li>
 </ul>
-</div>
-</div>
 
         </div>
         <br />
         <footer class="article-footer">
-          <a class="tag" href="/tag/flashcache/0.html"><i class="icon-tag icon-white"></i> flashcache</a>
-          <a class="tag" href="/tag/zabbix/0.html"><i class="icon-tag icon-white"></i> zabbix</a>
+          <a class="tag" href="/tag/linux/0.html"><i class="icon-tag icon-white"></i> linux</a>
+          <a class="tag" href="/tag/network/0.html"><i class="icon-tag icon-white"></i> network</a>
+          <a class="tag" href="/tag/python/0.html"><i class="icon-tag icon-white"></i> python</a>
           <span class="muted">
-            <i class="icon-time icon-white"></i> <time datetime="2015-05-29T16:27:00+0800">2015年5月29日 16时</time>
+            <i class="icon-time icon-white"></i> <time datetime="2016-03-18T10:44:00+0800">2016年3月18日 10时</time>
           </span>
         </footer>
       </div>

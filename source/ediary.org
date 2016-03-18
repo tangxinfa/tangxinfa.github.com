@@ -11088,7 +11088,7 @@ class RedisShard {
 
 ** 开通 sudo 权限组
 
-   运行 sudoedit，修改如下
+   运行 visudo，修改如下
 
    #+begin_example
      ## Uncomment to allow members of group wheel to execute any command
@@ -11102,15 +11102,21 @@ class RedisShard {
    加入 sudo 权限组
 
    #+begin_src sh
-     useradd tangxinfa -m -G wheel -p
+     useradd tangxinfa -m -G wheel -p password
    #+end_src
 
    - tangxinfa :: 为个人帐号名称，请自行修改
+
+   - password :: 为个人帐号密码，请自行修改
 
    - wheel :: 为 sudo 权限组
 
               
    接下来的操作可以切到个人帐号了。
+   
+   #+begin_src sh
+     su - tangxinfa
+   #+end_src
 
 ** 安装 gnome 桌面
 
@@ -11161,18 +11167,50 @@ class RedisShard {
 
    安装 alsa-utils，保存音量设置。
 
-* TODO 修复 offlineimap 无法收邮件的问题                              :linux:
+* DONE 修复 offlineimap 无法收邮件的问题               :linux:network:python:
+  CLOSED: [2016-03-18 Fri 10:44]
 
-** 诊断问题
-   
-   命令行上执行 offlineimap
-
-   #+begin_example
-     $ offlineimap -d all
+  offlineimap 收邮件出错
+  #+begin_example
+     $ offlineimap
      ...
       Establishing connection to imap.xxxxxx.com:143
-     ...
-      [imap]:   34:31.28 imap.xxxxxx.com reader socket error: <class 'socket.error'> - [Errno 104] Connection reset by peer
-     ...
-   #+end_example
-   
+      ERROR: Could not connect via SSL to host 'imap.xxxxxx.com' and non-standard ssl port 143 configured. Make sure you connect to the correct port.
+     ... 
+  #+end_example
+
+  offlineimap 配置配置的是普通端口（143），但是使用 tls 进行了连接。
+
+
+  telnet 邮件服务器输出的 CAPABILITY 有 STARTTLS，应该是邮件服务器配置有误
+  #+begin_example
+    $ telnet imap.xxxxxx.com 143
+    Connected to imap.xxxxxx.com.
+    Escape character is '^]'.
+    ,* OK [CAPABILITY IMAP4rev1 UIDPLUS CHILDREN NAMESPACE THREAD=ORDEREDSUBJECT THREAD=REFERENCES SORT QUOTA IDLE ACL ACL2=UNION STARTTLS] Courier-IMAP ready. Copyright 1998-2011 Double Precision, Inc.  See COPYING for distribution information.
+  #+end_example
+  
+  
+  修改 offlineimap 的源代码文件 [[file:///usr/lib/python2.7/site-packages/offlineimap/imapserver.py][imapserver.py]] ，不使用 tls
+  #+begin_src python
+  269  def __start_tls(self, imapobj):
+  270          if 'STARTTLS' in imapobj.capabilities and not self.usessl:
+  #+end_src
+
+  改成
+  #+begin_src python
+  269  def __start_tls(self, imapobj):
+  270          if 'STARTTLS' in imapobj.capabilities and not self.usessl and self.repos.account.name != 'xxxxxx':
+  #+end_src
+
+  
+  - 更好的做法
+
+    在 imap 协议许可的情况下，加强容错性，tls 连接失败后，使用普通连接重连。
+    .offlineimaprc 新加禁用 tls 的配置项，警告用户服务器可能配置有误，提示用户禁用 tls。
+
+  - 相关的问题
+
+    [[https://github.com/OfflineIMAP/offlineimap/pull/54][Optional TLS by mativs · Pull Request #54 · OfflineIMAP/offlineimap]]
+
+    有这个问题的 patch，但是没有下文。
