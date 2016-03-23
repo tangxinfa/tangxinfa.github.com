@@ -2,7 +2,7 @@
 <html lang="zh-cn">
   <head>
     <meta charset="utf-8"/>
-    <title>CentOS 6.4 上编译安装 gcc 5.2.0 | 看看俺 – KanKanAn.com</title>
+    <title>使用国内镜像加速 pip | 看看俺 – KanKanAn.com</title>
     <link rel="shortcut icon" href="/static/favicon.ico" />
     <link rel="stylesheet" type="text/less" href="/style/less/o-blog.less"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -44,7 +44,7 @@
 
       <div class="article">
         <header class="article-header">
-          <h1>CentOS 6.4 上编译安装 gcc 5.2.0</h1>
+          <h1>使用国内镜像加速 pip</h1>
       	<div class="qr-code">
       	  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="" alt="" id="qr-code" />
       	  <script>
@@ -55,99 +55,73 @@
       
         <div class="article-content">
           <p>
-node.js 4.x 的第三方扩展编译时要求 gcc 版本为 4.8，但是 CentOS 6.4 仓库里的版本为 4.4.7，
-在生产环境从第三方仓库里安装最新版 gcc 又不放心，还是自已从源代码编译安装吧。
+pip 官方镜像被墙，可以使用用国内镜像进行访问
 </p>
 
 <ul class="org-ul">
-<li>下载 gcc 源代码
-
-<div class="org-src-container">
-
-<pre class="src src-sh">wget http://mirror.lzu.edu.cn/gnu/gcc/gcc-5.2.0/gcc-5.2.0.tar.bz2
-tar xjvf gcc-5.2.0.tar.bz2
-<span style="color: #b294bb;">cd</span> gcc-5.2.0
-</pre>
-</div>
-
-<p>
-官方的下载地址为 <a href="ftp://ftp.gnu.org/gnu/gcc/">ftp://ftp.gnu.org/gnu/gcc/</a> ，使用国内镜像 <a href="http://mirror.lzu.edu.cn/gnu/gcc">http://mirror.lzu.edu.cn/gnu/gcc</a> 快很多。
-</p>
+<li><a href="http://pypi.douban.com/simple/">http://pypi.douban.com/simple/</a>
 </li>
 
-<li>安装依赖的包
-
-<div class="org-src-container">
-
-<pre class="src src-sh">yum install gmp-devel
-yum install mpfr-devel
-yum install libmpc-devel
-</pre>
-</div>
-
-<p>
-参考自 INSTALL 目录下的文档。
-</p>
-</li>
-
-<li>编译安装
-
-<div class="org-src-container">
-
-<pre class="src src-sh">./configure --prefix=/opt/gcc-5.2.0 --disable-multilib
-make
-make -k check
-make install
-</pre>
-</div>
-
-<p>
-<code>--disable-multilib</code> 只编译 64 位。
-</p>
-
-<p>
-编译时间会耗时几个小时，这段时间最好去干点别的。
-</p>
-</li>
-
-<li>切换gcc版本
-
-<div class="org-src-container">
-
-<pre class="src src-sh"><span style="color: #b294bb;">export</span> <span style="color: #f0c674;">PATH</span>=/opt/gcc-5.2.0/bin:$<span style="color: #f0c674;">PATH</span>
-</pre>
-</div>
-
-<p>
-或
-</p>
-
-<div class="org-src-container">
-
-<pre class="src src-sh"><span style="color: #b294bb;">export</span> <span style="color: #f0c674;">CC</span>=/opt/gcc-5.2.0/bin/gcc
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">CPP</span>=/opt/gcc-5.2.0/bin/cpp
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">CXX</span>=/opt/gcc-5.2.0/bin/c++
-</pre>
-</div>
-</li>
-
-<li>参考
-
-<p>
-<a href="http://superuser.com/questions/381160/how-to-install-gcc-4-7-x-4-8-x-on-centos">yum - How to Install gcc 4.7.x/4.8.x on CentOS - Super User</a>
-</p>
-
-<p>
-<a href="https://wiki.mikejung.biz/Gcc_CentOS">Gcc CentOS - How to compile gcc-4.8.2 on CentOS 6.6</a></p>
+<li><a href="http://mirrors.aliyun.com/pypi/simple/">http://mirrors.aliyun.com/pypi/simple/</a>
 </li>
 </ul>
+
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">命令行指定镜像</h2>
+<div class="outline-text-2" id="text-1">
+<div class="org-src-container">
+
+<pre class="src src-sh">pip install -i http://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.ali<span style="text-decoration: underline;">yun.com &lt;package&gt;</span>
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">配置文件指定镜像</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+pip 的配置文件为 <code>~/.pip/pip.conf</code>
+</p>
+
+<pre class="example">
+[global]
+index-url = http://mirrors.aliyun.com/pypi/simple/
+
+[install]
+trusted-host = mirrors.aliyun.com
+</pre>
+
+<p>
+使用 pip 安装包时要使用 root 帐号，配置文件实际位置为 <code>/root/.pip/pip.conf</code> 。
+</p>
+
+<p>
+使用 <code>pip</code> <code>install</code> 命令安装包时，默认会使用配置文件中指定的镜像。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">参考</h2>
+<div class="outline-text-2" id="text-3">
+<ul class="org-ul">
+<li><a href="http://www.isaced.com/post-228.html">Pythoner的福利，豆瓣的PyPI源 - isaced</a>
+</li>
+
+<li><a href="http://www.cnblogs.com/yudar/p/4657511.html">linux 设置pip 镜像 Pip Warning：–trusted-host 问题解决方案 - Yudar - 博客园</a>
+</li>
+</ul>
+</div>
+</div>
 
         </div>
         <br />
         <footer class="article-footer">
-          <a class="tag" href="/tag/linux/0.html"><i class="icon-tag icon-white"></i> linux</a>
+          <a class="tag" href="/tag/python/0.html"><i class="icon-tag icon-white"></i> python</a>
           <span class="muted">
-            <i class="icon-time icon-white"></i> <time datetime="2016-01-22T21:12:00+0800">2016年1月22日 21时</time>
+            <i class="icon-time icon-white"></i> <time datetime="2016-03-21T18:27:00+0800">2016年3月21日 18时</time>
           </span>
         </footer>
       </div>
