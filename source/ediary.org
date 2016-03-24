@@ -11009,8 +11009,7 @@ class RedisShard {
    #+end_example
 
    拷贝 Archlinux 的 CA 证书文件 /etc/ssl/certs/ca-certificates.crt 到嵌入式 linux 设备，
-   修复 curl 无法访问 https 站点的问题。
-   由于嵌入式 linux 设备上 curl 使用的默认 CA 证书文件路径不同，需要通过 --cacert 选项明确指定
+   curl 编译时需要通过 =--with-ca-bundle= 指定默认的 CA 证书文件，运行时通过 =--cacert= 选项指定
    #+begin_example
      # curl https://www.google.com --cacert /etc/ssl/certs/ca-certificates.crt
      <HTML><HEAD><meta http-equiv="content-type" content="text/html;charset=utf-8">
@@ -11070,6 +11069,8 @@ class RedisShard {
    - [[https://www.happyassassin.net/2015/01/12/a-note-about-ssltls-trusted-certificate-stores-and-platforms/][A note about SSL/TLS trusted certificate stores, and platforms (OpenSSL and GnuTLS)]]
 
    - [[http://searchsecurity.techtarget.com/definition/certificate-authority][What is certificate authority (CA)? - Definition from WhatIs.com]]
+
+   - [[https://projects.archlinux.org/svntogit/packages.git/tree/trunk/PKGBUILD?h=packages/curl][PKGBUILD of curl on Archlinux]]
 
 * DONE Thinkpad T540p 安装 Archlinux                     :thinkpad:archlinux:
   CLOSED: [2016-03-17 Thu 18:09]
@@ -11188,6 +11189,29 @@ class RedisShard {
 
    - [[https://wiki.archlinux.org/index.php/Fcitx][Fcitx - ArchWiki]]
 
+** 安装 yaourt
+
+   - yaourt :: Yet AnOther User Repository Tool
+
+   
+   封装了 pacman，支持安装用户软件仓库里的软件包。
+
+   =/etc/pacman.conf= 添加配置
+   #+begin_example
+     [archlinuxfr]
+     SigLevel = Optional TrustAll
+     Server = http://repo.archlinux.fr/$arch
+   #+end_example
+
+   安装 yaourt
+   #+begin_src sh
+     pacman -S yaourt
+   #+end_src
+
+   参考
+
+   - [[http://bashell.nodemedia.cn/archives/install-yaourt.html][Yaourt的安装及使用 | 贝壳博客]]
+
 ** 触摸板
 
    #+begin_src sh
@@ -11197,6 +11221,35 @@ class RedisShard {
    - 触摸板区域调优
    
      [[http://blog.kankanan.com/article/thinkpad-t540p-4fee590d-linux-4e0b89e66478677f63094e0b65f6514968074f4d7f6e79fb52a895ee9898.html][Thinkpad T540p修复linux下触摸板按下时光标位置移动问题 | 看看俺 – KanKanAn.com]]
+
+** 指纹识别
+
+   安装指纹识别模块
+
+   #+begin_src sh
+     yaourt -S fprintd libfprint-git
+   #+end_src
+
+   录入指纹
+
+   #+begin_src sh
+     fprintd-enroll
+   #+end_src
+
+   测试指纹
+   
+   #+begin_src sh
+     fprintd-verify
+   #+end_src
+
+   多测试几次，如果效果不好则重新录入。
+
+   锁定桌面，试试使用指纹解锁。
+
+   
+   参考
+
+   - [[https://github.com/ars3niy/fprint_vfs5011/issues/9][Verify result always returning "verify-no-match" · Issue #9 · ars3niy/fprint_vfs5011]]
 
 ** 定制 gnome3
 

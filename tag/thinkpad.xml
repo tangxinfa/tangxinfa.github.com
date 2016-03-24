@@ -4,7 +4,7 @@
         <title>thinkpad - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/thinkpad.xml</link>
-        <lastBuildDate>Wed, 23 Mar 2016 09:22:15 GMT</lastBuildDate>
+        <lastBuildDate>Thu, 24 Mar 2016 07:39:58 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>thinkpad - 看看俺 – KanKanAn.com</title>
@@ -25,7 +25,7 @@
 
 <div class="org-src-container">
 
-<pre class="src src-sh">pacman -Qqe | grep -vx <span style="color: #8abeb7;">"$(</span><span style="color: #b294bb;">pacman</span><span style="color: #8abeb7;"> -Qqm)"</span> &gt; Packages
+<pre class="src src-sh">pacman -Qqe | grep -vx <span style="color: #66cccc;">"$(</span><span style="color: #cc99cc;">pacman</span><span style="color: #66cccc;"> -Qqm)"</span> &gt; Packages
 pacman -Qqm &gt; Packages.aur
 </pre>
 </div>
@@ -234,8 +234,50 @@ sudo systemctl enable NetworkManager
 </div>
 
 <div id="outline-container-sec-10" class="outline-2">
-<h2 id="sec-10">触摸板</h2>
+<h2 id="sec-10">安装 yaourt</h2>
 <div class="outline-text-2" id="text-10">
+<dl class="org-dl">
+<dt> yaourt </dt><dd>Yet AnOther User Repository Tool
+</dd>
+</dl>
+
+
+<p>
+封装了 pacman，支持安装用户软件仓库里的软件包。
+</p>
+
+<p>
+<code>/etc/pacman.conf</code> 添加配置
+</p>
+<pre class="example">
+[archlinuxfr]
+SigLevel = Optional TrustAll
+Server = http://repo.archlinux.fr/$arch
+</pre>
+
+<p>
+安装 yaourt
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">pacman -S yaourt
+</pre>
+</div>
+
+<p>
+参考
+</p>
+
+<ul class="org-ul">
+<li><a href="http://bashell.nodemedia.cn/archives/install-yaourt.html">Yaourt的安装及使用 | 贝壳博客</a>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-11" class="outline-2">
+<h2 id="sec-11">触摸板</h2>
+<div class="outline-text-2" id="text-11">
 <div class="org-src-container">
 
 <pre class="src src-sh">yaourt -S xf86-input-synaptics
@@ -253,9 +295,62 @@ sudo systemctl enable NetworkManager
 </div>
 </div>
 
-<div id="outline-container-sec-11" class="outline-2">
-<h2 id="sec-11">定制 gnome3</h2>
-<div class="outline-text-2" id="text-11">
+<div id="outline-container-sec-12" class="outline-2">
+<h2 id="sec-12">指纹识别</h2>
+<div class="outline-text-2" id="text-12">
+<p>
+安装指纹识别模块
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">yaourt -S fprintd libfprint-git
+</pre>
+</div>
+
+<p>
+录入指纹
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">fprintd-enroll
+</pre>
+</div>
+
+<p>
+测试指纹
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">fprintd-verify
+</pre>
+</div>
+
+<p>
+多测试几次，如果效果不好则重新录入。
+</p>
+
+<p>
+锁定桌面，试试使用指纹解锁。
+</p>
+
+
+<p>
+参考
+</p>
+
+<ul class="org-ul">
+<li><a href="https://github.com/ars3niy/fprint_vfs5011/issues/9">Verify result always returning "verify-no-match" · Issue #9 · ars3niy/fprint_vfs5011</a>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-13" class="outline-2">
+<h2 id="sec-13">定制 gnome3</h2>
+<div class="outline-text-2" id="text-13">
 <p>
 安装扩展
 </p>
@@ -305,18 +400,18 @@ sudo systemctl enable NetworkManager
 </div>
 </div>
 
-<div id="outline-container-sec-12" class="outline-2">
-<h2 id="sec-12">避免启动后总是静音</h2>
-<div class="outline-text-2" id="text-12">
+<div id="outline-container-sec-14" class="outline-2">
+<h2 id="sec-14">避免启动后总是静音</h2>
+<div class="outline-text-2" id="text-14">
 <p>
 安装 alsa-utils，保存音量设置。
 </p>
 </div>
 </div>
 
-<div id="outline-container-sec-13" class="outline-2">
-<h2 id="sec-13">显卡驱动</h2>
-<div class="outline-text-2" id="text-13">
+<div id="outline-container-sec-15" class="outline-2">
+<h2 id="sec-15">显卡驱动</h2>
+<div class="outline-text-2" id="text-15">
 <p>
 机器是双显卡，一块 Intel 的集显加上 Nvida 的独显。
 默认的开源显卡驱动也够用，使用 Nvida 的独显效果更好。
@@ -343,7 +438,7 @@ sudo systemctl enable NetworkManager
 
 <div class="org-src-container">
 
-<pre class="src src-sh">synclient <span style="color: #f0c674;">HorizHysteresis</span>=30 <span style="color: #f0c674;">VertHysteresis</span>=30
+<pre class="src src-sh">synclient <span style="color: #ffcc66;">HorizHysteresis</span>=30 <span style="color: #ffcc66;">VertHysteresis</span>=30
 </pre>
 </div>
 
