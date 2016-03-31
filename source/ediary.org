@@ -1875,6 +1875,39 @@ class RedisShard {
       tsocks hg push
     #+end_src
     tsocks看起来很通用，应该也可以让git等进行socks代理访问。
+    
+** 更好的选择 proxychains
+
+   tsocks 不支持代理访问 https
+   
+   #+begin_example
+     $ tsocks curl https://www.baidu.com
+     curl: (7) Failed to connect to www.baidu.com port 443: Connection refused
+   #+end_example
+
+   proxychains 支持代理访问 https
+   
+   #+begin_example
+     $ proxychains curl https://www.baidu.com
+     [proxychains] config file found: /etc/proxychains.conf
+     [proxychains] preloading /usr/lib/libproxychains4.so
+     [proxychains] DLL init: proxychains-ng 4.11
+     [proxychains] Dynamic chain  ...  127.0.0.1:7070  ...  www.baidu.com:443  ...  OK
+     <html>
+     <head>
+         <script>
+             location.replace(location.href.replace("https://","http://"));
+         </script>
+     </head>
+     <body>
+         <noscript><meta http-equiv="refresh" content="0;url=http://www.baidu.com/"></noscript>
+     </body>
+     </html>
+   #+end_example
+
+   proxychains 的安装配置请参考
+   
+   - [[https://sites.google.com/a/pickdreams.org/snail-library/Home/yong-tsocks-heproxychains-dai-lilinux-xia-suo-you-ruan-jian][用tsocks和proxychains代理Linux下所有软件 - 蜗牛图书馆]]
 
 * TODO 《架构风格与基于网络的软件架构设计》读书笔记            :REST:reading:
   
@@ -11222,6 +11255,32 @@ class RedisShard {
    
      [[http://blog.kankanan.com/article/thinkpad-t540p-4fee590d-linux-4e0b89e66478677f63094e0b65f6514968074f4d7f6e79fb52a895ee9898.html][Thinkpad T540p修复linux下触摸板按下时光标位置移动问题 | 看看俺 – KanKanAn.com]]
 
+   - 触摸板失灵
+     
+     移动光标位置却是滚动效果（就像是单指操作变成双指操作了），移动光标时位置卡顿。
+
+     安装 evtest
+     #+begin_src sh
+       yaourt -S evtest
+     #+end_src
+     
+     获取触摸板事件号
+     #+begin_example
+       $ cat /proc/bus/input/devices | grep Synaptics -A 10 | grep event
+       H: Handlers=event15 mouse1 
+     #+end_example
+
+     检测触摸板事件
+     #+begin_example
+     $ sudo evtest /dev/input/event15
+     #+end_example
+
+     发现触摸板失灵时，也有触模板压下事件产生，估计是硬件不灵敏了，应该可以通过调整相关参数忽略掉 =man= =synaptics= 。
+
+   参考
+   
+   - [[https://wiki.archlinux.org/index.php/Touchpad_Synaptics][Touchpad Synaptics - ArchWiki]]
+
 ** 指纹识别
 
    安装指纹识别模块
@@ -11290,6 +11349,22 @@ class RedisShard {
      pacman -S nvidia
    #+end_src
    参考 [[http://blog.csdn.net/zhyh1986/article/details/39892611][ArchLinux边用边记 - 竹叶青的专栏 - 博客频道 - CSDN.NET]]
+
+** 蓝牙耳机
+
+   安装相关软件包
+   #+begin_src sh
+     yaourt -S pulseaudio-bluetooth bluez-firmware bluez-utils
+   #+end_src
+
+   启动蓝牙服务
+   #+begin_src sh
+     sudo systemctl enable bluetooth
+     sudo systemctl start bluetooth
+   #+end_src
+   
+   参考
+   - [[https://wiki.archlinux.org/index.php/Bluetooth_headset_%28%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87%29][Bluetooth headset (简体中文) - ArchWiki]]
 
 * DONE 修复 offlineimap 无法收邮件的问题               :linux:network:python:
   CLOSED: [2016-03-18 Fri 10:44]
@@ -11467,3 +11542,196 @@ class RedisShard {
    - [[http://www.isaced.com/post-228.html][Pythoner的福利，豆瓣的PyPI源 - isaced]]
 
    - [[http://www.cnblogs.com/yudar/p/4657511.html][linux 设置pip 镜像 Pip Warning：–trusted-host 问题解决方案 - Yudar - 博客园]]
+
+* DONE Archlinux 下编译 MaidSafe                                :p2p:bitcion:
+  CLOSED: [2016-03-30 Wed 16:26]
+
+  按照文档 [[https://github.com/maidsafe-archive/MaidSafe/wiki/Build-Instructions-for-Linux][Build Instructions for Linux · maidsafe-archive/MaidSafe Wiki]] 的指示进行。
+
+  安装 icu-staticlibs 时，由于与已安装的 icu 软件包存在文件冲突，正常安装是装不了的，加上 =--force= 选项即可
+  #+begin_src sh
+    yaourt --force -S icu-staticlibs
+  #+end_src
+
+  编译 master 分枝会出错，切到 next 分枝再编译即可
+  #+begin_src sh
+    git submodule foreach "git checkout next; git pull"
+    git checkout next; git pull
+  #+end_src
+
+  参考
+
+  - [[https://github.com/maidsafe-archive/MaidSafe/issues/234][make: *** {ExperCommon} Error 2 · Issue #234 · maidsafe-archive/MaidSafe]]
+
+* DONE 使用 collectd 进行服务监控                                     :linux:
+  CLOSED: [2016-03-31 Thu 12:39]
+
+  collectd 的官网 [[https://collectd.org/][collectd.org]] 。
+
+** collectd 服务
+
+   - 安装
+
+     #+begin_src sh
+       yaourt -S collectd
+     #+end_src
+
+   - 启动
+
+     #+begin_src sh
+       sudo systemctl enable collectd
+       sudo systemctl start collectd
+     #+end_src
+
+** collectd 界面
+
+*** [[http://blog.kankanan.com/article/nginx-4e0b5feb901f642d5efa-php-8fd0884c73af5883.html][nginx下快速搭建php运行环境]]
+
+*** 安装 rrdtool
+
+    #+begin_src sh
+      yaourt -S rrdtool
+    #+end_src
+
+*** 下载 GCP
+    
+    #+begin_src sh
+      cd /usr/share/nginx/html/
+      sudo git clone https://github.com/pommi/CGP.git
+    #+end_src
+
+*** 配置 GCP
+
+    修改配置文件 /usr/share/nginx/html/CGP/conf/config.php
+    #+begin_example
+      # collectd's datadir
+      $CONFIG['datadir'] = '/var/lib/collectd/rrd';
+    #+end_example
+    改为
+    #+begin_example
+      # collectd's datadir
+      $CONFIG['datadir'] = '/var/lib/collectd';
+    #+end_example
+
+*** 打开界面
+
+    浏览器打开页面 [[http://localhost/CGP/index.php][http://localhost/CGP/index.php]] ，可以看到服务器自身的监控信息。
+
+** collectd 插件
+
+   collectd 支持很多 [[https://collectd.org/wiki/index.php/Table_of_Plugins][插件]] ，使用 c 语言开发插件请参考 [[https://collectd.org/wiki/index.php/Plugin_architecture][Plugin architecture - collectd Wiki]]。
+
+   [[https://collectd.org/wiki/index.php/Plugin:Exec][Exec]] 插件使用 shell 脚本来收集系统监控数据。
+
+   以监控电池电量为例。
+
+*** 启用 Exec 插件
+
+    修改 collectd 配置文件 /etc/collectd.conf
+    #+begin_example
+      LoadPlugin exec
+      <Plugin exec>
+         Exec "nobody:nobody" "/usr/bin/power-capacity"
+      </Plugin>
+    #+end_example
+
+*** 监控笔记本电量脚本
+
+    #+name: /usr/bin/power-capacity
+    #+begin_src sh
+      #!/bin/bash
+
+       HOSTNAME="${COLLECTD_HOSTNAME:-localhost}"
+       INTERVAL="${COLLECTD_INTERVAL:-60}"
+       
+       while sleep "$INTERVAL"; do
+         VALUE=$(echo -n `cat /sys/class/power_supply/BAT0/capacity`)
+         echo "PUTVAL \"$HOSTNAME/power/capacity\" interval=$INTERVAL N:$VALUE"
+       done
+    #+end_src
+    
+    为脚本添加可执行权限
+    #+begin_src sh
+      sudo chmod a+x /usr/bin/power-capacity
+    #+end_src
+
+*** 重启 collectd 生效插件
+
+    #+begin_src sh
+      sudo systemctl restart collectd
+    #+end_src
+
+    过一会儿就可以在界面上看到电量监控项。
+
+** collectd 多机器监控
+
+   监控本机没有什么用处，通过 network 插件，可以将 collectd 配置为服务器或客户端。
+
+   - collectd 服务器
+
+     接受 collectd 客户端的上报的数据。
+
+   - collectd 客户端
+
+     上报数据到 collectd 服务器。
+
+*** 本机配置为 collectd 服务器
+
+    通过 [[https://collectd.org/documentation/manpages/collectd.conf.5.shtml#plugin_network][network]] 插件配置为 server 端。
+
+    修改 collectd 配置文件 /etc/collectd.conf 
+    #+begin_example
+      LoadPlugin network
+          
+      <Plugin network>
+          <Listen "0.0.0.0" "25826">
+              SecurityLevel Sign
+              AuthFile "/etc/collectd/passwd"
+          </Listen>
+      </Plugin>
+    #+end_example
+
+    创建密码文件
+    #+name:  /etc/collectd/passwd
+    #+begin_example
+      user0: foo
+      user1: bar
+    #+end_example
+
+    重启 collectd 服务，生效配置。
+
+*** 其它机器配置为 collectd 客户端
+
+    参考前面的 [[collectd 服务]] 一节安装 collectd。
+
+    通过 [[https://collectd.org/documentation/manpages/collectd.conf.5.shtml#plugin_network][network]] 插件配置为 client 端。
+
+    修改 collectd 配置文件 /etc/collectd.conf 
+    #+begin_example
+      LoadPlugin network
+          
+      <Plugin network>
+          <Server "172.17.0.1" "25826">
+              SecurityLevel Encrypt
+              Username "user0"
+              Password "foo"
+          </Server>
+      </Plugin>
+    #+end_example
+    服务器的 IP 为 172.17.0.1。
+
+    重启 collectd 服务，生效配置，等一会儿就可以在界面上看到本机器的监控信息。
+
+** 参考
+
+   - [[https://github.com/pommi/CGP/blob/master/README.md][CGP/README.md at master · pommi/CGP]]
+
+   - [[https://collectd.org/wiki/index.php/First_steps][First steps - collectd Wiki]]
+
+   - [[http://www.drupal001.com/2012/07/system-monitor-collectd/][Collectd详解、Collectd使用说明、Collectd中文说明 - 系统性能监控利器]]
+
+   - [[https://collectd.org/wiki/index.php/Plugin:Exec][Plugin:Exec - collectd Wiki]]
+
+   - [[http://blog.sina.com.cn/s/blog_502c8cc40100pbgu.html][collectd使用_新浪研发中心_新浪博客]]
+
+   - [[https://collectd.org/documentation/manpages/collectd.conf.5.shtml#global_options][collectd.conf(5) – collectd – The system statistics collection daemon]]

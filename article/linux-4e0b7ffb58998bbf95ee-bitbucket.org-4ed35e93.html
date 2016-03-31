@@ -132,9 +132,55 @@ server_port = 7070
 </pre>
 </div>
 <p>
-tsocks看起来很通用，应该也可以让git等进行socks代理访问。</p>
+tsocks看起来很通用，应该也可以让git等进行socks代理访问。
+</p>
 </li>
 </ul>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">更好的选择 proxychains</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+tsocks 不支持代理访问 https
+</p>
+
+<pre class="example">
+$ tsocks curl https://www.baidu.com
+curl: (7) Failed to connect to www.baidu.com port 443: Connection refused
+</pre>
+
+<p>
+proxychains 支持代理访问 https
+</p>
+
+<pre class="example">
+$ proxychains curl https://www.baidu.com
+[proxychains] config file found: /etc/proxychains.conf
+[proxychains] preloading /usr/lib/libproxychains4.so
+[proxychains] DLL init: proxychains-ng 4.11
+[proxychains] Dynamic chain  ...  127.0.0.1:7070  ...  www.baidu.com:443  ...  OK
+&lt;html&gt;
+&lt;head&gt;
+    &lt;script&gt;
+        location.replace(location.href.replace("https://","http://"));
+    &lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;noscript&gt;&lt;meta http-equiv="refresh" content="0;url=http://www.baidu.com/"&gt;&lt;/noscript&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+
+<p>
+proxychains 的安装配置请参考
+</p>
+
+<ul class="org-ul">
+<li><a href="https://sites.google.com/a/pickdreams.org/snail-library/Home/yong-tsocks-heproxychains-dai-lilinux-xia-suo-you-ruan-jian">用tsocks和proxychains代理Linux下所有软件 - 蜗牛图书馆</a>
+</li>
+</ul>
+</div>
+</div>
 
         </div>
         <br />
