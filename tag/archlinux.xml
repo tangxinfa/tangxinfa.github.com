@@ -4,7 +4,7 @@
         <title>archlinux - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/archlinux.xml</link>
-        <lastBuildDate>Thu, 31 Mar 2016 04:41:34 GMT</lastBuildDate>
+        <lastBuildDate>Fri, 01 Apr 2016 02:42:52 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>archlinux - 看看俺 – KanKanAn.com</title>
@@ -14,6 +14,155 @@
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <generator>Feed for Node.js</generator>
         <category>技术</category>
+        <item>
+            <title><![CDATA[Archlinux 的 collectd 支持监控 redis]]></title>
+            <link>/article/archlinux-7684-collectd-652f630176d163a7-redis.html</link>
+            <guid>/article/archlinux-7684-collectd-652f630176d163a7-redis.html</guid>
+            <pubDate>Thu, 31 Mar 2016 09:44:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+Archlinux 下使用 <code>pacman</code> 安装的 <code>collectd</code> 没有 redis 插件。
+</p>
+
+<p>
+查看 collectd 的 <a href="https://projects.archlinux.org/svntogit/community.git/tree/trunk/PKGBUILD?h=packages/collectd">PKGBUILD</a> 文件，并未明令禁止 redis 插件，从源代码编译安装的话，只要系统装了 <code>hiredis</code> ，redis 插件应该就会自动启用。
+</p>
+
+<p>
+所以我们需要从源代码编译安装 <code>collectd</code> 软件包。
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">安装 ABS</h2>
+<div class="outline-text-2" id="text-1">
+<blockquote>
+<p>
+What is the Arch Build System?
+</p>
+
+<p>
+The Arch Build System is a ports-like system for building and packaging software from source code. While pacman is the specialized Arch tool for binary package management (including packages built with the ABS), ABS is a collection of tools for compiling source into installable .pkg.tar.xz packages.    
+</p>
+</blockquote>
+<p>
+引用自 <a href="https://wiki.archlinux.org/index.php/Arch_Build_System">Arch Build System - ArchWiki</a>
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">yaourt -S abs
+sudo abs
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">编译安装 collectd</h2>
+<div class="outline-text-2" id="text-2">
+<div class="org-src-container">
+
+<pre class="src src-sh"><span class="linenr">1: </span>yaourt -S hiredis
+<span class="linenr">2: </span>cp -R /var/abs/community/collectd ~/
+<span class="linenr">3: </span><span style="color: #8959a8;">cd</span> ~/collectd
+<span id="coderef-archlinux_makepkg" class="coderef-off"><span class="linenr">4: </span>makepkg (archlinux_makepkg)</span>
+<span class="linenr">5: </span>yaourt -U ./collectd-5.5.1-2-x86_64.pkg.tar.xz
+</pre>
+</div>
+
+<dl class="org-dl">
+<dt> 行 <a href="#coderef-archlinux_makepkg"class="coderef" onmouseover="CodeHighlightOn(this, 'coderef-archlinux_makepkg');" onmouseout="CodeHighlightOff(this, 'coderef-archlinux_makepkg');">archlinux_makepkg</a>  </dt><dd>如果报 <code>Missing dependencies</code> 错误则按提示使用 pacman 装上缺失的依赖项
+</dd>
+</dl>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">使用以前的 collectd 配置</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+重新安装 collectd 后，以前的配置保存在 <code>/etc/collectd.conf.pacsave</code> ，恢复一下
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo mv /etc/collectd.conf.pacsave /etc/collectd.conf
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4">启用 collectd 插件</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+修改 collectd 配置文件 <code>/etc/collectd.conf</code> 
+</p>
+<pre class="example">
+LoadPlugin redis
+
+&lt;Plugin redis&gt;
+  &lt;Node "db"&gt;
+     Host "127.0.0.1"
+     Port "6379"
+     Timeout 2000
+  &lt;/Node&gt;
+&lt;/Plugin&gt;
+</pre>
+
+<p>
+重启 collectd 服务，现在可以在界面上看到 redis 的监控项了。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5">参考</h2>
+<div class="outline-text-2" id="text-5">
+<ul class="org-ul">
+<li><a href="http://arch.acgtyrant.com/2013/12/26/soul/">Arch Linux 的靈魂：PKGBUILD、AUR 和 ABS | Tyrant's Arch Linux</a>
+</li>
+</ul>
+</div>
+</div>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Archlinux 下编译 MaidSafe]]></title>
+            <link>/article/archlinux-4e0b7f168bd1-maidsafe.html</link>
+            <guid>/article/archlinux-4e0b7f168bd1-maidsafe.html</guid>
+            <pubDate>Wed, 30 Mar 2016 08:26:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+按照文档 <a href="https://github.com/maidsafe-archive/MaidSafe/wiki/Build-Instructions-for-Linux">Build Instructions for Linux · maidsafe-archive/MaidSafe Wiki</a> 的指示进行。
+</p>
+
+<p>
+安装 icu-staticlibs 时，由于与已安装的 icu 软件包存在文件冲突，正常安装是装不了的，加上 <code>--force</code> 选项即可
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">yaourt --force -S icu-staticlibs
+</pre>
+</div>
+
+<p>
+编译 master 分枝会出错，切到 next 分枝再编译即可
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">git submodule foreach <span style="color: #3e999f;">"git checkout next; git pull"</span>
+git checkout next; git pull
+</pre>
+</div>
+
+<p>
+参考
+</p>
+
+<ul class="org-ul">
+<li><a href="https://github.com/maidsafe-archive/MaidSafe/issues/234">make: <b>*</b> {ExperCommon} Error 2 · Issue #234 · maidsafe-archive/MaidSafe</a>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[Thinkpad T540p 安装 Archlinux]]></title>
             <link>/article/thinkpad-t540p-5b8988c5-archlinux.html</link>
@@ -25,7 +174,7 @@
 
 <div class="org-src-container">
 
-<pre class="src src-sh">pacman -Qqe | grep -vx <span style="color: #66cccc;">"$(</span><span style="color: #cc99cc;">pacman</span><span style="color: #66cccc;"> -Qqm)"</span> &gt; Packages
+<pre class="src src-sh">pacman -Qqe | grep -vx <span style="color: #3e999f;">"$(</span><span style="color: #8959a8;">pacman</span><span style="color: #3e999f;"> -Qqm)"</span> &gt; Packages
 pacman -Qqm &gt; Packages.aur
 </pre>
 </div>
@@ -543,8 +692,8 @@ cargo 0.8.0 (28a0cbb 2016-01-17)
 </p>
 <div class="org-src-container">
 
-<pre class="src src-rust"><span style="color: #99cc99;">fn</span> <span style="color: #f99157;">main</span>() {
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cc99cc;">println!</span>(<span style="color: #66cccc;">"Hello, world!"</span>);
+<pre class="src src-rust"><span style="color: #718c00;">fn</span> <span style="color: #f5871f;">main</span>() {
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8959a8;">println!</span>(<span style="color: #3e999f;">"Hello, world!"</span>);
 }
 </pre>
 </div>
@@ -789,7 +938,7 @@ ExecStart=/usr/bin/docker daemon --insecure-registry dl.dockerpool.com:5000 -H f
 
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo docker pull <span style="color: #66cccc;">'dl.dockerpool.com:5000/ubuntu:14.04'</span>
+<pre class="src src-sh">sudo docker pull <span style="color: #3e999f;">'dl.dockerpool.com:5000/ubuntu:14.04'</span>
 </pre>
 </div>
 </li>
@@ -798,7 +947,7 @@ ExecStart=/usr/bin/docker daemon --insecure-registry dl.dockerpool.com:5000 -H f
 
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo docker run -t -i <span style="color: #66cccc;">'dl.dockerpool.com:5000/ubuntu:14.04'</span> /bin/bash
+<pre class="src src-sh">sudo docker run -t -i <span style="color: #3e999f;">'dl.dockerpool.com:5000/ubuntu:14.04'</span> /bin/bash
 </pre>
 </div>
 </li>
@@ -828,7 +977,7 @@ ExecStart=/usr/bin/docker daemon --insecure-registry dl.dockerpool.com:5000 -H f
 <div class="org-src-container">
 
 <pre class="src src-sh">git clone https://github.com/facebook/flashcache.git
-<span style="color: #cc99cc;">cd</span> flashcache
+<span style="color: #8959a8;">cd</span> flashcache
 make
 sudo make install
 </pre>
@@ -841,7 +990,7 @@ sudo make install
 <div class="outline-text-2" id="text-2">
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo insmod /lib/modules/<span style="color: #cc99cc;">`uname -r`</span>/extra/flashcache/flashcache.ko
+<pre class="src src-sh">sudo insmod /lib/modules/<span style="color: #8959a8;">`uname -r`</span>/extra/flashcache/flashcache.ko
 </pre>
 </div>
 
@@ -881,7 +1030,7 @@ insmod: ERROR: could not insert module /lib/modules/3.19.3-3-ARCH/extra/flashcac
 <div class="org-src-container">
 
 <pre class="src src-sh">sudo modprobe dm-mod
-sudo insmod /lib/modules/<span style="color: #cc99cc;">`uname -r`</span>/extra/flashcache/flashcache.ko
+sudo insmod /lib/modules/<span style="color: #8959a8;">`uname -r`</span>/extra/flashcache/flashcache.ko
 </pre>
 </div>
 
@@ -909,7 +1058,7 @@ sudo insmod /lib/modules/<span style="color: #cc99cc;">`uname -r`</span>/extra/f
 
 <div class="org-src-container">
 
-<pre class="src src-sh">dd <span style="color: #ffcc66;">if</span>=/dev/zero <span style="color: #ffcc66;">of</span>=/dev/shm/ssd.img <span style="color: #ffcc66;">bs</span>=1024k <span style="color: #ffcc66;">count</span>=1024
+<pre class="src src-sh">dd <span style="color: #eab700;">if</span>=/dev/zero <span style="color: #eab700;">of</span>=/dev/shm/ssd.img <span style="color: #eab700;">bs</span>=1024k <span style="color: #eab700;">count</span>=1024
 sudo losetup /dev/loop1 /dev/shm/ssd.img
 </pre>
 </div>
@@ -923,7 +1072,7 @@ sudo losetup /dev/loop1 /dev/shm/ssd.img
 
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo dd <span style="color: #ffcc66;">if</span>=/dev/zero <span style="color: #ffcc66;">of</span>=/hdd.img <span style="color: #ffcc66;">bs</span>=1024k <span style="color: #ffcc66;">count</span>=5120
+<pre class="src src-sh">sudo dd <span style="color: #eab700;">if</span>=/dev/zero <span style="color: #eab700;">of</span>=/hdd.img <span style="color: #eab700;">bs</span>=1024k <span style="color: #eab700;">count</span>=5120
 sudo losetup /dev/loop2 /hdd.img
 </pre>
 </div>
@@ -959,7 +1108,7 @@ sudo mount /dev/mapper/cachedev /data
 
 <div class="org-src-container">
 
-<pre class="src src-sh">dd <span style="color: #ffcc66;">if</span>=/dev/urandom <span style="color: #ffcc66;">of</span>=/dev/shm/test.dat <span style="color: #ffcc66;">bs</span>=1024k <span style="color: #ffcc66;">count</span>=1024
+<pre class="src src-sh">dd <span style="color: #eab700;">if</span>=/dev/urandom <span style="color: #eab700;">of</span>=/dev/shm/test.dat <span style="color: #eab700;">bs</span>=1024k <span style="color: #eab700;">count</span>=1024
 </pre>
 </div>
 </li>
@@ -968,7 +1117,7 @@ sudo mount /dev/mapper/cachedev /data
 
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo sh -c <span style="color: #66cccc;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /dev/shm/test.dat /'</span>
+<pre class="src src-sh">sudo sh -c <span style="color: #3e999f;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /dev/shm/test.dat /'</span>
 </pre>
 </div>
 
@@ -987,7 +1136,7 @@ sys 0m0.600s
 
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo sh -c <span style="color: #66cccc;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /test.dat /dev/shm/</span>
+<pre class="src src-sh">sudo sh -c <span style="color: #3e999f;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /test.dat /dev/shm/</span>
 </pre>
 </div>
 
@@ -1006,7 +1155,7 @@ sys 0m0.727s
 
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo sh -c <span style="color: #66cccc;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /dev/shm/test.dat /data/'</span>
+<pre class="src src-sh">sudo sh -c <span style="color: #3e999f;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /dev/shm/test.dat /data/'</span>
 </pre>
 </div>
 
@@ -1029,7 +1178,7 @@ sys 0m0.760s
 
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo sh -c <span style="color: #66cccc;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /data/test.dat /dev/shm/'</span>
+<pre class="src src-sh">sudo sh -c <span style="color: #3e999f;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /data/test.dat /dev/shm/'</span>
 </pre>
 </div>
 
@@ -1049,7 +1198,7 @@ sys 0m1.157s
 
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo sh -c <span style="color: #66cccc;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /data/test.dat /dev/shm/'</span>
+<pre class="src src-sh">sudo sh -c <span style="color: #3e999f;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /data/test.dat /dev/shm/'</span>
 </pre>
 </div>
 
@@ -1128,7 +1277,7 @@ sudo rmdir /data
 <div class="outline-text-2" id="text-2">
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #cc99cc;">echo</span> <span style="color: #66cccc;">"This is an example. Arch is the best."</span> | festival --tts
+<pre class="src src-sh"><span style="color: #8959a8;">echo</span> <span style="color: #3e999f;">"This is an example. Arch is the best."</span> | festival --tts
 </pre>
 </div>
 
@@ -1144,7 +1293,7 @@ sudo rmdir /data
 <div class="org-src-container">
 
 <pre class="src src-lisp">(Parameter.set 'Audio_Method 'Audio_Command)
-(Parameter.set 'Audio_Command <span style="color: #66cccc;">"aplay -q -c 1 -t raw -f s16 -r $SR $FILE"</span>)
+(Parameter.set 'Audio_Command <span style="color: #3e999f;">"aplay -q -c 1 -t raw -f s16 -r $SR $FILE"</span>)
 </pre>
 </div>
 </div>
@@ -1285,10 +1434,10 @@ ln -s /etc/xdg/autostart/fcitx-autostart.desktop  ~/.config/autostart/
 </p>
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #cc99cc;">export</span> <span style="color: #ffcc66;">GTK_IM_MODULE</span>=fcitx
-<span style="color: #cc99cc;">export</span> <span style="color: #ffcc66;">QT_IM_MODULE</span>=fcitx
-<span style="color: #cc99cc;">export</span> <span style="color: #ffcc66;">XMODIFIERS</span>=<span style="color: #66cccc;">"@im=fcitx"</span>
-<span style="color: #cc99cc;">export</span> <span style="color: #ffcc66;">LC_CTYPE</span>=<span style="color: #66cccc;">"zh_CN.UTF-8"</span>
+<pre class="src src-sh"><span style="color: #8959a8;">export</span> <span style="color: #eab700;">GTK_IM_MODULE</span>=fcitx
+<span style="color: #8959a8;">export</span> <span style="color: #eab700;">QT_IM_MODULE</span>=fcitx
+<span style="color: #8959a8;">export</span> <span style="color: #eab700;">XMODIFIERS</span>=<span style="color: #3e999f;">"@im=fcitx"</span>
+<span style="color: #8959a8;">export</span> <span style="color: #eab700;">LC_CTYPE</span>=<span style="color: #3e999f;">"zh_CN.UTF-8"</span>
 </pre>
 </div>
 
@@ -1314,8 +1463,8 @@ fcitx-configtool GUI 工具不能将全局快捷键置空，
 </p>
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #999999; font-style: italic;"># </span><span style="color: #999999; font-style: italic;">Switch Embeded Preedit</span>
-<span style="color: #999999; font-style: italic;">#</span><span style="color: #999999; font-style: italic;">SwitchPreedit=CTRL_ALT_P</span>
+<pre class="src src-sh"><span style="color: #8e908c; font-style: italic;"># </span><span style="color: #8e908c; font-style: italic;">Switch Embeded Preedit</span>
+<span style="color: #8e908c; font-style: italic;">#</span><span style="color: #8e908c; font-style: italic;">SwitchPreedit=CTRL_ALT_P</span>
 </pre>
 </div>
 <p>
@@ -1323,8 +1472,8 @@ fcitx-configtool GUI 工具不能将全局快捷键置空，
 </p>
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #999999; font-style: italic;"># </span><span style="color: #999999; font-style: italic;">Switch Embeded Preedit</span>
-<span style="color: #ffcc66;">SwitchPreedit</span>=
+<pre class="src src-sh"><span style="color: #8e908c; font-style: italic;"># </span><span style="color: #8e908c; font-style: italic;">Switch Embeded Preedit</span>
+<span style="color: #eab700;">SwitchPreedit</span>=
 </pre>
 </div>
 <p>

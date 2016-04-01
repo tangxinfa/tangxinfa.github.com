@@ -60,37 +60,37 @@
 
 <div class="org-src-container">
 
-<pre class="src src-c"><span style="color: #cc99cc;">#include</span> <span style="color: #66cccc;">&lt;unistd.h&gt;</span>
-<span style="color: #cc99cc;">#include</span> <span style="color: #66cccc;">&lt;sys/types.h&gt;</span>
-<span style="color: #cc99cc;">#include</span> <span style="color: #66cccc;">&lt;netinet/in.h&gt;</span>
-<span style="color: #cc99cc;">#include</span> <span style="color: #66cccc;">&lt;arpa/inet.h&gt;</span>
-<span style="color: #cc99cc;">#include</span> <span style="color: #66cccc;">&lt;arpa/nameser.h&gt;</span>
-<span style="color: #cc99cc;">#include</span> <span style="color: #66cccc;">&lt;resolv.h&gt;</span>
+<pre class="src src-c"><span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;unistd.h&gt;</span>
+<span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;sys/types.h&gt;</span>
+<span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;netinet/in.h&gt;</span>
+<span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;arpa/inet.h&gt;</span>
+<span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;arpa/nameser.h&gt;</span>
+<span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;resolv.h&gt;</span>
 
-<span style="color: #6699cc;">int</span> <span style="color: #f99157;">main</span>(<span style="color: #6699cc;">int</span> <span style="color: #ffcc66;">argc</span>, <span style="color: #6699cc;">char</span> *<span style="color: #ffcc66;">argv</span>[])
+<span style="color: #4271ae;">int</span> <span style="color: #f5871f;">main</span>(<span style="color: #4271ae;">int</span> <span style="color: #eab700;">argc</span>, <span style="color: #4271ae;">char</span> *<span style="color: #eab700;">argv</span>[])
 {
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">struct</span> <span style="color: #6699cc;">__res_state</span> <span style="color: #ffcc66;">res</span>;
-<span style="color: #cccccc; background-color: #515151;"> </span>   res.options &amp;= ~ RES_INIT;
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">struct</span> <span style="color: #4271ae;">__res_state</span> <span style="color: #eab700;">res</span>;
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   res.options &amp;= ~ RES_INIT;
 
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #6699cc;">int</span> <span style="color: #ffcc66;">err</span> = res_ninit(&amp;res);
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (err) {
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   fprintf(stderr, <span style="color: #66cccc;">"res_init error: %d\n"</span>, err);
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> err;
-<span style="color: #cccccc; background-color: #515151;"> </span>   }
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4271ae;">int</span> <span style="color: #eab700;">err</span> = res_ninit(&amp;res);
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span> (err) {
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   fprintf(stderr, <span style="color: #3e999f;">"res_init error: %d\n"</span>, err);
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> err;
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
 
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #6699cc;">char</span> <span style="color: #ffcc66;">ip</span>[16];
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">for</span>(<span style="color: #6699cc;">int</span> <span style="color: #ffcc66;">i</span> = 0 ; i &lt; res.nscount; ++i) {
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   ip[0] = <span style="color: #66cccc;">'\0'</span>;
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (<span style="color: #6699cc;">!</span> inet_ntop(AF_INET, &amp;res.nsaddr_list[i].sin_addr, ip, <span style="color: #99cc99;">sizeof</span>(ip))) <span style="text-decoration: underline;">{</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   perror(<span style="color: #66cccc;">"inet_ntop"</span>);
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">continue</span>;
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   printf(<span style="color: #66cccc;">"ip: %s\n"</span>, ip);
-<span style="color: #cccccc; background-color: #515151;"> </span>   }
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4271ae;">char</span> <span style="color: #eab700;">ip</span>[16];
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">for</span>(<span style="color: #4271ae;">int</span> <span style="color: #eab700;">i</span> = 0 ; i &lt; res.nscount; ++i) {
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   ip[0] = <span style="color: #3e999f;">'\0'</span>;
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span> (<span style="color: #4271ae;">!</span> inet_ntop(AF_INET, &amp;res.nsaddr_list[i].sin_addr, ip, <span style="color: #718c00;">sizeof</span>(ip))) <span style="text-decoration: underline;">{</span>
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   perror(<span style="color: #3e999f;">"inet_ntop"</span>);
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">continue</span>;
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   printf(<span style="color: #3e999f;">"ip: %s\n"</span>, ip);
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
 
-<span style="color: #cccccc; background-color: #515151;"> </span>   res_nclose(&amp;res);
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   res_nclose(&amp;res);
 
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> 0;
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> 0;
 }
 </pre>
 </div>

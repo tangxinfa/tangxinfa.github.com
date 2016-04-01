@@ -11543,7 +11543,7 @@ class RedisShard {
 
    - [[http://www.cnblogs.com/yudar/p/4657511.html][linux 设置pip 镜像 Pip Warning：–trusted-host 问题解决方案 - Yudar - 博客园]]
 
-* DONE Archlinux 下编译 MaidSafe                                :p2p:bitcion:
+* DONE Archlinux 下编译 MaidSafe                      :p2p:bitcion:archlinux:
   CLOSED: [2016-03-30 Wed 16:26]
 
   按照文档 [[https://github.com/maidsafe-archive/MaidSafe/wiki/Build-Instructions-for-Linux][Build Instructions for Linux · maidsafe-archive/MaidSafe Wiki]] 的指示进行。
@@ -11637,17 +11637,17 @@ class RedisShard {
 
 *** 监控笔记本电量脚本
 
-    #+name: /usr/bin/power-capacity
+    =/usr/bin/power-capacity=
     #+begin_src sh
       #!/bin/bash
 
-       HOSTNAME="${COLLECTD_HOSTNAME:-localhost}"
-       INTERVAL="${COLLECTD_INTERVAL:-60}"
-       
-       while sleep "$INTERVAL"; do
-         VALUE=$(echo -n `cat /sys/class/power_supply/BAT0/capacity`)
-         echo "PUTVAL \"$HOSTNAME/power/capacity\" interval=$INTERVAL N:$VALUE"
-       done
+      HOSTNAME="${COLLECTD_HOSTNAME:-localhost}"
+      INTERVAL="${COLLECTD_INTERVAL:-60}"
+
+      while sleep "$INTERVAL"; do
+        VALUE=$(echo -n `cat /sys/class/power_supply/BAT0/capacity`)
+        echo "PUTVAL \"$HOSTNAME/power/capacity\" interval=$INTERVAL N:$VALUE"
+      done
     #+end_src
     
     为脚本添加可执行权限
@@ -11692,7 +11692,7 @@ class RedisShard {
     #+end_example
 
     创建密码文件
-    #+name:  /etc/collectd/passwd
+    =/etc/collectd/passwd=
     #+begin_example
       user0: foo
       user1: bar
@@ -11720,7 +11720,7 @@ class RedisShard {
     #+end_example
     服务器的 IP 为 172.17.0.1。
 
-    重启 collectd 服务，生效配置，等一会儿就可以在界面上看到本机器的监控信息。
+    重启 collectd 服务，生效配置，等一会儿就可以在界面上看到客户端机器的监控信息。
 
 ** 参考
 
@@ -11735,3 +11735,66 @@ class RedisShard {
    - [[http://blog.sina.com.cn/s/blog_502c8cc40100pbgu.html][collectd使用_新浪研发中心_新浪博客]]
 
    - [[https://collectd.org/documentation/manpages/collectd.conf.5.shtml#global_options][collectd.conf(5) – collectd – The system statistics collection daemon]]
+
+* DONE Archlinux 的 collectd 支持监控 redis                 :redis:archlinux:
+  CLOSED: [2016-03-31 Thu 17:44]
+
+  Archlinux 下使用 =pacman= 安装的 =collectd= 没有 redis 插件。
+  
+  查看 collectd 的 [[https://projects.archlinux.org/svntogit/community.git/tree/trunk/PKGBUILD?h=packages/collectd][PKGBUILD]] 文件，并未明令禁止 redis 插件，从源代码编译安装的话，只要系统装了 =hiredis= ，redis 插件应该就会自动启用。
+
+  所以我们需要从源代码编译安装 =collectd= 软件包。
+
+** 安装 ABS
+
+   #+begin_quote
+   What is the Arch Build System?
+
+   The Arch Build System is a ports-like system for building and packaging software from source code. While pacman is the specialized Arch tool for binary package management (including packages built with the ABS), ABS is a collection of tools for compiling source into installable .pkg.tar.xz packages.    
+   #+end_quote
+   引用自 [[https://wiki.archlinux.org/index.php/Arch_Build_System][Arch Build System - ArchWiki]]
+
+   #+begin_src sh
+     yaourt -S abs
+     sudo abs
+   #+end_src
+
+** 编译安装 collectd
+
+   #+begin_src sh +n +r
+     yaourt -S hiredis
+     cp -R /var/abs/community/collectd ~/
+     cd ~/collectd
+     makepkg               (ref:archlinux_makepkg)
+     yaourt -U ./collectd-5.5.1-2-x86_64.pkg.tar.xz
+   #+end_src
+
+   - 行 [[(archlinux_makepkg)]]  :: 如果报 =Missing dependencies= 错误则按提示使用 pacman 装上缺失的依赖项
+
+** 使用以前的 collectd 配置
+
+   重新安装 collectd 后，以前的配置保存在 =/etc/collectd.conf.pacsave= ，恢复一下
+   #+begin_src sh
+     sudo mv /etc/collectd.conf.pacsave /etc/collectd.conf
+   #+end_src
+
+** 启用 collectd 插件
+
+    修改 collectd 配置文件 =/etc/collectd.conf= 
+    #+begin_example
+      LoadPlugin redis
+          
+      <Plugin redis>
+        <Node "db">
+           Host "127.0.0.1"
+           Port "6379"
+           Timeout 2000
+        </Node>
+      </Plugin>
+    #+end_example
+   
+   重启 collectd 服务，现在可以在界面上看到 redis 的监控项了。
+
+** 参考
+
+   - [[http://arch.acgtyrant.com/2013/12/26/soul/][Arch Linux 的靈魂：PKGBUILD、AUR 和 ABS | Tyrant's Arch Linux]]
