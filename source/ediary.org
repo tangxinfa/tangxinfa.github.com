@@ -10061,9 +10061,7 @@ class RedisShard {
   - 安装依赖的包
 
     #+begin_src sh
-      yum install gmp-devel
-      yum install mpfr-devel
-      yum install libmpc-devel
+      yum install gmp-devel mpfr-devel libmpc-devel
     #+end_src
 
     参考自 INSTALL 目录下的文档。
@@ -10071,9 +10069,9 @@ class RedisShard {
   - 编译安装
 
     #+begin_src sh
-      ./configure --prefix=/opt/gcc-5.2.0 --disable-multilib
-      make
-      make -k check
+      ./configure --prefix=/opt/gcc-5.2.0 --disable-multilib &&\
+      make &&\
+      make -k check &&\
       make install
     #+end_src
 
@@ -11258,7 +11256,7 @@ class RedisShard {
    - 触摸板失灵
      
      移动光标位置却是滚动效果（就像是单指操作变成双指操作了），移动光标时位置卡顿。
-
+     
      安装 evtest
      #+begin_src sh
        yaourt -S evtest
@@ -11276,6 +11274,8 @@ class RedisShard {
      #+end_example
 
      发现触摸板失灵时，也有触模板压下事件产生，估计是硬件不灵敏了，应该可以通过调整相关参数忽略掉 =man= =synaptics= 。
+     
+     使用蓝牙音箱时，触模板必失灵，需要重启系统触模板才能恢复，暂未找到解决方案。
 
    参考
    
@@ -11798,3 +11798,368 @@ class RedisShard {
 ** 参考
 
    - [[http://arch.acgtyrant.com/2013/12/26/soul/][Arch Linux 的靈魂：PKGBUILD、AUR 和 ABS | Tyrant's Arch Linux]]
+
+* TODO 诊断 redis 引起的 Web 服务响应慢问题                       :redis:web:
+
+** 测量 Web 服务响应时间
+
+   - 使用 shell 脚本测量
+
+     #+begin_src sh
+       while [ 1 ]; do (time -p curl -s "http://xxxxxxxx.com/..." -H 'Content-Type: application/json' -d '{...}') 2>&1 | tr '\n' ' ' | grep -E 'real [0-9.]+' | sed -u -r -e 's/.*real ([0-9.]+).*/\1/g'; sleep 1; done;
+     #+end_src
+
+   以上脚本每秒钟获取一次 http 请求的响应时间，可以快速确定服务响应慢问题的严重程度。
+
+   同时在客户机和服务器上本机运行脚本，进行比对，排除网络因素。
+   
+   我们的服务测试时发现每过几十秒会有几秒钟响应变慢（2-5 秒），正常情况下响应时间低于 0.5 秒。
+
+** 监控 Web 服务响应时间
+
+   collectd 包含 curl 插件，可以收集 Web 服务的响应时间，方便后面验证优化效果。
+
+   修改 =collectd.conf=
+   #+begin_example
+     LoadPlugin curl
+
+     <Plugin curl>
+      <Page "baidu">
+        URL "http://www.baidu.com"
+        MeasureResponseTime true
+        Interval 10
+      </Page>
+     </Plugin>
+   #+end_example
+   以上配置以监控 baidu 的服务响应时间为例。
+
+** 分析 Redis 性能指标
+
+   =info= 命令输出
+   #+begin_example
+     # Server
+     redis_version:2.8.6
+     redis_git_sha1:00000000
+     redis_git_dirty:0
+     redis_build_id:3ee5d68cd3e96c92
+     redis_mode:standalone
+     os:Linux 2.6.32-220.23.1.el6.x86_64 x86_64
+     arch_bits:64
+     multiplexing_api:epoll
+     gcc_version:4.4.6
+     process_id:3722
+     run_id:1f71c2e392c83fae71ded24b9ddeb0f1e2aae442
+     tcp_port:6180
+     uptime_in_seconds:10398636
+     uptime_in_days:120
+     hz:10
+     lru_clock:1306258
+     config_file:/usr/local/redis-2.8.6-6180/conf/redis.conf
+
+     # Clients
+     connected_clients:1119
+     client_longest_output_list:1
+     client_biggest_input_buf:0
+     blocked_clients:0
+
+     # Memory
+     used_memory:1916417648
+     used_memory_human:1.78G
+     used_memory_rss:2236563456
+     used_memory_peak:2480159192
+     used_memory_peak_human:2.31G
+     used_memory_lua:33792
+     mem_fragmentation_ratio:1.17
+     mem_allocator:jemalloc-3.2.0
+
+     # Persistence
+     loading:0
+     rdb_changes_since_last_save:502382
+     rdb_bgsave_in_progress:0
+     rdb_last_save_time:1460097434
+     rdb_last_bgsave_status:ok
+     rdb_last_bgsave_time_sec:20
+     rdb_current_bgsave_time_sec:-1
+     aof_enabled:1
+     aof_rewrite_in_progress:1
+     aof_rewrite_scheduled:0
+     aof_last_rewrite_time_sec:34
+     aof_current_rewrite_time_sec:30
+     aof_last_bgrewrite_status:ok
+     aof_last_write_status:ok
+     aof_current_size:2386033576
+     aof_base_size:1110696513
+     aof_pending_rewrite:0
+     aof_buffer_length:42929
+     aof_rewrite_buffer_length:135105200
+     aof_pending_bio_fsync:0
+     aof_delayed_fsync:0
+
+     # Stats
+     total_connections_received:896035
+     total_commands_processed:256210286435
+     instantaneous_ops_per_sec:37604
+     rejected_connections:0
+     sync_full:56827
+     sync_partial_ok:606
+     sync_partial_err:1443
+     expired_keys:404136260
+     evicted_keys:0
+     keyspace_hits:172273397975
+     keyspace_misses:710076744
+     pubsub_channels:73
+     pubsub_patterns:0
+     latest_fork_usec:62938
+
+     # Replication
+     role:master
+     connected_slaves:0
+     master_repl_offset:33088479568562
+     repl_backlog_active:1
+     repl_backlog_size:536870912
+     repl_backlog_first_byte_offset:33087942697651
+     repl_backlog_histlen:536870912
+
+     # CPU
+     used_cpu_sys:8575038464.00
+     used_cpu_user:14889546752.00
+     used_cpu_sys_children:371191.22
+     used_cpu_user_children:2255948.00
+
+     # Keyspace
+     db0:keys=206355,expires=0,avg_ttl=0
+     db1:keys=207580,expires=0,avg_ttl=0
+     db2:keys=207256,expires=0,avg_ttl=0
+     db3:keys=207346,expires=0,avg_ttl=0
+     db4:keys=207413,expires=0,avg_ttl=0
+     db5:keys=207295,expires=0,avg_ttl=0
+     db6:keys=206843,expires=0,avg_ttl=0
+     db7:keys=206329,expires=0,avg_ttl=0
+     db8:keys=207001,expires=0,avg_ttl=0
+     db9:keys=207095,expires=0,avg_ttl=0
+     db10:keys=2,expires=0,avg_ttl=0
+     db12:keys=254337,expires=254317,avg_ttl=216758902
+   #+end_example
+
+   通过频繁执行 =info= 命令，发现 redis 存盘特别频繁（20多秒一次），aof_rewrite_in_progress 和 rdb_bgsave_in_progress 还会同时发生。
+
+   发现 Web 服务响应时间过长后，立即采取以下措施减少 redis 存盘频率：
+   
+   - 增加同步数据到 slave 的缓冲区大小
+
+     由于 redis 写频率太高，repl_backlog_size 设置过小，增量同步数据会失败，导致 master 进行 bgsave 并重新发送内存快照。
+
+     修改 =redis.conf=
+     #+begin_example
+       repl-backlog-size 500mb
+     #+end_example
+    
+   - 关闭 bgsave 持久化
+
+     修改 =redis.conf=
+     #+begin_example
+       #save 900 1
+       #save 300 10
+       #save 60 10000
+     #+end_example
+
+   另外发现 db0 - db9 数据量异常，这 10 个 db 保存以下数据：
+
+   - 25 万设备信息
+
+     25 万条记录。
+
+   - 设备序列号与设备ID的对应关系（1 对 1）
+
+     25 万条记录。
+
+   - 用户与设备的对应关系（1 对 n）
+
+     不超过 25 万条记录。
+
+   - 应用数据
+
+     不超过 25*2 万条记录。
+
+   理论上 db0 - db9 的数据记录数不会超过 1250000（250000 + 250000 + 250000 + 250000*2 ），而实际上却有 2070513 条记录，也就是有接近一半的脏数据。
+
+   分析 db0 中的 key，结果发现是脏数据来自应用数据，由于应用数据 id 可能会变化，旧 id 对应的数据未清除导致脏记录产生，为这这些数据设置过期时间应该可以自动清理掉脏数据。
+
+** 参考
+
+   - [[http://redis.io/topics/latency][Redis latency problems troubleshooting – Redis]]
+
+   - [[https://collectd.org/documentation/manpages/collectd.conf.5.shtml#global_options][collectd.conf(5) – collectd – The system statistics collection daemon]]
+
+   - [[http://blog.kankanan.com/article/archlinux-7684-collectd-652f630176d163a7-redis.html][Archlinux 的 collectd 支持监控 redis | 看看俺 – KanKanAn.com]]
+
+   - [[http://www.tuicool.com/articles/fQ3Izu][线上大数据量redis主从一例 - 推酷]]
+
+* DONE 勿用 redis 的多库                                              :redis:
+  CLOSED: [2016-04-09 Sat 15:02]
+
+** 不要将 redis 和 mysql 混为一谈
+
+   在接触 redis 之前，相信很多人都有 mysql 的使用经验。
+
+   mysql 的实体分层由上至下依次是：
+
+   - 实例（instance）
+
+     mysqld 进程。
+
+   - 库（database）
+
+
+   - 表（table）
+
+
+   - 记录（row）
+
+  
+   - 字段（field）
+
+
+   redis 的实体分层由上至下依次是：
+
+   - 实例（instance）
+
+     redis 进程。
+  
+   - 库（database）
+
+  
+   - 键值（Key-Value）
+
+
+   我们很容易将 mysql 与 redis 的实例（instance）和库（database）等同起来，然而却大错特错。
+
+   其实
+   
+   - redis 的实例（instance） 等同于 mysql 的库（database）
+
+
+   - redis 的库（database） 等同于 mysql 的表（table）
+
+
+** redis 的多库是鸡肋
+
+   redis 是无预定义结构的（schema-less）数据库，表（table ）的存在意义不大，
+   它更多地是做为命名空间（name space），由于使用的是很不友好的数字命名（默认 0-15），
+   redis 中的 库（database）形同鸡肋。
+
+   以下为 redis 作者的观点，引用自 [[https://groups.google.com/d/msg/redis-db/vS5wX8X4Cjg/8ounBXitG4sJ][database names? - Google 网上论坛]]
+   #+begin_quote
+   I understand how this can be useful, but unfortunately I consider
+   Redis multiple database errors my worst decision in Redis design at
+   all... without any kind of real gain, it makes the internals a lot
+   more complex. The reality is that databases don't scale well for a
+   number of reason, like active expire of keys and VM. If the DB
+   selection can be performed with a string I can see this feature being
+   used as a scalable O(1) dictionary layer, that instead it is not.
+
+   With DB numbers, with a default of a few DBs, we are communication
+   better what this feature is and how can be used I think. I hope that
+   at some point we can drop the multiple DBs support at all, but I think
+   it is probably too late as there is a number of people relying on this
+   feature for their work.
+   #+end_quote
+
+** 使用 redis 多库是妥协的结果
+
+   有一种观点认为不同的应用（app）使用不同的库（database）可以从而避免键命名冲突。
+
+   redis 对于不同的库（database）没有提供任何隔离机制，完全依赖于应用（app）部署时约定使用不同的库（database）。
+   
+   为什么不约定应用（app）使用的所有键都加上应用（app）前缀，或者每个应用（app）使用不同的 redis 实例（instance）呢？
+
+   从开发人员的角度来说
+   
+   - 如果每个应用（app）使用不同的实例（instance），是最省事的，连接 redis 后，直接操作即可
+
+     
+   - 如果每个应用（app）使用不同的库（database），略微麻烦一点，连接 redis 后，先执行一下 =select= =db= ，redis 客户端库会提供支持
+
+
+   - 如果每个应用（app）的键（key）都加上应用（app）前缀，会很麻烦，每一处访问 redis 的代码都要涉及
+
+   
+   从运维人员的角度来说
+   
+   - 如果每个应用（app）使用不同的实例（instance），是最麻烦的，维护压力剧增，每个实例（instance）背后还要有配套的启动、停止脚本，监控，主备实例等
+     
+     
+   - 如果每个应用（app）使用不同的库（database），略微麻烦一点，分配并记录一下，告知开发人员使用指定的 redis 实例及库（database）
+     
+     
+   - 如果每个应用（app）的键（key）都加上应用（app）前缀，是最省事的，可以灵活地为应用（app）安排使用实例（instance）或库（database）
+
+
+   不同的应用（app）使用不同的库（database）这一方案被采用，很可能是开发人员与运维人员互相妥协的结果。
+
+** redis 的多库扩容难
+
+   redis 的数据量或者请求数过高，会导致 redis 不稳定，最终影响服务质量。
+
+   这时候就要考虑 redis 扩容了，需要将其中一个库（database）迁到新的实例（instance）上，过程如下：
+
+   - 停掉应用（app）
+
+   
+   - 将应用（app）的 redis 库（database）同步到新的 redis 实例（instance）上
+
+     通过拷贝 =dump.rdb= 的方式同步（传输）数据，redis 实例（instance）上的所有库（database）数据都是混在一起的，
+     其它应用（app）数据会增加数据同步（传输）时间及新 redis 实例（instance） 数据载入时间。
+
+     如果通过工具在线将应用（app）的 redis 库（database）拷贝到运行中的新 redis 实例（instance）上，会很耗时，
+     对本身负载就很高的 redis 添加更多压力，可能会影响其它应用（app）。
+
+     新 redis 实例（instance）设置为旧 redis 实例（instance） 的 slave，同步完成后取消 Master-Slave 关系，
+     这种方法相对更好一些。
+
+   - 启动新的 redis 实例
+
+     
+   - 修改应用（app）配置指向新的 redis 实例
+
+
+   - 启动应用（app）
+
+     
+   - 清除两个 redis 实例中的脏数据
+
+     =select= =db= ，然后执行 =flushdb= 命令即可，这可能是使用多库最大的好处。
+
+   
+   应用（app）的停机时间（Down Time）肯定短不了。
+
+
+   如果每个应用（app）使用不同的实例，需要将某个实例迁到新机器，则可以做到平滑扩容（迁移），过程如下：
+
+   - 应用（app）使用 redis sentinel 方式访问 redis
+
+    
+   - 新机器部署 redis 新实例
+
+
+   - 新实例设置为旧 redis 实例的 slave
+
+   
+   - 同步完成后进行 Master-Slave 换位
+     
+     
+   - 应用（app）会自动切到新的 redis 实例
+
+
+   - 旧的 redis 实例可以停掉
+
+
+** 参考
+
+   - [[http://stackoverflow.com/questions/16221563/whats-the-point-of-multiple-redis-databases][What's the Point of Multiple Redis Databases? - Stack Overflow]]
+    
+
+   - [[https://groups.google.com/d/msg/redis-db/vS5wX8X4Cjg/8ounBXitG4sJ][database names? - Google 网上论坛]]
+
+   
+   - [[http://redis.io/topics/partitioning][Partitioning: how to split data among multiple Redis instances. – Redis]]

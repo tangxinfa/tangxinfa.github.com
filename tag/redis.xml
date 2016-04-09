@@ -4,7 +4,7 @@
         <title>redis - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/redis.xml</link>
-        <lastBuildDate>Fri, 01 Apr 2016 02:42:52 GMT</lastBuildDate>
+        <lastBuildDate>Sat, 09 Apr 2016 07:14:38 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>redis - 看看俺 – KanKanAn.com</title>
@@ -14,6 +14,331 @@
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <generator>Feed for Node.js</generator>
         <category>技术</category>
+        <item>
+            <title><![CDATA[勿用 redis 的多库]]></title>
+            <link>/article/52ff7528-redis-7684591a5e93.html</link>
+            <guid>/article/52ff7528-redis-7684591a5e93.html</guid>
+            <pubDate>Sat, 09 Apr 2016 07:02:00 GMT</pubDate>
+            <content:encoded><![CDATA[
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">不要将 redis 和 mysql 混为一谈</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+在接触 redis 之前，相信很多人都有 mysql 的使用经验。
+</p>
+
+<p>
+mysql 的实体分层由上至下依次是：
+</p>
+
+<ul class="org-ul">
+<li>实例（instance）
+
+<p>
+mysqld 进程。
+</p>
+</li>
+
+<li>库（database）
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>表（table）
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>记录（row）
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>字段（field）
+</li>
+</ul>
+
+
+<p>
+redis 的实体分层由上至下依次是：
+</p>
+
+<ul class="org-ul">
+<li>实例（instance）
+
+<p>
+redis 进程。
+</p>
+</li>
+
+<li>库（database）
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>键值（Key-Value）
+</li>
+</ul>
+
+
+<p>
+我们很容易将 mysql 与 redis 的实例（instance）和库（database）等同起来，然而却大错特错。
+</p>
+
+<p>
+其实
+</p>
+
+<ul class="org-ul">
+<li>redis 的实例（instance） 等同于 mysql 的库（database）
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>redis 的库（database） 等同于 mysql 的表（table）
+</li>
+</ul>
+</div>
+</div>
+
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">redis 的多库是鸡肋</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+redis 是无预定义结构的（schema-less）数据库，表（table ）的存在意义不大，
+它更多地是做为命名空间（name space），由于使用的是很不友好的数字命名（默认 0-15），
+redis 中的 库（database）形同鸡肋。
+</p>
+
+<p>
+以下为 redis 作者的观点，引用自 <a href="https://groups.google.com/d/msg/redis-db/vS5wX8X4Cjg/8ounBXitG4sJ">database names? - Google 网上论坛</a>
+</p>
+<blockquote>
+<p>
+I understand how this can be useful, but unfortunately I consider
+Redis multiple database errors my worst decision in Redis design at
+all&#x2026; without any kind of real gain, it makes the internals a lot
+more complex. The reality is that databases don't scale well for a
+number of reason, like active expire of keys and VM. If the DB
+selection can be performed with a string I can see this feature being
+used as a scalable O(1) dictionary layer, that instead it is not.
+</p>
+
+<p>
+With DB numbers, with a default of a few DBs, we are communication
+better what this feature is and how can be used I think. I hope that
+at some point we can drop the multiple DBs support at all, but I think
+it is probably too late as there is a number of people relying on this
+feature for their work.
+</p>
+</blockquote>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">使用 redis 多库是妥协的结果</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+有一种观点认为不同的应用（app）使用不同的库（database）可以从而避免键命名冲突。
+</p>
+
+<p>
+redis 对于不同的库（database）没有提供任何隔离机制，完全依赖于应用（app）部署时约定使用不同的库（database）。
+</p>
+
+<p>
+为什么不约定应用（app）使用的所有键都加上应用（app）前缀，或者每个应用（app）使用不同的 redis 实例（instance）呢？
+</p>
+
+<p>
+从开发人员的角度来说
+</p>
+
+<ul class="org-ul">
+<li>如果每个应用（app）使用不同的实例（instance），是最省事的，连接 redis 后，直接操作即可
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>如果每个应用（app）使用不同的库（database），略微麻烦一点，连接 redis 后，先执行一下 <code>select</code> <code>db</code> ，redis 客户端库会提供支持
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>如果每个应用（app）的键（key）都加上应用（app）前缀，会很麻烦，每一处访问 redis 的代码都要涉及
+</li>
+</ul>
+
+
+<p>
+从运维人员的角度来说
+</p>
+
+<ul class="org-ul">
+<li>如果每个应用（app）使用不同的实例（instance），是最麻烦的，维护压力剧增，每个实例（instance）背后还要有配套的启动、停止脚本，监控，主备实例等
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>如果每个应用（app）使用不同的库（database），略微麻烦一点，分配并记录一下，告知开发人员使用指定的 redis 实例及库（database）
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>如果每个应用（app）的键（key）都加上应用（app）前缀，是最省事的，可以灵活地为应用（app）安排使用实例（instance）或库（database）
+</li>
+</ul>
+
+
+<p>
+不同的应用（app）使用不同的库（database）这一方案被采用，很可能是开发人员与运维人员互相妥协的结果。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4">redis 的多库扩容难</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+redis 的数据量或者请求数过高，会导致 redis 不稳定，最终影响服务质量。
+</p>
+
+<p>
+这时候就要考虑 redis 扩容了，需要将其中一个库（database）迁到新的实例（instance）上，过程如下：
+</p>
+
+<ul class="org-ul">
+<li>停掉应用（app）
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>将应用（app）的 redis 库（database）同步到新的 redis 实例（instance）上
+
+<p>
+通过拷贝 <code>dump.rdb</code> 的方式同步（传输）数据，redis 实例（instance）上的所有库（database）数据都是混在一起的，
+其它应用（app）数据会增加数据同步（传输）时间及新 redis 实例（instance） 数据载入时间。
+</p>
+
+<p>
+如果通过工具在线将应用（app）的 redis 库（database）拷贝到运行中的新 redis 实例（instance）上，会很耗时，
+对本身负载就很高的 redis 添加更多压力，可能会影响其它应用（app）。
+</p>
+
+<p>
+新 redis 实例（instance）设置为旧 redis 实例（instance） 的 slave，同步完成后取消 Master-Slave 关系，
+这种方法相对更好一些。
+</p>
+</li>
+
+<li>启动新的 redis 实例
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>修改应用（app）配置指向新的 redis 实例
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>启动应用（app）
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>清除两个 redis 实例中的脏数据
+
+<p>
+<code>select</code> <code>db</code> ，然后执行 <code>flushdb</code> 命令即可，这可能是使用多库最大的好处。
+</p>
+</li>
+</ul>
+
+
+<p>
+应用（app）的停机时间（Down Time）肯定短不了。
+</p>
+
+
+<p>
+如果每个应用（app）使用不同的实例，需要将某个实例迁到新机器，则可以做到平滑扩容（迁移），过程如下：
+</p>
+
+<ul class="org-ul">
+<li>应用（app）使用 redis sentinel 方式访问 redis
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>新机器部署 redis 新实例
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>新实例设置为旧 redis 实例的 slave
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>同步完成后进行 Master-Slave 换位
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>应用（app）会自动切到新的 redis 实例
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>旧的 redis 实例可以停掉
+</li>
+</ul>
+</div>
+</div>
+
+
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5">参考</h2>
+<div class="outline-text-2" id="text-5">
+<ul class="org-ul">
+<li><a href="http://stackoverflow.com/questions/16221563/whats-the-point-of-multiple-redis-databases">What's the Point of Multiple Redis Databases? - Stack Overflow</a>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><a href="https://groups.google.com/d/msg/redis-db/vS5wX8X4Cjg/8ounBXitG4sJ">database names? - Google 网上论坛</a>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><a href="http://redis.io/topics/partitioning">Partitioning: how to split data among multiple Redis instances. – Redis</a>
+</li>
+</ul>
+</div>
+</div>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[Archlinux 的 collectd 支持监控 redis]]></title>
             <link>/article/archlinux-7684-collectd-652f630176d163a7-redis.html</link>
@@ -63,7 +388,7 @@ sudo abs
 
 <pre class="src src-sh"><span class="linenr">1: </span>yaourt -S hiredis
 <span class="linenr">2: </span>cp -R /var/abs/community/collectd ~/
-<span class="linenr">3: </span><span style="color: #8959a8;">cd</span> ~/collectd
+<span class="linenr">3: </span><span style="color: #cc99cc;">cd</span> ~/collectd
 <span id="coderef-archlinux_makepkg" class="coderef-off"><span class="linenr">4: </span>makepkg (archlinux_makepkg)</span>
 <span class="linenr">5: </span>yaourt -U ./collectd-5.5.1-2-x86_64.pkg.tar.xz
 </pre>
@@ -243,43 +568,43 @@ node.js后台应用在开始时往往不会搞得太复杂，使用单实例的r
 <div class="outline-text-3" id="text-1-1">
 <div class="org-src-container">
 
-<pre class="src src-js"><span style="color: #718c00;">var</span> <span style="color: #eab700;">redis</span> = require(<span style="color: #3e999f;">'redis'</span>);
+<pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">redis</span> = require(<span style="color: #66cccc;">'redis'</span>);
 
-<span style="color: #718c00;">function</span> <span style="color: #f5871f;">Database</span>() {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">var</span> <span style="color: #eab700;">self</span> = <span style="color: #4271ae;">this</span>;
+<span style="color: #99cc99;">function</span> <span style="color: #f99157;">Database</span>() {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">self</span> = <span style="color: #6699cc;">this</span>;
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   self._redis_host = <span style="color: #3e999f;">'127.0.0.1'</span>;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   self._redis_port = 6379;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   self._redis_db = 2;
+<span style="color: #cccccc; background-color: #515151;"> </span>   self._redis_host = <span style="color: #66cccc;">'127.0.0.1'</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   self._redis_port = 6379;
+<span style="color: #cccccc; background-color: #515151;"> </span>   self._redis_db = 2;
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   self._redis = <span style="color: #4271ae;">null</span>;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   self._redis_selected = <span style="color: #4271ae;">false</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   self._redis = <span style="color: #6699cc;">null</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   self._redis_selected = <span style="color: #6699cc;">false</span>;
 }
 
-Database.<span style="color: #4271ae;">prototype</span>.redis = <span style="color: #718c00;">function</span>(<span style="color: #eab700;">callback</span>) {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">var</span> <span style="color: #eab700;">self</span> = <span style="color: #4271ae;">this</span>;
+Database.<span style="color: #6699cc;">prototype</span>.redis = <span style="color: #99cc99;">function</span>(<span style="color: #ffcc66;">callback</span>) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">self</span> = <span style="color: #6699cc;">this</span>;
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span> (self._redis &amp;&amp; self._redis_selected) {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> callback(<span style="color: #4271ae;">null</span>, self._redis);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (self._redis &amp;&amp; self._redis_selected) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> callback(<span style="color: #6699cc;">null</span>, self._redis);
+<span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span> (! self._redis) {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   self._redis = redis.createClient(self._redis_port, self._redis_host);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (! self._redis) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   self._redis = redis.createClient(self._redis_port, self._redis_host);
+<span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   self._redis.select(self._redis_db, <span style="color: #718c00;">function</span> (<span style="color: #eab700;">err</span>) {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span> (err) {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> callback(err);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   self._redis.select(self._redis_db, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">err</span>) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (err) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> callback(err);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   self._redis_selected = <span style="color: #4271ae;">true</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   self._redis_selected = <span style="color: #6699cc;">true</span>;
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> callback(<span style="color: #4271ae;">null</span>, self._redis);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   });
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> callback(<span style="color: #6699cc;">null</span>, self._redis);
+<span style="color: #cccccc; background-color: #515151;"> </span>   });
 };
 
 
-module.exports = <span style="color: #718c00;">new</span> <span style="color: #4271ae;">Database</span>();
+module.exports = <span style="color: #99cc99;">new</span> <span style="color: #6699cc;">Database</span>();
 </pre>
 </div>
 </div>
@@ -294,33 +619,33 @@ module.exports = <span style="color: #718c00;">new</span> <span style="color: #4
 
 <div class="org-src-container">
 
-<pre class="src src-js"><span style="color: #718c00;">var</span> <span style="color: #eab700;">db</span> = require(<span style="color: #3e999f;">'./database'</span>);
+<pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">db</span> = require(<span style="color: #66cccc;">'./database'</span>);
 
-db.redis(<span style="color: #718c00;">function</span> (<span style="color: #eab700;">err</span>, <span style="color: #eab700;">client</span>) {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span>(err) {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   console.error(err.toString());
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> process.exit(1);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
+db.redis(<span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">err</span>, <span style="color: #ffcc66;">client</span>) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span>(err) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   console.error(err.toString());
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> process.exit(1);
+<span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   client.set(<span style="color: #3e999f;">'hello'</span>, <span style="color: #3e999f;">'world'</span>, <span style="color: #718c00;">function</span> (<span style="color: #eab700;">err</span>) {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span>(err) {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   console.error(err.toString());
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> process.exit(1);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   client.set(<span style="color: #66cccc;">'hello'</span>, <span style="color: #66cccc;">'world'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">err</span>) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span>(err) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   console.error(err.toString());
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> process.exit(1);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   setTimeout(<span style="color: #718c00;">function</span> () {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   client.get(<span style="color: #3e999f;">'hello'</span>, <span style="color: #718c00;">function</span> (<span style="color: #eab700;">err</span>, <span style="color: #eab700;">value</span>) {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span>(err) {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   console.error(err.toString());
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> process.exit(1);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   setTimeout(<span style="color: #99cc99;">function</span> () {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   client.get(<span style="color: #66cccc;">'hello'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">err</span>, <span style="color: #ffcc66;">value</span>) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span>(err) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   console.error(err.toString());
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> process.exit(1);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   console.log(<span style="color: #3e999f;">'hello: '</span> + value);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   console.log(<span style="color: #66cccc;">'hello: '</span> + value);
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   process.exit(0);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   });
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }, 20*1000);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   });
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   process.exit(0);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   });
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }, 20*1000);
+<span style="color: #cccccc; background-color: #515151;"> </span>   });
 });
 </pre>
 </div>
@@ -400,37 +725,37 @@ ioredis is a robust, full-featured Redis client that is used in the world's bigg
 <div class="outline-text-3" id="text-2-1">
 <div class="org-src-container">
 
-<pre class="src src-js"><span style="color: #718c00;">var</span> <span style="color: #eab700;">Redis</span> = require(<span style="color: #3e999f;">'ioredis'</span>);
+<pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">Redis</span> = require(<span style="color: #66cccc;">'ioredis'</span>);
 
-<span style="color: #718c00;">function</span> <span style="color: #f5871f;">Database</span>() {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">var</span> <span style="color: #eab700;">self</span> = <span style="color: #4271ae;">this</span>;
+<span style="color: #99cc99;">function</span> <span style="color: #f99157;">Database</span>() {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">self</span> = <span style="color: #6699cc;">this</span>;
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   self._redis_options = {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   name: <span style="color: #3e999f;">'mymaster'</span>,
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   sentinels: [{
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   host: <span style="color: #3e999f;">'127.0.0.1'</span>,
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   port: 5000
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }, {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   host: <span style="color: #3e999f;">'127.0.0.1'</span>,
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   port: 5001
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }],
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   db: 2
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   };
+<span style="color: #cccccc; background-color: #515151;"> </span>   self._redis_options = {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   name: <span style="color: #66cccc;">'mymaster'</span>,
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   sentinels: [{
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   host: <span style="color: #66cccc;">'127.0.0.1'</span>,
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   port: 5000
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }, {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   host: <span style="color: #66cccc;">'127.0.0.1'</span>,
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   port: 5001
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }],
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   db: 2
+<span style="color: #cccccc; background-color: #515151;"> </span>   };
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   self._redis = <span style="color: #4271ae;">null</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   self._redis = <span style="color: #6699cc;">null</span>;
 }
 
-Database.<span style="color: #4271ae;">prototype</span>.redis = <span style="color: #718c00;">function</span>(<span style="color: #eab700;">callback</span>) {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">var</span> <span style="color: #eab700;">self</span> = <span style="color: #4271ae;">this</span>;
+Database.<span style="color: #6699cc;">prototype</span>.redis = <span style="color: #99cc99;">function</span>(<span style="color: #ffcc66;">callback</span>) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">self</span> = <span style="color: #6699cc;">this</span>;
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span><span style="color: #718c00;">if</span> (! self._redis) {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   self._redis = <span style="color: #718c00;">new</span> <span style="color: #4271ae;">Redis</span>(self._redis_options);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span><span style="color: #99cc99;">if</span> (! self._redis) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   self._redis = <span style="color: #99cc99;">new</span> <span style="color: #6699cc;">Redis</span>(self._redis_options);
+<span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> callback(<span style="color: #4271ae;">null</span>, self._redis);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> callback(<span style="color: #6699cc;">null</span>, self._redis);
 };
 
-module.exports = <span style="color: #718c00;">new</span> <span style="color: #4271ae;">Database</span>();
+module.exports = <span style="color: #99cc99;">new</span> <span style="color: #6699cc;">Database</span>();
 </pre>
 </div>
 
@@ -1249,7 +1574,7 @@ make install
 
 <div class="org-src-container">
 
-<pre class="src src-sh">make <span style="color: #eab700;">PREFIX</span>=/usr/local/redis install
+<pre class="src src-sh">make <span style="color: #ffcc66;">PREFIX</span>=/usr/local/redis install
 </pre>
 </div>
 </li>
@@ -1382,30 +1707,30 @@ redis 127.0.0.1:6379&gt; config set stop-writes-on-bgsave-error no
 <li>测试脚本
 <div class="org-src-container">
 
-<pre class="src src-python"><span style="color: #8e908c; font-style: italic;">#</span><span style="color: #8e908c; font-style: italic;">!/bin/env python</span>
+<pre class="src src-python"><span style="color: #999999; font-style: italic;">#</span><span style="color: #999999; font-style: italic;">!/bin/env python</span>
 
-<span style="color: #718c00;">import</span> redis
-<span style="color: #718c00;">import</span> uuid
-<span style="color: #718c00;">import</span> time
+<span style="color: #99cc99;">import</span> redis
+<span style="color: #99cc99;">import</span> uuid
+<span style="color: #99cc99;">import</span> time
 
-<span style="color: #eab700;">r</span> = redis.Redis(host=<span style="color: #3e999f;">'localhost'</span>, port=6379, db=0)
-<span style="color: #718c00;">for</span> num_strings <span style="color: #718c00;">in</span> (100000,):
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   r.flushall()
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   time.sleep(1.0)
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #eab700;">initial_size</span> = r.dbsize()
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #eab700;">initial_info</span> = r.info()
+<span style="color: #ffcc66;">r</span> = redis.Redis(host=<span style="color: #66cccc;">'localhost'</span>, port=6379, db=0)
+<span style="color: #99cc99;">for</span> num_strings <span style="color: #99cc99;">in</span> (100000,):
+<span style="color: #cccccc; background-color: #515151;"> </span>   r.flushall()
+<span style="color: #cccccc; background-color: #515151;"> </span>   time.sleep(1.0)
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">initial_size</span> = r.dbsize()
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">initial_info</span> = r.info()
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">for</span> i <span style="color: #718c00;">in</span> <span style="color: #8959a8;">xrange</span>(0, num_strings):
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   r.<span style="color: #8959a8;">set</span>(<span style="color: #8959a8;">str</span>(uuid.uuid4()), time.time())
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">#</span><span style="color: #8e908c; font-style: italic;">r.setex(str(uuid.uuid4()), time.time(), 100000)</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #eab700;">final_size</span> = r.dbsize()
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #eab700;">final_info</span> = r.info()
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">for</span> i <span style="color: #99cc99;">in</span> <span style="color: #cc99cc;">xrange</span>(0, num_strings):
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   r.<span style="color: #cc99cc;">set</span>(<span style="color: #cc99cc;">str</span>(uuid.uuid4()), time.time())
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #999999; font-style: italic;">#</span><span style="color: #999999; font-style: italic;">r.setex(str(uuid.uuid4()), time.time(), 100000)</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">final_size</span> = r.dbsize()
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">final_info</span> = r.info()
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">print</span> <span style="color: #3e999f;">"For %s strings."</span> % (num_strings,)
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">print</span> <span style="color: #3e999f;">"Keys: %s =&gt; %s"</span> % (initial_size, final_size)
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">print</span> <span style="color: #3e999f;">"Memory: %s =&gt; %s"</span> % (initial_info[<span style="color: #3e999f;">'used_memory'</span>],
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   final_info[<span style="color: #3e999f;">'used_memory'</span>])
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">print</span> <span style="color: #3e999f;">"Memory per key: %d"</span>%((<span style="color: #8959a8;">int</span>(final_info[<span style="color: #3e999f;">'used_memory'</span>]) - <span style="color: #8959a8;">int</span>(initial_in<span style="text-decoration: underline;">fo[</span><span style="color: #3e999f; text-decoration: underline;">'used_memory'</span><span style="text-decoration: underline;">])) / num_strings)</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">print</span> <span style="color: #66cccc;">"For %s strings."</span> % (num_strings,)
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">print</span> <span style="color: #66cccc;">"Keys: %s =&gt; %s"</span> % (initial_size, final_size)
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">print</span> <span style="color: #66cccc;">"Memory: %s =&gt; %s"</span> % (initial_info[<span style="color: #66cccc;">'used_memory'</span>],
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   final_info[<span style="color: #66cccc;">'used_memory'</span>])
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">print</span> <span style="color: #66cccc;">"Memory per key: %d"</span>%((<span style="color: #cc99cc;">int</span>(final_info[<span style="color: #66cccc;">'used_memory'</span>]) - <span style="color: #cc99cc;">int</span>(initial_in<span style="text-decoration: underline;">fo[</span><span style="color: #66cccc; text-decoration: underline;">'used_memory'</span><span style="text-decoration: underline;">])) / num_strings)</span>
 </pre>
 </div>
 </li>
@@ -1428,36 +1753,36 @@ redis 127.0.0.1:6379&gt; config set stop-writes-on-bgsave-error no
 <li>测试脚本
 <div class="org-src-container">
 
-<pre class="src src-python"><span style="color: #8e908c; font-style: italic;">#</span><span style="color: #8e908c; font-style: italic;">!/bin/env python</span>
+<pre class="src src-python"><span style="color: #999999; font-style: italic;">#</span><span style="color: #999999; font-style: italic;">!/bin/env python</span>
 
-<span style="color: #718c00;">import</span> redis
-<span style="color: #718c00;">import</span> math
-<span style="color: #718c00;">import</span> time
+<span style="color: #99cc99;">import</span> redis
+<span style="color: #99cc99;">import</span> math
+<span style="color: #99cc99;">import</span> time
 
-<span style="color: #eab700;">r</span> = redis.Redis(host=<span style="color: #3e999f;">'localhost'</span>, port=6379, db=0)
-<span style="color: #eab700;">set_capcity</span> = <span style="color: #8959a8;">int</span>(r.config_get(<span style="color: #3e999f;">"set-max-intset-entries"</span>)[<span style="color: #3e999f;">"set-max-intset-entries</span><span style="color: #3e999f; text-decoration: underline;">"</span><span style="text-decoration: underline;">])</span>
+<span style="color: #ffcc66;">r</span> = redis.Redis(host=<span style="color: #66cccc;">'localhost'</span>, port=6379, db=0)
+<span style="color: #ffcc66;">set_capcity</span> = <span style="color: #cc99cc;">int</span>(r.config_get(<span style="color: #66cccc;">"set-max-intset-entries"</span>)[<span style="color: #66cccc;">"set-max-intset-entries</span><span style="color: #66cccc; text-decoration: underline;">"</span><span style="text-decoration: underline;">])</span>
 
-<span style="color: #718c00;">def</span> <span style="color: #f5871f;">set_name</span>(i, num_strings, set_capcity):
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #eab700;">set_num</span> = math.ceil(num_strings/<span style="color: #8959a8;">float</span>(set_capcity))
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> <span style="color: #3e999f;">"s%d"</span>%(i%set_num)
+<span style="color: #99cc99;">def</span> <span style="color: #f99157;">set_name</span>(i, num_strings, set_capcity):
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">set_num</span> = math.ceil(num_strings/<span style="color: #cc99cc;">float</span>(set_capcity))
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> <span style="color: #66cccc;">"s%d"</span>%(i%set_num)
 
-<span style="color: #718c00;">for</span> num_strings <span style="color: #718c00;">in</span> (100000,):
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   r.flushall()
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   time.sleep(1.0)
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #eab700;">initial_size</span> = r.dbsize()
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #eab700;">initial_info</span> = r.info()
+<span style="color: #99cc99;">for</span> num_strings <span style="color: #99cc99;">in</span> (100000,):
+<span style="color: #cccccc; background-color: #515151;"> </span>   r.flushall()
+<span style="color: #cccccc; background-color: #515151;"> </span>   time.sleep(1.0)
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">initial_size</span> = r.dbsize()
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">initial_info</span> = r.info()
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">for</span> i <span style="color: #718c00;">in</span> <span style="color: #8959a8;">xrange</span>(0, num_strings):
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">#</span><span style="color: #8e908c; font-style: italic;">r.sadd("s", str(i))</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   r.sadd(set_name(i, num_strings, set_capcity), <span style="color: #8959a8;">str</span>(i))
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #eab700;">final_size</span> = r.dbsize()
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #eab700;">final_info</span> = r.info()
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">for</span> i <span style="color: #99cc99;">in</span> <span style="color: #cc99cc;">xrange</span>(0, num_strings):
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #999999; font-style: italic;">#</span><span style="color: #999999; font-style: italic;">r.sadd("s", str(i))</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   r.sadd(set_name(i, num_strings, set_capcity), <span style="color: #cc99cc;">str</span>(i))
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">final_size</span> = r.dbsize()
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">final_info</span> = r.info()
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">print</span> <span style="color: #3e999f;">"For %s strings."</span> % (num_strings,)
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">print</span> <span style="color: #3e999f;">"Keys: %s =&gt; %s"</span> % (initial_size, final_size)
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">print</span> <span style="color: #3e999f;">"Memory: %s =&gt; %s"</span> % (initial_info[<span style="color: #3e999f;">'used_memory'</span>],
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   final_info[<span style="color: #3e999f;">'used_memory'</span>])
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">print</span> <span style="color: #3e999f;">"Memory per key: %d"</span>%((<span style="color: #8959a8;">int</span>(final_info[<span style="color: #3e999f;">'used_memory'</span>]) - <span style="color: #8959a8;">int</span>(initial_in<span style="text-decoration: underline;">fo[</span><span style="color: #3e999f; text-decoration: underline;">'used_memory'</span><span style="text-decoration: underline;">])) / num_strings)</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">print</span> <span style="color: #66cccc;">"For %s strings."</span> % (num_strings,)
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">print</span> <span style="color: #66cccc;">"Keys: %s =&gt; %s"</span> % (initial_size, final_size)
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">print</span> <span style="color: #66cccc;">"Memory: %s =&gt; %s"</span> % (initial_info[<span style="color: #66cccc;">'used_memory'</span>],
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   final_info[<span style="color: #66cccc;">'used_memory'</span>])
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">print</span> <span style="color: #66cccc;">"Memory per key: %d"</span>%((<span style="color: #cc99cc;">int</span>(final_info[<span style="color: #66cccc;">'used_memory'</span>]) - <span style="color: #cc99cc;">int</span>(initial_in<span style="text-decoration: underline;">fo[</span><span style="color: #66cccc; text-decoration: underline;">'used_memory'</span><span style="text-decoration: underline;">])) / num_strings)</span>
 </pre>
 </div>
 </li>
@@ -1539,103 +1864,103 @@ Redis的析构函数没有关闭redis连接，这会导致redis网络负载过�
 </dl>
 <div class="org-src-container">
 
-<pre class="src src-php"><span style="color: #8e908c; font-style: italic;">/// </span><span style="color: #8e908c; font-style: italic;">&#20998;&#24067;&#24335;Redis.</span>
-<span style="color: #718c00;">class</span> <span style="color: #4271ae;">RedisShard</span> {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">/// </span><span style="color: #8e908c; font-style: italic;">&#26500;&#36896;&#20989;&#25968;.</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">public</span> <span style="color: #718c00;">function</span> <span style="color: #f5871f;">__construct</span>(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">shards</span>) {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #4271ae;">this</span>-&gt;<span style="color: #4d4d4c; background-color: #ffffff;">reinit</span>(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">shards</span>);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
+<pre class="src src-php"><span style="color: #999999; font-style: italic;">/// </span><span style="color: #999999; font-style: italic;">&#20998;&#24067;&#24335;Redis.</span>
+<span style="color: #99cc99;">class</span> <span style="color: #6699cc;">RedisShard</span> {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #999999; font-style: italic;">/// </span><span style="color: #999999; font-style: italic;">&#26500;&#36896;&#20989;&#25968;.</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">public</span> <span style="color: #99cc99;">function</span> <span style="color: #f99157;">__construct</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">shards</span>) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #6699cc;">this</span>-&gt;<span style="color: #cccccc; background-color: #2d2d2d;">reinit</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">shards</span>);
+<span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">/// </span><span style="color: #8e908c; font-style: italic;">&#26512;&#26500;&#20989;&#25968;.</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">/// </span><span style="color: #8e908c; font-style: italic;">&#33050;&#26412;&#32467;&#26463;&#26102;&#65292;phpredis&#19981;&#20250;&#33258;&#21160;&#20851;&#38381;redis&#36830;&#25509;&#65292;&#36825;&#37324;&#28155;&#21152;&#33258;&#21160;&#20851;&#38381;&#36830;&#25509;&#25903;&#25345;.</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">/// </span><span style="color: #8e908c; font-style: italic;">&#21487;&#20197;&#36890;&#36807;&#25163;&#21160;unset&#26412;&#31867;&#23545;&#35937;&#24555;&#36895;&#37322;&#25918;&#36164;&#28304;.</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">public</span> <span style="color: #718c00;">function</span> <span style="color: #f5871f;">__destruct</span>() {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span>(<span style="color: #718c00;">isset</span>(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #4271ae;">this</span>-&gt;<span style="color: #eab700;">shard</span>)){
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #4271ae;">this</span>-&gt;<span style="color: #eab700;">shard</span>[<span style="color: #3e999f;">'redis'</span>]-&gt;<span style="color: #4d4d4c; background-color: #ffffff;">close</span>();
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #999999; font-style: italic;">/// </span><span style="color: #999999; font-style: italic;">&#26512;&#26500;&#20989;&#25968;.</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #999999; font-style: italic;">/// </span><span style="color: #999999; font-style: italic;">&#33050;&#26412;&#32467;&#26463;&#26102;&#65292;phpredis&#19981;&#20250;&#33258;&#21160;&#20851;&#38381;redis&#36830;&#25509;&#65292;&#36825;&#37324;&#28155;&#21152;&#33258;&#21160;&#20851;&#38381;&#36830;&#25509;&#25903;&#25345;.</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #999999; font-style: italic;">/// </span><span style="color: #999999; font-style: italic;">&#21487;&#20197;&#36890;&#36807;&#25163;&#21160;unset&#26412;&#31867;&#23545;&#35937;&#24555;&#36895;&#37322;&#25918;&#36164;&#28304;.</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">public</span> <span style="color: #99cc99;">function</span> <span style="color: #f99157;">__destruct</span>() {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span>(<span style="color: #99cc99;">isset</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #6699cc;">this</span>-&gt;<span style="color: #ffcc66;">shard</span>)){
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #6699cc;">this</span>-&gt;<span style="color: #ffcc66;">shard</span>[<span style="color: #66cccc;">'redis'</span>]-&gt;<span style="color: #cccccc; background-color: #2d2d2d;">close</span>();
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">/// </span><span style="color: #8e908c; font-style: italic;">&#37325;&#26032;&#21021;&#22987;&#21270;.</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">public</span> <span style="color: #718c00;">function</span> <span style="color: #f5871f;">reinit</span>(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">shards</span>){
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">index</span> = 0;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #4271ae;">this</span>-&gt;<span style="color: #eab700;">shards</span> = <span style="color: #718c00;">array</span>();
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">foreach</span>(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">shards</span> <span style="color: #718c00;">as</span> <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">shard</span>){
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #4271ae;">this</span>-&gt;<span style="color: #eab700;">shards</span>[<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">index</span>] = explode(<span style="color: #3e999f;">':'</span>, <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">shard</span>); <span style="color: #8e908c; font-style: italic;">//</span><span style="color: #8e908c; font-style: italic;">&#26684;&#24335;&#65306;host:port:db</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #4271ae;">this</span>-&gt;<span style="color: #eab700;">shards</span>[<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">index</span>][<span style="color: #3e999f;">'index'</span>] = <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">index</span>;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   ++<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">index</span>;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }<span style="color: #f5871f; background-color: #d6d6d6;">        </span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #999999; font-style: italic;">/// </span><span style="color: #999999; font-style: italic;">&#37325;&#26032;&#21021;&#22987;&#21270;.</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">public</span> <span style="color: #99cc99;">function</span> <span style="color: #f99157;">reinit</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">shards</span>){
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">index</span> = 0;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #6699cc;">this</span>-&gt;<span style="color: #ffcc66;">shards</span> = <span style="color: #99cc99;">array</span>();
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">foreach</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">shards</span> <span style="color: #99cc99;">as</span> <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">shard</span>){
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #6699cc;">this</span>-&gt;<span style="color: #ffcc66;">shards</span>[<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">index</span>] = explode(<span style="color: #66cccc;">':'</span>, <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">shard</span>); <span style="color: #999999; font-style: italic;">//</span><span style="color: #999999; font-style: italic;">&#26684;&#24335;&#65306;host:port:db</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #6699cc;">this</span>-&gt;<span style="color: #ffcc66;">shards</span>[<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">index</span>][<span style="color: #66cccc;">'index'</span>] = <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">index</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   ++<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">index</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }<span style="color: #f99157; background-color: #515151;">        </span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">/// </span><span style="color: #8e908c; font-style: italic;">&#36716;&#21457;&#26041;&#27861;&#35843;&#29992;&#21040;&#30495;&#27491;&#30340;redis&#23545;&#35937;.</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">public</span> <span style="color: #718c00;">function</span> <span style="color: #f5871f;">__call</span>(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">name</span>, <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">arguments</span>) {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">result</span> = call_user_func_array(<span style="color: #718c00;">array</span>(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #4271ae;">this</span>-&gt;<span style="color: #4d4d4c; background-color: #ffffff;">redis</span>(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">arguments</span>[0]), <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">name</span>)<span style="text-decoration: underline;">, </span><span style="color: #4d4d4c; background-color: #ffffff; text-decoration: underline;">$</span><span style="color: #eab700; text-decoration: underline;">arguments</span><span style="text-decoration: underline;">);</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span>(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">result</span> === <span style="color: #4271ae;">false</span> <span style="color: #718c00;">and</span> in_array(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">name</span>, <span style="color: #718c00;">array</span>(<span style="color: #3e999f;">'set'</span>, <span style="color: #3e999f;">'setex'</span>, <span style="color: #3e999f;">'incr'</span>)))<span style="text-decoration: underline;"> {</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   trigger_error(<span style="color: #3e999f;">"redis error: "</span> . <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #4271ae;">this</span>-&gt;<span style="color: #eab700;">shard</span>[0] . <span style="color: #3e999f;">':'</span> . <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #4271ae;">this</span>-&gt;<span style="color: #eab700;">shard</span><span style="text-decoration: underline;">[1] . </span><span style="color: #3e999f; text-decoration: underline;">':'</span><span style="text-decoration: underline;"> .</span><span style="color: #4d4d4c; background-color: #ffffff; text-decoration: underline;">$</span><span style="color: #4271ae; text-decoration: underline;">this</span><span style="text-decoration: underline;">-&gt;</span><span style="color: #eab700; text-decoration: underline;">shard</span><span style="text-decoration: underline;">[2] . </span><span style="color: #3e999f; text-decoration: underline;">" </span><span style="color: #eab700; text-decoration: underline;">$name</span><span style="color: #3e999f; text-decoration: underline;"> "</span><span style="text-decoration: underline;"> . implode(</span><span style="color: #3e999f; text-decoration: underline;">' '</span><span style="text-decoration: underline;">, </span><span style="color: #4d4d4c; background-color: #ffffff; text-decoration: underline;">$</span><span style="color: #eab700; text-decoration: underline;">arguments</span><span style="text-decoration: underline;">), </span><span style="color: #4271ae; text-decoration: underline;">E_USER_NOTICE</span><span style="text-decoration: underline;">);</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">result</span>;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #999999; font-style: italic;">/// </span><span style="color: #999999; font-style: italic;">&#36716;&#21457;&#26041;&#27861;&#35843;&#29992;&#21040;&#30495;&#27491;&#30340;redis&#23545;&#35937;.</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">public</span> <span style="color: #99cc99;">function</span> <span style="color: #f99157;">__call</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">name</span>, <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">arguments</span>) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">result</span> = call_user_func_array(<span style="color: #99cc99;">array</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #6699cc;">this</span>-&gt;<span style="color: #cccccc; background-color: #2d2d2d;">redis</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">arguments</span>[0]), <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">name</span>)<span style="text-decoration: underline;">, </span><span style="color: #cccccc; background-color: #2d2d2d; text-decoration: underline;">$</span><span style="color: #ffcc66; text-decoration: underline;">arguments</span><span style="text-decoration: underline;">);</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">result</span> === <span style="color: #6699cc;">false</span> <span style="color: #99cc99;">and</span> in_array(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">name</span>, <span style="color: #99cc99;">array</span>(<span style="color: #66cccc;">'set'</span>, <span style="color: #66cccc;">'setex'</span>, <span style="color: #66cccc;">'incr'</span>)))<span style="text-decoration: underline;"> {</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   trigger_error(<span style="color: #66cccc;">"redis error: "</span> . <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #6699cc;">this</span>-&gt;<span style="color: #ffcc66;">shard</span>[0] . <span style="color: #66cccc;">':'</span> . <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #6699cc;">this</span>-&gt;<span style="color: #ffcc66;">shard</span><span style="text-decoration: underline;">[1] . </span><span style="color: #66cccc; text-decoration: underline;">':'</span><span style="text-decoration: underline;"> .</span><span style="color: #cccccc; background-color: #2d2d2d; text-decoration: underline;">$</span><span style="color: #6699cc; text-decoration: underline;">this</span><span style="text-decoration: underline;">-&gt;</span><span style="color: #ffcc66; text-decoration: underline;">shard</span><span style="text-decoration: underline;">[2] . </span><span style="color: #66cccc; text-decoration: underline;">" </span><span style="color: #ffcc66; text-decoration: underline;">$name</span><span style="color: #66cccc; text-decoration: underline;"> "</span><span style="text-decoration: underline;"> . implode(</span><span style="color: #66cccc; text-decoration: underline;">' '</span><span style="text-decoration: underline;">, </span><span style="color: #cccccc; background-color: #2d2d2d; text-decoration: underline;">$</span><span style="color: #ffcc66; text-decoration: underline;">arguments</span><span style="text-decoration: underline;">), </span><span style="color: #6699cc; text-decoration: underline;">E_USER_NOTICE</span><span style="text-decoration: underline;">);</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">result</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">/// </span><span style="color: #8e908c; font-style: italic;">&#33719;&#21462;1&#33267;max&#38388;&#30340;&#21807;&#19968;&#24207;&#21495;name&#65292;&#36798;&#21040;max&#21518;&#20250;&#20174;1&#24320;&#22987;.</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">/// </span><span style="color: #8e908c; font-style: italic;">redis&#30340;&#36882;&#22686;&#21040;&#26368;&#22823;&#20540;&#21518;&#20250;&#36820;&#22238;&#38169;&#35823;&#65292;&#26412;&#26041;&#27861;&#23454;&#29616;&#23433;&#20840;&#30340;&#36882;&#22686;&#12290;</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">/// </span><span style="color: #8e908c; font-style: italic;">&#22833;&#36133;&#36820;&#22238;false&#65292;&#26368;&#35201;&#30830;&#20445;&#24050;&#29992;redis()&#26041;&#27861;&#36830;&#21040;&#29983;&#25104;&#24207;&#21495;&#30340;&#26576;&#20010;redis&#23545;&#35937;.</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">public</span> <span style="color: #718c00;">function</span> <span style="color: #f5871f;">id</span>(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">name</span>, <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">max</span>) {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span>(<span style="color: #718c00;">isset</span>(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #4271ae;">this</span>-&gt;<span style="color: #eab700;">shard</span>)){
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">id</span> = <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #4271ae;">this</span>-&gt;<span style="color: #eab700;">shard</span>[<span style="color: #3e999f;">'redis'</span>]-&gt;<span style="color: #4d4d4c; background-color: #ffffff;">incr</span>(<span style="color: #3e999f;">'_id_'</span> . <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">name</span>);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span>(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">id</span>){
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">max</span> = intval(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">max</span>/count(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #4271ae;">this</span>-&gt;<span style="color: #eab700;">shards</span>));
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span>(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">id</span> % <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">max</span> == 0){
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">while</span>(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #4271ae;">this</span>-&gt;<span style="color: #eab700;">shard</span>[<span style="color: #3e999f;">'redis'</span>]-&gt;<span style="color: #4d4d4c; background-color: #ffffff;">decrBy</span>(<span style="color: #3e999f;">'_id_'</span> . <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">name</span>, <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">max</span>) &gt;=<span style="text-decoration: underline;"> </span><span style="color: #4d4d4c; background-color: #ffffff; text-decoration: underline;">$</span><span style="color: #eab700; text-decoration: underline;">max</span><span style="text-decoration: underline;">){</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">id</span> = <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">max</span>;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">else</span> <span style="color: #718c00;">if</span>(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">id</span> &gt; <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">max</span>){
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">id</span> %= <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">max</span>;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> (<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">id</span> - 1)*count(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #4271ae;">this</span>-&gt;<span style="color: #eab700;">shards</span>) + (<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #4271ae;">this</span>-&gt;<span style="color: #eab700;">shard</span>[<span style="color: #3e999f;">'index'</span>] +<span style="text-decoration: underline;"> 1);</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> <span style="color: #4271ae;">false</span>;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #999999; font-style: italic;">/// </span><span style="color: #999999; font-style: italic;">&#33719;&#21462;1&#33267;max&#38388;&#30340;&#21807;&#19968;&#24207;&#21495;name&#65292;&#36798;&#21040;max&#21518;&#20250;&#20174;1&#24320;&#22987;.</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #999999; font-style: italic;">/// </span><span style="color: #999999; font-style: italic;">redis&#30340;&#36882;&#22686;&#21040;&#26368;&#22823;&#20540;&#21518;&#20250;&#36820;&#22238;&#38169;&#35823;&#65292;&#26412;&#26041;&#27861;&#23454;&#29616;&#23433;&#20840;&#30340;&#36882;&#22686;&#12290;</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #999999; font-style: italic;">/// </span><span style="color: #999999; font-style: italic;">&#22833;&#36133;&#36820;&#22238;false&#65292;&#26368;&#35201;&#30830;&#20445;&#24050;&#29992;redis()&#26041;&#27861;&#36830;&#21040;&#29983;&#25104;&#24207;&#21495;&#30340;&#26576;&#20010;redis&#23545;&#35937;.</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">public</span> <span style="color: #99cc99;">function</span> <span style="color: #f99157;">id</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">name</span>, <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">max</span>) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span>(<span style="color: #99cc99;">isset</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #6699cc;">this</span>-&gt;<span style="color: #ffcc66;">shard</span>)){
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">id</span> = <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #6699cc;">this</span>-&gt;<span style="color: #ffcc66;">shard</span>[<span style="color: #66cccc;">'redis'</span>]-&gt;<span style="color: #cccccc; background-color: #2d2d2d;">incr</span>(<span style="color: #66cccc;">'_id_'</span> . <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">name</span>);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">id</span>){
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">max</span> = intval(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">max</span>/count(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #6699cc;">this</span>-&gt;<span style="color: #ffcc66;">shards</span>));
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">id</span> % <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">max</span> == 0){
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">while</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #6699cc;">this</span>-&gt;<span style="color: #ffcc66;">shard</span>[<span style="color: #66cccc;">'redis'</span>]-&gt;<span style="color: #cccccc; background-color: #2d2d2d;">decrBy</span>(<span style="color: #66cccc;">'_id_'</span> . <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">name</span>, <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">max</span>) &gt;=<span style="text-decoration: underline;"> </span><span style="color: #cccccc; background-color: #2d2d2d; text-decoration: underline;">$</span><span style="color: #ffcc66; text-decoration: underline;">max</span><span style="text-decoration: underline;">){</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">id</span> = <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">max</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">else</span> <span style="color: #99cc99;">if</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">id</span> &gt; <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">max</span>){
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">id</span> %= <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">max</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> (<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">id</span> - 1)*count(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #6699cc;">this</span>-&gt;<span style="color: #ffcc66;">shards</span>) + (<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #6699cc;">this</span>-&gt;<span style="color: #ffcc66;">shard</span>[<span style="color: #66cccc;">'index'</span>] +<span style="text-decoration: underline;"> 1);</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> <span style="color: #6699cc;">false</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">/// </span><span style="color: #8e908c; font-style: italic;">&#36830;&#25509;&#24182;&#36820;&#22238;key&#23545;&#24212;&#30340;redis&#23545;&#35937;.</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">public</span> <span style="color: #718c00;">function</span> <span style="color: #f5871f;">redis</span>(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">key</span>){
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">//</span><span style="color: #8e908c; font-style: italic;">TODO: crc32&#22312;32&#20301;&#31995;&#32479;&#19979;&#20250;&#36820;&#22238;&#36127;&#25968;&#65292;&#22240;&#25105;&#20204;&#26159;&#37096;&#32626;&#22312;64&#20301;&#31995;&#32479;&#19978;&#65292;&#26242;&#26102;&#24573;&#30053;.</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   assert(<span style="color: #4271ae;">PHP_INT_SIZE</span> === 8);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">index</span> = crc32(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">key</span>) % count(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #4271ae;">this</span>-&gt;<span style="color: #eab700;">shards</span>);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">shard</span> = <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #4271ae;">this</span>-&gt;<span style="color: #eab700;">shards</span>[<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">index</span>];
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span>(<span style="color: #718c00;">isset</span>(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #4271ae;">this</span>-&gt;<span style="color: #eab700;">shard</span>)){
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">//</span><span style="color: #8e908c; font-style: italic;">&#23581;&#35797;&#37325;&#29992;&#24050;&#26377;&#36830;&#25509;.</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span>(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #4271ae;">this</span>-&gt;<span style="color: #eab700;">shard</span>[0] == <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">shard</span>[0] <span style="color: #718c00;">and</span> <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #4271ae;">this</span>-&gt;<span style="color: #eab700;">shard</span>[1] == <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">shard</span>[1]){
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span>(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #4271ae;">this</span>-&gt;<span style="color: #eab700;">shard</span>[2] != <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">shard</span>[2]){
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span>(<span style="color: #4271ae;">!</span> <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #4271ae;">this</span>-&gt;<span style="color: #eab700;">shard</span>[<span style="color: #3e999f;">'redis'</span>]-&gt;<span style="color: #4d4d4c; background-color: #ffffff;">select</span>(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">shard</span>[2])){
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   trigger_error(<span style="color: #3e999f;">'redis error: select '</span> . <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">shard</span>[0] . <span style="color: #3e999f;">':'</span> .<span style="text-decoration: underline;"> </span><span style="color: #4d4d4c; background-color: #ffffff; text-decoration: underline;">$</span><span style="color: #eab700; text-decoration: underline;">shard</span><span style="text-decoration: underline;">[1] . </span><span style="color: #3e999f; text-decoration: underline;">':'</span><span style="text-decoration: underline;"> .</span><span style="color: #4d4d4c; background-color: #ffffff; text-decoration: underline;">$</span><span style="color: #eab700; text-decoration: underline;">shard</span><span style="text-decoration: underline;">[2], </span><span style="color: #4271ae; text-decoration: underline;">E_USER_ERROR</span><span style="text-decoration: underline;">);</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> <span style="color: #4271ae;">false</span>;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #4271ae;">this</span>-&gt;<span style="color: #eab700;">shard</span>[2] = <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">shard</span>[2];
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #4271ae;">this</span>-&gt;<span style="color: #eab700;">shard</span>[<span style="color: #3e999f;">'redis'</span>];
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #4271ae;">this</span>-&gt;<span style="color: #eab700;">shard</span>[<span style="color: #3e999f;">'redis'</span>]-&gt;<span style="color: #4d4d4c; background-color: #ffffff;">close</span>();
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">unset</span>(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #4271ae;">this</span>-&gt;<span style="color: #eab700;">shard</span>);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">//</span><span style="color: #8e908c; font-style: italic;">&#26032;&#24314;&#36830;&#25509;.</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">shard</span>[<span style="color: #3e999f;">'redis'</span>] = <span style="color: #718c00;">new</span> <span style="color: #4271ae;">Redis</span>();
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span>(<span style="color: #4271ae;">!</span> <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">shard</span>[<span style="color: #3e999f;">'redis'</span>]-&gt;<span style="color: #4d4d4c; background-color: #ffffff;">connect</span>(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">shard</span>[0], <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">shard</span>[1])){
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   trigger_error(<span style="color: #3e999f;">'redis error: connect '</span> . <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">shard</span>[0] . <span style="color: #3e999f;">':'</span> . <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">shard</span>[1],<span style="text-decoration: underline;"> </span><span style="color: #4271ae; text-decoration: underline;">E_USER_ERROR</span><span style="text-decoration: underline;">);</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> <span style="color: #4271ae;">false</span>;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">db</span> = intval(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">shard</span>[2]);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span>(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">db</span> != 0 <span style="color: #718c00;">and</span> <span style="color: #4271ae;">!</span><span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">shard</span>[<span style="color: #3e999f;">'redis'</span>]-&gt;<span style="color: #4d4d4c; background-color: #ffffff;">select</span>(<span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">db</span>)){
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   trigger_error(<span style="color: #3e999f;">'redis error: select '</span> . <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">shard</span>[0] . <span style="color: #3e999f;">':'</span> . <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">shard</span>[1] .<span style="text-decoration: underline;"> </span><span style="color: #3e999f; text-decoration: underline;">':'</span><span style="text-decoration: underline;"> .</span><span style="color: #4d4d4c; background-color: #ffffff; text-decoration: underline;">$</span><span style="color: #eab700; text-decoration: underline;">shard</span><span style="text-decoration: underline;">[2], </span><span style="color: #4271ae; text-decoration: underline;">E_USER_ERROR</span><span style="text-decoration: underline;">);</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">shard</span>[<span style="color: #3e999f;">'redis'</span>]-&gt;<span style="color: #4d4d4c; background-color: #ffffff;">close</span>();
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> <span style="color: #4271ae;">false</span>;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span>(<span style="color: #4271ae;">ENABLE_DEVELOP</span>){
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   trigger_error(<span style="color: #3e999f;">'redis connect success. '</span> . <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">shard</span>[0] . <span style="color: #3e999f;">':'</span> . <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">shard</span>[1<span style="text-decoration: underline;">] . </span><span style="color: #3e999f; text-decoration: underline;">':'</span><span style="text-decoration: underline;"> . </span><span style="color: #4d4d4c; background-color: #ffffff; text-decoration: underline;">$</span><span style="color: #eab700; text-decoration: underline;">shard</span><span style="text-decoration: underline;">[2], </span><span style="color: #4271ae; text-decoration: underline;">E_USER_NOTICE</span><span style="text-decoration: underline;">);</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }<span style="color: #f5871f; background-color: #d6d6d6;">        </span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #4271ae;">this</span>-&gt;<span style="color: #eab700;">shard</span> = <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #eab700;">shard</span>;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> <span style="color: #4d4d4c; background-color: #ffffff;">$</span><span style="color: #4271ae;">this</span>-&gt;<span style="color: #eab700;">shard</span>[<span style="color: #3e999f;">'redis'</span>];
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #999999; font-style: italic;">/// </span><span style="color: #999999; font-style: italic;">&#36830;&#25509;&#24182;&#36820;&#22238;key&#23545;&#24212;&#30340;redis&#23545;&#35937;.</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">public</span> <span style="color: #99cc99;">function</span> <span style="color: #f99157;">redis</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">key</span>){
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #999999; font-style: italic;">//</span><span style="color: #999999; font-style: italic;">TODO: crc32&#22312;32&#20301;&#31995;&#32479;&#19979;&#20250;&#36820;&#22238;&#36127;&#25968;&#65292;&#22240;&#25105;&#20204;&#26159;&#37096;&#32626;&#22312;64&#20301;&#31995;&#32479;&#19978;&#65292;&#26242;&#26102;&#24573;&#30053;.</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   assert(<span style="color: #6699cc;">PHP_INT_SIZE</span> === 8);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">index</span> = crc32(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">key</span>) % count(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #6699cc;">this</span>-&gt;<span style="color: #ffcc66;">shards</span>);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">shard</span> = <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #6699cc;">this</span>-&gt;<span style="color: #ffcc66;">shards</span>[<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">index</span>];
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span>(<span style="color: #99cc99;">isset</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #6699cc;">this</span>-&gt;<span style="color: #ffcc66;">shard</span>)){
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #999999; font-style: italic;">//</span><span style="color: #999999; font-style: italic;">&#23581;&#35797;&#37325;&#29992;&#24050;&#26377;&#36830;&#25509;.</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #6699cc;">this</span>-&gt;<span style="color: #ffcc66;">shard</span>[0] == <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">shard</span>[0] <span style="color: #99cc99;">and</span> <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #6699cc;">this</span>-&gt;<span style="color: #ffcc66;">shard</span>[1] == <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">shard</span>[1]){
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #6699cc;">this</span>-&gt;<span style="color: #ffcc66;">shard</span>[2] != <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">shard</span>[2]){
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span>(<span style="color: #6699cc;">!</span> <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #6699cc;">this</span>-&gt;<span style="color: #ffcc66;">shard</span>[<span style="color: #66cccc;">'redis'</span>]-&gt;<span style="color: #cccccc; background-color: #2d2d2d;">select</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">shard</span>[2])){
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   trigger_error(<span style="color: #66cccc;">'redis error: select '</span> . <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">shard</span>[0] . <span style="color: #66cccc;">':'</span> .<span style="text-decoration: underline;"> </span><span style="color: #cccccc; background-color: #2d2d2d; text-decoration: underline;">$</span><span style="color: #ffcc66; text-decoration: underline;">shard</span><span style="text-decoration: underline;">[1] . </span><span style="color: #66cccc; text-decoration: underline;">':'</span><span style="text-decoration: underline;"> .</span><span style="color: #cccccc; background-color: #2d2d2d; text-decoration: underline;">$</span><span style="color: #ffcc66; text-decoration: underline;">shard</span><span style="text-decoration: underline;">[2], </span><span style="color: #6699cc; text-decoration: underline;">E_USER_ERROR</span><span style="text-decoration: underline;">);</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> <span style="color: #6699cc;">false</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #6699cc;">this</span>-&gt;<span style="color: #ffcc66;">shard</span>[2] = <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">shard</span>[2];
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #6699cc;">this</span>-&gt;<span style="color: #ffcc66;">shard</span>[<span style="color: #66cccc;">'redis'</span>];
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #6699cc;">this</span>-&gt;<span style="color: #ffcc66;">shard</span>[<span style="color: #66cccc;">'redis'</span>]-&gt;<span style="color: #cccccc; background-color: #2d2d2d;">close</span>();
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">unset</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #6699cc;">this</span>-&gt;<span style="color: #ffcc66;">shard</span>);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #999999; font-style: italic;">//</span><span style="color: #999999; font-style: italic;">&#26032;&#24314;&#36830;&#25509;.</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">shard</span>[<span style="color: #66cccc;">'redis'</span>] = <span style="color: #99cc99;">new</span> <span style="color: #6699cc;">Redis</span>();
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span>(<span style="color: #6699cc;">!</span> <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">shard</span>[<span style="color: #66cccc;">'redis'</span>]-&gt;<span style="color: #cccccc; background-color: #2d2d2d;">connect</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">shard</span>[0], <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">shard</span>[1])){
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   trigger_error(<span style="color: #66cccc;">'redis error: connect '</span> . <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">shard</span>[0] . <span style="color: #66cccc;">':'</span> . <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">shard</span>[1],<span style="text-decoration: underline;"> </span><span style="color: #6699cc; text-decoration: underline;">E_USER_ERROR</span><span style="text-decoration: underline;">);</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> <span style="color: #6699cc;">false</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">db</span> = intval(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">shard</span>[2]);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">db</span> != 0 <span style="color: #99cc99;">and</span> <span style="color: #6699cc;">!</span><span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">shard</span>[<span style="color: #66cccc;">'redis'</span>]-&gt;<span style="color: #cccccc; background-color: #2d2d2d;">select</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">db</span>)){
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   trigger_error(<span style="color: #66cccc;">'redis error: select '</span> . <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">shard</span>[0] . <span style="color: #66cccc;">':'</span> . <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">shard</span>[1] .<span style="text-decoration: underline;"> </span><span style="color: #66cccc; text-decoration: underline;">':'</span><span style="text-decoration: underline;"> .</span><span style="color: #cccccc; background-color: #2d2d2d; text-decoration: underline;">$</span><span style="color: #ffcc66; text-decoration: underline;">shard</span><span style="text-decoration: underline;">[2], </span><span style="color: #6699cc; text-decoration: underline;">E_USER_ERROR</span><span style="text-decoration: underline;">);</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">shard</span>[<span style="color: #66cccc;">'redis'</span>]-&gt;<span style="color: #cccccc; background-color: #2d2d2d;">close</span>();
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> <span style="color: #6699cc;">false</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span>(<span style="color: #6699cc;">ENABLE_DEVELOP</span>){
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   trigger_error(<span style="color: #66cccc;">'redis connect success. '</span> . <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">shard</span>[0] . <span style="color: #66cccc;">':'</span> . <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">shard</span>[1<span style="text-decoration: underline;">] . </span><span style="color: #66cccc; text-decoration: underline;">':'</span><span style="text-decoration: underline;"> . </span><span style="color: #cccccc; background-color: #2d2d2d; text-decoration: underline;">$</span><span style="color: #ffcc66; text-decoration: underline;">shard</span><span style="text-decoration: underline;">[2], </span><span style="color: #6699cc; text-decoration: underline;">E_USER_NOTICE</span><span style="text-decoration: underline;">);</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }<span style="color: #f99157; background-color: #515151;">        </span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #6699cc;">this</span>-&gt;<span style="color: #ffcc66;">shard</span> = <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">shard</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #6699cc;">this</span>-&gt;<span style="color: #ffcc66;">shard</span>[<span style="color: #66cccc;">'redis'</span>];
+<span style="color: #cccccc; background-color: #515151;"> </span>   }
 }
 </pre>
 </div>
