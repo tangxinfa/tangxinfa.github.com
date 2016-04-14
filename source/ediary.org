@@ -11994,6 +11994,8 @@ class RedisShard {
    - [[http://blog.kankanan.com/article/archlinux-7684-collectd-652f630176d163a7-redis.html][Archlinux 的 collectd 支持监控 redis | 看看俺 – KanKanAn.com]]
 
    - [[http://www.tuicool.com/articles/fQ3Izu][线上大数据量redis主从一例 - 推酷]]
+     
+   - [[https://blog.newrelic.com/2015/05/11/redis-performance-metrics/][Understanding Redis Performance: The 7 Metrics]]
 
 * DONE 勿用 redis 的多库                                              :redis:
   CLOSED: [2016-04-09 Sat 15:02]
@@ -12163,3 +12165,40 @@ class RedisShard {
 
    
    - [[http://redis.io/topics/partitioning][Partitioning: how to split data among multiple Redis instances. – Redis]]
+
+* DONE redis 的关键度量要素                                           :redis:
+  CLOSED: [2016-04-14 Thu 22:40]
+
+** redis 进程的 CPU 占用率
+
+   redis 采用单线程模型，只能利用一个核，监控一定要到进程级，对于一台 16 核机器，redis CPU 占用 100%，但是机器的 CPU 占用很可能不到 10%。
+
+   redis 进程的 CPU 占用率过高的时候是很脆弱的，额外出现的负载就很可能导致整个服务不可用，而且难以恢复，需要为 redis 减负（优化、功能降级）或扩容（更好的机器、更多的机器）。
+
+** 机器的内存使用率
+
+   redis 持久化数据到磁盘时，会 fork 出一个子进程，子进程负责写盘。
+
+   理想情况下，redis 父进程从 fork 返回到子进程完成写盘这段时间内，父进程未进行任何内存变更，由于 Copy-On-Write 机制的存在，子进程共享父进程的内存空间。
+
+   然而真实情况往往是另一个极端，redis 做为随机读写的内存数据库，父进程会瞬间在所有内存页上进行写操作，需要多一倍的内存空间占用。
+
+   存盘时物理内存不足导致动用交换空间（Swap），整个机器都会不稳定。
+
+   所以跑 redis 的机器，空闲内存量至少要达到 redis 进程的内存占用量。
+
+** fork 行为
+
+   redis 在进行 bgsave 或者 aof-rewrite 时，写盘（阻塞式操作）由 fork 出的子进程执行，不影响主进程的响应时间。
+
+   但是 fork 是由主进程调用的，在某些环境（如：虚拟机）下耗时会比较长，可能导致 redis 服务的响应时间变长。
+
+   fork、bgsave 或 aof-rewrite 耗时以及频率需要监控并保留历史记录，当它们升高时，redis 服务将周期性地出现响应时间变长、吞吐量下降，是重要的预警信号。
+
+** 参考
+
+   - [[https://blog.newrelic.com/2015/05/11/redis-performance-metrics/][Understanding Redis Performance: The 7 Metrics]]
+   
+   - [[http://redis.io/topics/latency][Redis latency problems troubleshooting – Redis]]
+   
+   - [[http://blog.csdn.net//chenleixing/article/details/50530419][Redis上踩过的一些坑-美团]]

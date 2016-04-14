@@ -2,7 +2,7 @@
 <html lang="zh-cn">
   <head>
     <meta charset="utf-8"/>
-    <title>linux下允许普通用户执行需要root权限的命令 | 看看俺 – KanKanAn.com</title>
+    <title>redis 的关键度量要素 | 看看俺 – KanKanAn.com</title>
     <link rel="shortcut icon" href="/static/favicon.ico" />
     <link rel="stylesheet" type="text/less" href="/style/less/o-blog.less"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -44,7 +44,7 @@
 
       <div class="article">
         <header class="article-header">
-          <h1>linux下允许普通用户执行需要root权限的命令</h1>
+          <h1>redis 的关键度量要素</h1>
       	<div class="qr-code">
       	  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="" alt="" id="qr-code" />
       	  <script>
@@ -54,55 +54,84 @@
         </header>
       
         <div class="article-content">
-          <p>
-最典型的情况是要实现一个通过web界面重启系统的功能，通常为了安全会以非root用户身份（通常是nobody）运行服务端脚本，这样脚本中就不能执行危险操作了。
+          
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">redis 进程的 CPU 占用率</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+redis 采用单线程模型，只能利用一个核，监控一定要到进程级，对于一台 16 核机器，redis CPU 占用 100%，但是机器的 CPU 占用很可能不到 10%。
 </p>
 
 <p>
-下面的c工具程序可以允许任意用户执行需要root权限的命令：
+redis 进程的 CPU 占用率过高的时候是很脆弱的，额外出现的负载就很可能导致整个服务不可用，而且难以恢复，需要为 redis 减负（优化、功能降级）或扩容（更好的机器、更多的机器）。
 </p>
-
-<p>
-[[<a href="../static/as_root.c][as_root.c">../static/as_root.c][as_root.c</a>]
-</p>
-
-<p>
-编译：
-</p>
-<div class="org-src-container">
-
-<pre class="src src-sh">gcc -g as_root.c -o as_root
-</pre>
+</div>
 </div>
 
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">机器的内存使用率</h2>
+<div class="outline-text-2" id="text-2">
 <p>
-配置：
+redis 持久化数据到磁盘时，会 fork 出一个子进程，子进程负责写盘。
 </p>
-<div class="org-src-container">
 
-<pre class="src src-sh">chown root:root ./as_root; chmod 4755 ./as_root
-</pre>
+<p>
+理想情况下，redis 父进程从 fork 返回到子进程完成写盘这段时间内，父进程未进行任何内存变更，由于 Copy-On-Write 机制的存在，子进程共享父进程的内存空间。
+</p>
+
+<p>
+然而真实情况往往是另一个极端，redis 做为随机读写的内存数据库，父进程会瞬间在所有内存页上进行写操作，需要多一倍的内存空间占用。
+</p>
+
+<p>
+存盘时物理内存不足导致动用交换空间（Swap），整个机器都会不稳定。
+</p>
+
+<p>
+所以跑 redis 的机器，空闲内存量至少要达到 redis 进程的内存占用量。
+</p>
+</div>
 </div>
 
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">fork 行为</h2>
+<div class="outline-text-2" id="text-3">
 <p>
-运行：
+redis 在进行 bgsave 或者 aof-rewrite 时，写盘（阻塞式操作）由 fork 出的子进程执行，不影响主进程的响应时间。
 </p>
-<div class="org-src-container">
 
-<pre class="src src-sh">sudo -u <span style="color: #70c0b1;">"nobody"</span> ./as_root <span style="color: #70c0b1;">"reboot"</span>
-</pre>
+<p>
+但是 fork 是由主进程调用的，在某些环境（如：虚拟机）下耗时会比较长，可能导致 redis 服务的响应时间变长。
+</p>
+
+<p>
+fork、bgsave 或 aof-rewrite 耗时以及频率需要监控并保留历史记录，当它们升高时，redis 服务将周期性地出现响应时间变长、吞吐量下降，是重要的预警信号。
+</p>
+</div>
 </div>
 
-<p>
-参考：<a href="http://blog.tianya.cn/blogger/post_show.asp?BlogID=126326&PostID=1629441">如何在普通用户下执行一些需要root用户执行的命令</a></p>
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4">参考</h2>
+<div class="outline-text-2" id="text-4">
+<ul class="org-ul">
+<li><a href="https://blog.newrelic.com/2015/05/11/redis-performance-metrics/">Understanding Redis Performance: The 7 Metrics</a>
+</li>
+
+<li><a href="http://redis.io/topics/latency">Redis latency problems troubleshooting – Redis</a>
+</li>
+
+<li><a href="http://blog.csdn.net//chenleixing/article/details/50530419">Redis上踩过的一些坑-美团</a>
+</li>
+</ul>
+</div>
+</div>
 
         </div>
         <br />
         <footer class="article-footer">
-          <a class="tag" href="/tag/linux/0.html"><i class="icon-tag icon-white"></i> linux</a>
-          <a class="tag" href="/tag/c/0.html"><i class="icon-tag icon-white"></i> c</a>
+          <a class="tag" href="/tag/redis/0.html"><i class="icon-tag icon-white"></i> redis</a>
           <span class="muted">
-            <i class="icon-time icon-white"></i> <time datetime="2013-12-26T15:44:00+0800">2013年12月26日 15时</time>
+            <i class="icon-time icon-white"></i> <time datetime="2016-04-14T22:40:00+0800">2016年4月14日 22时</time>
           </span>
         </footer>
       </div>
