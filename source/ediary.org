@@ -6827,7 +6827,7 @@ class RedisShard {
 
   现在刚好70公斤，希望慢慢瘦下来吧，过了今天明天就解放了。
 
-* DONE 使用Pdnsd缓存域名解析结果加快上网速度                        :web:dns:
+* DONE 使用Pdnsd缓存域名解析结果加快上网速度                        :linux:dns:
   CLOSED: [2015-06-23 Tue 18:56]
 
   - 频繁的域名解析容易导致超时出错
@@ -11249,9 +11249,14 @@ class RedisShard {
      yaourt -S xf86-input-synaptics
    #+end_src
 
-   - 触摸板区域调优
+   - 触摸板调优
    
      [[http://blog.kankanan.com/article/thinkpad-t540p-4fee590d-linux-4e0b89e66478677f63094e0b65f6514968074f4d7f6e79fb52a895ee9898.html][Thinkpad T540p修复linux下触摸板按下时光标位置移动问题 | 看看俺 – KanKanAn.com]]
+
+     为避免打字时误触，在 ~/.xprofile 中添加以下内容：
+     #+begin_example
+       syndaemon -d -i 2 -t -k
+     #+end_example
 
    - 触摸板失灵
      
@@ -12202,3 +12207,121 @@ class RedisShard {
    - [[http://redis.io/topics/latency][Redis latency problems troubleshooting – Redis]]
    
    - [[http://blog.csdn.net//chenleixing/article/details/50530419][Redis上踩过的一些坑-美团]]
+
+* DONE 使用 dnsmasq 进行 DNS 缓存注意事项                           :linux:dns:
+  CLOSED: [2016-04-21 Thu 17:45]
+
+  dnsmasq 不仅能做域名解析结果缓存，它本身就是 dns 服务器。
+
+  修改 =dnsmasq.conf=
+  #+begin_example +n +r
+    listen-address=127.0.0.1    (ref:dnsmasq_listen_local)
+    interface=lo                (ref:dnsmasq_interface_lo)
+    bind-interfaces             (ref:dnsmasq_bind_interfaces)
+    #dhcp-authoritative         (ref:dnsmasq_disable_authoritative)
+    strict-order                (ref:dnsmasq_strict_order)
+    no-negcache                 (ref:dnsmasq_no_negcache)
+  #+end_example
+
+  - 行 [[(dnsmasq_listen_local)]] [[(dnsmasq_interface_lo)]] [[(dnsmasq_bind_interfaces)]] [[(dnsmasq_disable_authoritative)]]
+    
+    只对本机提供服务，避免网络内的其它机器访问。
+
+
+  - 行 [[(dnsmasq_strict_order)]]
+
+    dnsmasq 并行向所有上游域名服务器请求解析域名，采用最快返回的解析结果。
+    
+    由于上游服务器列表是从网络环境中获取，可能获取到有问题的域名服务器（立即返回无法解析域名），导致域名解析总是失败，如下所示：
+    #+begin_example
+      $ nslookup www.baidu.com
+
+
+      Server:    127.0.0.1
+      Address 1: 127.0.0.1 localhost.lan
+
+      nslookup: can't resolve 'www.baidu.com': Name or service not known
+    #+end_example
+
+    =strict-order= 配置项指定按域名服务器在配置文件（由 =resolv-file= 配置项指定，默认为 =/etc/resolv.conf= ）中出现的顺序依次解析，
+    第一个域名服务器配置正确就能够避免这个问题。
+
+
+  - 行 [[(dnsmasq_no_negcache)]]
+
+    当上游域名服务器返回找不到域名（no such domain）时，不缓存结果。
+* DONE 使用 dnsmasq 缓存域名解析结果加快上网速度                    :linux:dns:
+  CLOSED: [2016-04-21 Thu 19:44]
+
+  - 安装 dnsmasq
+    
+    #+begin_src sh
+      yaourt -S dnsmasq
+    #+end_src
+
+  - 配置 NetworkManager
+
+    NetworkManager 包含 dnsmasq 插件，可以很方便地支持 dns 缓存。
+
+    修改 =/etc/NetworkManager/NetworkManager.conf=
+    #+begin_example
+      dns=dnsmasq
+    #+end_example
+
+    参考 [[https://wiki.archlinux.org/index.php/dnsmasq#NetworkManager][dnsmasq - ArchWiki]]
+    
+  - 配置 dnsmasq
+    
+    NetworkManager 将 dnsmasq 的配置存放在其它位置。
+    
+    =/etc/NetworkManager/dnsmasq.d/dnsmasq.conf=
+    #+begin_example
+      listen-address=127.0.0.1
+      bind-interfaces
+      dhcp-authoritative
+      no-negcache
+      strict-order    
+    #+end_example
+
+    参考 《[[http://blog.kankanan.com/article/4f7f7528-dnsmasq-8fdb884c-dns-7f135b586ce8610f4e8b9879.html][使用 dnsmasq 进行 DNS 缓存注意事项]]》
+
+  - 生效配置
+
+    重启 NetworkManager 正式生效配置
+    #+begin_src sh
+      sudo systemctl restart NetworkManager
+    #+end_src
+
+    dnsmasq 不要通过 systemd 以服务方式启动，它会由 NetworkManager 启动
+    #+begin_example
+      $ COLUMNS=400 ps wax | grep dnsmasq
+       6072 ?        S      0:00 /usr/bin/dnsmasq --no-resolv --keep-in-foreground --no-hosts --bind-interfaces --pid-file=/var/run/NetworkManager/dnsmasq.pid --listen-address=127.0.0.1 --conf-file=/var/run/NetworkManager/dnsmasq.conf --cache-size=400 --proxy-dnssec --conf-dir=/etc/NetworkManager/dnsmasq.d
+    #+end_example
+
+    上游域名服务器在 =/var/run/NetworkManager/dnsmasq.conf= 中指定，通常由 dhcp 服务分配。
+
+    添加其它域名服务器，在 =/etc/NetworkManager/dnsmasq.d/dnsmasq.conf= 中添加以下配置：
+    #+begin_example
+      server=114.114.114.114
+    #+end_example
+
+    输出日志调试 dnsmasq ，在 =/etc/NetworkManager/dnsmasq.d/dnsmasq.conf= 中添加以下配置：
+    #+begin_example
+      log-facility=/var/log/dnsmasq.log
+      log-queries
+    #+end_example
+
+    重启 NetworkManager 生效。
+
+  - 看看效果
+    
+    多次执行下面的命令，可以感觉到后几次明显比第一次快，这就是 DNS 缓存在起作用。
+
+    #+begin_src sh
+      nslookup www.baidu.com
+    #+end_src
+
+  - 与 pdnsd 比较
+
+    之前写过一篇《 [[http://blog.kankanan.com/article/4f7f7528-pdnsd-7f135b5857df540d89e367907ed3679c52a05feb4e0a7f51901f5ea6.html][使用Pdnsd缓存域名解析结果加快上网速度]] 》，本篇改用 dnsmasq 实现，可以发现 dnsmasq 和 NetworkManager 集成度很高，即插即用，
+    而 pdnsd 则要手动做很多设置，而且很难实现自动使用 dhcp 分配的域名服务器做为上游域名服务器。
