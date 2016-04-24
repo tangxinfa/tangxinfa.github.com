@@ -12325,3 +12325,94 @@ class RedisShard {
 
     之前写过一篇《 [[http://blog.kankanan.com/article/4f7f7528-pdnsd-7f135b5857df540d89e367907ed3679c52a05feb4e0a7f51901f5ea6.html][使用Pdnsd缓存域名解析结果加快上网速度]] 》，本篇改用 dnsmasq 实现，可以发现 dnsmasq 和 NetworkManager 集成度很高，即插即用，
     而 pdnsd 则要手动做很多设置，而且很难实现自动使用 dhcp 分配的域名服务器做为上游域名服务器。
+* DONE 解决 ssh 登录总是提示认证失败次数过多的问题           :linux:security:
+  CLOSED: [2016-04-24 Sun 17:08]
+
+  服务器需要 vpn 才能进行 ssh 访问，但是周末在家突然 ssh 登录不上了，如下所示：
+  #+begin_example
+    $ ssh tangxinfa@xxxx.xxxxxx.xxx
+    Received disconnect from xxx.xxx.xxx.xxx port 22:2: Too many authentication failures for tangxinfa
+    Connection to xxxx.xxxxxx.xxx closed by remote host.
+    Connection to xxxx.xxxxxx.xxx closed.
+  #+end_example
+
+  找运维人员咨询，说有可能是 openvpn 运行后设置的路由有问题，ssh 登录没有走 vpn ，建议重建 vpn 连接或重启机器。
+  但是重启机器后还是一样，在 windows 下使用 openvpn ，通过 pietty 却可以正常 ssh 登录上服务器。
+
+  网上搜索了一下，找到一个有关的帖子
+  #+begin_quote
+  This is usually caused by inadvertently offering multiple ssh keys to the server. The server will reject any key after too many keys have been offered.
+
+  You can see this for yourself by adding the -v flag to your ssh command to get verbose output. You will see that a bunch of keys are offered, until the server rejects the connection saying: "Too many authentication failures for [user]". Without verbose mode, you will only see the ambiguous message "Connection reset by peer".
+
+  To prevent irrelevant keys from being offered, you have to explicitly specify this in every host entry in the ~/.ssh/config file by adding IdentitiesOnly like so:
+
+  Host www.somehost.com
+      IdentityFile ~/.ssh/key_for_somehost_rsa
+      IdentitiesOnly yes
+      Port 22
+  #+end_quote
+  引用自《[[http://superuser.com/questions/187779/too-many-authentication-failures-for-username][ssh - Too many authentication failures for *username* - Super User]]》
+
+  也就是说，ssh 登录时会使用系统上的公匙依次进行认证，如果公私匙对数量超过服务器登录失败次数限制，就会出现上面提到的问题。
+  
+  为了登录 github 及内部的 gitlab，我创建了不同的 rsa 公私匙对，算上系统默认的公私匙对，达到三对
+  #+begin_example
+    $ tree ~/.ssh
+    /home/tangxinfa/.ssh
+    ├── github_id_rsa
+    ├── github_id_rsa.pub
+    ├── id_rsa
+    ├── id_rsa.pub
+    ├── known_hosts
+    ├── gitlab_id_rsa
+    └── gitlab_id_rsa.pub
+
+    0 directories, 7 files
+  #+end_example
+
+  当我们使用 ssh 登录服务器时，默认情况下会尝试使用公钥依次进行身份验证，如果还是失败则会使用密码进行登录
+  #+begin_example
+    $ ssh -v tangxinfa@xxxx.xxxxxx.xxx
+    ...
+    debug1: Authentications that can continue: publickey,password
+    debug1: Next authentication method: publickey
+    debug1: Offering RSA public key: /home/tangxinfa/.ssh/id_rsa
+    debug1: Authentications that can continue: publickey,password
+    debug1: Offering RSA public key: github
+    debug1: Authentications that can continue: publickey,password
+    debug1: Offering RSA public key: gitlab
+    Received disconnect from xxx.xxx.xxx.xxx port 22:2: Too many authentication failures for tangxinfa
+    debug1: Authentication succeeded (publickey).
+    Authenticated to xxxx.xxxxxx.xxx ([xxx.xxx.xxx.xxx]:22).
+    debug1: channel 0: new [client-session]
+    debug1: Requesting no-more-sessions@openssh.com
+    debug1: Entering interactive session.
+    debug1: pledge: network
+    debug1: channel 0: free: client-session, nchannels 1
+    Connection to xxxx.xxxxxx.xxx closed by remote host.
+    Connection to xxxx.xxxxxx.xxx closed.
+    Transferred: sent 3328, received 2776 bytes, in 0.1 seconds
+    Bytes per second: sent 59495.7, received 49627.4
+    debug1: Exit status -1
+  #+end_example
+
+  知道了问题的原因，解决方法就很多了，如：
+
+  - 调整 ssh 服务配置，调高失败次数限制
+    
+  - 调整 ssh 客户端配置，不使用公钥认证
+
+    可以在命令行选项中指定
+    #+begin_src sh
+      ssh -o PreferredAuthentications=password tangxinfa@xxxx.xxxxxx.xxx
+    #+end_src
+
+    也可以配置文件中指定
+    =~/.ssh/config=
+    #+begin_example
+      Host xxxx xxxx.xxxxxx.xxx
+           HostName xxxx.xxxxxx.xxx
+           User tangxinfa
+           PreferredAuthentications password
+    #+end_example

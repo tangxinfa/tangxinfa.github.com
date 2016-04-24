@@ -4,7 +4,7 @@
         <title>linux - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/linux.xml</link>
-        <lastBuildDate>Thu, 21 Apr 2016 11:54:55 GMT</lastBuildDate>
+        <lastBuildDate>Sun, 24 Apr 2016 09:10:27 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>linux - 看看俺 – KanKanAn.com</title>
@@ -14,6 +14,135 @@
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <generator>Feed for Node.js</generator>
         <category>技术</category>
+        <item>
+            <title><![CDATA[解决 ssh 登录总是提示认证失败次数过多的问题]]></title>
+            <link>/article/89e351b3-ssh-767b5f55603b662f63d0793a8ba48bc159318d256b2165708fc7591a768495ee9898.html</link>
+            <guid>/article/89e351b3-ssh-767b5f55603b662f63d0793a8ba48bc159318d256b2165708fc7591a768495ee9898.html</guid>
+            <pubDate>Sun, 24 Apr 2016 09:08:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+服务器需要 vpn 才能进行 ssh 访问，但是周末在家突然 ssh 登录不上了，如下所示：
+</p>
+<pre class="example">
+$ ssh tangxinfa@xxxx.xxxxxx.xxx
+Received disconnect from xxx.xxx.xxx.xxx port 22:2: Too many authentication failures for tangxinfa
+Connection to xxxx.xxxxxx.xxx closed by remote host.
+Connection to xxxx.xxxxxx.xxx closed.
+</pre>
+
+<p>
+找运维人员咨询，说有可能是 openvpn 运行后设置的路由有问题，ssh 登录没有走 vpn ，建议重建 vpn 连接或重启机器。
+但是重启机器后还是一样，在 windows 下使用 openvpn ，通过 pietty 却可以正常 ssh 登录上服务器。
+</p>
+
+<p>
+网上搜索了一下，找到一个有关的帖子
+</p>
+<blockquote>
+<p>
+This is usually caused by inadvertently offering multiple ssh keys to the server. The server will reject any key after too many keys have been offered.
+</p>
+
+<p>
+You can see this for yourself by adding the -v flag to your ssh command to get verbose output. You will see that a bunch of keys are offered, until the server rejects the connection saying: "Too many authentication failures for [user]". Without verbose mode, you will only see the ambiguous message "Connection reset by peer".
+</p>
+
+<p>
+To prevent irrelevant keys from being offered, you have to explicitly specify this in every host entry in the ~/.ssh/config file by adding IdentitiesOnly like so:
+</p>
+
+<p>
+Host www.somehost.com
+    IdentityFile ~/.ssh/key_for_somehost_rsa
+    IdentitiesOnly yes
+    Port 22
+</p>
+</blockquote>
+<p>
+引用自《<a href="http://superuser.com/questions/187779/too-many-authentication-failures-for-username">ssh - Too many authentication failures for <b>username</b> - Super User</a>》
+</p>
+
+<p>
+也就是说，ssh 登录时会使用系统上的公匙依次进行认证，如果公私匙对数量超过服务器登录失败次数限制，就会出现上面提到的问题。
+</p>
+
+<p>
+为了登录 github 及内部的 gitlab，我创建了不同的 rsa 公私匙对，算上系统默认的公私匙对，达到三对
+</p>
+<pre class="example">
+$ tree ~/.ssh
+/home/tangxinfa/.ssh
+├── github_id_rsa
+├── github_id_rsa.pub
+├── id_rsa
+├── id_rsa.pub
+├── known_hosts
+├── gitlab_id_rsa
+└── gitlab_id_rsa.pub
+
+0 directories, 7 files
+</pre>
+
+<p>
+当我们使用 ssh 登录服务器时，默认情况下会尝试使用公钥依次进行身份验证，如果还是失败则会使用密码进行登录
+</p>
+<pre class="example">
+$ ssh -v tangxinfa@xxxx.xxxxxx.xxx
+...
+debug1: Authentications that can continue: publickey,password
+debug1: Next authentication method: publickey
+debug1: Offering RSA public key: /home/tangxinfa/.ssh/id_rsa
+debug1: Authentications that can continue: publickey,password
+debug1: Offering RSA public key: github
+debug1: Authentications that can continue: publickey,password
+debug1: Offering RSA public key: gitlab
+Received disconnect from xxx.xxx.xxx.xxx port 22:2: Too many authentication failures for tangxinfa
+debug1: Authentication succeeded (publickey).
+Authenticated to xxxx.xxxxxx.xxx ([xxx.xxx.xxx.xxx]:22).
+debug1: channel 0: new [client-session]
+debug1: Requesting no-more-sessions@openssh.com
+debug1: Entering interactive session.
+debug1: pledge: network
+debug1: channel 0: free: client-session, nchannels 1
+Connection to xxxx.xxxxxx.xxx closed by remote host.
+Connection to xxxx.xxxxxx.xxx closed.
+Transferred: sent 3328, received 2776 bytes, in 0.1 seconds
+Bytes per second: sent 59495.7, received 49627.4
+debug1: Exit status -1
+</pre>
+
+<p>
+知道了问题的原因，解决方法就很多了，如：
+</p>
+
+<ul class="org-ul">
+<li>调整 ssh 服务配置，调高失败次数限制
+</li>
+
+<li>调整 ssh 客户端配置，不使用公钥认证
+
+<p>
+可以在命令行选项中指定
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">ssh -o <span style="color: #f0c674;">PreferredAuthentications</span>=password tangxinfa@xxxx.xxxxxx.xxx
+</pre>
+</div>
+
+<p>
+也可以配置文件中指定
+<code>~/.ssh/config</code>
+</p>
+<pre class="example">
+Host xxxx xxxx.xxxxxx.xxx
+     HostName xxxx.xxxxxx.xxx
+     User tangxinfa
+     PreferredAuthentications password
+</pre>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[使用 dnsmasq 缓存域名解析结果加快上网速度]]></title>
             <link>/article/4f7f7528-dnsmasq-7f135b5857df540d89e367907ed3679c52a05feb4e0a7f51901f5ea6.html</link>
@@ -1091,98 +1220,6 @@ tar xJvf node-v4.3.1-linux-x64.tar.xz --no-same-owner --exclude CHANGELOG.md --e
 ]]></content:encoded>
         </item>
         <item>
-            <title><![CDATA[CentOS 6.4 上编译安装 gcc 5.2.0]]></title>
-            <link>/article/centos-6.4-4e0a7f168bd15b8988c5-gcc-5.2.0.html</link>
-            <guid>/article/centos-6.4-4e0a7f168bd15b8988c5-gcc-5.2.0.html</guid>
-            <pubDate>Fri, 22 Jan 2016 13:12:00 GMT</pubDate>
-            <content:encoded><![CDATA[<p>
-node.js 4.x 的第三方扩展编译时要求 gcc 版本为 4.8，但是 CentOS 6.4 仓库里的版本为 4.4.7，
-在生产环境从第三方仓库里安装最新版 gcc 又不放心，还是自已从源代码编译安装吧。
-</p>
-
-<ul class="org-ul">
-<li>下载 gcc 源代码
-
-<div class="org-src-container">
-
-<pre class="src src-sh">wget http://mirror.lzu.edu.cn/gnu/gcc/gcc-5.2.0/gcc-5.2.0.tar.bz2
-tar xjvf gcc-5.2.0.tar.bz2
-<span style="color: #b294bb;">cd</span> gcc-5.2.0
-</pre>
-</div>
-
-<p>
-官方的下载地址为 <a href="ftp://ftp.gnu.org/gnu/gcc/">ftp://ftp.gnu.org/gnu/gcc/</a> ，使用国内镜像 <a href="http://mirror.lzu.edu.cn/gnu/gcc">http://mirror.lzu.edu.cn/gnu/gcc</a> 快很多。
-</p>
-</li>
-
-<li>安装依赖的包
-
-<div class="org-src-container">
-
-<pre class="src src-sh">yum install gmp-devel mpfr-devel libmpc-devel
-</pre>
-</div>
-
-<p>
-参考自 INSTALL 目录下的文档。
-</p>
-</li>
-
-<li>编译安装
-
-<div class="org-src-container">
-
-<pre class="src src-sh">./configure --prefix=/opt/gcc-5.2.0 --disable-multilib &amp;&amp;<span style="color: #8abeb7;">\</span>
-make &amp;&amp;<span style="color: #8abeb7;">\</span>
-make -k check &amp;&amp;<span style="color: #8abeb7;">\</span>
-make install
-</pre>
-</div>
-
-<p>
-<code>--disable-multilib</code> 只编译 64 位。
-</p>
-
-<p>
-编译时间会耗时几个小时，这段时间最好去干点别的。
-</p>
-</li>
-
-<li>切换gcc版本
-
-<div class="org-src-container">
-
-<pre class="src src-sh"><span style="color: #b294bb;">export</span> <span style="color: #f0c674;">PATH</span>=/opt/gcc-5.2.0/bin:$<span style="color: #f0c674;">PATH</span>
-</pre>
-</div>
-
-<p>
-或
-</p>
-
-<div class="org-src-container">
-
-<pre class="src src-sh"><span style="color: #b294bb;">export</span> <span style="color: #f0c674;">CC</span>=/opt/gcc-5.2.0/bin/gcc
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">CPP</span>=/opt/gcc-5.2.0/bin/cpp
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">CXX</span>=/opt/gcc-5.2.0/bin/c++
-</pre>
-</div>
-</li>
-
-<li>参考
-
-<p>
-<a href="http://superuser.com/questions/381160/how-to-install-gcc-4-7-x-4-8-x-on-centos">yum - How to Install gcc 4.7.x/4.8.x on CentOS - Super User</a>
-</p>
-
-<p>
-<a href="https://wiki.mikejung.biz/Gcc_CentOS">Gcc CentOS - How to compile gcc-4.8.2 on CentOS 6.6</a></p>
-</li>
-</ul>
-]]></content:encoded>
-        </item>
-        <item>
             <title><![CDATA[CentOS 6.4 上安装 ruby 1.9.3]]></title>
             <link>/article/centos-6.4-4e0a5b8988c5-ruby-1.9.3.html</link>
             <guid>/article/centos-6.4-4e0a5b8988c5-ruby-1.9.3.html</guid>
@@ -1270,6 +1307,98 @@ gem sources -a https://ruby.taobao.org/
 
 <p>
 <a href="http://www.jb51.net/article/49079.htm">淘宝网提供的国内RubyGems镜像简介和使用方法_ruby专题_脚本之家</a></p>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[CentOS 6.4 上编译安装 gcc 5.2.0]]></title>
+            <link>/article/centos-6.4-4e0a7f168bd15b8988c5-gcc-5.2.0.html</link>
+            <guid>/article/centos-6.4-4e0a7f168bd15b8988c5-gcc-5.2.0.html</guid>
+            <pubDate>Fri, 22 Jan 2016 13:12:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+node.js 4.x 的第三方扩展编译时要求 gcc 版本为 4.8，但是 CentOS 6.4 仓库里的版本为 4.4.7，
+在生产环境从第三方仓库里安装最新版 gcc 又不放心，还是自已从源代码编译安装吧。
+</p>
+
+<ul class="org-ul">
+<li>下载 gcc 源代码
+
+<div class="org-src-container">
+
+<pre class="src src-sh">wget http://mirror.lzu.edu.cn/gnu/gcc/gcc-5.2.0/gcc-5.2.0.tar.bz2
+tar xjvf gcc-5.2.0.tar.bz2
+<span style="color: #b294bb;">cd</span> gcc-5.2.0
+</pre>
+</div>
+
+<p>
+官方的下载地址为 <a href="ftp://ftp.gnu.org/gnu/gcc/">ftp://ftp.gnu.org/gnu/gcc/</a> ，使用国内镜像 <a href="http://mirror.lzu.edu.cn/gnu/gcc">http://mirror.lzu.edu.cn/gnu/gcc</a> 快很多。
+</p>
+</li>
+
+<li>安装依赖的包
+
+<div class="org-src-container">
+
+<pre class="src src-sh">yum install gmp-devel mpfr-devel libmpc-devel
+</pre>
+</div>
+
+<p>
+参考自 INSTALL 目录下的文档。
+</p>
+</li>
+
+<li>编译安装
+
+<div class="org-src-container">
+
+<pre class="src src-sh">./configure --prefix=/opt/gcc-5.2.0 --disable-multilib &amp;&amp;<span style="color: #8abeb7;">\</span>
+make &amp;&amp;<span style="color: #8abeb7;">\</span>
+make -k check &amp;&amp;<span style="color: #8abeb7;">\</span>
+make install
+</pre>
+</div>
+
+<p>
+<code>--disable-multilib</code> 只编译 64 位。
+</p>
+
+<p>
+编译时间会耗时几个小时，这段时间最好去干点别的。
+</p>
+</li>
+
+<li>切换gcc版本
+
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #b294bb;">export</span> <span style="color: #f0c674;">PATH</span>=/opt/gcc-5.2.0/bin:$<span style="color: #f0c674;">PATH</span>
+</pre>
+</div>
+
+<p>
+或
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #b294bb;">export</span> <span style="color: #f0c674;">CC</span>=/opt/gcc-5.2.0/bin/gcc
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">CPP</span>=/opt/gcc-5.2.0/bin/cpp
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">CXX</span>=/opt/gcc-5.2.0/bin/c++
+</pre>
+</div>
+</li>
+
+<li>参考
+
+<p>
+<a href="http://superuser.com/questions/381160/how-to-install-gcc-4-7-x-4-8-x-on-centos">yum - How to Install gcc 4.7.x/4.8.x on CentOS - Super User</a>
+</p>
+
+<p>
+<a href="https://wiki.mikejung.biz/Gcc_CentOS">Gcc CentOS - How to compile gcc-4.8.2 on CentOS 6.6</a></p>
 </li>
 </ul>
 ]]></content:encoded>
