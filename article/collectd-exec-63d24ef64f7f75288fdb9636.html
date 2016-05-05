@@ -63,7 +63,7 @@
 </p>
 
 <div id="outline-container-sec-1" class="outline-2">
-<h2 id="sec-1">数据上报</h2>
+<h2 id="sec-1">数据的标识</h2>
 <div class="outline-text-2" id="text-1">
 <p>
 引用自 <a href="https://collectd.org/documentation/manpages/collectd-exec.5.shtml">man 5 collectd-exec</a>
@@ -168,7 +168,7 @@ memory          free:GAUGE:0:281474976710656, buffered:GAUGE:0:281474976710656, 
 
 
 <div id="outline-container-sec-2" class="outline-2">
-<h2 id="sec-2">分层展示</h2>
+<h2 id="sec-2">数据的展示</h2>
 <div class="outline-text-2" id="text-2">
 <ul class="org-ul">
 <li>主机列表
@@ -216,7 +216,7 @@ memory          free:GAUGE:0:281474976710656, buffered:GAUGE:0:281474976710656, 
 </div>
 
 <div id="outline-container-sec-3" class="outline-2">
-<h2 id="sec-3">总结</h2>
+<h2 id="sec-3">标识的使用</h2>
 <div class="outline-text-2" id="text-3">
 <p>
 上报数据时，我们拥有极大的自由性，而 collectd 会宽容地接受并展示结果，但是为了让最终的结果有用、易用，我们需要正确地指定上报的信息项。
@@ -265,7 +265,57 @@ memory          free:GAUGE:0:281474976710656, buffered:GAUGE:0:281474976710656, 
 </p>
 
 <p>
-多个 <code>type instance</code> 会在同一张图表中各使用一条曲线展示，如果放在一起展示没有意义，则可能更适合使用 <code>plugin instance</code> 进行标识。</p>
+多个 <code>type instance</code> 会在同一张图表中各使用一条曲线展示，如果放在一起展示没有意义，则可能更适合使用 <code>plugin instance</code> 进行标识。
+</p>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4">突破 root 帐号限制</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+引用自 <a href="https://collectd.org/documentation/manpages/collectd-exec.5.shtml">man 5 collectd-exec</a>
+</p>
+<blockquote>
+<p>
+CAVEATS
+    ·   The user, the binary is executed as, may not have root privileges, i. e.  must have an UID that is non-zero. This is for your own good.
+</p>
+</blockquote>
+
+<p>
+Exec 插件不允许以 root 权限执行。
+</p>
+
+<ul class="org-ul">
+<li>温和的解决办法
+
+<p>
+引用自 <a href="https://collectd.org/wiki/index.php/Plugin:Exec">Plugin:Exec - collectd Wiki</a>
+</p>
+<blockquote>
+<p>
+The security concerns are addressed by forcing the plugin to check that custom programs are never executed with superuser privileges. If the daemon runs as root, you have to configure another user ID with which the new process is created. To circumvent missing access privileges to files, you need to lean on the unix group concept. I.e. your script requires access to /var/log/messages, which is owned by root, its common practice to have this file being group readable by the admin-group. Given the used ID corrosponds to MyWatcherUser, you need to add that user to the admin group via /etc/group (or what else manages users / groups on your system). 
+</p>
+</blockquote>
+
+<p>
+将原本需要 <code>root</code> 才能访问的文件，改变属组（ <code>group</code> ）为 <code>admin</code> ，权限为 <code>group</code> 可读，然后将插件账号的 <code>group</code> 也改为 <code>admin</code> 。
+</p>
+</li>
+
+<li>暴力的解决方法
+
+<p>
+利用 <code>setuid</code> ，允许可执行程序以 <code>root</code> 身份运行。
+</p>
+
+<p>
+参考
+<a href="http://blog.kankanan.com/article/linux-4e0b51418bb8666e901a752862376267884c97008981-root-674396507684547d4ee4.html">linux下允许普通用户执行需要root权限的命令 | 看看俺 – KanKanAn.com</a>
+</p>
 </li>
 </ul>
 </div>

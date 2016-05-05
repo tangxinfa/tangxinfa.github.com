@@ -7215,7 +7215,7 @@ class RedisShard {
 ** 参考
 
    《[[http://www.oschina.net/translate/reliable-file-updates-with-python][使用 Python 进行稳定可靠的文件操作]]》
-* DONE 后台服务监护工具：forever与pm2                                  :node:
+* DONE 后台服务监护工具：forever与pm2                                  :node:pm2:
   CLOSED: [2015-07-25 Sat 00:15]
 
   使用后台服务监护工具有很多好处：
@@ -9409,7 +9409,7 @@ class RedisShard {
 
    [[https://github.com/luin/ioredis/blob/master/README.md#sentinel][ioredis Sentinel]]
 
-* DONE 控制pm2的日志文件大小                                           :node:
+* DONE 控制pm2的日志文件大小                                           :node:pm2:
   CLOSED: [2015-12-25 Fri 18:41]
 
   下班前发现线上服务器的 =100G= 磁盘只有 =10%= 空闲空间了，检查了一下是 =pm2= 的日志文件（在 =~/.pm2/logs= 目录下）占用的。
@@ -9462,7 +9462,7 @@ class RedisShard {
      
    更好的方式可能是使用操作系统的 logrotate 服务。
 
-* DONE 修复文件目录权限引起的错误：Cannot find module                  :node:
+* DONE 修复文件目录权限引起的错误：Cannot find module                  :node:pm2:
   CLOSED: [2015-12-28 Mon 15:28]
 
   =node.js= 应用部署后多次遇到这种错误：
@@ -10154,7 +10154,7 @@ class RedisShard {
 
     [[http://www.jb51.net/article/49079.htm][淘宝网提供的国内RubyGems镜像简介和使用方法_ruby专题_脚本之家]]
 
-* DONE pm2的日志管理                                                   :node:
+* DONE pm2的日志管理                                                   :node:pm2:
   CLOSED: [2016-02-17 Wed 14:16]
 
   [[https://github.com/Unitech/pm2][pm2]] 自身的日志文件 ~/.pm2/pm2.log，下面讲的是 [[https://github.com/Unitech/pm2][pm2]] app（应用）的日志文件。
@@ -10275,7 +10275,7 @@ class RedisShard {
   那时候，我玩了一夜又一夜游戏。
   
   我找到了一点快乐，但是很快就消失了，快乐为什么没有办法永恒，而要不断寻找。
-* DONE 使用 pm2 管理应用                                               :node:
+* DONE 使用 pm2 管理应用                                               :node:pm2:
   CLOSED: [2016-02-25 Thu 15:18]
 
   pm2 是使用 node.js 开发的进程管理器，实现统一方式管理进程，如：崩溃后拉起、启动/停止、监控、日志管理等。
@@ -10470,7 +10470,7 @@ class RedisShard {
 
    [[http://pm2.keymetrics.io/docs/usage/pm2-doc-single-page/][PM2 - One page documentation]]
 
-* DONE CentOS 6.4 生产环境上安装 pm2                             :node:linux:
+* DONE CentOS 6.4 生产环境上安装 pm2                             :node:pm2:linux:
   CLOSED: [2016-02-25 Thu 17:27]
 
   确保系统要干净（尚未安装 node.js），使用 root 帐号登录。
@@ -10668,7 +10668,7 @@ class RedisShard {
 
     可以参考文章《[[http://bassam.co/emacs/2015/08/24/rust-with-emacs/][Configuring Emacs for Rust]]》进行更高级的配置，对于我这种 Rust 还没入门的人来说，前面的配置已经足够，还是一步一个脚印吧。
 
-* DONE Module version mismatch 错误排查                                :node:
+* DONE Module version mismatch 错误排查                                :node:pm2:
   CLOSED: [2016-03-02 Wed 15:41]
 
   node.js 应用启动时出现以下错误：
@@ -12782,7 +12782,7 @@ class RedisShard {
 
   要使收集的统计信息显示正常、易于使用，则需要对上报的数据有充分的理解。
 
-** 数据上报
+** 数据的标识
 
    引用自 [[https://collectd.org/documentation/manpages/collectd-exec.5.shtml][man 5 collectd-exec]]
    #+begin_quote
@@ -12842,7 +12842,7 @@ class RedisShard {
      #+end_example
      
  
-** 分层展示
+** 数据的展示
 
    - 主机列表
  
@@ -12865,7 +12865,7 @@ class RedisShard {
 
      另外可以聚合显示所有主机上的相同统计图表，以便进行交叉对比。
 
-** 总结
+** 标识的使用
 
    上报数据时，我们拥有极大的自由性，而 collectd 会宽容地接受并展示结果，但是为了让最终的结果有用、易用，我们需要正确地指定上报的信息项。
 
@@ -12893,3 +12893,166 @@ class RedisShard {
      对于主机上的唯一统计指标（如：load），就不需要使用 =type instance= 了，如果是主机上的非唯一统计指标（如：各分区使用率、进程 cpu 占用率等），则可以使用 =type instance= 来区分（如：填写为分区路径、进程名称等）。
 
      多个 =type instance= 会在同一张图表中各使用一条曲线展示，如果放在一起展示没有意义，则可能更适合使用 =plugin instance= 进行标识。
+
+** 突破 root 帐号限制
+
+   引用自 [[https://collectd.org/documentation/manpages/collectd-exec.5.shtml][man 5 collectd-exec]]
+   #+begin_quote
+   CAVEATS
+       ·   The user, the binary is executed as, may not have root privileges, i. e.  must have an UID that is non-zero. This is for your own good.
+   #+end_quote
+
+   Exec 插件不允许以 root 权限执行。
+
+   - 温和的解决办法
+
+     引用自 [[https://collectd.org/wiki/index.php/Plugin:Exec][Plugin:Exec - collectd Wiki]]
+     #+begin_quote
+     The security concerns are addressed by forcing the plugin to check that custom programs are never executed with superuser privileges. If the daemon runs as root, you have to configure another user ID with which the new process is created. To circumvent missing access privileges to files, you need to lean on the unix group concept. I.e. your script requires access to /var/log/messages, which is owned by root, its common practice to have this file being group readable by the admin-group. Given the used ID corrosponds to MyWatcherUser, you need to add that user to the admin group via /etc/group (or what else manages users / groups on your system). 
+     #+end_quote
+
+     将原本需要 =root= 才能访问的文件，改变属组（ =group= ）为 =admin= ，权限为 =group= 可读，然后将插件账号的 =group= 也改为 =admin= 。
+     
+   - 暴力的解决方法
+     
+     利用 =setuid= ，允许可执行程序以 =root= 身份运行。
+
+     参考
+     [[http://blog.kankanan.com/article/linux-4e0b51418bb8666e901a752862376267884c97008981-root-674396507684547d4ee4.html][linux下允许普通用户执行需要root权限的命令 | 看看俺 – KanKanAn.com]]
+
+
+* DONE 使用 collectd 监控 pm2 应用性能                    :collectd:node:pm2:
+  CLOSED: [2016-05-05 Thu 16:45]
+
+  [[https://github.com/Unitech/pm2][pm2]] 是 node.js 应用的产品级进程管理器。
+
+  #+begin_quote
+  PM2 is a production process manager for Node.js applications with a built-in load balancer. It allows you to keep applications alive forever, to reload them without downtime and to facilitate common system admin tasks.
+  #+end_quote
+
+** 关键性能指标
+
+   通过 [[https://github.com/Unitech/pm2][pm2]] 可以获取到 node.js 应用的几个关键性能指标：
+
+   - Memory used
+ 
+     node.js 应用的内存占用。
+     
+     node.js（v8） 通过垃圾收集（GC）技术进行自动内存管理，这里测量到的内存占用还包含一部分未回收的垃圾。
+ 
+   - CPU used
+     
+     node.js 应用的 CPU 占用。
+     
+     node.js 是单线程模型，虽然所有 I/O 操作是异步的，但是代码指令执行是同步的，过多的请求处理或消耗 CPU 的操作会导致应用响应速度变慢，可能无法提供正常的服务。
+ 
+   - Loop delay
+ 
+     node.js 应用事件循环的延迟。
+ 
+     pm2 测量 node.js 应用 Loop delay 的逻辑如下：
+ 
+     #+begin_quote
+        记下开始时间（ process.hrtime ）
+        设置 1 秒钟的定时器（setInterval）
+        定时器触发时获取结束时间（ process.hrtime ）
+        结束时间与开始时间的时间差减去 1 秒钟就是 Loop delay
+     #+end_quote
+     具体实现请查阅 pm2 源代码：node_modules/pm2/node_modules/pmx/lib/probes/pacemaker.js
+
+ 
+     一般来说 =Loop delay= 与 =CPU used= 指标是正相关的，但是如果 node.js 应用不小心调用了一些同步 I/O 操作或 I/O 出现瓶颈，则会出现 =CPU used= 低但是 =Loop delay= 高的情况。
+ 
+   - restart_time 及 unstable_restarts
+ 
+     node.js（javascript）是一门动态语言，很少运行到的代码分支里一个错误的变量引用就可能导致整个应用异常退出，pm2 会在 node.js 应用退出时自动重新拉起应用，
+     但这可能会掩盖潜藏的问题（BUG），监控 node.js 应用的重启次数可以及时发现这种问题（BUG）。
+ 
+   上线新代码后，通过观测这几个关键性能指标，以及与历史记录进行对比，可以用来评估新代码的运行效率与质量。
+
+** 收集性能指标
+
+   通过 pm2 收集 node.js 应用性能指标的脚本 =/usr/local/bin/collectd-pm2.js=
+   #+begin_src js
+     var os = require('os');
+     var exec = require('child_process').exec;
+
+
+     var hostname = process.env.COLLECTD_HOSTNAME || os.hostname();
+     var interval = parseInt(process.env.COLLECTD_INTERVAL, 10) || 1;
+
+     function collect () {
+         exec('pm2 jlist', function (error, stdout, stderr) {
+             if (error) {
+                 process.stderr.write(error.toString());
+                 process.exit(1);
+             }
+
+             var timestamp = Math.floor(Date.now() / 1000);
+             var list = JSON.parse(stdout);
+             list.forEach(function (item) {
+                 var name = '';
+                 for(var i = 0, n = item.name.length; i < n; ++i) {
+                     name += item.name[i].match(/^[0-9a-zA-Z]+$/) ? item.name[i] : '_';
+                 }
+                 process.stdout.write("PUTVAL \"" + hostname + "/" + name + "-loop_delay" + "/delay-" + item.pm_id + "\" interval=" + interval + " " + timestamp + ":" + item.pm2_env.axm_monitor["Loop delay"].value.replace('ms', '') + "\n");
+                 process.stdout.write("PUTVAL \"" + hostname + "/" + name + "-memory_used" + "/gauge-" + item.pm_id + "\" interval=" + interval + " " + timestamp + ":" + item.monit.memory + "\n");
+                 process.stdout.write("PUTVAL \"" + hostname + "/" + name + "-cpu_used" + "/gauge-" + item.pm_id + "\" interval=" + interval + " " + timestamp + ":" + item.monit.cpu + "\n");
+                 process.stdout.write("PUTVAL \"" + hostname + "/" + name + "-restart_time" + "/gauge-" + item.pm_id + "\" interval=" + interval + " " + timestamp + ":" + item.pm2_env.restart_time + "\n");
+                 process.stdout.write("PUTVAL \"" + hostname + "/" + name + "-unstable_restarts" + "/gauge-" + item.pm_id + "\" interval=" + interval + " " + timestamp + ":" + item.pm2_env.unstable_restarts + "\n");
+             });
+
+             setTimeout(collect, interval*1000);
+         });
+     }
+
+     collect();
+   #+end_src
+ 
+   pm2 是使用 root 帐号运行的，collectd exec 插件不允许以 root 权限运行收集统计的程序（collectd-pm2.js），一个简单的方法是用 c 写一个包裹程序，使用 =setuid= 切换到 root 帐号。
+ 
+   =collectd-pm2.c=
+   #+begin_src c
+     #include <stdio.h>
+     #include <sys/types.h>
+     #include <sys/stat.h>
+     #include <sys/wait.h>
+     #include <unistd.h>
+     #include <stdlib.h>
+     #include <signal.h>
+     #include <string.h>
+
+
+     int main(int argc, char* argv[]) {
+         if (setuid(0) == -1) {
+             perror("setuid error");
+             fprintf(stderr, "\npermit setuid: \n\tchown root:root %s\n\tchmod 4755 %s\n", argv[0], argv[0]);
+             return EXIT_FAILURE;
+         }
+
+         return system("/bin/bash -c 'export PM2_HOME=${PM2_HOME:-/root/.pm2}; node /usr/local/bin/collectd-pm2.js'");
+     }
+   #+end_src
+   
+   编译安装
+   #+begin_src sh
+     gcc -O2 collectd-pm2.c -o /usr/local/bin/collectd-pm2
+     chown root:root /usr/local/bin/collectd-pm2
+     chmod 4755 /usr/local/bin/collectd-pm2
+   #+end_src
+
+   配置 collectd，修改 =collectd.conf=
+   #+begin_example
+     LoadPlugin exec
+ 
+     <Plugin exec>
+         Exec "nobody:nobody" "/usr/local/bin/collectd-pm2"
+     </Plugin>
+   #+end_example
+
+   测试运行统计收集脚本
+   #+begin_src sh
+     sudo -u nobody -g nobody /usr/local/bin/collectd-pm2
+   #+end_src
+
+   重启 collectd 生效即可。
