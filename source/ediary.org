@@ -2390,7 +2390,7 @@ class RedisShard {
 
    下面的c工具程序可以允许任意用户执行需要root权限的命令：
 
-   [[file:../static/as_root.c][as_root.c]
+   [[file:../static/as_root.c][as_root.c]]
 
    编译：
    #+begin_src sh
@@ -10255,8 +10255,7 @@ class RedisShard {
     git stash pop
   #+end_src
 
-  使用 rebase 模式相对来说麻烦一些，但是好处就是中心仓库的提交历史是线性的，特别是通过 pull request 提交补丁来协作开发的时候，
-  接收方随时可以将补丁合并进来，完全没有 merge 模式合并补丁那么麻烦。强烈建议默认情况下使用这种模式。
+  使用 rebase 模式相对来说麻烦一些，但是好处就是中心仓库的提交历史是线性的，特别是通过 pull request 提交补丁来协作开发的时候，接收方随时可以将补丁合并进来，完全没有 merge 模式合并补丁那么麻烦。强烈建议默认情况下使用这种模式。
 
 * TODO 快乐去哪里了                                                      :反省:
 
@@ -11568,7 +11567,7 @@ class RedisShard {
 
   - [[https://github.com/maidsafe-archive/MaidSafe/issues/234][make: *** {ExperCommon} Error 2 · Issue #234 · maidsafe-archive/MaidSafe]]
 
-* DONE 使用 collectd 进行服务监控                                     :linux:
+* DONE 使用 collectd 进行服务监控                                     :linux:collectd:
   CLOSED: [2016-03-31 Thu 12:39]
 
   collectd 的官网 [[https://collectd.org/][collectd.org]] 。
@@ -11741,7 +11740,7 @@ class RedisShard {
 
    - [[https://collectd.org/documentation/manpages/collectd.conf.5.shtml#global_options][collectd.conf(5) – collectd – The system statistics collection daemon]]
 
-* DONE Archlinux 的 collectd 支持监控 redis                 :redis:archlinux:
+* DONE Archlinux 的 collectd 支持监控 redis                 :redis:archlinux:collectd:
   CLOSED: [2016-03-31 Thu 17:44]
 
   Archlinux 下使用 =pacman= 安装的 =collectd= 没有 redis 插件。
@@ -12416,3 +12415,481 @@ class RedisShard {
            User tangxinfa
            PreferredAuthentications password
     #+end_example
+* TODO 参与 github 开源项目的正确姿势                                   :git:
+
+** 使用开源项目
+
+
+** 发现开源项目的问题
+
+
+** 查看开源项目的 Issues 及 Pull requests
+
+   如果这个问题已经有人在着手解决了，估计我们只能够发表一下意见，如果没有则进入下一步。
+
+    
+** Fork 开源项目
+
+   在 github 的开源项目页面上点击 Fork 即可。
+
+
+   下面假设：
+    
+   - 开源项目仓库地址 :: https://github.com/nodejs/node.git
+    
+   - 我的用户名 :: tangxinfa
+
+
+   我的仓库地址为 https://github.com/tangxinfa/node.git
+
+** 拉取我的仓库代码
+
+   #+begin_example
+     git clone https://github.com/tangxinfa/node.git
+   #+end_example
+
+** 配置为 rebase 方式
+
+   参考 [[http://blog.kankanan.com/article/git-591a4eba534f4f5cff1a7ef462a45e7251c0768463d04ea46811.html][git多人协作：维护干净的提交树 | 看看俺 – KanKanAn.com]]
+
+** 设置上游分支
+
+   #+begin_example
+     git remote add upstream https://github.com/nodejs/node.git
+   #+end_example
+
+** 创建特性分支
+
+   主干分支（master）确保不做任何提交，与上游分支（upstream）保持同步，所有开发工作都在特性分支上进行。
+
+   #+begin_src sh
+     git checkout -b my-feature-branch -t origin/master
+   #+end_src
+
+** 在特性分支上进行开发
+
+** 从特性分支创建 Pull requests 提交到上游分支
+
+   在个人 github 项目主页上切到特性分支 =my-feature-branch= ，点击 =New pull request=
+
+** 上游分支接受了 Pull requests
+
+
+** 将我的主干分支与上游分支同步
+
+   #+begin_src sh
+     git fetch upstream
+     git checkout master
+     git rebase upstream/master
+     git push origin master
+   #+end_src
+
+*** 如果忘记创建特性分支，是在主干分支上进行的开发，最后怎么跟上游分支保持同步
+
+    上游接受 Pull requests 时，往往会略做改动，正常的同步通常会失败
+    #+begin_example
+      $ git rebase upstream/master
+      ...
+      error: Failed to merge in the changes.
+      ...
+    #+end_example
+
+    可以强制跟上游分支同步
+    #+begin_example
+      git fetch upstream
+      git checkout master
+      git reset --hard upstream/master
+      git push origin master --force
+    #+end_example
+
+    参考
+
+    - [[http://stackoverflow.com/questions/9646167/clean-up-a-fork-and-restart-it-from-the-upstream][git - Clean up a fork and restart it from the upstream - Stack Overflow]]
+    
+** 特性分支已经完成使命可以删掉
+
+** 参考
+
+   - [[https://github.com/nodejs/node/blob/master/CONTRIBUTING.md][Contributing to Node.js]]
+
+* TODO 诊断 node.js 应用 cpu 占用过高的问题                      :node:linux:
+
+** 系统信息
+
+*** =CPU=
+
+    - 逻辑 CPU 数：24 
+
+      #+begin_example
+        # cat /proc/cpuinfo | grep name | cut -f2 -d: | uniq -c 
+             24  Intel(R) Xeon(R) CPU E5-2620 v2 @ 2.10GHz
+      #+end_example
+
+    - 物理 CPU 数：2
+
+      #+begin_example
+        # cat /proc/cpuinfo | grep 'physical id' | sort | uniq -c
+             12 physical id : 0
+             12 physical id : 1
+      #+end_example
+
+    - 每个物理 CPU 的核数：6
+
+      #+begin_example
+        # cat /proc/cpuinfo | grep "cpu cores" | uniq | awk -F: '{print $2}'
+         6
+      #+end_example
+
+    - 每个核超线程数：2
+
+      两个逻辑 CPU 具有相同的 =core id= 则超线程是打开的。
+      
+      #+begin_example
+        # cat /proc/cpuinfo | grep -E "physical id|core id" | sed -e ':a;N;$!ba;s/\ncore id\s*/       core id /g' | sort | uniq -c
+              2 physical id : 0       core id : 0
+              2 physical id : 0       core id : 1
+              2 physical id : 0       core id : 2
+              2 physical id : 0       core id : 3
+              2 physical id : 0       core id : 4
+              2 physical id : 0       core id : 5
+              2 physical id : 1       core id : 0
+              2 physical id : 1       core id : 1
+              2 physical id : 1       core id : 2
+              2 physical id : 1       core id : 3
+              2 physical id : 1       core id : 4
+              2 physical id : 1       core id : 5
+      #+end_example
+
+    参考：[[http://blog.sina.com.cn/s/blog_4a6151550100iowl.html][Linux CPU数量判断，通过/proc/cpuinfo._一沙一花_新浪博客]]
+
+*** =MEMORY=
+
+    =64G= 内存， =37.8G= 空闲内存
+
+    #+begin_example
+      # cat /proc/meminfo
+      MemTotal:       65916740 kB
+      MemFree:        39663756 kB
+      Buffers:          595424 kB
+      Cached:          7627876 kB
+      SwapCached:            0 kB
+      Active:         17368112 kB
+      Inactive:        6936088 kB
+      Active(anon):   16002524 kB
+      Inactive(anon):    80820 kB
+      Active(file):    1365588 kB
+      Inactive(file):  6855268 kB
+      Unevictable:          32 kB
+      Mlocked:              32 kB
+      SwapTotal:      20971512 kB
+      SwapFree:       20971512 kB
+      Dirty:              1896 kB
+      Writeback:             0 kB
+      AnonPages:      16081968 kB
+      Mapped:            19596 kB
+      Shmem:              1624 kB
+      Slab:            1087320 kB
+      SReclaimable:     756368 kB
+      SUnreclaim:       330952 kB
+      KernelStack:        5272 kB
+      PageTables:        64280 kB
+      NFS_Unstable:          0 kB
+      Bounce:                0 kB
+      WritebackTmp:          0 kB
+      CommitLimit:    53929880 kB
+      Committed_AS:   17348828 kB
+      VmallocTotal:   34359738367 kB
+      VmallocUsed:      436016 kB
+      VmallocChunk:   34324325464 kB
+      HardwareCorrupted:     0 kB
+      AnonHugePages:   2525184 kB
+      HugePages_Total:       0
+      HugePages_Free:        0
+      HugePages_Rsvd:        0
+      HugePages_Surp:        0
+      Hugepagesize:       2048 kB
+      DirectMap4k:        4096 kB
+      DirectMap2M:     2076672 kB
+      DirectMap1G:    65011712 kB
+    #+end_example
+
+** 系统状态
+
+   =top=
+   #+begin_example
+     # top -n 1
+     top - 13:05:48 up 144 days, 20:52,  2 users,  load average: 2.86, 2.46, 2.78
+     Tasks: 476 total,  19 running, 457 sleeping,   0 stopped,   0 zombie
+     Cpu(s): 22.7%us,  1.2%sy,  0.0%ni, 75.0%id,  0.0%wa,  0.0%hi,  1.1%si,  0.0%st
+     Mem:  65916740k total, 26237540k used, 39679200k free,   595424k buffers
+     Swap: 20971512k total,        0k used, 20971512k free,  7614508k cached
+
+        PID USER      PR  NI  VIRT  RES  SHR S %CPU %MEM    TIME+  COMMAND          
+     191463 nobody    20   0 1884m 981m 9.8m R 83.3  1.5  12337:09 node /usr/local  
+     192063 nobody    20   0 1905m 1.0g 9.8m R 73.6  1.6  12320:35 node /usr/local  
+     194450 nobody    20   0 1842m 937m 9.8m R 62.0  1.5  12060:56 node /usr/local  
+     191515 nobody    20   0 1911m 1.0g 9.8m R 60.1  1.6  12308:13 node /usr/local  
+     190881 nobody    20   0 1862m 957m 9.8m R 52.3  1.5  12257:46 node /usr/local  
+     195178 nobody    20   0 1795m 891m 9.8m R 52.3  1.4  11647:01 node /usr/local  
+     193068 nobody    20   0 1873m 970m 9.8m R 50.4  1.5  12144:28 node /usr/local  
+     194523 nobody    20   0 1805m 902m 9.8m R 50.4  1.4  11948:57 node /usr/local  
+     190790 nobody    20   0 1857m 951m 9.8m R 48.4  1.5  12174:59 node /usr/local  
+     191609 nobody    20   0 1847m 945m 9.8m R 48.4  1.5  12203:47 node /usr/local  
+     192946 nobody    20   0 1898m 993m 9.8m R 48.4  1.5  12224:41 node /usr/local  
+     193029 nobody    20   0 1827m 924m 9.8m R 48.4  1.4  12291:51 node /usr/local  
+     195276 nobody    20   0 1786m 883m 9.8m R 48.4  1.4  11659:07 node /usr/local  
+     196001 nobody    20   0 1885m 981m 9.8m R 48.4  1.5  11428:22 node /usr/local  
+     193725 nobody    20   0 1884m 978m 9.8m R 46.5  1.5  12336:34 node /usr/local  
+      80300 root      20   0  611m 454m 1152 R 44.6  0.7  26523:40 redis-server     
+     195944 nobody    20   0 1815m 912m 9.8m R 44.6  1.4  11353:21 node /usr/local  
+   #+end_example
+
+   =vmstat=
+   #+begin_example
+     # vmstat 1
+     |----+---+------+----------+--------+---------+----+----+----+-------+--------+-------+----+----+----+----+----|
+     |  r | b | swpd |     free |   buff |   cache | si | so | bi |    bo |     in |    cs | us | sy | id | wa | st |
+     |----+---+------+----------+--------+---------+----+----+----+-------+--------+-------+----+----+----+----+----|
+     | 17 | 0 |    0 | 39769884 | 595424 | 7523076 |  0 |  0 |  0 |    71 |      0 |     0 | 23 |  2 | 75 |  0 |  0 |
+     |  9 | 0 |    0 | 39763800 | 595424 | 7528200 |  0 |  0 |  0 |  5188 | 108347 | 21186 | 53 |  5 | 41 |  0 |  0 |
+     | 17 | 0 |    0 | 39758360 | 595424 | 7534084 |  0 |  0 |  0 |  5272 | 106375 | 24054 | 49 |  5 | 45 |  0 |  0 |
+     | 15 | 0 |    0 | 39753912 | 595424 | 7538236 |  0 |  0 |  0 |  5252 | 107669 | 23522 | 50 |  5 | 44 |  0 |  0 |
+     | 12 | 0 |    0 | 39747588 | 595424 | 7544612 |  0 |  0 |  0 |  5304 | 108452 | 24290 | 49 |  5 | 46 |  0 |  0 |
+     | 15 | 0 |    0 | 39742744 | 595424 | 7548076 |  0 |  0 |  0 |  5200 | 106615 | 25614 | 47 |  5 | 48 |  0 |  0 |
+     | 13 | 0 |    0 | 39738224 | 595424 | 7552712 |  0 |  0 |  0 |  5092 | 101642 | 25482 | 44 |  5 | 51 |  0 |  0 |
+     |  9 | 0 |    0 | 39734116 | 595424 | 7559024 |  0 |  0 |  0 |  5156 |  98440 | 25393 | 42 |  5 | 53 |  0 |  0 |
+     | 16 | 0 |    0 | 39729280 | 595424 | 7564076 |  0 |  0 |  0 |  5204 | 108933 | 23535 | 49 |  5 | 45 |  0 |  0 |
+     | 18 | 0 |    0 | 39722832 | 595424 | 7568280 |  0 |  0 |  0 |  5276 | 111563 | 23965 | 51 |  5 | 44 |  0 |  0 |
+     |----+---+------+----------+--------+---------+----+----+----+-------+--------+-------+----+----+----+----+----|
+   #+end_example
+
+   =sar=
+   #+begin_example
+     # sar -n TCP 1
+     01:58:46 PM  active/s passive/s    iseg/s    oseg/s
+     01:58:47 PM      3.09    875.26  32375.26  33619.59
+     01:58:48 PM      0.00    575.25  27972.28  28961.39
+     01:58:49 PM      0.00    879.59  31104.08  31933.67
+     01:58:50 PM      1.02    743.88  30183.67  31516.33
+     01:58:51 PM      0.00    793.94  31734.34  32761.62
+     01:58:52 PM      0.00    571.88  28690.62  29415.62
+     01:58:53 PM      1.02   1004.08  33157.14  33673.47
+     01:58:54 PM      0.99    954.46  33315.84  34532.67
+     01:58:55 PM      1.00    910.00  33562.00  34338.00
+     01:58:56 PM      1.02    783.67  31754.08  32412.24
+   #+end_example
+
+** 应用状态
+
+   =ps=
+   #+begin_example
+     # ps waux | grep node
+     nobody   190790 61.0  1.4 1902228 974408 ?      Rl   Apr20 12154:57 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+     nobody   190881 61.4  1.4 1907188 980800 ?      Rl   Apr20 12237:31 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+     nobody   191463 61.8  1.5 1929392 1005164 ?     Sl   Apr20 12317:05 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+     nobody   191515 61.7  1.5 1957252 1030472 ?     Rl   Apr20 12287:48 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+     nobody   191609 61.1  1.4 1891508 967896 ?      Rl   Apr20 12183:27 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+     nobody   192063 61.7  1.5 1951056 1025216 ?     Rl   Apr20 12300:27 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+     nobody   192946 61.3  1.5 1943880 1017796 ?     Rl   Apr20 12204:24 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+     nobody   193029 61.6  1.4 1871180 946732 ?      Rl   Apr20 12271:35 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+     nobody   193068 60.9  1.5 1918404 993536 ?      Rl   Apr20 12124:33 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+     nobody   193725 61.8  1.5 1929488 1001552 ?     Rl   Apr20 12316:31 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+     nobody   194450 60.5  1.4 1887224 960012 ?      Sl   Apr20 12040:16 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+     nobody   194523 59.9  1.4 1848960 924596 ?      Rl   Apr20 11928:46 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+     nobody   195178 58.4  1.3 1838980 913052 ?      Rl   Apr20 11627:32 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+     nobody   195276 58.5  1.3 1829848 905212 ?      Rl   Apr20 11639:08 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+     nobody   195944 56.9  1.4 1859316 933892 ?      Rl   Apr20 11333:25 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+     nobody   196001 57.3  1.5 1930348 1004912 ?     Rl   Apr20 11408:17 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+   #+end_example
+
+   =pm2=
+   #+begin_example
+     # pm2 desc xxx.xxxxxxxx.com | grep 'Loop delay'
+     │ Loop delay │ 1.96ms │
+     │ Loop delay │ 2.01ms │
+     │ Loop delay │ 2.04ms │
+     │ Loop delay │ 2.3ms  │
+     │ Loop delay │ 1.76ms │
+     │ Loop delay │ 1.97ms │
+     │ Loop delay │ 2.12ms │
+     │ Loop delay │ 1.98ms │
+     │ Loop delay │ 2.16ms │
+     │ Loop delay │ 1.98ms │
+     │ Loop delay │ 2.07ms │
+     │ Loop delay │ 1.88ms │
+     │ Loop delay │ 2.61ms │
+     │ Loop delay │ 1.84ms │
+     │ Loop delay │ 1.84ms │
+     │ Loop delay │ 1.88ms │
+   #+end_example
+
+** 分析
+
+*** 系统负荷正常
+
+    =top= 的 =load average= 值远小于 CPU 核数
+
+*** CPU 资源占用较高
+
+    - 运行和等待 CPU 时间片的进程数偏高
+
+      参见 =vmstat= 的 =r= 列
+
+
+    - 中断数偏多
+
+      参见 =vmstat= 的 =in= 列
+
+      应该是网络 I/O 数过多引起，参见 =sar= 的 =iseg/s= =oseg/s= 列。
+
+      中断数多，但并非瓶颈，参见 =top= 的 =%hi= 和 =%si= 值。
+
+      
+    - 上下文切换较多是正常的
+
+      参见 =vmstat= 的 =cs= 列
+
+      上下文切换数远小于中断数，正常。
+
+
+    - 用户模式下 CPU 占用超过 50%
+
+      参见 =vmstat= 的 =us= 列
+
+    
+    - node.js 进程 CPU 占用超过 60%
+
+      参见 =ps= 输出
+      
+*** I/O 资源充足
+
+** 解决方案
+
+   优化 node.js 程序
+
+** 参考
+
+   [[http://www.ruanyifeng.com/blog/2011/07/linux_load_average_explained.html][理解Linux系统负荷 - 阮一峰的网络日志]]
+     
+   [[http://www.blogjava.net/sliverfancy/archive/2013/04/17/397947.html][Linux-Load Average解析(转) - java技术研究 - BlogJava]]   
+
+   [[http://www.trueeyu.com/?p=1749][linux系统性能监控与优化（2）–cpu | 小鳄的笔记本]]
+
+* DONE collectd exec 插件使用进阶                            :linux:collectd:
+  CLOSED: [2016-05-05 Thu 12:44]
+
+  前面一篇文章《[[http://blog.kankanan.com/article/4f7f7528-collectd-8fdb884c670d52a176d163a7.html][使用 collectd 进行服务监控 | 看看俺 – KanKanAn.com]]》展示了如何使用 collectd 的 exec 插件。
+
+  要使收集的统计信息显示正常、易于使用，则需要对上报的数据有充分的理解。
+
+** 数据上报
+
+   引用自 [[https://collectd.org/documentation/manpages/collectd-exec.5.shtml][man 5 collectd-exec]]
+   #+begin_quote
+       PUTVAL Identifier [OptionList] Valuelist
+         Submits one or more values (identified by Identifier, see below) to the daemon which will dispatch it to all it's write-plugins.
+  
+         An Identifier is of the form "host/plugin-instance/type-instance" with both instance-parts being optional. If they're omitted the hyphen must be omitted, too. plugin and each instance-part may be chosen freely as long as
+         the tuple (plugin, plugin instance, type instance) uniquely identifies the plugin within collectd. type identifies the type and number of values (i. e. data-set) passed to collectd. A large list of predefined data-sets is
+         available in the types.db file. See types.db(5) for a description of the format of this file.
+  
+         The OptionList is an optional list of Options, where each option is a key-value-pair. A list of currently understood options can be found below, all other options will be ignored. Values that contain spaces must be quoted
+         with double quotes.
+  
+         Valuelist is a colon-separated list of the time and the values, each either an integer if the data-source is a counter, or a double if the data-source is of type "gauge". You can submit an undefined gauge-value by using
+         U. When submitting U to a counter the behavior is undefined. The time is given as epoch (i. e. standard UNIX time).
+  
+         You can mix options and values, but the order is important: Options only effect following values, so specifying an option as last field is allowed, but useless. Also, an option applies to all following values, so you
+         don't need to re-set an option over and over again.
+  
+         The currently defined Options are:
+  
+         interval=seconds
+             Gives the interval in which the data identified by Identifier is being collected.
+  
+         Please note that this is the same format as used in the unixsock plugin, see collectd-unixsock(5). There's also a bit more information on identifiers in case you're confused.
+  
+         Since examples usually let one understand a lot better, here are some:
+  
+           PUTVAL leeloo/cpu-0/cpu-idle N:2299366
+           PUTVAL alice/interface/if_octets-eth0 interval=10 1180647081:421465:479194
+   #+end_quote
+ 
+   - =Identifier= 
+     
+     格式为 =host/plugin-instance/type-instance= 
+     
+     其中的 =-= 为分隔符， =instance= 部分是可省略（此时 =-= 也要省略）。
+ 
+   - =host=
+     
+     主机名称，通常取自 =HOSTNAME= 环境变量。
+ 
+   - =plugin= 
+     
+     插件名称。
+ 
+   - =type=
+     
+     预定义的值类型名称，定义值的类型及数量，以及 collectd 服务会对值做何处理（如：按时间间隔平均化）。
+ 
+     参考 [[https://collectd.org/documentation/manpages/types.db.5.shtml][man 5 types.db]] [[https://collectd.org/wiki/index.php/Data_source][Data source - collectd Wiki]]
+
+     如某个上报的统计指标在网页上没有对应的图表产生，则很可能是上报的值与类型不符，我们的机器上运营人员改动了 types.db 中 memory 类型，导致上报失败：
+     #+begin_example
+       # memory         value:GAUGE:0:281474976710656
+       memory          free:GAUGE:0:281474976710656, buffered:GAUGE:0:281474976710656, used:GAUGE:0:281474976710656, cached:GAUGE:0:281474976710656
+     #+end_example
+     
+ 
+** 分层展示
+
+   - 主机列表
+ 
+     选择要查看的主机，对应上面的 =host=
+ 
+   
+   - 插件列表
+ 
+     选择要查看的插件，对应上面的 =plugin=
+ 
+     
+   - 统计图表列表页
+ 
+     插件实例（ =plugin instance= ）+类型（ =type= ）产生一张图表，类型实例（ =type instance= ）对应图标上的一条曲线。
+
+
+   - 统计图表详情页
+
+     点击统计图表列表页上的图表进入统计图表详情页，此时可以选择统计的时间范围（如：按小时、天、周、月、年）。
+
+     另外可以聚合显示所有主机上的相同统计图表，以便进行交叉对比。
+
+** 总结
+
+   上报数据时，我们拥有极大的自由性，而 collectd 会宽容地接受并展示结果，但是为了让最终的结果有用、易用，我们需要正确地指定上报的信息项。
+
+   - =host=
+
+     应该填写主机名称，当我们需要整个服务（包括多台主机）的统计时，可以借助 collectd 界面提供的聚合功能实现。
+
+
+   - =plugin=
+
+     插件名称
+
+   - =plugin instance=
+
+     插件实例，对应插件收集一个统计指标名称，如：memory。
+
+     对于简单的插件（只收集一个统计指标），则可以直接省略插件实例（plugin instance）部分，插件名称命名使用统计指标名称。
+
+   - =type=
+
+     请在 types.db 中预定义的类型中选择。
+
+   - =type instance=
+
+     对于主机上的唯一统计指标（如：load），就不需要使用 =type instance= 了，如果是主机上的非唯一统计指标（如：各分区使用率、进程 cpu 占用率等），则可以使用 =type instance= 来区分（如：填写为分区路径、进程名称等）。
+
+     多个 =type instance= 会在同一张图表中各使用一条曲线展示，如果放在一起展示没有意义，则可能更适合使用 =plugin instance= 进行标识。
