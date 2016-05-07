@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+  <head>
+    <meta charset="utf-8"/>
+    <title>collectd 数据类型详解 | 看看俺 – KanKanAn.com</title>
+    <link rel="shortcut icon" href="/static/favicon.ico" />
+    <link rel="stylesheet" type="text/less" href="/style/less/o-blog.less"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="generator" content="o-blog"/>
+    <script src="/style/js/less-1.3.0.min.js" type="text/javascript"></script>
+    <script src="/style/js/jquery-1.7.1.min.js" type="text/javascript"></script>
+    <script src="/style/bootstrap/js/bootstrap-modal.js" type="text/javascript"></script>
+    <script src="/style/bootstrap/js/bootstrap-transition.js" type="text/javascript"></script>
+    <script src="/style/bootstrap/js/bootstrap-dropdown.js" type="text/javascript"></script>
+    <script src="/style/bootstrap/js/bootstrap-collapse.js" type="text/javascript"></script>
+    <script src="/style/js/prettify.js" type="text/javascript"></script>
+    <script src="/style/js/o-blog.linenumber.js" type="text/javascript"></script>
+    <script src="/style/js/o-blog-fix.js" type="text/javascript"></script>
+  </head>
+  <body>
+    <div class="navbar navbar-fixed-top" id="header">
+      <div class="navbar-inner">
+	    <div class="container">
+	      <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="/" style="line-height:100%;">看看俺 – KanKanAn.com</a>
+	      <div class="nav-collapse collapse">
+            <ul class="org-ul">
+              <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
+                
+                <li><a href="/index.html"><i class="icon-folder-close icon-white"></i> 技术</a></li>
+                <li><a href="/category/life/0.html"><i class="icon-folder-close icon-white"></i> 生活</a></li>
+            </ul>
+	      </div>
+	    </div>
+      </div>
+    </div>
+
+    <div class="container container-fluid" id="page">
+      <div class="push-header"></div>
+
+      <div class="article">
+        <header class="article-header">
+          <h1>collectd 数据类型详解</h1>
+      	<div class="qr-code">
+      	  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="" alt="" id="qr-code" />
+      	  <script>
+      	    document.getElementById("qr-code").src = "http://chart.apis.google.com/chart?chs=90x90&cht=qr&chld=|0&chl=" + encodeURIComponent(document.location.href);
+      	  </script>
+      	</div>
+        </header>
+      
+        <div class="article-content">
+          <p>
+<a href="https://collectd.org/documentation/manpages/collectd-exec.5.shtml">man 5 collectd-exec</a>
+</p>
+<blockquote>
+<p>
+type identifies the type and number of values (i. e. data-set) passed to collectd. A large list of predefined data-sets is available in the types.db file. See types.db(5) for a description of the format of this file.
+</p>
+</blockquote>
+<blockquote>
+<p>
+type 标识传给 collectd 的值（如：数据集）的类型和数量。types.db 中预定义了大量数据集（data-sets）。types.db 的格式描述可以查看 types.db(5) 手册。
+</p>
+</blockquote>
+
+<p>
+<a href="https://collectd.org/documentation/manpages/types.db.5.shtml">man 5 types.db</a>
+</p>
+<blockquote>
+<p>
+The types.db file contains one line for each data-set specification. Each line consists of two fields delimited by spaces and/or horizontal tabs. The first field defines the name of the data-set, while the second field defines a list of data-source specifications, delimited by spaces and, optionally, a comma (",") right after each list-entry.
+</p>
+
+<p>
+The format of the data-source specification has been inspired by RRDtool's data-source specification. Each data-source is defined by a quadruple made up of the data-source name, type, minimal and maximal values, delimited by colons (":"): ds-name:ds-type:min:max. ds-type may be either ABSOLUTE, COUNTER, DERIVE, or GAUGE. min and max define the range of valid values for data stored for this data-source. If U is specified for either the min or max value, it will be set to unknown, meaning that no range checks will happen. See rrdcreate(1) for more details.
+</p>
+</blockquote>
+<blockquote>
+<p>
+types.db 文件每行定义一种数据集（data-set），为空格或水平制表符分隔的两个字段。第一个字段定义数据集名称，第二字段定义数据源规格列表，列表条目用空格或逗号分隔。
+</p>
+
+<p>
+数据源规格受到 RRDtool 启发。每一数据源定义为四元组，依次是名称、类型、最小值、最大值，使用冒号分隔：ds-name:ds-type:min:max。ds-type 可取 ABSOLUTE、COUNTER、DERIVE、GAUGE 之一。min 和 max 定义有效的取值范围，可以指定 min 或 max 为未知 U，表示不检查取值范围。查阅 rrdcreate(1) 手册了解更多。
+</p>
+</blockquote>
+
+<p>
+<a href="https://collectd.org/wiki/index.php/Data_source">Data source - collectd Wiki</a>
+</p>
+<blockquote>
+<p>
+Data source types
+</p>
+
+<p>
+There are four data source types which are basically identical to the data source types of the same name in RRDtool:
+</p>
+
+<p>
+GAUGE
+    A GAUGE value is simply stored as-is. This is the right choice for values which may increase as well as decrease, such as temperatures or the amount of memory used.
+</p>
+
+<p>
+DERIVE
+    These data sources assume that the change of the value is interesting, i.e. the derivative. Such data sources are very common with events that can be counted, for example the number of emails that have been received by an MTA since it was started. The total number of emails is not interesting, but the change since the value has been read the last time. The value is therefore converted to a rate using the following formula:
+</p>
+
+<p>
+rate = (value_new - value_old) / (time_new - time_old)
+</p>
+
+<p>
+Please note that if value_new &lt; value_old, the resulting rate will be negative. If you set the minimum value to zero, such data points will be discarded. Using DERIVE data sources and a minimum value of zero is recommended for counters that rarely overflow, i.e. wrap-around after their maximum value has been reached. This data source type is available since version 4.8.
+</p>
+
+<p>
+COUNTER
+    These data sources behave exactly like DERIVE data sources in the “normal” case. Their behavior differs when value_new &lt; value_old, i.e. when the new value is smaller than the previous value. In this case, COUNTER data sources will assume the counter “wrapped around” and take this into account. The formula for wrap-around cases is:
+</p>
+
+<p>
+rate = (2**width - value_old + value_new) / (time_new - time_old)
+width = value_old &lt; 2**32 ? 32 : 64
+</p>
+
+<p>
+Please note that the rate of a COUNTER data source is never negative. If a counter is reset to zero, for example because an application was restarted, the wrap-around calculation may result in a huge rate. Thus setting a reasonable maximum value is essential when using COUNTER data sources. Because of this, COUNTER data sources are only recommended for counters that wrap-around often, for example 32 bit octet counters of a busy switch port. 
+</p>
+
+<p>
+ABSOLUTE
+    This is probably the most exotic type: It is intended for counters which are reset upon reading. In effect, the type is very similar to GAUGE except that the value is an (unsigned) integer and will be divided by the time since the last reading. This data source type is available since version 4.8 and has been added mainly for consistency with the data source types available in RRDtool.
+</p>
+</blockquote>
+<blockquote>
+<p>
+数据源类型
+</p>
+
+<p>
+源自 RRDtool 的四种数据源类型：
+</p>
+
+<p>
+GAUGE
+    GAUGE 意为计量，其值简单地原样存储。用于可增减的值，如：温度或费用支出。
+</p>
+
+<p>
+DERIVE
+    DERIVE 意为导数，关注值的变动，如：导数。
+    这样的数据源通常为可计数的事件，如：邮件客户端启动后收到的邮件数。
+    相对于收件箱里的邮件总数，上次查看邮箱后新收到的邮件数量更值得关注。
+    该值可以根据以下公式转化为速率：
+</p>
+
+<p>
+rate = (value_new - value_old) / (time_new - time_old)
+</p>
+
+<p>
+如果 value_new 小于 value_old，得出的 rate 为负。
+如果设置最小值（min）为 0 ，这个数据点将被丢弃。
+对于很少溢出（达到最大值后回绕）的计数器推荐使用 DERIVE 数据源并设置最小值（min）为 0。
+DERIVE 类型从 4.8 版本开始提供。
+</p>
+
+<p>
+COUNTER
+    COUNTER 意为计数器，”正常“情况下与 DERIVE 一样。
+    细微的差异在于当 value_new 小于 value_old 时，COUNTER 数据源类型假设计数器已经“回绕”，计算速率的公式：
+</p>
+
+<p>
+rate = (2**width - value_old + value_new) / (time_new - time_old)
+width = value_old &lt; 2**32 ? 32 : 64
+</p>
+
+<p>
+COUNTER 数据源类型计算出的速率（rate）值不为负。
+如果计数器被重置为 0，如当应用程序重启后，回绕计算可能导致结果为巨大的速率（rate）。
+当使用 COUNTER 数据源时，必须设置一个合理的最大值（max）。
+因此，COUNTER 数据源仅推荐用于常常会回绕的计数器，例如，繁忙的交换机端口的 32 位字节计数器。
+</p>
+
+<p>
+ABSOLUTE
+    ABSOLUTE 意为绝对，可能是最特殊的类型：用于读取后会重置的计数器。
+    效果上，它和 GAUGE 类型非常相似，除了它的值是无符号整型，还要与上次读取至今的时间相除。
+</p>
+
+<p>
+这个数据源类型从 4.8 版本开始提供，主要是为了和 RRDtool 保持一致。
+</p>
+</blockquote>
+
+<ul class="org-ul">
+<li>数据集（Data Set）
+
+<p>
+传递到 collectd 的数据的定义，如 types.db 中的一条：
+</p>
+<pre class="example">
+load            shortterm:GAUGE:0:5000, midterm:GAUGE:0:5000, longterm:GAUGE:0:5000
+</pre>
+
+<p>
+以上定义了一种数据集，名为 load，包括三个值：shortterm、midterm、longterm，这三个值的类型都是 GAUGE，取值范围 0-5000。
+</p>
+
+<p>
+详情参见 <a href="https://collectd.org/wiki/index.php/Data_set">Data set - collectd Wiki</a>
+</p>
+</li>
+
+<li>数据源（Data Source）
+
+<p>
+就是数据集（Data Set）的值定义，为名称、类型、最小值、最大值四元组。
+</p>
+</li>
+
+<li>数据源类型（Data Source Type）
+
+<p>
+就是数据源中的类型字段，共有四种类型：ABSOLUTE、COUNTER、DERIVE、GAUGE。
+</p>
+</li>
+</ul>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">示例</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+以下 collectd-exec 插件示例脚本用到了 load 数据集
+</p>
+<pre class="example">
+#!/bin/bash
+
+HOSTNAME="${COLLECTD_HOSTNAME:-localhost}"
+INTERVAL="${COLLECTD_INTERVAL:-60}"
+
+while [ 1 ]; do
+    echo "PUTVAL \"$HOSTNAME/test_load/load\" interval=$INTERVAL N:1:2:3"
+    sleep "$INTERVAL"
+done
+</pre>
+
+<p>
+插件名称 <code>test_load</code> ，数据类型（数据集）为 <code>load</code> ，shortterm、midterm、longterm的值分别为 1、2、3。</p>
+</div>
+</div>
+
+        </div>
+        <br />
+        <footer class="article-footer">
+          <a class="tag" href="/tag/collectd/0.html"><i class="icon-tag icon-white"></i> collectd</a>
+          <span class="muted">
+            <i class="icon-time icon-white"></i> <time datetime="2016-05-07T15:07:00+0800">2016年5月7日 15时</time>
+          </span>
+        </footer>
+      </div>
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+  /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+  var disqus_shortname = 'kankananblog';
+
+  /* * * DON'T EDIT BELOW THIS LINE * * */
+  (function() {
+  var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+  dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+      <div class="push-footer"></div>
+    </div>
+
+    <div id="footer">
+  	  <div class="copyright" style="text-align: center;">
+  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
+  	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
+  	  </div>
+    </div>
+  </body>
+</html>

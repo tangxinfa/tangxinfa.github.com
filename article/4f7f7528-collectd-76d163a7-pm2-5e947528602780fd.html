@@ -107,8 +107,17 @@ pm2 测量 node.js 应用 Loop delay 的逻辑如下：
 <blockquote>
 <p>
 记下开始时间（ process.hrtime ）
+</p>
+
+<p>
 设置 1 秒钟的定时器（setInterval）
+</p>
+
+<p>
 定时器触发时获取结束时间（ process.hrtime ）
+</p>
+
+<p>
 结束时间与开始时间的时间差减去 1 秒钟就是 Loop delay
 </p>
 </blockquote>
@@ -147,36 +156,40 @@ node.js（javascript）是一门动态语言，很少运行到的代码分支里
 </p>
 <div class="org-src-container">
 
-<pre class="src src-js"><span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">os</span> = require(<span style="color: #8abeb7;">'os'</span>);
-<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">exec</span> = require(<span style="color: #8abeb7;">'child_process'</span>).exec;
+<pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">os</span> = require(<span style="color: #66cccc;">'os'</span>);
+<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">exec</span> = require(<span style="color: #66cccc;">'child_process'</span>).exec;
 
 
-<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">hostname</span> = process.env.COLLECTD_HOSTNAME || os.hostname();
-<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">interval</span> = parseInt(process.env.COLLECTD_INTERVAL, 10) || 1;
+<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">hostname</span> = process.env.COLLECTD_HOSTNAME || os.hostname();
+<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">interval</span> = parseInt(process.env.COLLECTD_INTERVAL, 10) || 1;
 
-<span style="color: #b5bd68;">function</span> <span style="color: #de935f;">collect</span> () {
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   exec(<span style="color: #8abeb7;">'pm2 jlist'</span>, <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">error</span>, <span style="color: #f0c674;">stdout</span>, <span style="color: #f0c674;">stderr</span>) {
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (error) {
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   process.stderr.write(error.toString());
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   process.exit(1);
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   }
+<span style="color: #99cc99;">function</span> <span style="color: #f99157;">collect</span> () {
+<span style="color: #cccccc; background-color: #515151;"> </span>   exec(<span style="color: #66cccc;">'pm2 jlist'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">error</span>, <span style="color: #ffcc66;">stdout</span>, <span style="color: #ffcc66;">stderr</span>) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (error) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   process.stderr.write(error.toString());
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   process.exit(1);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">timestamp</span> = Math.floor(Date.now() / 1000);
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">list</span> = JSON.parse(stdout);
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   list.forEach(<span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">item</span>) {
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">name</span> = <span style="color: #8abeb7;">''</span>;
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">for</span>(<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">i</span> = 0, <span style="color: #f0c674;">n</span> = item.name.length; i &lt; n; ++i) {
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   name += item.name[i].match(<span style="color: #8abeb7;">/^[0-9a-zA-Z]+$/</span>) ? item.name[i] : <span style="color: #8abeb7;">'_</span><span style="color: #8abeb7; text-decoration: underline;">'</span><span style="text-decoration: underline;">;</span>
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   }
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   process.stdout.write(<span style="color: #8abeb7;">"PUTVAL \""</span> + hostname + <span style="color: #8abeb7;">"/"</span> + name + <span style="color: #8abeb7;">"-loop_de</span><span style="color: #8abeb7; text-decoration: underline;">lay"</span><span style="text-decoration: underline;"> + </span><span style="color: #8abeb7; text-decoration: underline;">"/delay-"</span><span style="text-decoration: underline;"> + item.pm_id + </span><span style="color: #8abeb7; text-decoration: underline;">"\" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #8abeb7; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #8abeb7; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.pm2_env.axm_monitor[</span><span style="color: #8abeb7; text-decoration: underline;">"Loop delay"</span><span style="text-decoration: underline;">].value.replace(</span><span style="color: #8abeb7; text-decoration: underline;">'ms'</span><span style="text-decoration: underline;">, </span><span style="color: #8abeb7; text-decoration: underline;">''</span><span style="text-decoration: underline;">) + </span><span style="color: #8abeb7; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   process.stdout.write(<span style="color: #8abeb7;">"PUTVAL \""</span> + hostname + <span style="color: #8abeb7;">"/"</span> + name + <span style="color: #8abeb7;">"-memory_</span><span style="color: #8abeb7; text-decoration: underline;">used"</span><span style="text-decoration: underline;"> + </span><span style="color: #8abeb7; text-decoration: underline;">"/gauge-"</span><span style="text-decoration: underline;"> + item.pm_id + </span><span style="color: #8abeb7; text-decoration: underline;">"\" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #8abeb7; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #8abeb7; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.monit.memory + </span><span style="color: #8abeb7; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   process.stdout.write(<span style="color: #8abeb7;">"PUTVAL \""</span> + hostname + <span style="color: #8abeb7;">"/"</span> + name + <span style="color: #8abeb7;">"-cpu_use</span><span style="color: #8abeb7; text-decoration: underline;">d"</span><span style="text-decoration: underline;"> + </span><span style="color: #8abeb7; text-decoration: underline;">"/gauge-"</span><span style="text-decoration: underline;"> + item.pm_id + </span><span style="color: #8abeb7; text-decoration: underline;">"\" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #8abeb7; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #8abeb7; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.monit.cpu + </span><span style="color: #8abeb7; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   process.stdout.write(<span style="color: #8abeb7;">"PUTVAL \""</span> + hostname + <span style="color: #8abeb7;">"/"</span> + name + <span style="color: #8abeb7;">"-restart</span><span style="color: #8abeb7; text-decoration: underline;">_time"</span><span style="text-decoration: underline;"> + </span><span style="color: #8abeb7; text-decoration: underline;">"/gauge-"</span><span style="text-decoration: underline;"> + item.pm_id + </span><span style="color: #8abeb7; text-decoration: underline;">"\" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #8abeb7; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #8abeb7; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.pm2_env.restart_time + </span><span style="color: #8abeb7; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   process.stdout.write(<span style="color: #8abeb7;">"PUTVAL \""</span> + hostname + <span style="color: #8abeb7;">"/"</span> + name + <span style="color: #8abeb7;">"-unstabl</span><span style="color: #8abeb7; text-decoration: underline;">e_restarts"</span><span style="text-decoration: underline;"> + </span><span style="color: #8abeb7; text-decoration: underline;">"/gauge-"</span><span style="text-decoration: underline;"> + item.pm_id + </span><span style="color: #8abeb7; text-decoration: underline;">"\" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #8abeb7; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #8abeb7; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.pm2_env.unstable_restarts + </span><span style="color: #8abeb7; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   });
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (stderr) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   process.stderr.write(stderr.toString() + <span style="color: #66cccc;">"\n"</span>);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   setTimeout(collect, interval*1000);
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   });
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">timestamp</span> = Math.floor(Date.now() / 1000);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">list</span> = JSON.parse(stdout);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   list.forEach(<span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">item</span>) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">name</span> = <span style="color: #66cccc;">''</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">for</span>(<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">i</span> = 0, <span style="color: #ffcc66;">n</span> = item.name.length; i &lt; n; ++i) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   name += item.name[i].match(<span style="color: #66cccc;">/^[0-9a-zA-Z]+$/</span>) ? item.name[i] : <span style="color: #66cccc;">'_</span><span style="color: #66cccc; text-decoration: underline;">'</span><span style="text-decoration: underline;">;</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   process.stdout.write(<span style="color: #66cccc;">"PUTVAL \""</span> + hostname + <span style="color: #66cccc;">"/"</span> + name + <span style="color: #66cccc;">"-loop_de</span><span style="color: #66cccc; text-decoration: underline;">lay"</span><span style="text-decoration: underline;"> + </span><span style="color: #66cccc; text-decoration: underline;">"/delay-"</span><span style="text-decoration: underline;"> + item.pm_id + </span><span style="color: #66cccc; text-decoration: underline;">"\" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #66cccc; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #66cccc; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.pm2_env.axm_monitor[</span><span style="color: #66cccc; text-decoration: underline;">"Loop delay"</span><span style="text-decoration: underline;">].value.replace(</span><span style="color: #66cccc; text-decoration: underline;">'ms'</span><span style="text-decoration: underline;">, </span><span style="color: #66cccc; text-decoration: underline;">''</span><span style="text-decoration: underline;">) + </span><span style="color: #66cccc; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   process.stdout.write(<span style="color: #66cccc;">"PUTVAL \""</span> + hostname + <span style="color: #66cccc;">"/"</span> + name + <span style="color: #66cccc;">"-memory_</span><span style="color: #66cccc; text-decoration: underline;">used"</span><span style="text-decoration: underline;"> + </span><span style="color: #66cccc; text-decoration: underline;">"/gauge-"</span><span style="text-decoration: underline;"> + item.pm_id + </span><span style="color: #66cccc; text-decoration: underline;">"\" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #66cccc; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #66cccc; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.monit.memory + </span><span style="color: #66cccc; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   process.stdout.write(<span style="color: #66cccc;">"PUTVAL \""</span> + hostname + <span style="color: #66cccc;">"/"</span> + name + <span style="color: #66cccc;">"-cpu_use</span><span style="color: #66cccc; text-decoration: underline;">d"</span><span style="text-decoration: underline;"> + </span><span style="color: #66cccc; text-decoration: underline;">"/gauge-"</span><span style="text-decoration: underline;"> + item.pm_id + </span><span style="color: #66cccc; text-decoration: underline;">"\" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #66cccc; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #66cccc; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.monit.cpu + </span><span style="color: #66cccc; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   process.stdout.write(<span style="color: #66cccc;">"PUTVAL \""</span> + hostname + <span style="color: #66cccc;">"/"</span> + name + <span style="color: #66cccc;">"-restart</span><span style="color: #66cccc; text-decoration: underline;">_time"</span><span style="text-decoration: underline;"> + </span><span style="color: #66cccc; text-decoration: underline;">"/gauge-"</span><span style="text-decoration: underline;"> + item.pm_id + </span><span style="color: #66cccc; text-decoration: underline;">"\" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #66cccc; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #66cccc; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.pm2_env.restart_time + </span><span style="color: #66cccc; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   process.stdout.write(<span style="color: #66cccc;">"PUTVAL \""</span> + hostname + <span style="color: #66cccc;">"/"</span> + name + <span style="color: #66cccc;">"-unstabl</span><span style="color: #66cccc; text-decoration: underline;">e_restarts"</span><span style="text-decoration: underline;"> + </span><span style="color: #66cccc; text-decoration: underline;">"/gauge-"</span><span style="text-decoration: underline;"> + item.pm_id + </span><span style="color: #66cccc; text-decoration: underline;">"\" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #66cccc; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #66cccc; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.pm2_env.unstable_restarts + </span><span style="color: #66cccc; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   });
+
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   setTimeout(collect, interval*1000);
+<span style="color: #cccccc; background-color: #515151;"> </span>   });
 }
 
 collect();
@@ -188,28 +201,28 @@ pm2 是使用 root 帐号运行的，collectd exec 插件不允许以 root 权�
 </p>
 
 <p>
-<code>collectd-pm2.c</code>
+<code>collectd-pm2-root.c</code>
 </p>
 <div class="org-src-container">
 
-<pre class="src src-c"><span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;stdio.h&gt;</span>
-<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;sys/types.h&gt;</span>
-<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;sys/stat.h&gt;</span>
-<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;sys/wait.h&gt;</span>
-<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;unistd.h&gt;</span>
-<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;stdlib.h&gt;</span>
-<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;signal.h&gt;</span>
-<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;string.h&gt;</span>
+<pre class="src src-c"><span style="color: #cc99cc;">#include</span> <span style="color: #66cccc;">&lt;stdio.h&gt;</span>
+<span style="color: #cc99cc;">#include</span> <span style="color: #66cccc;">&lt;sys/types.h&gt;</span>
+<span style="color: #cc99cc;">#include</span> <span style="color: #66cccc;">&lt;sys/stat.h&gt;</span>
+<span style="color: #cc99cc;">#include</span> <span style="color: #66cccc;">&lt;sys/wait.h&gt;</span>
+<span style="color: #cc99cc;">#include</span> <span style="color: #66cccc;">&lt;unistd.h&gt;</span>
+<span style="color: #cc99cc;">#include</span> <span style="color: #66cccc;">&lt;stdlib.h&gt;</span>
+<span style="color: #cc99cc;">#include</span> <span style="color: #66cccc;">&lt;signal.h&gt;</span>
+<span style="color: #cc99cc;">#include</span> <span style="color: #66cccc;">&lt;string.h&gt;</span>
 
 
-<span style="color: #81a2be;">int</span> <span style="color: #de935f;">main</span>(<span style="color: #81a2be;">int</span> <span style="color: #f0c674;">argc</span>, <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">argv</span>[]) {
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (setuid(0) == -1) {
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   perror(<span style="color: #8abeb7;">"setuid error"</span>);
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   fprintf(stderr, <span style="color: #8abeb7;">"\npermit setuid: \n\tchown root:root %s\n\tchmod 4755 %</span><span style="color: #8abeb7; text-decoration: underline;">s\n"</span><span style="text-decoration: underline;">, argv[0], argv[0]);</span>
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> EXIT_FAILURE;
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   }
+<span style="color: #6699cc;">int</span> <span style="color: #f99157;">main</span>(<span style="color: #6699cc;">int</span> <span style="color: #ffcc66;">argc</span>, <span style="color: #6699cc;">char</span>* <span style="color: #ffcc66;">argv</span>[]) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (setuid(0) == -1 || setgid(0) == -1) {
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   perror(<span style="color: #66cccc;">"setuid or setgid to root user error"</span>);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   fprintf(stderr, <span style="color: #66cccc;">"\npermit setuid and setgid to root user: \n\tchown root</span><span style="color: #66cccc; text-decoration: underline;">:root %s\n\tchmod 4755 %s\n"</span><span style="text-decoration: underline;">, argv[0], argv[0]);</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> EXIT_FAILURE;
+<span style="color: #cccccc; background-color: #515151;"> </span>   }
 
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> system(<span style="color: #8abeb7;">"/bin/bash -c 'export PM2_HOME=${PM2_HOME:-/root/.pm2}; node /</span><span style="color: #8abeb7; text-decoration: underline;">usr/local/bin/collectd-pm2.js'"</span><span style="text-decoration: underline;">);</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> system(<span style="color: #66cccc;">"/bin/bash -c 'export PM2_HOME=${PM2_HOME:-~root/.pm2}; node /</span><span style="color: #66cccc; text-decoration: underline;">usr/local/bin/collectd-pm2.js'"</span><span style="text-decoration: underline;">);</span>
 }
 </pre>
 </div>
@@ -219,9 +232,10 @@ pm2 是使用 root 帐号运行的，collectd exec 插件不允许以 root 权�
 </p>
 <div class="org-src-container">
 
-<pre class="src src-sh">gcc -O2 collectd-pm2.c -o /usr/local/bin/collectd-pm2
-chown root:root /usr/local/bin/collectd-pm2
-chmod 4755 /usr/local/bin/collectd-pm2
+<pre class="src src-sh">gcc -O2 collectd-pm2-root.c -o collectd-pm2-root
+cp collectd-pm2-root /usr/local/bin
+chown root:root /usr/local/bin/collectd-pm2-root
+chmod 4755 /usr/local/bin/collectd-pm2-root
 </pre>
 </div>
 
@@ -232,7 +246,7 @@ chmod 4755 /usr/local/bin/collectd-pm2
 LoadPlugin exec
 
 &lt;Plugin exec&gt;
-    Exec "nobody:nobody" "/usr/local/bin/collectd-pm2"
+    Exec "nobody:nobody" "/usr/local/bin/collectd-pm2-root"
 &lt;/Plugin&gt;
 </pre>
 
@@ -241,12 +255,16 @@ LoadPlugin exec
 </p>
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo -u nobody -g nobody /usr/local/bin/collectd-pm2
+<pre class="src src-sh">sudo -u nobody -g nobody /usr/local/bin/collectd-pm2-root
 </pre>
 </div>
 
 <p>
-重启 collectd 生效即可。</p>
+重启 collectd 生效即可。
+</p>
+
+<p>
+以上代码已在 github 开源：<a href="https://github.com/tangxinfa/collectd-pm2">https://github.com/tangxinfa/collectd-pm2</a> 。</p>
 </div>
 </div>
 

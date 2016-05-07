@@ -12844,6 +12844,8 @@ class RedisShard {
  
 ** 数据的展示
 
+   数据由上到下分级展示。
+
    - 主机列表
  
      选择要查看的主机，对应上面的 =host=
@@ -12920,7 +12922,6 @@ class RedisShard {
      参考
      [[http://blog.kankanan.com/article/linux-4e0b51418bb8666e901a752862376267884c97008981-root-674396507684547d4ee4.html][linux下允许普通用户执行需要root权限的命令 | 看看俺 – KanKanAn.com]]
 
-
 * DONE 使用 collectd 监控 pm2 应用性能                    :collectd:node:pm2:
   CLOSED: [2016-05-05 Thu 16:45]
 
@@ -12954,8 +12955,11 @@ class RedisShard {
  
      #+begin_quote
         记下开始时间（ process.hrtime ）
+     
         设置 1 秒钟的定时器（setInterval）
+     
         定时器触发时获取结束时间（ process.hrtime ）
+     
         结束时间与开始时间的时间差减去 1 秒钟就是 Loop delay
      #+end_quote
      具体实现请查阅 pm2 源代码：node_modules/pm2/node_modules/pmx/lib/probes/pacemaker.js
@@ -12988,6 +12992,10 @@ class RedisShard {
                  process.exit(1);
              }
 
+             if (stderr) {
+                 process.stderr.write(stderr.toString() + "\n");
+             }
+
              var timestamp = Math.floor(Date.now() / 1000);
              var list = JSON.parse(stdout);
              list.forEach(function (item) {
@@ -13011,7 +13019,7 @@ class RedisShard {
  
    pm2 是使用 root 帐号运行的，collectd exec 插件不允许以 root 权限运行收集统计的程序（collectd-pm2.js），一个简单的方法是用 c 写一个包裹程序，使用 =setuid= 切换到 root 帐号。
  
-   =collectd-pm2.c=
+   =collectd-pm2-root.c=
    #+begin_src c
      #include <stdio.h>
      #include <sys/types.h>
@@ -13024,21 +13032,22 @@ class RedisShard {
 
 
      int main(int argc, char* argv[]) {
-         if (setuid(0) == -1) {
-             perror("setuid error");
-             fprintf(stderr, "\npermit setuid: \n\tchown root:root %s\n\tchmod 4755 %s\n", argv[0], argv[0]);
+         if (setuid(0) == -1 || setgid(0) == -1) {
+             perror("setuid or setgid to root user error");
+             fprintf(stderr, "\npermit setuid and setgid to root user: \n\tchown root:root %s\n\tchmod 4755 %s\n", argv[0], argv[0]);
              return EXIT_FAILURE;
          }
 
-         return system("/bin/bash -c 'export PM2_HOME=${PM2_HOME:-/root/.pm2}; node /usr/local/bin/collectd-pm2.js'");
+         return system("/bin/bash -c 'export PM2_HOME=${PM2_HOME:-~root/.pm2}; node /usr/local/bin/collectd-pm2.js'");
      }
    #+end_src
    
    编译安装
    #+begin_src sh
-     gcc -O2 collectd-pm2.c -o /usr/local/bin/collectd-pm2
-     chown root:root /usr/local/bin/collectd-pm2
-     chmod 4755 /usr/local/bin/collectd-pm2
+     gcc -O2 collectd-pm2-root.c -o collectd-pm2-root
+     cp collectd-pm2-root /usr/local/bin
+     chown root:root /usr/local/bin/collectd-pm2-root
+     chmod 4755 /usr/local/bin/collectd-pm2-root
    #+end_src
 
    配置 collectd，修改 =collectd.conf=
@@ -13046,13 +13055,141 @@ class RedisShard {
      LoadPlugin exec
  
      <Plugin exec>
-         Exec "nobody:nobody" "/usr/local/bin/collectd-pm2"
+         Exec "nobody:nobody" "/usr/local/bin/collectd-pm2-root"
      </Plugin>
    #+end_example
 
    测试运行统计收集脚本
    #+begin_src sh
-     sudo -u nobody -g nobody /usr/local/bin/collectd-pm2
+     sudo -u nobody -g nobody /usr/local/bin/collectd-pm2-root
    #+end_src
 
    重启 collectd 生效即可。
+   
+   以上代码已在 github 开源：[[https://github.com/tangxinfa/collectd-pm2]] 。
+
+* DONE collectd 数据类型详解                                       :collectd:
+  CLOSED: [2016-05-07 Sat 15:07]
+
+  [[https://collectd.org/documentation/manpages/collectd-exec.5.shtml][man 5 collectd-exec]]
+  #+begin_quote
+  type identifies the type and number of values (i. e. data-set) passed to collectd. A large list of predefined data-sets is available in the types.db file. See types.db(5) for a description of the format of this file.
+  #+end_quote
+  #+begin_quote
+  type 标识传给 collectd 的值（如：数据集）的类型和数量。types.db 中预定义了大量数据集（data-sets）。types.db 的格式描述可以查看 types.db(5) 手册。
+  #+end_quote
+
+  [[https://collectd.org/documentation/manpages/types.db.5.shtml][man 5 types.db]]
+  #+begin_quote
+  The types.db file contains one line for each data-set specification. Each line consists of two fields delimited by spaces and/or horizontal tabs. The first field defines the name of the data-set, while the second field defines a list of data-source specifications, delimited by spaces and, optionally, a comma (",") right after each list-entry.
+
+  The format of the data-source specification has been inspired by RRDtool's data-source specification. Each data-source is defined by a quadruple made up of the data-source name, type, minimal and maximal values, delimited by colons (":"): ds-name:ds-type:min:max. ds-type may be either ABSOLUTE, COUNTER, DERIVE, or GAUGE. min and max define the range of valid values for data stored for this data-source. If U is specified for either the min or max value, it will be set to unknown, meaning that no range checks will happen. See rrdcreate(1) for more details.
+  #+end_quote
+  #+begin_quote
+  types.db 文件每行定义一种数据集（data-set），为空格或水平制表符分隔的两个字段。第一个字段定义数据集名称，第二字段定义数据源规格列表，列表条目用空格或逗号分隔。
+
+  数据源规格受到 RRDtool 启发。每一数据源定义为四元组，依次是名称、类型、最小值、最大值，使用冒号分隔：ds-name:ds-type:min:max。ds-type 可取 ABSOLUTE、COUNTER、DERIVE、GAUGE 之一。min 和 max 定义有效的取值范围，可以指定 min 或 max 为未知 U，表示不检查取值范围。查阅 rrdcreate(1) 手册了解更多。
+  #+end_quote
+
+  [[https://collectd.org/wiki/index.php/Data_source][Data source - collectd Wiki]]
+  #+begin_quote
+  Data source types
+
+  There are four data source types which are basically identical to the data source types of the same name in RRDtool:
+
+  GAUGE
+      A GAUGE value is simply stored as-is. This is the right choice for values which may increase as well as decrease, such as temperatures or the amount of memory used.
+  
+  DERIVE
+      These data sources assume that the change of the value is interesting, i.e. the derivative. Such data sources are very common with events that can be counted, for example the number of emails that have been received by an MTA since it was started. The total number of emails is not interesting, but the change since the value has been read the last time. The value is therefore converted to a rate using the following formula:
+
+          rate = (value_new - value_old) / (time_new - time_old)
+
+      Please note that if value_new < value_old, the resulting rate will be negative. If you set the minimum value to zero, such data points will be discarded. Using DERIVE data sources and a minimum value of zero is recommended for counters that rarely overflow, i.e. wrap-around after their maximum value has been reached. This data source type is available since version 4.8.
+  
+  COUNTER
+      These data sources behave exactly like DERIVE data sources in the “normal” case. Their behavior differs when value_new < value_old, i.e. when the new value is smaller than the previous value. In this case, COUNTER data sources will assume the counter “wrapped around” and take this into account. The formula for wrap-around cases is:
+
+          rate = (2**width - value_old + value_new) / (time_new - time_old)
+          width = value_old < 2**32 ? 32 : 64
+
+      Please note that the rate of a COUNTER data source is never negative. If a counter is reset to zero, for example because an application was restarted, the wrap-around calculation may result in a huge rate. Thus setting a reasonable maximum value is essential when using COUNTER data sources. Because of this, COUNTER data sources are only recommended for counters that wrap-around often, for example 32 bit octet counters of a busy switch port. 
+
+  ABSOLUTE
+      This is probably the most exotic type: It is intended for counters which are reset upon reading. In effect, the type is very similar to GAUGE except that the value is an (unsigned) integer and will be divided by the time since the last reading. This data source type is available since version 4.8 and has been added mainly for consistency with the data source types available in RRDtool.
+  #+end_quote
+  #+begin_quote
+  数据源类型
+
+  源自 RRDtool 的四种数据源类型：
+
+  GAUGE
+      GAUGE 意为计量，其值简单地原样存储。用于可增减的值，如：温度或费用支出。
+  
+  DERIVE
+      DERIVE 意为导数，关注值的变动，如：导数。
+      这样的数据源通常为可计数的事件，如：邮件客户端启动后收到的邮件数。
+      相对于收件箱里的邮件总数，上次查看邮箱后新收到的邮件数量更值得关注。
+      该值可以根据以下公式转化为速率：
+
+          rate = (value_new - value_old) / (time_new - time_old)
+
+      如果 value_new 小于 value_old，得出的 rate 为负。
+      如果设置最小值（min）为 0 ，这个数据点将被丢弃。
+      对于很少溢出（达到最大值后回绕）的计数器推荐使用 DERIVE 数据源并设置最小值（min）为 0。
+      DERIVE 类型从 4.8 版本开始提供。
+  
+  COUNTER
+      COUNTER 意为计数器，”正常“情况下与 DERIVE 一样。
+      细微的差异在于当 value_new 小于 value_old 时，COUNTER 数据源类型假设计数器已经“回绕”，计算速率的公式：
+
+          rate = (2**width - value_old + value_new) / (time_new - time_old)
+          width = value_old < 2**32 ? 32 : 64
+
+      COUNTER 数据源类型计算出的速率（rate）值不为负。
+      如果计数器被重置为 0，如当应用程序重启后，回绕计算可能导致结果为巨大的速率（rate）。
+      当使用 COUNTER 数据源时，必须设置一个合理的最大值（max）。
+      因此，COUNTER 数据源仅推荐用于常常会回绕的计数器，例如，繁忙的交换机端口的 32 位字节计数器。
+
+  ABSOLUTE
+      ABSOLUTE 意为绝对，可能是最特殊的类型：用于读取后会重置的计数器。
+      效果上，它和 GAUGE 类型非常相似，除了它的值是无符号整型，还要与上次读取至今的时间相除。
+
+      这个数据源类型从 4.8 版本开始提供，主要是为了和 RRDtool 保持一致。
+  #+end_quote
+
+  - 数据集（Data Set）
+
+    传递到 collectd 的数据的定义，如 types.db 中的一条：
+    #+begin_example
+      load            shortterm:GAUGE:0:5000, midterm:GAUGE:0:5000, longterm:GAUGE:0:5000
+    #+end_example
+
+    以上定义了一种数据集，名为 load，包括三个值：shortterm、midterm、longterm，这三个值的类型都是 GAUGE，取值范围 0-5000。
+
+    详情参见 [[https://collectd.org/wiki/index.php/Data_set][Data set - collectd Wiki]]
+
+  - 数据源（Data Source）
+
+    就是数据集（Data Set）的值定义，为名称、类型、最小值、最大值四元组。
+
+  - 数据源类型（Data Source Type）
+    
+    就是数据源中的类型字段，共有四种类型：ABSOLUTE、COUNTER、DERIVE、GAUGE。
+
+** 示例
+
+   以下 collectd-exec 插件示例脚本用到了 load 数据集
+   #+begin_example
+     #!/bin/bash
+
+     HOSTNAME="${COLLECTD_HOSTNAME:-localhost}"
+     INTERVAL="${COLLECTD_INTERVAL:-60}"
+
+     while [ 1 ]; do
+         echo "PUTVAL \"$HOSTNAME/test_load/load\" interval=$INTERVAL N:1:2:3"
+         sleep "$INTERVAL"
+     done
+   #+end_example
+
+   插件名称 =test_load= ，数据类型（数据集）为 =load= ，shortterm、midterm、longterm的值分别为 1、2、3。
