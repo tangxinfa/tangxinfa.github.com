@@ -10392,6 +10392,8 @@ class RedisShard {
 
       建议使用 =--interpreter= 选项指定 node.js 版本，参见讨论：[[https://github.com/Unitech/PM2/issues/1034][Using different versions of node via nvm for each app · Issue #1034 · Unitech/pm2]] 。
       
+      警告：pm2 在 =cluster= 模式下， =--interpreter= 选项被忽略，详见：[[http://blog.kankanan.com/article/module-version-mismatch-95198bef639267e5.html][Module version mismatch 错误排查 | 看看俺 – KanKanAn.com]] 。
+      
       这是最关键的一点，应用的 node.js 版本不对，可能导致应用启动失败，中断服务。
 
     - 应用的辅助脚本的 node.js 版本
@@ -10732,6 +10734,31 @@ class RedisShard {
 
   - [[https://github.com/Unitech/PM2/issues/1224#issuecomment-99931316][--interpreter not applied? · Issue #1224 · Unitech/pm2]]
 
+
+  查看 pm2 与 node.js 的源代码进一步确认该问题：
+  
+  - pm2 调用 cluster.fork 创建工作进程
+
+    引用自 pm2/lib/God/ClusterMode.js
+    #+begin_src js
+      cluster.fork({pm2_env: JSON.stringify(env_copy)})
+    #+end_src
+
+  - cluster.fork 调用 child_process.fork 创建工作进程
+
+    引用自 node/lib/cluster.js
+    #+begin_src js
+      return fork(cluster.settings.exec, cluster.settings.args, {
+        env: workerEnv,
+        silent: cluster.settings.silent,
+        execArgv: execArgv,
+        gid: cluster.settings.gid,
+        uid: cluster.settings.uid
+      });
+    #+end_src
+
+    根据 child_process.fork 的实现（见 node/lib/child_process.js），由于未传入 =execPath= 选项，会使用 =process.execPath= 的值，也就是会使用 pm2 后台进程的 node 可执行程序路径来创建工作进程。
+  
   应该可以通过指定不同的 $PM2_HOME 环境变量，跑多套 pm2，各个 pm2 使用不同版本的 Node.js，多个 cluster 模式的 pm2 应用也就会使用不同版本 Node.js。
 
 * DONE linux 系统时间同步                                             :linux:
@@ -11254,7 +11281,7 @@ class RedisShard {
 
      为避免打字时误触，在 ~/.xprofile 中添加以下内容：
      #+begin_example
-       syndaemon -d -i 2 -t -k
+       syndaemon -d -i 2 -t
      #+end_example
 
    - 触摸板失灵
@@ -12512,7 +12539,16 @@ class RedisShard {
 
    - [[https://github.com/nodejs/node/blob/master/CONTRIBUTING.md][Contributing to Node.js]]
 
-* TODO 诊断 node.js 应用 cpu 占用过高的问题                      :node:linux:
+* DONE 诊断 node.js 应用 CPU 占用过高的问题                      :node:linux:
+  CLOSED: [2016-05-12 Thu 17:25]
+
+  node.js 应用使用 pm2 进行管理，采用 cluster 模式，每台服务器运行 16 个 node.js 实例。
+
+  应用的开销主要在网络上：
+
+  平均每个 node.js 实例要维持来自嵌入式设备的约 3K TLS 长连接，平均每秒会有 30 个来自客户端的 HTTP 短连接。
+
+  TLS 长连接上最多 45 秒会有一次心跳（发送 80 多字节，接收 400 多字节）。
 
 ** 系统信息
 
@@ -12562,7 +12598,7 @@ class RedisShard {
 
     参考：[[http://blog.sina.com.cn/s/blog_4a6151550100iowl.html][Linux CPU数量判断，通过/proc/cpuinfo._一沙一花_新浪博客]]
 
-*** =MEMORY=
+*** =内存=
 
     =64G= 内存， =37.8G= 空闲内存
 
@@ -12727,9 +12763,9 @@ class RedisShard {
 
 *** 系统负荷正常
 
-    =top= 的 =load average= 值远小于 CPU 核数
+    =top= 的 =load average= 值远小于 CPU 核数，系统的 CPU 使用率为 25%，还有足够的空闲 CPU 资源。
 
-*** CPU 资源占用较高
+*** node.js 的 CPU 占用过高
 
     - 运行和等待 CPU 时间片的进程数偏高
 
@@ -12740,40 +12776,152 @@ class RedisShard {
 
       参见 =vmstat= 的 =in= 列
 
-      应该是网络 I/O 数过多引起，参见 =sar= 的 =iseg/s= =oseg/s= 列。
+      有可能是网络 I/O 数过多引起，参见 =sar= 的 =iseg/s= =oseg/s= 列。
 
-      中断数多，但并非瓶颈，参见 =top= 的 =%hi= 和 =%si= 值。
+      中断数虽多，但并非瓶颈，参见 =top= 的 =%hi= 和 =%si= 值。
 
       
-    - 上下文切换较多是正常的
+    - 上下文切换较多
 
       参见 =vmstat= 的 =cs= 列
 
       上下文切换数远小于中断数，正常。
 
 
-    - 用户模式下 CPU 占用超过 50%
+    - 用户模式下 CPU 占用过高
+      
+      超过 50%
 
       参见 =vmstat= 的 =us= 列
 
+    - node.js 进程事件循环迟延小于 3ms
+
+      正常。应用目前还能够提供快速响应。
     
-    - node.js 进程 CPU 占用超过 60%
+    - node.js 进程 CPU 占用过高
+      
+      统计了一天平均占用 65%，高峰占用 85% 以上。
 
       参见 =ps= 输出
       
-*** I/O 资源充足
+      应用本身是网络密集型，每 node.js 进程每秒钟处理 250 个请求，不存在 CPU 密集操作，这样高的 CPU 占用是不可接受的。
+      
+*** 网络带宽占用正常
 
-** 解决方案
+    - 对外的网卡
+      
+      上行 27Mbps，下行 66Mbps
 
-   优化 node.js 程序
+      主要是来自设备和客户端的流量。
+
+    - 对内的网卡
+      
+      上行 18.7Mbps，下行 21.7Mbps
+      
+      主要是内部通信流量（redis）。
+
+*** 磁盘访问较少
+
+    应用除了写少量日志外不访问磁盘。
+
+*** 结论
+
+    - 系统资源不存在瓶颈
+
+    - 系统当前的运行状况良好
+
+    - node.js 应用的 CPU 占用偏高
+      
+      需要对 node.js 应用进行性能分析及优化
+
+** node.js 应用性能分析
+
+   node.js 从 4.4.0 版本开始内置了 profiler， =--prof= 命令选项运行应用会在当前目录生成性能日志文件。
+   
+   解读性能日志文件
+   #+begin_example
+     # node --prof-process isolate-0x1d1e1b0-v8-10041.log
+     ...
+     [Summary]:
+        ticks  total  nonlib   name
+         348    7.3%    7.6%  JavaScript
+        4243   88.8%   92.4%  C++
+          63    1.3%    1.4%  GC
+         184    3.9%          Shared libraries
+           2    0.0%          Unaccounted
+     ...
+      [C++ entry points]:
+        ticks    cpp   total   name
+         494   19.4%   10.3%  v8::internal::Runtime_DateCurrentTime(int, v8::internal::Object**, v8::internal::Isolate*)
+     ...
+        ticks parent  name
+        1739   36.4%  syscall
+
+         586   12.3%  __lll_lock_wait
+         413   70.5%    v8::internal::Runtime_DateCurrentTime(int, v8::internal::Object**, v8::internal::Isolate*)
+         398   96.4%      LazyCompile: *now native date.js:197:17
+         305   76.6%        LazyCompile: *<anonymous> /usr/local/xxxxx.xxxxxxxx.com/src/models.js:43:30
+     ...
+   #+end_example
+
+   最大头的时间花在系统调用上，通过 strace 工具统计 node.js 进程 10 秒钟的系统调用计数
+   #+begin_example
+       12259 write
+       10501 read
+        9261 epoll_ctl
+        1564 epoll_wait
+         503 close
+         502 recvmsg
+         502 getsockopt
+         502 getsockname
+         103 futex
+          23 stat
+           6 writev
+           1 getpeername
+   #+end_example
+
+   系统调用主要进行网络 I/O ，如：与设备通信（TLS 长连接）、与客户端通信（HTTP 短连接）、与Redis通信（TCP 长连接）。
+
+   其它调用出现次数最多的是获取当前时间戳的函数 models.js:43：
+   #+begin_src js
+     function getTimestamp () {
+         return Math.floor(Date.now() / 1000);
+     }
+   #+end_src
+
+   它会在很多地方被用到，如：当从 redis 收到一条订阅的消息时，会在消息中添加当前时间戳，方便后面处理。
+
+   可以通过缓存减少这部分开销：
+   #+begin_src js
+     function getTimestamp () {
+         if (! getTimestamp._timestamp) {
+             getTimestamp._timestamp = Math.floor(Date.now() / 1000);
+
+             setInterval(function () {
+                 getTimestamp._timestamp = Math.floor(Date.now() / 1000);
+             }, 1000).unref();
+         }
+
+         return getTimestamp._timestamp;
+     }
+     getTimestamp._timestamp = 0;
+   #+end_src
+
+   上面的代码，虽然调用次数相对较多，但并不耗 CPU，经过上面的优化后，总系统 CPU 占用只是略有减少。
+
+   关键的系统调用消耗难以再优化，在我们的应用中，node.js 单实例处理能力的上限：4K TLS 长连接（平均 CPU 占用 85%）。
+
+   最终决定，增加服务器上 node.js 进程的数量，node.js 最大连接数限制（ [[https://nodejs.org/api/net.html#net_server_maxconnections][net.maxConnections]] ）进一步减少。
 
 ** 参考
 
    [[http://www.ruanyifeng.com/blog/2011/07/linux_load_average_explained.html][理解Linux系统负荷 - 阮一峰的网络日志]]
-     
+
    [[http://www.blogjava.net/sliverfancy/archive/2013/04/17/397947.html][Linux-Load Average解析(转) - java技术研究 - BlogJava]]   
 
    [[http://www.trueeyu.com/?p=1749][linux系统性能监控与优化（2）–cpu | 小鳄的笔记本]]
+
+   [[https://nodejs.org/en/docs/guides/simple-profiling/][Easy profiling for Node.js Applications | Node.js]]
 
 * DONE collectd exec 插件使用进阶                            :linux:collectd:
   CLOSED: [2016-05-05 Thu 12:44]
@@ -12835,13 +12983,14 @@ class RedisShard {
  
      参考 [[https://collectd.org/documentation/manpages/types.db.5.shtml][man 5 types.db]] [[https://collectd.org/wiki/index.php/Data_source][Data source - collectd Wiki]]
 
-     如某个上报的统计指标在网页上没有对应的图表产生，则很可能是上报的值与类型不符，我们的机器上运营人员改动了 types.db 中 memory 类型，导致上报失败：
+     如某个上报的统计指标在网页上没有对应的图表产生，请检查 collectd 服务器与客户机上 types.db，数据集必须定义且一致，上报的值必须符合数据集定义。
+     服务器或客户端安装的 collectd 可能版本较低，附带的 types.db 中缺少第三方插件要求的数据集定义，运营人员改动 types.db 中 memory 类型也会导致上报失败：
      #+begin_example
        # memory         value:GAUGE:0:281474976710656
        memory          free:GAUGE:0:281474976710656, buffered:GAUGE:0:281474976710656, used:GAUGE:0:281474976710656, cached:GAUGE:0:281474976710656
      #+end_example
-     
- 
+
+
 ** 数据的展示
 
    数据由上到下分级展示。
@@ -13076,7 +13225,7 @@ class RedisShard {
   type identifies the type and number of values (i. e. data-set) passed to collectd. A large list of predefined data-sets is available in the types.db file. See types.db(5) for a description of the format of this file.
   #+end_quote
   #+begin_quote
-  type 标识传给 collectd 的值（如：数据集）的类型和数量。types.db 中预定义了大量数据集（data-sets）。types.db 的格式描述可以查看 types.db(5) 手册。
+  type 标识传给 collectd 的值的类型和数量（即数据集）。types.db 中预定义了大量数据集（data-sets）。types.db 的格式描述可以查看 types.db(5) 手册。
   #+end_quote
 
   [[https://collectd.org/documentation/manpages/types.db.5.shtml][man 5 types.db]]
@@ -13098,24 +13247,31 @@ class RedisShard {
   There are four data source types which are basically identical to the data source types of the same name in RRDtool:
 
   GAUGE
+  
       A GAUGE value is simply stored as-is. This is the right choice for values which may increase as well as decrease, such as temperatures or the amount of memory used.
   
+  
   DERIVE
+  
       These data sources assume that the change of the value is interesting, i.e. the derivative. Such data sources are very common with events that can be counted, for example the number of emails that have been received by an MTA since it was started. The total number of emails is not interesting, but the change since the value has been read the last time. The value is therefore converted to a rate using the following formula:
 
           rate = (value_new - value_old) / (time_new - time_old)
 
       Please note that if value_new < value_old, the resulting rate will be negative. If you set the minimum value to zero, such data points will be discarded. Using DERIVE data sources and a minimum value of zero is recommended for counters that rarely overflow, i.e. wrap-around after their maximum value has been reached. This data source type is available since version 4.8.
   
+  
   COUNTER
+  
       These data sources behave exactly like DERIVE data sources in the “normal” case. Their behavior differs when value_new < value_old, i.e. when the new value is smaller than the previous value. In this case, COUNTER data sources will assume the counter “wrapped around” and take this into account. The formula for wrap-around cases is:
 
           rate = (2**width - value_old + value_new) / (time_new - time_old)
           width = value_old < 2**32 ? 32 : 64
 
-      Please note that the rate of a COUNTER data source is never negative. If a counter is reset to zero, for example because an application was restarted, the wrap-around calculation may result in a huge rate. Thus setting a reasonable maximum value is essential when using COUNTER data sources. Because of this, COUNTER data sources are only recommended for counters that wrap-around often, for example 32 bit octet counters of a busy switch port. 
+      Please note that the rate of a COUNTER data source is never negative. If a counter is reset to zero, for example because an application was restarted, the wrap-around calculation may result in a huge rate. Thus setting a reasonable maximum value is essential when using COUNTER data sources. Because of this, COUNTER data sources are only recommended for counters that wrap-around often, for example 32 bit octet counters of a busy switch port.
+  
 
   ABSOLUTE
+  
       This is probably the most exotic type: It is intended for counters which are reset upon reading. In effect, the type is very similar to GAUGE except that the value is an (unsigned) integer and will be divided by the time since the last reading. This data source type is available since version 4.8 and has been added mainly for consistency with the data source types available in RRDtool.
   #+end_quote
   #+begin_quote
@@ -13124,10 +13280,13 @@ class RedisShard {
   源自 RRDtool 的四种数据源类型：
 
   GAUGE
+  
       GAUGE 意为计量，其值简单地原样存储。用于可增减的值，如：温度或费用支出。
+
   
   DERIVE
-      DERIVE 意为导数，关注值的变动，如：导数。
+  
+      DERIVE 意为导数，关注值的变动，即导数。
       这样的数据源通常为可计数的事件，如：邮件客户端启动后收到的邮件数。
       相对于收件箱里的邮件总数，上次查看邮箱后新收到的邮件数量更值得关注。
       该值可以根据以下公式转化为速率：
@@ -13136,10 +13295,12 @@ class RedisShard {
 
       如果 value_new 小于 value_old，得出的 rate 为负。
       如果设置最小值（min）为 0 ，这个数据点将被丢弃。
-      对于很少溢出（达到最大值后回绕）的计数器推荐使用 DERIVE 数据源并设置最小值（min）为 0。
+      对于很少溢出（即达到最大值后回绕）的计数器推荐使用 DERIVE 数据源并设置最小值（min）为 0。
       DERIVE 类型从 4.8 版本开始提供。
   
+  
   COUNTER
+  
       COUNTER 意为计数器，”正常“情况下与 DERIVE 一样。
       细微的差异在于当 value_new 小于 value_old 时，COUNTER 数据源类型假设计数器已经“回绕”，计算速率的公式：
 
@@ -13150,8 +13311,10 @@ class RedisShard {
       如果计数器被重置为 0，如当应用程序重启后，回绕计算可能导致结果为巨大的速率（rate）。
       当使用 COUNTER 数据源时，必须设置一个合理的最大值（max）。
       因此，COUNTER 数据源仅推荐用于常常会回绕的计数器，例如，繁忙的交换机端口的 32 位字节计数器。
+  
 
   ABSOLUTE
+  
       ABSOLUTE 意为绝对，可能是最特殊的类型：用于读取后会重置的计数器。
       效果上，它和 GAUGE 类型非常相似，除了它的值是无符号整型，还要与上次读取至今的时间相除。
 
@@ -13192,4 +13355,4 @@ class RedisShard {
      done
    #+end_example
 
-   插件名称 =test_load= ，数据类型（数据集）为 =load= ，shortterm、midterm、longterm的值分别为 1、2、3。
+   插件名称 =test_load= ，数据类型（数据集）为 =load= ， =N= 代指当前时间，shortterm、midterm、longterm 的值分别为 1、2、3。

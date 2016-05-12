@@ -64,7 +64,7 @@ type identifies the type and number of values (i. e. data-set) passed to collect
 </blockquote>
 <blockquote>
 <p>
-type 标识传给 collectd 的值（如：数据集）的类型和数量。types.db 中预定义了大量数据集（data-sets）。types.db 的格式描述可以查看 types.db(5) 手册。
+type 标识传给 collectd 的值的类型和数量（即数据集）。types.db 中预定义了大量数据集（data-sets）。types.db 的格式描述可以查看 types.db(5) 手册。
 </p>
 </blockquote>
 
@@ -104,12 +104,19 @@ There are four data source types which are basically identical to the data sourc
 
 <p>
 GAUGE
-    A GAUGE value is simply stored as-is. This is the right choice for values which may increase as well as decrease, such as temperatures or the amount of memory used.
 </p>
 
 <p>
+A GAUGE value is simply stored as-is. This is the right choice for values which may increase as well as decrease, such as temperatures or the amount of memory used.
+</p>
+
+
+<p>
 DERIVE
-    These data sources assume that the change of the value is interesting, i.e. the derivative. Such data sources are very common with events that can be counted, for example the number of emails that have been received by an MTA since it was started. The total number of emails is not interesting, but the change since the value has been read the last time. The value is therefore converted to a rate using the following formula:
+</p>
+
+<p>
+These data sources assume that the change of the value is interesting, i.e. the derivative. Such data sources are very common with events that can be counted, for example the number of emails that have been received by an MTA since it was started. The total number of emails is not interesting, but the change since the value has been read the last time. The value is therefore converted to a rate using the following formula:
 </p>
 
 <p>
@@ -120,9 +127,13 @@ rate = (value_new - value_old) / (time_new - time_old)
 Please note that if value_new &lt; value_old, the resulting rate will be negative. If you set the minimum value to zero, such data points will be discarded. Using DERIVE data sources and a minimum value of zero is recommended for counters that rarely overflow, i.e. wrap-around after their maximum value has been reached. This data source type is available since version 4.8.
 </p>
 
+
 <p>
 COUNTER
-    These data sources behave exactly like DERIVE data sources in the “normal” case. Their behavior differs when value_new &lt; value_old, i.e. when the new value is smaller than the previous value. In this case, COUNTER data sources will assume the counter “wrapped around” and take this into account. The formula for wrap-around cases is:
+</p>
+
+<p>
+These data sources behave exactly like DERIVE data sources in the “normal” case. Their behavior differs when value_new &lt; value_old, i.e. when the new value is smaller than the previous value. In this case, COUNTER data sources will assume the counter “wrapped around” and take this into account. The formula for wrap-around cases is:
 </p>
 
 <p>
@@ -131,12 +142,16 @@ width = value_old &lt; 2**32 ? 32 : 64
 </p>
 
 <p>
-Please note that the rate of a COUNTER data source is never negative. If a counter is reset to zero, for example because an application was restarted, the wrap-around calculation may result in a huge rate. Thus setting a reasonable maximum value is essential when using COUNTER data sources. Because of this, COUNTER data sources are only recommended for counters that wrap-around often, for example 32 bit octet counters of a busy switch port. 
+Please note that the rate of a COUNTER data source is never negative. If a counter is reset to zero, for example because an application was restarted, the wrap-around calculation may result in a huge rate. Thus setting a reasonable maximum value is essential when using COUNTER data sources. Because of this, COUNTER data sources are only recommended for counters that wrap-around often, for example 32 bit octet counters of a busy switch port.
 </p>
+
 
 <p>
 ABSOLUTE
-    This is probably the most exotic type: It is intended for counters which are reset upon reading. In effect, the type is very similar to GAUGE except that the value is an (unsigned) integer and will be divided by the time since the last reading. This data source type is available since version 4.8 and has been added mainly for consistency with the data source types available in RRDtool.
+</p>
+
+<p>
+This is probably the most exotic type: It is intended for counters which are reset upon reading. In effect, the type is very similar to GAUGE except that the value is an (unsigned) integer and will be divided by the time since the last reading. This data source type is available since version 4.8 and has been added mainly for consistency with the data source types available in RRDtool.
 </p>
 </blockquote>
 <blockquote>
@@ -150,15 +165,22 @@ ABSOLUTE
 
 <p>
 GAUGE
-    GAUGE 意为计量，其值简单地原样存储。用于可增减的值，如：温度或费用支出。
 </p>
 
 <p>
+GAUGE 意为计量，其值简单地原样存储。用于可增减的值，如：温度或费用支出。
+</p>
+
+
+<p>
 DERIVE
-    DERIVE 意为导数，关注值的变动，如：导数。
-    这样的数据源通常为可计数的事件，如：邮件客户端启动后收到的邮件数。
-    相对于收件箱里的邮件总数，上次查看邮箱后新收到的邮件数量更值得关注。
-    该值可以根据以下公式转化为速率：
+</p>
+
+<p>
+DERIVE 意为导数，关注值的变动，即导数。
+这样的数据源通常为可计数的事件，如：邮件客户端启动后收到的邮件数。
+相对于收件箱里的邮件总数，上次查看邮箱后新收到的邮件数量更值得关注。
+该值可以根据以下公式转化为速率：
 </p>
 
 <p>
@@ -168,14 +190,18 @@ rate = (value_new - value_old) / (time_new - time_old)
 <p>
 如果 value_new 小于 value_old，得出的 rate 为负。
 如果设置最小值（min）为 0 ，这个数据点将被丢弃。
-对于很少溢出（达到最大值后回绕）的计数器推荐使用 DERIVE 数据源并设置最小值（min）为 0。
+对于很少溢出（即达到最大值后回绕）的计数器推荐使用 DERIVE 数据源并设置最小值（min）为 0。
 DERIVE 类型从 4.8 版本开始提供。
 </p>
 
+
 <p>
 COUNTER
-    COUNTER 意为计数器，”正常“情况下与 DERIVE 一样。
-    细微的差异在于当 value_new 小于 value_old 时，COUNTER 数据源类型假设计数器已经“回绕”，计算速率的公式：
+</p>
+
+<p>
+COUNTER 意为计数器，”正常“情况下与 DERIVE 一样。
+细微的差异在于当 value_new 小于 value_old 时，COUNTER 数据源类型假设计数器已经“回绕”，计算速率的公式：
 </p>
 
 <p>
@@ -190,10 +216,14 @@ COUNTER 数据源类型计算出的速率（rate）值不为负。
 因此，COUNTER 数据源仅推荐用于常常会回绕的计数器，例如，繁忙的交换机端口的 32 位字节计数器。
 </p>
 
+
 <p>
 ABSOLUTE
-    ABSOLUTE 意为绝对，可能是最特殊的类型：用于读取后会重置的计数器。
-    效果上，它和 GAUGE 类型非常相似，除了它的值是无符号整型，还要与上次读取至今的时间相除。
+</p>
+
+<p>
+ABSOLUTE 意为绝对，可能是最特殊的类型：用于读取后会重置的计数器。
+效果上，它和 GAUGE 类型非常相似，除了它的值是无符号整型，还要与上次读取至今的时间相除。
 </p>
 
 <p>
@@ -254,7 +284,7 @@ done
 </pre>
 
 <p>
-插件名称 <code>test_load</code> ，数据类型（数据集）为 <code>load</code> ，shortterm、midterm、longterm的值分别为 1、2、3。</p>
+插件名称 <code>test_load</code> ，数据类型（数据集）为 <code>load</code> ， <code>N</code> 代指当前时间，shortterm、midterm、longterm 的值分别为 1、2、3。</p>
 </div>
 </div>
 

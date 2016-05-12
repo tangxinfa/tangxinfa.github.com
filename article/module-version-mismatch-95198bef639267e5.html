@@ -144,6 +144,47 @@ lrwxrwxrwx 1 tangxinfa tangxinfa 0 3月   2 14:00 /proc/22387/exe -&gt; /usr/bin
 </li>
 </ul>
 
+
+<p>
+查看 pm2 与 node.js 的源代码进一步确认该问题：
+</p>
+
+<ul class="org-ul">
+<li>pm2 调用 cluster.fork 创建工作进程
+
+<p>
+引用自 pm2/lib/God/ClusterMode.js
+</p>
+<div class="org-src-container">
+
+<pre class="src src-js">cluster.fork({pm2_env: JSON.stringify(env_copy)})
+</pre>
+</div>
+</li>
+
+<li>cluster.fork 调用 child_process.fork 创建工作进程
+
+<p>
+引用自 node/lib/cluster.js
+</p>
+<div class="org-src-container">
+
+<pre class="src src-js"><span style="color: #b5bd68;">return</span> fork(cluster.settings.exec, cluster.settings.args, {
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> env: workerEnv,
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> silent: cluster.settings.silent,
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> execArgv: execArgv,
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> gid: cluster.settings.gid,
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> uid: cluster.settings.uid
+});
+</pre>
+</div>
+
+<p>
+根据 child_process.fork 的实现（见 node/lib/child_process.js），由于未传入 <code>execPath</code> 选项，会使用 <code>process.execPath</code> 的值，也就是会使用 pm2 后台进程的 node 可执行程序路径来创建工作进程。
+</p>
+</li>
+</ul>
+
 <p>
 应该可以通过指定不同的 $PM2_HOME 环境变量，跑多套 pm2，各个 pm2 使用不同版本的 Node.js，多个 cluster 模式的 pm2 应用也就会使用不同版本 Node.js。</p>
 

@@ -4,7 +4,7 @@
         <title>linux - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/linux.xml</link>
-        <lastBuildDate>Sat, 07 May 2016 07:12:34 GMT</lastBuildDate>
+        <lastBuildDate>Thu, 12 May 2016 09:29:27 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>linux - 看看俺 – KanKanAn.com</title>
@@ -14,6 +14,552 @@
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <generator>Feed for Node.js</generator>
         <category>技术</category>
+        <item>
+            <title><![CDATA[诊断 node.js 应用 CPU 占用过高的问题]]></title>
+            <link>/article/8bca65ad-node.js-5e947528-cpu-536075288fc79ad8768495ee9898.html</link>
+            <guid>/article/8bca65ad-node.js-5e947528-cpu-536075288fc79ad8768495ee9898.html</guid>
+            <pubDate>Thu, 12 May 2016 09:25:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+node.js 应用使用 pm2 进行管理，采用 cluster 模式，每台服务器运行 16 个 node.js 实例。
+</p>
+
+<p>
+应用的开销主要在网络上：
+</p>
+
+<p>
+平均每个 node.js 实例要维持来自嵌入式设备的约 3K TLS 长连接，平均每秒会有 30 个来自客户端的 HTTP 短连接。
+</p>
+
+<p>
+TLS 长连接上最多 45 秒会有一次心跳（发送 80 多字节，接收 400 多字节）。
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">系统信息</h2>
+<div class="outline-text-2" id="text-1">
+</div><div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1"><code>CPU</code></h3>
+<div class="outline-text-3" id="text-1-1">
+<ul class="org-ul">
+<li>逻辑 CPU 数：24 
+
+<pre class="example">
+# cat /proc/cpuinfo | grep name | cut -f2 -d: | uniq -c 
+     24  Intel(R) Xeon(R) CPU E5-2620 v2 @ 2.10GHz
+</pre>
+</li>
+
+<li>物理 CPU 数：2
+
+<pre class="example">
+# cat /proc/cpuinfo | grep 'physical id' | sort | uniq -c
+     12 physical id : 0
+     12 physical id : 1
+</pre>
+</li>
+
+<li>每个物理 CPU 的核数：6
+
+<pre class="example">
+# cat /proc/cpuinfo | grep "cpu cores" | uniq | awk -F: '{print $2}'
+ 6
+</pre>
+</li>
+
+<li>每个核超线程数：2
+
+<p>
+两个逻辑 CPU 具有相同的 <code>core id</code> 则超线程是打开的。
+</p>
+
+<pre class="example">
+# cat /proc/cpuinfo | grep -E "physical id|core id" | sed -e ':a;N;$!ba;s/\ncore id\s*/       core id /g' | sort | uniq -c
+      2 physical id : 0       core id : 0
+      2 physical id : 0       core id : 1
+      2 physical id : 0       core id : 2
+      2 physical id : 0       core id : 3
+      2 physical id : 0       core id : 4
+      2 physical id : 0       core id : 5
+      2 physical id : 1       core id : 0
+      2 physical id : 1       core id : 1
+      2 physical id : 1       core id : 2
+      2 physical id : 1       core id : 3
+      2 physical id : 1       core id : 4
+      2 physical id : 1       core id : 5
+</pre>
+</li>
+</ul>
+
+<p>
+参考：<a href="http://blog.sina.com.cn/s/blog_4a6151550100iowl.html">Linux CPU数量判断，通过/proc/cpuinfo._一沙一花_新浪博客</a>
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-1-2" class="outline-3">
+<h3 id="sec-1-2"><code>内存</code></h3>
+<div class="outline-text-3" id="text-1-2">
+<p>
+<code>64G</code> 内存， <code>37.8G</code> 空闲内存
+</p>
+
+<pre class="example">
+# cat /proc/meminfo
+MemTotal:       65916740 kB
+MemFree:        39663756 kB
+Buffers:          595424 kB
+Cached:          7627876 kB
+SwapCached:            0 kB
+Active:         17368112 kB
+Inactive:        6936088 kB
+Active(anon):   16002524 kB
+Inactive(anon):    80820 kB
+Active(file):    1365588 kB
+Inactive(file):  6855268 kB
+Unevictable:          32 kB
+Mlocked:              32 kB
+SwapTotal:      20971512 kB
+SwapFree:       20971512 kB
+Dirty:              1896 kB
+Writeback:             0 kB
+AnonPages:      16081968 kB
+Mapped:            19596 kB
+Shmem:              1624 kB
+Slab:            1087320 kB
+SReclaimable:     756368 kB
+SUnreclaim:       330952 kB
+KernelStack:        5272 kB
+PageTables:        64280 kB
+NFS_Unstable:          0 kB
+Bounce:                0 kB
+WritebackTmp:          0 kB
+CommitLimit:    53929880 kB
+Committed_AS:   17348828 kB
+VmallocTotal:   34359738367 kB
+VmallocUsed:      436016 kB
+VmallocChunk:   34324325464 kB
+HardwareCorrupted:     0 kB
+AnonHugePages:   2525184 kB
+HugePages_Total:       0
+HugePages_Free:        0
+HugePages_Rsvd:        0
+HugePages_Surp:        0
+Hugepagesize:       2048 kB
+DirectMap4k:        4096 kB
+DirectMap2M:     2076672 kB
+DirectMap1G:    65011712 kB
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">系统状态</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+<code>top</code>
+</p>
+<pre class="example">
+# top -n 1
+top - 13:05:48 up 144 days, 20:52,  2 users,  load average: 2.86, 2.46, 2.78
+Tasks: 476 total,  19 running, 457 sleeping,   0 stopped,   0 zombie
+Cpu(s): 22.7%us,  1.2%sy,  0.0%ni, 75.0%id,  0.0%wa,  0.0%hi,  1.1%si,  0.0%st
+Mem:  65916740k total, 26237540k used, 39679200k free,   595424k buffers
+Swap: 20971512k total,        0k used, 20971512k free,  7614508k cached
+
+   PID USER      PR  NI  VIRT  RES  SHR S %CPU %MEM    TIME+  COMMAND          
+191463 nobody    20   0 1884m 981m 9.8m R 83.3  1.5  12337:09 node /usr/local  
+192063 nobody    20   0 1905m 1.0g 9.8m R 73.6  1.6  12320:35 node /usr/local  
+194450 nobody    20   0 1842m 937m 9.8m R 62.0  1.5  12060:56 node /usr/local  
+191515 nobody    20   0 1911m 1.0g 9.8m R 60.1  1.6  12308:13 node /usr/local  
+190881 nobody    20   0 1862m 957m 9.8m R 52.3  1.5  12257:46 node /usr/local  
+195178 nobody    20   0 1795m 891m 9.8m R 52.3  1.4  11647:01 node /usr/local  
+193068 nobody    20   0 1873m 970m 9.8m R 50.4  1.5  12144:28 node /usr/local  
+194523 nobody    20   0 1805m 902m 9.8m R 50.4  1.4  11948:57 node /usr/local  
+190790 nobody    20   0 1857m 951m 9.8m R 48.4  1.5  12174:59 node /usr/local  
+191609 nobody    20   0 1847m 945m 9.8m R 48.4  1.5  12203:47 node /usr/local  
+192946 nobody    20   0 1898m 993m 9.8m R 48.4  1.5  12224:41 node /usr/local  
+193029 nobody    20   0 1827m 924m 9.8m R 48.4  1.4  12291:51 node /usr/local  
+195276 nobody    20   0 1786m 883m 9.8m R 48.4  1.4  11659:07 node /usr/local  
+196001 nobody    20   0 1885m 981m 9.8m R 48.4  1.5  11428:22 node /usr/local  
+193725 nobody    20   0 1884m 978m 9.8m R 46.5  1.5  12336:34 node /usr/local  
+ 80300 root      20   0  611m 454m 1152 R 44.6  0.7  26523:40 redis-server     
+195944 nobody    20   0 1815m 912m 9.8m R 44.6  1.4  11353:21 node /usr/local
+</pre>
+
+<p>
+<code>vmstat</code>
+</p>
+<pre class="example">
+# vmstat 1
+|----+---+------+----------+--------+---------+----+----+----+-------+--------+-------+----+----+----+----+----|
+|  r | b | swpd |     free |   buff |   cache | si | so | bi |    bo |     in |    cs | us | sy | id | wa | st |
+|----+---+------+----------+--------+---------+----+----+----+-------+--------+-------+----+----+----+----+----|
+| 17 | 0 |    0 | 39769884 | 595424 | 7523076 |  0 |  0 |  0 |    71 |      0 |     0 | 23 |  2 | 75 |  0 |  0 |
+|  9 | 0 |    0 | 39763800 | 595424 | 7528200 |  0 |  0 |  0 |  5188 | 108347 | 21186 | 53 |  5 | 41 |  0 |  0 |
+| 17 | 0 |    0 | 39758360 | 595424 | 7534084 |  0 |  0 |  0 |  5272 | 106375 | 24054 | 49 |  5 | 45 |  0 |  0 |
+| 15 | 0 |    0 | 39753912 | 595424 | 7538236 |  0 |  0 |  0 |  5252 | 107669 | 23522 | 50 |  5 | 44 |  0 |  0 |
+| 12 | 0 |    0 | 39747588 | 595424 | 7544612 |  0 |  0 |  0 |  5304 | 108452 | 24290 | 49 |  5 | 46 |  0 |  0 |
+| 15 | 0 |    0 | 39742744 | 595424 | 7548076 |  0 |  0 |  0 |  5200 | 106615 | 25614 | 47 |  5 | 48 |  0 |  0 |
+| 13 | 0 |    0 | 39738224 | 595424 | 7552712 |  0 |  0 |  0 |  5092 | 101642 | 25482 | 44 |  5 | 51 |  0 |  0 |
+|  9 | 0 |    0 | 39734116 | 595424 | 7559024 |  0 |  0 |  0 |  5156 |  98440 | 25393 | 42 |  5 | 53 |  0 |  0 |
+| 16 | 0 |    0 | 39729280 | 595424 | 7564076 |  0 |  0 |  0 |  5204 | 108933 | 23535 | 49 |  5 | 45 |  0 |  0 |
+| 18 | 0 |    0 | 39722832 | 595424 | 7568280 |  0 |  0 |  0 |  5276 | 111563 | 23965 | 51 |  5 | 44 |  0 |  0 |
+|----+---+------+----------+--------+---------+----+----+----+-------+--------+-------+----+----+----+----+----|
+</pre>
+
+<p>
+<code>sar</code>
+</p>
+<pre class="example">
+# sar -n TCP 1
+01:58:46 PM  active/s passive/s    iseg/s    oseg/s
+01:58:47 PM      3.09    875.26  32375.26  33619.59
+01:58:48 PM      0.00    575.25  27972.28  28961.39
+01:58:49 PM      0.00    879.59  31104.08  31933.67
+01:58:50 PM      1.02    743.88  30183.67  31516.33
+01:58:51 PM      0.00    793.94  31734.34  32761.62
+01:58:52 PM      0.00    571.88  28690.62  29415.62
+01:58:53 PM      1.02   1004.08  33157.14  33673.47
+01:58:54 PM      0.99    954.46  33315.84  34532.67
+01:58:55 PM      1.00    910.00  33562.00  34338.00
+01:58:56 PM      1.02    783.67  31754.08  32412.24
+</pre>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">应用状态</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+<code>ps</code>
+</p>
+<pre class="example">
+# ps waux | grep node
+nobody   190790 61.0  1.4 1902228 974408 ?      Rl   Apr20 12154:57 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+nobody   190881 61.4  1.4 1907188 980800 ?      Rl   Apr20 12237:31 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+nobody   191463 61.8  1.5 1929392 1005164 ?     Sl   Apr20 12317:05 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+nobody   191515 61.7  1.5 1957252 1030472 ?     Rl   Apr20 12287:48 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+nobody   191609 61.1  1.4 1891508 967896 ?      Rl   Apr20 12183:27 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+nobody   192063 61.7  1.5 1951056 1025216 ?     Rl   Apr20 12300:27 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+nobody   192946 61.3  1.5 1943880 1017796 ?     Rl   Apr20 12204:24 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+nobody   193029 61.6  1.4 1871180 946732 ?      Rl   Apr20 12271:35 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+nobody   193068 60.9  1.5 1918404 993536 ?      Rl   Apr20 12124:33 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+nobody   193725 61.8  1.5 1929488 1001552 ?     Rl   Apr20 12316:31 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+nobody   194450 60.5  1.4 1887224 960012 ?      Sl   Apr20 12040:16 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+nobody   194523 59.9  1.4 1848960 924596 ?      Rl   Apr20 11928:46 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+nobody   195178 58.4  1.3 1838980 913052 ?      Rl   Apr20 11627:32 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+nobody   195276 58.5  1.3 1829848 905212 ?      Rl   Apr20 11639:08 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+nobody   195944 56.9  1.4 1859316 933892 ?      Rl   Apr20 11333:25 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+nobody   196001 57.3  1.5 1930348 1004912 ?     Rl   Apr20 11408:17 node /usr/local/xxx.xxxxxxxx.com/src/index.js
+</pre>
+
+<p>
+<code>pm2</code>
+</p>
+<pre class="example">
+# pm2 desc xxx.xxxxxxxx.com | grep 'Loop delay'
+│ Loop delay │ 1.96ms │
+│ Loop delay │ 2.01ms │
+│ Loop delay │ 2.04ms │
+│ Loop delay │ 2.3ms  │
+│ Loop delay │ 1.76ms │
+│ Loop delay │ 1.97ms │
+│ Loop delay │ 2.12ms │
+│ Loop delay │ 1.98ms │
+│ Loop delay │ 2.16ms │
+│ Loop delay │ 1.98ms │
+│ Loop delay │ 2.07ms │
+│ Loop delay │ 1.88ms │
+│ Loop delay │ 2.61ms │
+│ Loop delay │ 1.84ms │
+│ Loop delay │ 1.84ms │
+│ Loop delay │ 1.88ms │
+</pre>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4">分析</h2>
+<div class="outline-text-2" id="text-4">
+</div><div id="outline-container-sec-4-1" class="outline-3">
+<h3 id="sec-4-1">系统负荷正常</h3>
+<div class="outline-text-3" id="text-4-1">
+<p>
+<code>top</code> 的 <code>load average</code> 值远小于 CPU 核数，系统的 CPU 使用率为 25%，还有足够的空闲 CPU 资源。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-4-2" class="outline-3">
+<h3 id="sec-4-2">node.js 的 CPU 占用过高</h3>
+<div class="outline-text-3" id="text-4-2">
+<ul class="org-ul">
+<li>运行和等待 CPU 时间片的进程数偏高
+
+<p>
+参见 <code>vmstat</code> 的 <code>r</code> 列
+</p>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>中断数偏多
+
+<p>
+参见 <code>vmstat</code> 的 <code>in</code> 列
+</p>
+
+<p>
+有可能是网络 I/O 数过多引起，参见 <code>sar</code> 的 <code>iseg/s</code> <code>oseg/s</code> 列。
+</p>
+
+<p>
+中断数虽多，但并非瓶颈，参见 <code>top</code> 的 <code>%hi</code> 和 <code>%si</code> 值。
+</p>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>上下文切换较多
+
+<p>
+参见 <code>vmstat</code> 的 <code>cs</code> 列
+</p>
+
+<p>
+上下文切换数远小于中断数，正常。
+</p>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>用户模式下 CPU 占用过高
+
+<p>
+超过 50%
+</p>
+
+<p>
+参见 <code>vmstat</code> 的 <code>us</code> 列
+</p>
+</li>
+
+<li>node.js 进程事件循环迟延小于 3ms
+
+<p>
+正常。应用目前还能够提供快速响应。
+</p>
+</li>
+
+<li>node.js 进程 CPU 占用过高
+
+<p>
+统计了一天平均占用 65%，高峰占用 85% 以上。
+</p>
+
+<p>
+参见 <code>ps</code> 输出
+</p>
+
+<p>
+应用本身是网络密集型，每 node.js 进程每秒钟处理 250 个请求，不存在 CPU 密集操作，这样高的 CPU 占用是不可接受的。
+</p>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-4-3" class="outline-3">
+<h3 id="sec-4-3">网络带宽占用正常</h3>
+<div class="outline-text-3" id="text-4-3">
+<ul class="org-ul">
+<li>对外的网卡
+
+<p>
+上行 27Mbps，下行 66Mbps
+</p>
+
+<p>
+主要是来自设备和客户端的流量。
+</p>
+</li>
+
+<li>对内的网卡
+
+<p>
+上行 18.7Mbps，下行 21.7Mbps
+</p>
+
+<p>
+主要是内部通信流量（redis）。
+</p>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-4-4" class="outline-3">
+<h3 id="sec-4-4">磁盘访问较少</h3>
+<div class="outline-text-3" id="text-4-4">
+<p>
+应用除了写少量日志外不访问磁盘。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-4-5" class="outline-3">
+<h3 id="sec-4-5">结论</h3>
+<div class="outline-text-3" id="text-4-5">
+<ul class="org-ul">
+<li>系统资源不存在瓶颈
+</li>
+
+<li>系统当前的运行状况良好
+</li>
+
+<li>node.js 应用的 CPU 占用偏高
+
+<p>
+需要对 node.js 应用进行性能分析及优化
+</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5">node.js 应用性能分析</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+node.js 从 4.4.0 版本开始内置了 profiler， <code>--prof</code> 命令选项运行应用会在当前目录生成性能日志文件。
+</p>
+
+<p>
+解读性能日志文件
+</p>
+<pre class="example">
+# node --prof-process isolate-0x1d1e1b0-v8-10041.log
+...
+[Summary]:
+   ticks  total  nonlib   name
+    348    7.3%    7.6%  JavaScript
+   4243   88.8%   92.4%  C++
+     63    1.3%    1.4%  GC
+    184    3.9%          Shared libraries
+      2    0.0%          Unaccounted
+...
+ [C++ entry points]:
+   ticks    cpp   total   name
+    494   19.4%   10.3%  v8::internal::Runtime_DateCurrentTime(int, v8::internal::Object**, v8::internal::Isolate*)
+...
+   ticks parent  name
+   1739   36.4%  syscall
+
+    586   12.3%  __lll_lock_wait
+    413   70.5%    v8::internal::Runtime_DateCurrentTime(int, v8::internal::Object**, v8::internal::Isolate*)
+    398   96.4%      LazyCompile: *now native date.js:197:17
+    305   76.6%        LazyCompile: *&lt;anonymous&gt; /usr/local/xxxxx.xxxxxxxx.com/src/models.js:43:30
+...
+</pre>
+
+<p>
+最大头的时间花在系统调用上，通过 strace 工具统计 node.js 进程 10 秒钟的系统调用计数
+</p>
+<pre class="example">
+12259 write
+10501 read
+ 9261 epoll_ctl
+ 1564 epoll_wait
+  503 close
+  502 recvmsg
+  502 getsockopt
+  502 getsockname
+  103 futex
+   23 stat
+    6 writev
+    1 getpeername
+</pre>
+
+<p>
+系统调用主要进行网络 I/O ，如：与设备通信（TLS 长连接）、与客户端通信（HTTP 短连接）、与Redis通信（TCP 长连接）。
+</p>
+
+<p>
+其它调用出现次数最多的是获取当前时间戳的函数 models.js:43：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-js"><span style="color: #b5bd68;">function</span> <span style="color: #de935f;">getTimestamp</span> () {
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> Math.floor(Date.now() / 1000);
+}
+</pre>
+</div>
+
+<p>
+它会在很多地方被用到，如：当从 redis 收到一条订阅的消息时，会在消息中添加当前时间戳，方便后面处理。
+</p>
+
+<p>
+可以通过缓存减少这部分开销：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-js"><span style="color: #b5bd68;">function</span> <span style="color: #de935f;">getTimestamp</span> () {
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (! getTimestamp._timestamp) {
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   getTimestamp._timestamp = Math.floor(Date.now() / 1000);
+
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   setInterval(<span style="color: #b5bd68;">function</span> () {
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   getTimestamp._timestamp = Math.floor(Date.now() / 1000);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   }, 1000).unref();
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   }
+
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> getTimestamp._timestamp;
+}
+getTimestamp._timestamp = 0;
+</pre>
+</div>
+
+<p>
+上面的代码，虽然调用次数相对较多，但并不耗 CPU，经过上面的优化后，总系统 CPU 占用只是略有减少。
+</p>
+
+<p>
+关键的系统调用消耗难以再优化，在我们的应用中，node.js 单实例处理能力的上限：4K TLS 长连接（平均 CPU 占用 85%）。
+</p>
+
+<p>
+最终决定，增加服务器上 node.js 进程的数量，node.js 最大连接数限制（ <a href="https://nodejs.org/api/net.html#net_server_maxconnections">net.maxConnections</a> ）进一步减少。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-6" class="outline-2">
+<h2 id="sec-6">参考</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+<a href="http://www.ruanyifeng.com/blog/2011/07/linux_load_average_explained.html">理解Linux系统负荷 - 阮一峰的网络日志</a>
+</p>
+
+<p>
+<a href="http://www.blogjava.net/sliverfancy/archive/2013/04/17/397947.html">Linux-Load Average解析(转) - java技术研究 - BlogJava</a>   
+</p>
+
+<p>
+<a href="http://www.trueeyu.com/?p=1749">linux系统性能监控与优化（2）–cpu | 小鳄的笔记本</a>
+</p>
+
+<p>
+<a href="https://nodejs.org/en/docs/guides/simple-profiling/">Easy profiling for Node.js Applications | Node.js</a></p>
+</div>
+</div>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[collectd exec 插件使用进阶]]></title>
             <link>/article/collectd-exec-63d24ef64f7f75288fdb9636.html</link>
@@ -120,7 +666,8 @@ PUTVAL alice/interface/if_octets-eth0 interval=10 1180647081:421465:479194
 </p>
 
 <p>
-如某个上报的统计指标在网页上没有对应的图表产生，则很可能是上报的值与类型不符，我们的机器上运营人员改动了 types.db 中 memory 类型，导致上报失败：
+如某个上报的统计指标在网页上没有对应的图表产生，请检查 collectd 服务器与客户机上 types.db，数据集必须定义且一致，上报的值必须符合数据集定义。
+服务器或客户端安装的 collectd 可能版本较低，附带的 types.db 中缺少第三方插件要求的数据集定义，运营人员改动 types.db 中 memory 类型也会导致上报失败：
 </p>
 <pre class="example">
 # memory         value:GAUGE:0:281474976710656
@@ -401,7 +948,7 @@ debug1: Exit status -1
 </p>
 <div class="org-src-container">
 
-<pre class="src src-sh">ssh -o <span style="color: #ffcc66;">PreferredAuthentications</span>=password tangxinfa@xxxx.xxxxxx.xxx
+<pre class="src src-sh">ssh -o <span style="color: #f0c674;">PreferredAuthentications</span>=password tangxinfa@xxxx.xxxxxx.xxx
 </pre>
 </div>
 
@@ -665,7 +1212,7 @@ sudo systemctl start collectd
 <div class="outline-text-3" id="text-2-3">
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #cc99cc;">cd</span> /usr/share/nginx/html/
+<pre class="src src-sh"><span style="color: #b294bb;">cd</span> /usr/share/nginx/html/
 sudo git clone https://github.com/pommi/CGP.git
 </pre>
 </div>
@@ -741,15 +1288,15 @@ LoadPlugin exec
 </p>
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #999999; font-style: italic;">#</span><span style="color: #999999; font-style: italic;">!/bin/</span><span style="color: #99cc99;">bash</span>
+<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/</span><span style="color: #b5bd68;">bash</span>
 
-<span style="color: #ffcc66;">HOSTNAME</span>=<span style="color: #66cccc;">"${COLLECTD_HOSTNAME:-localhost}"</span>
-<span style="color: #ffcc66;">INTERVAL</span>=<span style="color: #66cccc;">"${COLLECTD_INTERVAL:-60}"</span>
+<span style="color: #f0c674;">HOSTNAME</span>=<span style="color: #8abeb7;">"${COLLECTD_HOSTNAME:-localhost}"</span>
+<span style="color: #f0c674;">INTERVAL</span>=<span style="color: #8abeb7;">"${COLLECTD_INTERVAL:-60}"</span>
 
-<span style="color: #99cc99;">while</span> sleep <span style="color: #66cccc;">"$INTERVAL"</span>; <span style="color: #99cc99;">do</span>
-<span style="color: #cccccc; background-color: #515151;"> </span> <span style="color: #ffcc66;">VALUE</span>=$(<span style="color: #cc99cc;">echo</span> -n <span style="color: #cc99cc;">`cat /sys/class/power_supply/BAT0/capacity`</span>)
-<span style="color: #cccccc; background-color: #515151;"> </span> <span style="color: #cc99cc;">echo</span> <span style="color: #66cccc;">"PUTVAL \"$HOSTNAME/power/capacity\" interval=$INTERVAL N:$VALUE"</span>
-<span style="color: #99cc99;">done</span>
+<span style="color: #b5bd68;">while</span> sleep <span style="color: #8abeb7;">"$INTERVAL"</span>; <span style="color: #b5bd68;">do</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> <span style="color: #f0c674;">VALUE</span>=$(<span style="color: #b294bb;">echo</span> -n <span style="color: #b294bb;">`cat /sys/class/power_supply/BAT0/capacity`</span>)
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"PUTVAL \"$HOSTNAME/power/capacity\" interval=$INTERVAL N:$VALUE"</span>
+<span style="color: #b5bd68;">done</span>
 </pre>
 </div>
 
@@ -953,8 +1500,8 @@ Escape character is '^]'.
 </p>
 <div class="org-src-container">
 
-<pre class="src src-python">269  <span style="color: #99cc99;">def</span> <span style="color: #f99157;">__start_tls</span>(<span style="color: #99cc99;">self</span>, imapobj):
-270          <span style="color: #99cc99;">if</span> <span style="color: #66cccc;">'STARTTLS'</span> <span style="color: #99cc99;">in</span> imapobj.capabilities <span style="color: #99cc99;">and</span> <span style="color: #99cc99;">not</span> <span style="color: #99cc99;">self</span>.usessl:
+<pre class="src src-python">269  <span style="color: #b5bd68;">def</span> <span style="color: #de935f;">__start_tls</span>(<span style="color: #b5bd68;">self</span>, imapobj):
+270          <span style="color: #b5bd68;">if</span> <span style="color: #8abeb7;">'STARTTLS'</span> <span style="color: #b5bd68;">in</span> imapobj.capabilities <span style="color: #b5bd68;">and</span> <span style="color: #b5bd68;">not</span> <span style="color: #b5bd68;">self</span>.usessl:
 </pre>
 </div>
 
@@ -963,8 +1510,8 @@ Escape character is '^]'.
 </p>
 <div class="org-src-container">
 
-<pre class="src src-python">269  <span style="color: #99cc99;">def</span> <span style="color: #f99157;">__start_tls</span>(<span style="color: #99cc99;">self</span>, imapobj):
-270          <span style="color: #99cc99;">if</span> <span style="color: #66cccc;">'STARTTLS'</span> <span style="color: #99cc99;">in</span> imapobj.capabilities <span style="color: #99cc99;">and</span> <span style="color: #99cc99;">not</span> <span style="color: #99cc99;">self</span>.usessl <span style="color: #99cc99;">and</span> <span style="color: #99cc99;">self</span>.<span style="text-decoration: underline;">repos.account.name != </span><span style="color: #66cccc; text-decoration: underline;">'xxxxxx'</span><span style="text-decoration: underline;">:</span>
+<pre class="src src-python">269  <span style="color: #b5bd68;">def</span> <span style="color: #de935f;">__start_tls</span>(<span style="color: #b5bd68;">self</span>, imapobj):
+270          <span style="color: #b5bd68;">if</span> <span style="color: #8abeb7;">'STARTTLS'</span> <span style="color: #b5bd68;">in</span> imapobj.capabilities <span style="color: #b5bd68;">and</span> <span style="color: #b5bd68;">not</span> <span style="color: #b5bd68;">self</span>.usessl <span style="color: #b5bd68;">and</span> <span style="color: #b5bd68;">self</span>.<span style="text-decoration: underline;">repos.account.name != </span><span style="color: #8abeb7; text-decoration: underline;">'xxxxxx'</span><span style="text-decoration: underline;">:</span>
 </pre>
 </div>
 
@@ -1034,7 +1581,7 @@ curl: (60) SSL certificate problem: self signed certificate
 </p>
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #cc99cc;">echo</span> | openssl s_client -connect imap.xxxxxx.com:993 2&gt;&amp;1 | sed -ne <span style="color: #66cccc;">'/-BEGIN CER</span><span style="color: #66cccc; text-decoration: underline;">TIFICATE-/,/-END CERTIFICATE-/p'</span><span style="text-decoration: underline;"> &gt; ~/imap.xxxxxx.com.pem</span>
+<pre class="src src-sh"><span style="color: #b294bb;">echo</span> | openssl s_client -connect imap.xxxxxx.com:993 2&gt;&amp;1 | sed -ne <span style="color: #8abeb7;">'/-BEGIN CER</span><span style="color: #8abeb7; text-decoration: underline;">TIFICATE-/,/-END CERTIFICATE-/p'</span><span style="text-decoration: underline;"> &gt; ~/imap.xxxxxx.com.pem</span>
 </pre>
 </div>
 
@@ -1220,7 +1767,7 @@ ntpdate s1a.time.edu.cn
 </p>
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #999999; font-style: italic;">#</span><span style="color: #999999; font-style: italic;">!/bin/</span><span style="color: #99cc99;">bash</span>
+<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/</span><span style="color: #b5bd68;">bash</span>
 
 /usr/sbin/ntpdate s1a.time.edu.cn &gt;/dev/null 2&gt;&amp;1
 </pre>
@@ -1260,57 +1807,57 @@ ntpd 如果时间偏差过大（默认 1000 秒钟），ntpd 会输出错误到�
 </p>
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #999999; font-style: italic;">#</span><span style="color: #999999; font-style: italic;">! /bin/</span><span style="color: #99cc99;">sh</span>
-<span style="color: #999999; font-style: italic;">#</span>
-<span style="color: #999999; font-style: italic;"># </span><span style="color: #999999; font-style: italic;">System-V init script for the openntp daemon</span>
-<span style="color: #999999; font-style: italic;">#</span>
+<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">! /bin/</span><span style="color: #b5bd68;">sh</span>
+<span style="color: #969896; font-style: italic;">#</span>
+<span style="color: #969896; font-style: italic;"># </span><span style="color: #969896; font-style: italic;">System-V init script for the openntp daemon</span>
+<span style="color: #969896; font-style: italic;">#</span>
 
-<span style="color: #ffcc66;">PATH</span>=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-<span style="color: #ffcc66;">DESC</span>=<span style="color: #66cccc;">"network time protocol daemon"</span>
-<span style="color: #ffcc66;">NAME</span>=ntpd
-<span style="color: #ffcc66;">DAEMON</span>=/usr/sbin/$<span style="color: #ffcc66;">NAME</span>
-<span style="color: #ffcc66;">NTPDATE_BIN</span>=/usr/bin/ntpdate
+<span style="color: #f0c674;">PATH</span>=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+<span style="color: #f0c674;">DESC</span>=<span style="color: #8abeb7;">"network time protocol daemon"</span>
+<span style="color: #f0c674;">NAME</span>=ntpd
+<span style="color: #f0c674;">DAEMON</span>=/usr/sbin/$<span style="color: #f0c674;">NAME</span>
+<span style="color: #f0c674;">NTPDATE_BIN</span>=/usr/bin/ntpdate
 
-<span style="color: #999999; font-style: italic;"># </span><span style="color: #999999; font-style: italic;">Gracefully exit if the package has been removed.</span>
-<span style="color: #cc99cc;">test</span> -x $<span style="color: #ffcc66;">DAEMON</span> || <span style="color: #99cc99;">exit</span> 0
+<span style="color: #969896; font-style: italic;"># </span><span style="color: #969896; font-style: italic;">Gracefully exit if the package has been removed.</span>
+<span style="color: #b294bb;">test</span> -x $<span style="color: #f0c674;">DAEMON</span> || <span style="color: #b5bd68;">exit</span> 0
 
-<span style="color: #999999; font-style: italic;"># </span><span style="color: #999999; font-style: italic;">Read config file if it is present.</span>
-<span style="color: #99cc99;">if</span> [ -r /etc/default/$<span style="color: #ffcc66;">NAME</span> ]
-<span style="color: #99cc99;">then</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cc99cc;">.</span> /etc/default/$<span style="color: #ffcc66;">NAME</span>
-<span style="color: #99cc99;">fi</span>
+<span style="color: #969896; font-style: italic;"># </span><span style="color: #969896; font-style: italic;">Read config file if it is present.</span>
+<span style="color: #b5bd68;">if</span> [ -r /etc/default/$<span style="color: #f0c674;">NAME</span> ]
+<span style="color: #b5bd68;">then</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b294bb;">.</span> /etc/default/$<span style="color: #f0c674;">NAME</span>
+<span style="color: #b5bd68;">fi</span>
 
-<span style="color: #99cc99;">case</span> <span style="color: #66cccc;">"$1"</span><span style="color: #99cc99;"> in</span>
-<span style="color: #cccccc; background-color: #515151;"> </span> start)
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> [ -x $<span style="color: #ffcc66;">NTPDATE_BIN</span> ] ; <span style="color: #99cc99;">then</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cc99cc;">echo</span> -n <span style="color: #66cccc;">"Getting initial time via ntp"</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   $<span style="color: #ffcc66;">NTPDATE_BIN</span> $<span style="color: #ffcc66;">NTPDATE_OPTS</span> $<span style="color: #ffcc66;">NTPSERVERS</span> &gt; /dev/null 2&gt;&amp;1
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cc99cc;">echo</span> <span style="color: #66cccc;">"."</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">fi</span>
+<span style="color: #b5bd68;">case</span> <span style="color: #8abeb7;">"$1"</span><span style="color: #b5bd68;"> in</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> start)
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> [ -x $<span style="color: #f0c674;">NTPDATE_BIN</span> ] ; <span style="color: #b5bd68;">then</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b294bb;">echo</span> -n <span style="color: #8abeb7;">"Getting initial time via ntp"</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   $<span style="color: #f0c674;">NTPDATE_BIN</span> $<span style="color: #f0c674;">NTPDATE_OPTS</span> $<span style="color: #f0c674;">NTPSERVERS</span> &gt; /dev/null 2&gt;&amp;1
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"."</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">fi</span>
 
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cc99cc;">echo</span> -n <span style="color: #66cccc;">"Starting $DESC: $NAME"</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   start-stop-daemon -S -q -x $<span style="color: #ffcc66;">DAEMON</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cc99cc;">echo</span> <span style="color: #66cccc;">"."</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   ;;
-<span style="color: #cccccc; background-color: #515151;"> </span> stop) <span style="color: #cc99cc;">echo</span> -n <span style="color: #66cccc;">"Stopping $DESC: $NAME"</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   start-stop-daemon -K -q -n $<span style="color: #ffcc66;">NAME</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cc99cc;">echo</span> <span style="color: #66cccc;">"."</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   ;;
-<span style="color: #cccccc; background-color: #515151;"> </span> reload|force-reload) <span style="color: #cc99cc;">echo</span> -n <span style="color: #66cccc;">"Reloading $DESC configuration..."</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   start-stop-daemon -K -q -n $<span style="color: #ffcc66;">NAME</span> -s 1
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cc99cc;">echo</span> <span style="color: #66cccc;">"done."</span>
-<span style="color: #cccccc; background-color: #515151;"> </span> ;;
-<span style="color: #cccccc; background-color: #515151;"> </span> restart) <span style="color: #cc99cc;">echo</span> <span style="color: #66cccc;">"Restarting $DESC: $NAME"</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   $<span style="color: #ffcc66;">0</span> stop
-<span style="color: #cccccc; background-color: #515151;"> </span>   sleep 1
-<span style="color: #cccccc; background-color: #515151;"> </span>   $<span style="color: #ffcc66;">0</span> start
-<span style="color: #cccccc; background-color: #515151;"> </span>   ;;
-<span style="color: #cccccc; background-color: #515151;"> </span> *) <span style="color: #cc99cc;">echo</span> <span style="color: #66cccc;">"Usage: $SCRIPTNAME {start|stop|restart|reload|force-reload}"</span> &gt;&amp;2
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">exit</span> 1
-<span style="color: #cccccc; background-color: #515151;"> </span>   ;;
-<span style="color: #99cc99;">esac</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b294bb;">echo</span> -n <span style="color: #8abeb7;">"Starting $DESC: $NAME"</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   start-stop-daemon -S -q -x $<span style="color: #f0c674;">DAEMON</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"."</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   ;;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> stop) <span style="color: #b294bb;">echo</span> -n <span style="color: #8abeb7;">"Stopping $DESC: $NAME"</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   start-stop-daemon -K -q -n $<span style="color: #f0c674;">NAME</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"."</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   ;;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> reload|force-reload) <span style="color: #b294bb;">echo</span> -n <span style="color: #8abeb7;">"Reloading $DESC configuration..."</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   start-stop-daemon -K -q -n $<span style="color: #f0c674;">NAME</span> -s 1
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"done."</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> ;;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> restart) <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"Restarting $DESC: $NAME"</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   $<span style="color: #f0c674;">0</span> stop
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   sleep 1
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   $<span style="color: #f0c674;">0</span> start
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   ;;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> *) <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"Usage: $SCRIPTNAME {start|stop|restart|reload|force-reload}"</span> &gt;&amp;2
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">exit</span> 1
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   ;;
+<span style="color: #b5bd68;">esac</span>
 
-<span style="color: #99cc99;">exit</span> 0
+<span style="color: #b5bd68;">exit</span> 0
 </pre>
 </div>
 
@@ -1320,7 +1867,7 @@ ntpd 如果时间偏差过大（默认 1000 秒钟），ntpd 会输出错误到�
 
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #ffcc66;">NTPDATE_OPTS</span>=<span style="color: #66cccc;">"-t 5"</span>
+<pre class="src src-sh"><span style="color: #f0c674;">NTPDATE_OPTS</span>=<span style="color: #8abeb7;">"-t 5"</span>
 </pre>
 </div>
 
@@ -1496,98 +2043,6 @@ tar xJvf node-v4.3.1-linux-x64.tar.xz --no-same-owner --exclude CHANGELOG.md --e
 ]]></content:encoded>
         </item>
         <item>
-            <title><![CDATA[CentOS 6.4 上编译安装 gcc 5.2.0]]></title>
-            <link>/article/centos-6.4-4e0a7f168bd15b8988c5-gcc-5.2.0.html</link>
-            <guid>/article/centos-6.4-4e0a7f168bd15b8988c5-gcc-5.2.0.html</guid>
-            <pubDate>Fri, 22 Jan 2016 13:12:00 GMT</pubDate>
-            <content:encoded><![CDATA[<p>
-node.js 4.x 的第三方扩展编译时要求 gcc 版本为 4.8，但是 CentOS 6.4 仓库里的版本为 4.4.7，
-在生产环境从第三方仓库里安装最新版 gcc 又不放心，还是自已从源代码编译安装吧。
-</p>
-
-<ul class="org-ul">
-<li>下载 gcc 源代码
-
-<div class="org-src-container">
-
-<pre class="src src-sh">wget http://mirror.lzu.edu.cn/gnu/gcc/gcc-5.2.0/gcc-5.2.0.tar.bz2
-tar xjvf gcc-5.2.0.tar.bz2
-<span style="color: #cc99cc;">cd</span> gcc-5.2.0
-</pre>
-</div>
-
-<p>
-官方的下载地址为 <a href="ftp://ftp.gnu.org/gnu/gcc/">ftp://ftp.gnu.org/gnu/gcc/</a> ，使用国内镜像 <a href="http://mirror.lzu.edu.cn/gnu/gcc">http://mirror.lzu.edu.cn/gnu/gcc</a> 快很多。
-</p>
-</li>
-
-<li>安装依赖的包
-
-<div class="org-src-container">
-
-<pre class="src src-sh">yum install gmp-devel mpfr-devel libmpc-devel
-</pre>
-</div>
-
-<p>
-参考自 INSTALL 目录下的文档。
-</p>
-</li>
-
-<li>编译安装
-
-<div class="org-src-container">
-
-<pre class="src src-sh">./configure --prefix=/opt/gcc-5.2.0 --disable-multilib &amp;&amp;<span style="color: #66cccc;">\</span>
-make &amp;&amp;<span style="color: #66cccc;">\</span>
-make -k check &amp;&amp;<span style="color: #66cccc;">\</span>
-make install
-</pre>
-</div>
-
-<p>
-<code>--disable-multilib</code> 只编译 64 位。
-</p>
-
-<p>
-编译时间会耗时几个小时，这段时间最好去干点别的。
-</p>
-</li>
-
-<li>切换gcc版本
-
-<div class="org-src-container">
-
-<pre class="src src-sh"><span style="color: #cc99cc;">export</span> <span style="color: #ffcc66;">PATH</span>=/opt/gcc-5.2.0/bin:$<span style="color: #ffcc66;">PATH</span>
-</pre>
-</div>
-
-<p>
-或
-</p>
-
-<div class="org-src-container">
-
-<pre class="src src-sh"><span style="color: #cc99cc;">export</span> <span style="color: #ffcc66;">CC</span>=/opt/gcc-5.2.0/bin/gcc
-<span style="color: #cc99cc;">export</span> <span style="color: #ffcc66;">CPP</span>=/opt/gcc-5.2.0/bin/cpp
-<span style="color: #cc99cc;">export</span> <span style="color: #ffcc66;">CXX</span>=/opt/gcc-5.2.0/bin/c++
-</pre>
-</div>
-</li>
-
-<li>参考
-
-<p>
-<a href="http://superuser.com/questions/381160/how-to-install-gcc-4-7-x-4-8-x-on-centos">yum - How to Install gcc 4.7.x/4.8.x on CentOS - Super User</a>
-</p>
-
-<p>
-<a href="https://wiki.mikejung.biz/Gcc_CentOS">Gcc CentOS - How to compile gcc-4.8.2 on CentOS 6.6</a></p>
-</li>
-</ul>
-]]></content:encoded>
-        </item>
-        <item>
             <title><![CDATA[CentOS 6.4 上安装 ruby 1.9.3]]></title>
             <link>/article/centos-6.4-4e0a5b8988c5-ruby-1.9.3.html</link>
             <guid>/article/centos-6.4-4e0a5b8988c5-ruby-1.9.3.html</guid>
@@ -1675,6 +2130,98 @@ gem sources -a https://ruby.taobao.org/
 
 <p>
 <a href="http://www.jb51.net/article/49079.htm">淘宝网提供的国内RubyGems镜像简介和使用方法_ruby专题_脚本之家</a></p>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[CentOS 6.4 上编译安装 gcc 5.2.0]]></title>
+            <link>/article/centos-6.4-4e0a7f168bd15b8988c5-gcc-5.2.0.html</link>
+            <guid>/article/centos-6.4-4e0a7f168bd15b8988c5-gcc-5.2.0.html</guid>
+            <pubDate>Fri, 22 Jan 2016 13:12:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+node.js 4.x 的第三方扩展编译时要求 gcc 版本为 4.8，但是 CentOS 6.4 仓库里的版本为 4.4.7，
+在生产环境从第三方仓库里安装最新版 gcc 又不放心，还是自已从源代码编译安装吧。
+</p>
+
+<ul class="org-ul">
+<li>下载 gcc 源代码
+
+<div class="org-src-container">
+
+<pre class="src src-sh">wget http://mirror.lzu.edu.cn/gnu/gcc/gcc-5.2.0/gcc-5.2.0.tar.bz2
+tar xjvf gcc-5.2.0.tar.bz2
+<span style="color: #b294bb;">cd</span> gcc-5.2.0
+</pre>
+</div>
+
+<p>
+官方的下载地址为 <a href="ftp://ftp.gnu.org/gnu/gcc/">ftp://ftp.gnu.org/gnu/gcc/</a> ，使用国内镜像 <a href="http://mirror.lzu.edu.cn/gnu/gcc">http://mirror.lzu.edu.cn/gnu/gcc</a> 快很多。
+</p>
+</li>
+
+<li>安装依赖的包
+
+<div class="org-src-container">
+
+<pre class="src src-sh">yum install gmp-devel mpfr-devel libmpc-devel
+</pre>
+</div>
+
+<p>
+参考自 INSTALL 目录下的文档。
+</p>
+</li>
+
+<li>编译安装
+
+<div class="org-src-container">
+
+<pre class="src src-sh">./configure --prefix=/opt/gcc-5.2.0 --disable-multilib &amp;&amp;<span style="color: #8abeb7;">\</span>
+make &amp;&amp;<span style="color: #8abeb7;">\</span>
+make -k check &amp;&amp;<span style="color: #8abeb7;">\</span>
+make install
+</pre>
+</div>
+
+<p>
+<code>--disable-multilib</code> 只编译 64 位。
+</p>
+
+<p>
+编译时间会耗时几个小时，这段时间最好去干点别的。
+</p>
+</li>
+
+<li>切换gcc版本
+
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #b294bb;">export</span> <span style="color: #f0c674;">PATH</span>=/opt/gcc-5.2.0/bin:$<span style="color: #f0c674;">PATH</span>
+</pre>
+</div>
+
+<p>
+或
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #b294bb;">export</span> <span style="color: #f0c674;">CC</span>=/opt/gcc-5.2.0/bin/gcc
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">CPP</span>=/opt/gcc-5.2.0/bin/cpp
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">CXX</span>=/opt/gcc-5.2.0/bin/c++
+</pre>
+</div>
+</li>
+
+<li>参考
+
+<p>
+<a href="http://superuser.com/questions/381160/how-to-install-gcc-4-7-x-4-8-x-on-centos">yum - How to Install gcc 4.7.x/4.8.x on CentOS - Super User</a>
+</p>
+
+<p>
+<a href="https://wiki.mikejung.biz/Gcc_CentOS">Gcc CentOS - How to compile gcc-4.8.2 on CentOS 6.6</a></p>
 </li>
 </ul>
 ]]></content:encoded>
@@ -1864,37 +2411,37 @@ passwd: can't update password file /etc/passwd
 
 <div class="org-src-container">
 
-<pre class="src src-c"><span style="color: #cc99cc;">#include</span> <span style="color: #66cccc;">&lt;unistd.h&gt;</span>
-<span style="color: #cc99cc;">#include</span> <span style="color: #66cccc;">&lt;sys/types.h&gt;</span>
-<span style="color: #cc99cc;">#include</span> <span style="color: #66cccc;">&lt;netinet/in.h&gt;</span>
-<span style="color: #cc99cc;">#include</span> <span style="color: #66cccc;">&lt;arpa/inet.h&gt;</span>
-<span style="color: #cc99cc;">#include</span> <span style="color: #66cccc;">&lt;arpa/nameser.h&gt;</span>
-<span style="color: #cc99cc;">#include</span> <span style="color: #66cccc;">&lt;resolv.h&gt;</span>
+<pre class="src src-c"><span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;unistd.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;sys/types.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;netinet/in.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;arpa/inet.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;arpa/nameser.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;resolv.h&gt;</span>
 
-<span style="color: #6699cc;">int</span> <span style="color: #f99157;">main</span>(<span style="color: #6699cc;">int</span> <span style="color: #ffcc66;">argc</span>, <span style="color: #6699cc;">char</span> *<span style="color: #ffcc66;">argv</span>[])
+<span style="color: #81a2be;">int</span> <span style="color: #de935f;">main</span>(<span style="color: #81a2be;">int</span> <span style="color: #f0c674;">argc</span>, <span style="color: #81a2be;">char</span> *<span style="color: #f0c674;">argv</span>[])
 {
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">struct</span> <span style="color: #6699cc;">__res_state</span> <span style="color: #ffcc66;">res</span>;
-<span style="color: #cccccc; background-color: #515151;"> </span>   res.options &amp;= ~ RES_INIT;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">struct</span> <span style="color: #81a2be;">__res_state</span> <span style="color: #f0c674;">res</span>;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   res.options &amp;= ~ RES_INIT;
 
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #6699cc;">int</span> <span style="color: #ffcc66;">err</span> = res_ninit(&amp;res);
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (err) {
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   fprintf(stderr, <span style="color: #66cccc;">"res_init error: %d\n"</span>, err);
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> err;
-<span style="color: #cccccc; background-color: #515151;"> </span>   }
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">err</span> = res_ninit(&amp;res);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   fprintf(stderr, <span style="color: #8abeb7;">"res_init error: %d\n"</span>, err);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> err;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   }
 
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #6699cc;">char</span> <span style="color: #ffcc66;">ip</span>[16];
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">for</span>(<span style="color: #6699cc;">int</span> <span style="color: #ffcc66;">i</span> = 0 ; i &lt; res.nscount; ++i) {
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   ip[0] = <span style="color: #66cccc;">'\0'</span>;
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (<span style="color: #6699cc;">!</span> inet_ntop(AF_INET, &amp;res.nsaddr_list[i].sin_addr, ip, <span style="color: #99cc99;">sizeof</span>(ip))) <span style="text-decoration: underline;">{</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   perror(<span style="color: #66cccc;">"inet_ntop"</span>);
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">continue</span>;
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   printf(<span style="color: #66cccc;">"ip: %s\n"</span>, ip);
-<span style="color: #cccccc; background-color: #515151;"> </span>   }
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">char</span> <span style="color: #f0c674;">ip</span>[16];
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">for</span>(<span style="color: #81a2be;">int</span> <span style="color: #f0c674;">i</span> = 0 ; i &lt; res.nscount; ++i) {
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   ip[0] = <span style="color: #8abeb7;">'\0'</span>;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (<span style="color: #81a2be;">!</span> inet_ntop(AF_INET, &amp;res.nsaddr_list[i].sin_addr, ip, <span style="color: #b5bd68;">sizeof</span>(ip))) <span style="text-decoration: underline;">{</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   perror(<span style="color: #8abeb7;">"inet_ntop"</span>);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">continue</span>;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   }
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   printf(<span style="color: #8abeb7;">"ip: %s\n"</span>, ip);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   }
 
-<span style="color: #cccccc; background-color: #515151;"> </span>   res_nclose(&amp;res);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   res_nclose(&amp;res);
 
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">return</span> 0;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> 0;
 }
 </pre>
 </div>
@@ -2427,7 +2974,7 @@ linux下的 <code>passwd</code> 命令是交互式运行的（密码需要由用
 
 <div class="org-src-container">
 
-<pre class="src src-sh">(<span style="color: #cc99cc;">echo</span> <span style="color: #66cccc;">'123456'</span>; sleep 1; <span style="color: #cc99cc;">echo</span> <span style="color: #66cccc;">'123456'</span>) | passwd <span style="color: #66cccc;">'root'</span> &gt; /dev/null
+<pre class="src src-sh">(<span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">'123456'</span>; sleep 1; <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">'123456'</span>) | passwd <span style="color: #8abeb7;">'root'</span> &gt; /dev/null
 </pre>
 </div>
 
@@ -2639,7 +3186,7 @@ parted /dev/md0
 
 <pre class="src src-sh">wget https://github.com/facebook/flashcache/archive/stable_v3.1.3.zip -O flashca<span style="text-decoration: underline;">che_stable_v3.1.3.zip</span>
 unzip flashcache_stable_v3.1.3.zip
-<span style="color: #cc99cc;">cd</span> flashcache-stable_v3.1.3
+<span style="color: #b294bb;">cd</span> flashcache-stable_v3.1.3
 make
 make install
 modprobe flashcache
@@ -2923,7 +3470,7 @@ dmsetup remove cachedev
 
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo date --rfc-2822 -s <span style="color: #66cccc;">"`curl -s -i -X HEAD --header "Connection: close" http:/</span><span style="color: #66cccc; text-decoration: underline;">/www.baidu.com | grep -E '^Date: ' | awk -F ': ' '{print $2}'`"</span>
+<pre class="src src-sh">sudo date --rfc-2822 -s <span style="color: #8abeb7;">"`curl -s -i -X HEAD --header "Connection: close" http:/</span><span style="color: #8abeb7; text-decoration: underline;">/www.baidu.com | grep -E '^Date: ' | awk -F ': ' '{print $2}'`"</span>
 </pre>
 </div>
 ]]></content:encoded>
@@ -2942,7 +3489,7 @@ dmsetup remove cachedev
 
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #cc99cc;">echo</span> <span style="color: #66cccc;">'/home/tangxinfa/workdir *(rw,sync,no_root_squash)'</span> &gt;&gt; /etc/exports
+<pre class="src src-sh"><span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">'/home/tangxinfa/workdir *(rw,sync,no_root_squash)'</span> &gt;&gt; /etc/exports
 sudo exportfs -arv
 </pre>
 </div>
@@ -2999,7 +3546,7 @@ sudo systemctl start nfs-server.service
 
 <div class="org-src-container">
 
-<pre class="src src-sh">synclient <span style="color: #ffcc66;">HorizHysteresis</span>=30 <span style="color: #ffcc66;">VertHysteresis</span>=30
+<pre class="src src-sh">synclient <span style="color: #f0c674;">HorizHysteresis</span>=30 <span style="color: #f0c674;">VertHysteresis</span>=30
 </pre>
 </div>
 
@@ -3086,9 +3633,9 @@ add mod1 = Alt_L Meta_L
 
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #99cc99;">if</span> [ -f $<span style="color: #ffcc66;">HOME</span>/.Xmodmap ]; <span style="color: #99cc99;">then</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   /usr/bin/xmodmap $<span style="color: #ffcc66;">HOME</span>/.Xmodmap
-<span style="color: #99cc99;">fi</span>
+<pre class="src src-sh"><span style="color: #b5bd68;">if</span> [ -f $<span style="color: #f0c674;">HOME</span>/.Xmodmap ]; <span style="color: #b5bd68;">then</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   /usr/bin/xmodmap $<span style="color: #f0c674;">HOME</span>/.Xmodmap
+<span style="color: #b5bd68;">fi</span>
 </pre>
 </div>
 
@@ -3152,7 +3699,7 @@ yum install rubygems
 <div class="outline-text-2" id="text-2">
 <div class="org-src-container">
 
-<pre class="src src-sh">wget <span style="color: #66cccc;">'http://www.redmine.org/releases/redmine-2.5.0.tar.gz'</span>
+<pre class="src src-sh">wget <span style="color: #8abeb7;">'http://www.redmine.org/releases/redmine-2.5.0.tar.gz'</span>
 tar xzvf redmine-2.5.0.tar.gz
 gem install bundler
 gem install mysql2.
@@ -3180,9 +3727,9 @@ bundle install --without development test
 
 <div class="org-src-container">
 
-<pre class="src src-sql"><span style="color: #99cc99;">CREATE</span> DATABASE redmine <span style="color: #6699cc;">CHARACTER</span> <span style="color: #99cc99;">SET</span> utf8;
-<span style="color: #99cc99;">CREATE</span> <span style="color: #cc99cc;">USER</span> <span style="color: #66cccc;">'redmine'</span>@<span style="color: #66cccc;">'localhost'</span> IDENTIFIED <span style="color: #99cc99;">BY</span> <span style="color: #66cccc;">'redmine'</span>;
-<span style="color: #99cc99;">GRANT</span> <span style="color: #99cc99;">ALL</span> <span style="color: #99cc99;">PRIVILEGES</span> <span style="color: #99cc99;">ON</span> redmine.* <span style="color: #99cc99;">TO</span> <span style="color: #66cccc;">'redmine'</span>@<span style="color: #66cccc;">'localhost'</span>;
+<pre class="src src-sql"><span style="color: #b5bd68;">CREATE</span> DATABASE redmine <span style="color: #81a2be;">CHARACTER</span> <span style="color: #b5bd68;">SET</span> utf8;
+<span style="color: #b5bd68;">CREATE</span> <span style="color: #b294bb;">USER</span> <span style="color: #8abeb7;">'redmine'</span>@<span style="color: #8abeb7;">'localhost'</span> IDENTIFIED <span style="color: #b5bd68;">BY</span> <span style="color: #8abeb7;">'redmine'</span>;
+<span style="color: #b5bd68;">GRANT</span> <span style="color: #b5bd68;">ALL</span> <span style="color: #b5bd68;">PRIVILEGES</span> <span style="color: #b5bd68;">ON</span> redmine.* <span style="color: #b5bd68;">TO</span> <span style="color: #8abeb7;">'redmine'</span>@<span style="color: #8abeb7;">'localhost'</span>;
 </pre>
 </div>
 </li>
@@ -3195,10 +3742,10 @@ bundle install --without development test
 diff config/database.yml config/database.yml.example
 10,11c10,11
 &lt;   username: redmine
-&lt;   password: <span style="color: #66cccc;">"redmine"</span>
+&lt;   password: <span style="color: #8abeb7;">"redmine"</span>
 ---
 &gt;   username: root
-&gt;   password: <span style="color: #66cccc;">""</span>
+&gt;   password: <span style="color: #8abeb7;">""</span>
 </pre>
 </div>
 </li>
@@ -3216,7 +3763,7 @@ diff config/database.yml config/database.yml.example
 
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #ffcc66;">RAILS_ENV</span>=production rake db:migrate
+<pre class="src src-sh"><span style="color: #f0c674;">RAILS_ENV</span>=production rake db:migrate
 </pre>
 </div>
 </li>
@@ -3267,7 +3814,7 @@ production:
 
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #ffcc66;">RAILS_ENV</span>=production <span style="color: #ffcc66;">REDMINE_LANG</span>=zh rake redmine:load_default_data
+<pre class="src src-sh"><span style="color: #f0c674;">RAILS_ENV</span>=production <span style="color: #f0c674;">REDMINE_LANG</span>=zh rake redmine:load_default_data
 </pre>
 </div>
 </li>
@@ -3335,7 +3882,7 @@ sudo chmod -R 755 files log tmp public/plugin_assets
 <div class="outline-text-2" id="text-6">
 <div class="org-src-container">
 
-<pre class="src src-sh">wget <span style="color: #66cccc;">'http://nginx.org/download/nginx-1.4.6.tar.gz'</span>
+<pre class="src src-sh">wget <span style="color: #8abeb7;">'http://nginx.org/download/nginx-1.4.6.tar.gz'</span>
 tar xzvf nginx-1.4.6.tar.gz
 gem install passenger
 yum install pcre-devel
@@ -3470,9 +4017,9 @@ server {
 
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #cc99cc;">cd</span> plugins
+<pre class="src src-sh"><span style="color: #b294bb;">cd</span> plugins
 git clone https://github.com/tangxinfa/redmine_openid_selector.git
-rake redmine:plugins:migrate <span style="color: #ffcc66;">RAILS_ENV</span>=production
+rake redmine:plugins:migrate <span style="color: #f0c674;">RAILS_ENV</span>=production
 touch tmp/restart.txt
 </pre>
 </div>
@@ -3482,7 +4029,7 @@ touch tmp/restart.txt
 
 <div class="org-src-container">
 
-<pre class="src src-sh">rake redmine:plugins:migrate <span style="color: #ffcc66;">NAME</span>=redmine-openid-selector <span style="color: #ffcc66;">VERSION</span>=0 <span style="color: #ffcc66;">RAILS_ENV</span>=pr<span style="text-decoration: underline;">oduction</span>
+<pre class="src src-sh">rake redmine:plugins:migrate <span style="color: #f0c674;">NAME</span>=redmine-openid-selector <span style="color: #f0c674;">VERSION</span>=0 <span style="color: #f0c674;">RAILS_ENV</span>=pr<span style="text-decoration: underline;">oduction</span>
 rm -rf plugins/redmine-openid-selector
 touch tmp/restart.txt
 </pre>
@@ -3553,7 +4100,7 @@ touch tmp/restart.txt
 </p>
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo -u <span style="color: #66cccc;">"nobody"</span> ./as_root <span style="color: #66cccc;">"reboot"</span>
+<pre class="src src-sh">sudo -u <span style="color: #8abeb7;">"nobody"</span> ./as_root <span style="color: #8abeb7;">"reboot"</span>
 </pre>
 </div>
 
@@ -3574,21 +4121,21 @@ touch tmp/restart.txt
 <li>利用vps建本地socks代理的脚本 <code>ssh_proxy.sh</code>
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #999999; font-style: italic;">#</span><span style="color: #999999; font-style: italic;">!/bin/</span><span style="color: #99cc99;">bash</span>
+<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/</span><span style="color: #b5bd68;">bash</span>
 
-<span style="color: #ffcc66;">n</span>=<span style="color: #cc99cc;">`ps waux | grep 'bash .*/ssh_proxy.sh' | grep -v grep | wc -l`</span>
-<span style="color: #99cc99;">if</span> [ $<span style="color: #ffcc66;">n</span> -lt 3 ]; <span style="color: #99cc99;">then</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">while</span> [ true ]; <span style="color: #99cc99;">do</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">n</span>=<span style="color: #cc99cc;">`ps aux | grep 'ssh' | grep '7070' | grep -v grep | wc -l`</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> [ $<span style="color: #ffcc66;">n</span> -lt 1 ]; <span style="color: #99cc99;">then</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cc99cc;">echo</span> <span style="color: #66cccc;">"start ssh connecting"</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   ssh -qTnNf -D 7070 user@host
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">fi</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cc99cc;">echo</span> <span style="color: #66cccc;">"wait for next checking"</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   sleep 30
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">done</span>
-<span style="color: #99cc99;">fi</span>
-<span style="color: #cc99cc;">echo</span> <span style="color: #66cccc;">"ssh_proxy.sh already running"</span>
+<span style="color: #f0c674;">n</span>=<span style="color: #b294bb;">`ps waux | grep 'bash .*/ssh_proxy.sh' | grep -v grep | wc -l`</span>
+<span style="color: #b5bd68;">if</span> [ $<span style="color: #f0c674;">n</span> -lt 3 ]; <span style="color: #b5bd68;">then</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">while</span> [ true ]; <span style="color: #b5bd68;">do</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #f0c674;">n</span>=<span style="color: #b294bb;">`ps aux | grep 'ssh' | grep '7070' | grep -v grep | wc -l`</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> [ $<span style="color: #f0c674;">n</span> -lt 1 ]; <span style="color: #b5bd68;">then</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"start ssh connecting"</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   ssh -qTnNf -D 7070 user@host
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">fi</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"wait for next checking"</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   sleep 30
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">done</span>
+<span style="color: #b5bd68;">fi</span>
+<span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"ssh_proxy.sh already running"</span>
 </pre>
 </div>
 
@@ -3744,7 +4291,7 @@ proxychains 的安装配置请参考
 
 <pre class="src src-sh">wget http://download.jabberd.org/jabberd14/jabberd14-1.6.1.1.tar.gz
 tar xzvf jabberd14-1.6.1.1.tar.gz
-<span style="color: #cc99cc;">cd</span> jabberd14-1.6.1.1
+<span style="color: #b294bb;">cd</span> jabberd14-1.6.1.1
 </pre>
 </div>
 
@@ -3763,14 +4310,14 @@ tar xzvf jabberd14-1.6.1.1.tar.gz
 &gt;     char *start_predicate = NULL;
 &gt;     char *end_predicate = NULL;
 1836c1836
-&lt;         ((char*)strchr(lang, <span style="color: #66cccc;">'-'</span>))[0] = 0;
+&lt;         ((char*)strchr(lang, <span style="color: #8abeb7;">'-'</span>))[0] = 0;
 ---
-&gt;         strchr(lang, <span style="color: #66cccc;">'-'</span>)[0] = 0;
+&gt;         strchr(lang, <span style="color: #8abeb7;">'-'</span>)[0] = 0;
 diff -r jabberd14-1.6.1.1/jabberd/log.cc tmp/jabberd14-1.6.1.1/jabberd/log.cc
 89c89
-&lt;         pos = (char*)strchr(zone,<span style="color: #66cccc;">'.'</span>);
+&lt;         pos = (char*)strchr(zone,<span style="color: #8abeb7;">'.'</span>);
 ---
-&gt;     pos = strchr(zone,<span style="color: #66cccc;">'.'</span>);
+&gt;     pos = strchr(zone,<span style="color: #8abeb7;">'.'</span>);
 diff -r jabberd14-1.6.1.1/jabberd/mio_tls.cc tmp/jabberd14-1.6.1.1/jabberd/mio_t<span style="text-decoration: underline;">ls.cc</span>
 615c615
 &lt;         ret = gnutls_certificate_set_openpgp_key_file(current_credentials, pub<span style="text-decoration: underline;">file, privfile, GNUTLS_OPENPGP_FMT_BASE64);</span>
@@ -3784,18 +4331,18 @@ diff -r jabberd14-1.6.1.1/jabberd/mio_tls.cc tmp/jabberd14-1.6.1.1/jabberd/mio_t
 &gt;     }
 &gt;
 &gt;     // load GnuPG trustdb
-&gt;     if (j_strcmp(xmlnode_get_localname(cur), <span style="color: #66cccc;">"trustdb"</span>) == 0) {
+&gt;     if (j_strcmp(xmlnode_get_localname(cur), <span style="color: #8abeb7;">"trustdb"</span>) == 0) {
 &gt;         char const *const file = xmlnode_get_data(cur);
 &gt;
 &gt;         if (file == NULL) {
-&gt;         log_warn(NULL, <span style="color: #66cccc;">"Initializing TLS subsystem: &lt;trustdb/&gt; element inside </span><span style="color: #66cccc; text-decoration: underline;">the TLS configuration, that does not contain a file-name."</span><span style="text-decoration: underline;">);</span>
+&gt;         log_warn(NULL, <span style="color: #8abeb7;">"Initializing TLS subsystem: &lt;trustdb/&gt; element inside </span><span style="color: #8abeb7; text-decoration: underline;">the TLS configuration, that does not contain a file-name."</span><span style="text-decoration: underline;">);</span>
 &gt;         continue;
 &gt;         }
 &gt;
 &gt;         // load the GnuPG trustdb
 &gt;         ret = gnutls_certificate_set_openpgp_trustdb(current_credentials, file<span style="text-decoration: underline;">);</span>
 &gt;         if (ret &lt; 0) {
-&gt;         log_error(NULL, <span style="color: #66cccc;">"Error loading GnuPG trustdb %s: %s"</span>, file, gnutls_str<span style="text-decoration: underline;">error(ret));</span>
+&gt;         log_error(NULL, <span style="color: #8abeb7;">"Error loading GnuPG trustdb %s: %s"</span>, file, gnutls_str<span style="text-decoration: underline;">error(ret));</span>
 &gt;         continue;
 &gt;         }
 </pre>
@@ -3826,8 +4373,8 @@ diff -r jabberd14-1.6.1.1/jabberd/mio_tls.cc tmp/jabberd14-1.6.1.1/jabberd/mio_t
 <pre class="src src-sh">mysql -uroot -p
 mysql&gt; CREATE DATABASE jabber CHARACTER SET utf8;
 mysql&gt; use jabber;
-mysql&gt; grant all on jabber.* to jabber@localhost identified by <span style="color: #66cccc;">'secret'</span>;
-mysql&gt; <span style="color: #66cccc;">\.</span> mysql.sql
+mysql&gt; grant all on jabber.* to jabber@localhost identified by <span style="color: #8abeb7;">'secret'</span>;
+mysql&gt; <span style="color: #8abeb7;">\.</span> mysql.sql
 </pre>
 </div>
 </li>
@@ -3847,17 +4394,17 @@ mysql&gt; <span style="color: #66cccc;">\.</span> mysql.sql
 
 <pre class="src src-sh">telnet localhost 5222
 &lt;stream:stream
-<span style="color: #cccccc; background-color: #515151;"> </span> <span style="color: #ffcc66;">to</span>=<span style="color: #66cccc;">'localhost'</span>
-<span style="color: #cccccc; background-color: #515151;"> </span> <span style="color: #ffcc66;">xmlns</span>=<span style="color: #66cccc;">'jabber:client'</span>
-<span style="color: #cccccc; background-color: #515151;"> </span> xmlns:<span style="color: #ffcc66;">stream</span>=<span style="color: #66cccc;">'http://etherx.jabber.org/streams'</span>&gt;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> <span style="color: #f0c674;">to</span>=<span style="color: #8abeb7;">'localhost'</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> <span style="color: #f0c674;">xmlns</span>=<span style="color: #8abeb7;">'jabber:client'</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> xmlns:<span style="color: #f0c674;">stream</span>=<span style="color: #8abeb7;">'http://etherx.jabber.org/streams'</span>&gt;
 
-&lt;iq <span style="color: #ffcc66;">id</span>=<span style="color: #66cccc;">'reg1'</span> <span style="color: #ffcc66;">type</span>=<span style="color: #66cccc;">'set'</span>&gt;
-<span style="color: #cccccc; background-color: #515151;"> </span> &lt;query <span style="color: #ffcc66;">xmlns</span>=<span style="color: #66cccc;">'jabber:iq:register'</span>&gt;
-<span style="color: #cccccc; background-color: #515151;"> </span>   &lt;username&gt;jack&lt;/username&gt;
-<span style="color: #cccccc; background-color: #515151;"> </span>   &lt;password&gt;jack&lt;/password&gt;
-<span style="color: #cccccc; background-color: #515151;"> </span>   &lt;name&gt;jack&lt;/name&gt;
-<span style="color: #cccccc; background-color: #515151;"> </span>   &lt;email&gt;&lt;/email&gt;
-<span style="color: #cccccc; background-color: #515151;"> </span> &lt;/query&gt;
+&lt;iq <span style="color: #f0c674;">id</span>=<span style="color: #8abeb7;">'reg1'</span> <span style="color: #f0c674;">type</span>=<span style="color: #8abeb7;">'set'</span>&gt;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> &lt;query <span style="color: #f0c674;">xmlns</span>=<span style="color: #8abeb7;">'jabber:iq:register'</span>&gt;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   &lt;username&gt;jack&lt;/username&gt;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   &lt;password&gt;jack&lt;/password&gt;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   &lt;name&gt;jack&lt;/name&gt;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   &lt;email&gt;&lt;/email&gt;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> &lt;/query&gt;
 &lt;/iq&gt;
 
 &lt;/stream:stream&gt;
@@ -3883,17 +4430,17 @@ Empathy菜单-&gt;编辑-&gt;帐户-&gt;添加：
 
 <pre class="src src-sh">telnet localhost 5222
 &lt;stream:stream
-<span style="color: #cccccc; background-color: #515151;"> </span> <span style="color: #ffcc66;">to</span>=<span style="color: #66cccc;">'localhost'</span>
-<span style="color: #cccccc; background-color: #515151;"> </span> <span style="color: #ffcc66;">xmlns</span>=<span style="color: #66cccc;">'jabber:client'</span>
-<span style="color: #cccccc; background-color: #515151;"> </span> xmlns:<span style="color: #ffcc66;">stream</span>=<span style="color: #66cccc;">'http://etherx.jabber.org/streams'</span>&gt;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> <span style="color: #f0c674;">to</span>=<span style="color: #8abeb7;">'localhost'</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> <span style="color: #f0c674;">xmlns</span>=<span style="color: #8abeb7;">'jabber:client'</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> xmlns:<span style="color: #f0c674;">stream</span>=<span style="color: #8abeb7;">'http://etherx.jabber.org/streams'</span>&gt;
 
-&lt;iq <span style="color: #ffcc66;">id</span>=<span style="color: #66cccc;">'reg1'</span> <span style="color: #ffcc66;">type</span>=<span style="color: #66cccc;">'set'</span>&gt;
-<span style="color: #cccccc; background-color: #515151;"> </span> &lt;query <span style="color: #ffcc66;">xmlns</span>=<span style="color: #66cccc;">'jabber:iq:register'</span>&gt;
-<span style="color: #cccccc; background-color: #515151;"> </span>   &lt;username&gt;rose&lt;/username&gt;
-<span style="color: #cccccc; background-color: #515151;"> </span>   &lt;password&gt;rose&lt;/password&gt;
-<span style="color: #cccccc; background-color: #515151;"> </span>   &lt;name&gt;rose&lt;/name&gt;
-<span style="color: #cccccc; background-color: #515151;"> </span>   &lt;email&gt;&lt;/email&gt;
-<span style="color: #cccccc; background-color: #515151;"> </span> &lt;/query&gt;
+&lt;iq <span style="color: #f0c674;">id</span>=<span style="color: #8abeb7;">'reg1'</span> <span style="color: #f0c674;">type</span>=<span style="color: #8abeb7;">'set'</span>&gt;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> &lt;query <span style="color: #f0c674;">xmlns</span>=<span style="color: #8abeb7;">'jabber:iq:register'</span>&gt;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   &lt;username&gt;rose&lt;/username&gt;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   &lt;password&gt;rose&lt;/password&gt;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   &lt;name&gt;rose&lt;/name&gt;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   &lt;email&gt;&lt;/email&gt;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> &lt;/query&gt;
 &lt;/iq&gt;
 
 &lt;/stream:stream&gt;
@@ -3917,22 +4464,22 @@ Empathy菜单-&gt;聊天-&gt;添加联系人:
 
 <pre class="src src-sh">telnet localhost 5222
 &lt;stream:stream
-<span style="color: #cccccc; background-color: #515151;"> </span> <span style="color: #ffcc66;">to</span>=<span style="color: #66cccc;">'localhost'</span>
-<span style="color: #cccccc; background-color: #515151;"> </span> <span style="color: #ffcc66;">xmlns</span>=<span style="color: #66cccc;">'jabber:client'</span>
-<span style="color: #cccccc; background-color: #515151;"> </span> xmlns:<span style="color: #ffcc66;">stream</span>=<span style="color: #66cccc;">'http://etherx.jabber.org/streams'</span>&gt;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> <span style="color: #f0c674;">to</span>=<span style="color: #8abeb7;">'localhost'</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> <span style="color: #f0c674;">xmlns</span>=<span style="color: #8abeb7;">'jabber:client'</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> xmlns:<span style="color: #f0c674;">stream</span>=<span style="color: #8abeb7;">'http://etherx.jabber.org/streams'</span>&gt;
 
-&lt;iq <span style="color: #ffcc66;">id</span>=<span style="color: #66cccc;">'auth1'</span> <span style="color: #ffcc66;">type</span>=<span style="color: #66cccc;">'set'</span>&gt;
-<span style="color: #cccccc; background-color: #515151;"> </span> &lt;query <span style="color: #ffcc66;">xmlns</span>=<span style="color: #66cccc;">'jabber:iq:auth'</span>&gt;
-<span style="color: #cccccc; background-color: #515151;"> </span>   &lt;username&gt;rose&lt;/username&gt;
-<span style="color: #cccccc; background-color: #515151;"> </span>   &lt;password&gt;rose&lt;/password&gt;
-<span style="color: #cccccc; background-color: #515151;"> </span>   &lt;resource&gt;test&lt;/resource&gt;
-<span style="color: #cccccc; background-color: #515151;"> </span> &lt;/query&gt;
+&lt;iq <span style="color: #f0c674;">id</span>=<span style="color: #8abeb7;">'auth1'</span> <span style="color: #f0c674;">type</span>=<span style="color: #8abeb7;">'set'</span>&gt;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> &lt;query <span style="color: #f0c674;">xmlns</span>=<span style="color: #8abeb7;">'jabber:iq:auth'</span>&gt;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   &lt;username&gt;rose&lt;/username&gt;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   &lt;password&gt;rose&lt;/password&gt;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   &lt;resource&gt;test&lt;/resource&gt;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> &lt;/query&gt;
 &lt;/iq&gt;
 
 &lt;presence/&gt;
 
-&lt;message <span style="color: #ffcc66;">to</span>=<span style="color: #66cccc;">'jack@localhost'</span>&gt;
-<span style="color: #cccccc; background-color: #515151;"> </span> &lt;body&gt;hello, jack&lt;/body&gt;
+&lt;message <span style="color: #f0c674;">to</span>=<span style="color: #8abeb7;">'jack@localhost'</span>&gt;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span> &lt;body&gt;hello, jack&lt;/body&gt;
 &lt;/message&gt;
 
 &lt;/stream:stream&gt;
