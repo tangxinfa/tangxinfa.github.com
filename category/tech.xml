@@ -4,7 +4,7 @@
         <title>技术 - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/category/tech.xml</link>
-        <lastBuildDate>Fri, 13 May 2016 12:38:21 GMT</lastBuildDate>
+        <lastBuildDate>Sat, 21 May 2016 18:00:10 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>技术 - 看看俺 – KanKanAn.com</title>
@@ -15,6 +15,284 @@
         <generator>Feed for Node.js</generator>
         <category>技术</category>
         <item>
+            <title><![CDATA[关于 stream.pipe 你需要知道更多]]></title>
+            <link>/article/51734e8e-stream.pipe-4f609700898177e5905366f4591a.html</link>
+            <guid>/article/51734e8e-stream.pipe-4f609700898177e5905366f4591a.html</guid>
+            <pubDate>Sat, 21 May 2016 17:58:00 GMT</pubDate>
+            <content:encoded><![CDATA[
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">关于 stream 用法的一个经典例子</h2>
+<div class="outline-text-2" id="text-1">
+<div class="org-src-container">
+
+<pre class="src src-js"><span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">http</span> = require(<span style="color: #70c0b1;">'http'</span>);
+<span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">fs</span> = require(<span style="color: #70c0b1;">'fs'</span>);
+
+<span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">server</span> = http.createServer(<span style="color: #b9ca4a;">function</span> (<span style="color: #e7c547;">req</span>, <span style="color: #e7c547;">res</span>) {
+<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">stream</span> = fs.createReadStream(__dirname + <span style="color: #70c0b1;">'/data.txt'</span>);
+<span style="color: #eaeaea; background-color: #424242;"> </span>   stream.pipe(res);
+});
+server.listen(8000);
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">经典例子的致命问题</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+如果用户中断下载，文件不会关闭，导致文件句柄（fd）泄露，参见相关讨论：
+</p>
+
+<p>
+<a href="http://stackoverflow.com/questions/37317676/deleting-file-in-node-js-not-working">express - Deleting file in node.js not working - Stack Overflow</a>
+</p>
+
+<p>
+修复如下
+</p>
+<div class="org-src-container">
+
+<pre class="src src-js"><span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">http</span> = require(<span style="color: #70c0b1;">'http'</span>);
+<span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">fs</span> = require(<span style="color: #70c0b1;">'fs'</span>);
+
+<span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">server</span> = http.createServer(<span style="color: #b9ca4a;">function</span> (<span style="color: #e7c547;">req</span>, <span style="color: #e7c547;">res</span>) {
+<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #b9ca4a;">var</span> <span style="color: #e7c547;">stream</span> = fs.createReadStream(__dirname + <span style="color: #70c0b1;">'/data.txt'</span>);
+<span style="color: #eaeaea; background-color: #424242;"> </span>   stream.pipe(res).once(<span style="color: #70c0b1;">'close'</span>, <span style="color: #b9ca4a;">function</span> () {
+<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   stream.destroy();
+<span style="color: #eaeaea; background-color: #424242;"> </span>   });
+});
+server.listen(8000);
+</pre>
+</div>
+<p>
+stream.destroy（同 stream.close） 是一个未文档化的 API，来自 fs.ReadStream ，
+如此重要的一个函数竟然未文档化（至少现在还是未文档化状态，当前 node.js 版本为 v6.2.0）。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">关键 API 文档</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+<a href="https://nodejs.org/api/stream.html#stream_readable_pipe_destination_options">stream.pipe</a> 文档
+</p>
+<blockquote>
+<p>
+readable.pipe(destination[, options])#
+</p>
+
+<ul class="org-ul">
+<li>destination Writable Stream The destination for writing data
+</li>
+<li>options Object Pipe options
+<ul class="org-ul">
+<li>end Boolean End the writer when the reader ends. Default = true
+</li>
+</ul>
+</li>
+</ul>
+
+<p>
+This method pulls all the data out of a readable stream, and writes it to the supplied
+destination, automatically managing the flow so that the destination is not overwhelmed
+by a fast readable stream.
+</p>
+</blockquote>
+
+<p>
+<a href="https://nodejs.org/api/fs.html#fs_fs_createreadstream_path_options">fs.createReadStream</a> 文档
+</p>
+<blockquote>
+<p>
+fs.createReadStream(path[, options])#
+</p>
+
+<p>
+Returns a new ReadStream object (See Readable Stream).
+</p>
+
+<p>
+Be aware that, unlike the default value set for highWaterMark on a readable stream (16
+kb), the stream returned by this method has a default value of 64 kb for the same
+parameter.
+</p>
+
+<p>
+options is an object or string with the following defaults:
+</p>
+
+<p>
+{ flags: 'r',
+  encoding: null,
+  fd: null,
+  mode: 0o666,
+  autoClose: true
+}
+</p>
+
+<p>
+options can include start and end values to read a range of bytes from the file instead
+of the entire file. Both start and end are inclusive and start at 0. The encoding can be
+'utf8', 'ascii', or 'base64'.
+</p>
+
+<p>
+If fd is specified, ReadStream will ignore the path argument and will use the specified
+file descriptor. This means that no open event will be emitted.
+</p>
+
+<p>
+If autoClose is false, then the file descriptor won't be closed, even if there's an
+error. It is your responsibility to close it and make sure there's no file descriptor
+leak. If autoClose is set to true (default behavior), on error or end the file descriptor
+will be closed automatically.
+</p>
+
+<p>
+mode sets the file mode (permission and sticky bits), but only if the file was created.
+</p>
+
+<p>
+An example to read the last 10 bytes of a file which is 100 bytes long:
+</p>
+
+<p>
+fs.createReadStream('sample.txt', {start: 90, end: 99});
+</p>
+
+<p>
+If options is a string, then it specifies the encoding.
+</p>
+</blockquote>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4">stream.pipe 的工作原理</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+stream.pipe 将可读流（Readable Stream）连接到可写流（Writable Stream），
+数据会从可读流传输到可写流，支持自动流量控制。
+</p>
+
+<p>
+上面的 stream.pipe 其实是调用的 Readable.pipe，其流程简述如下：
+</p>
+
+<ul class="org-ul">
+<li>监听可读流的 data 事件：将读取到的数据写入可写流，如果可写流缓冲区满，则暂停可读流。
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>监听可写流的 drain 事件：实现自动流量控制。
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>监听可写流的 unpipe 事件：取消所有事件监听。
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>监听可写流的 close、finish 事件：调用可读流的 unpipe()，触发可写流的 unpipe 事件。
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>监听可读流的 end 事件：调用可写流的 Writable.end()，触发可写流的 finish 事件。
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>监听可写流的 error 事件：调用可读流的 unpipe()，触发可写流的 unpipe 事件，如果 error 事件没有其它人监听，则抛出为异常。
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>在可写流上发出 pipe 事件。
+</li>
+</ul>
+
+
+<p>
+以上流程请自行阅读代码映证：<a href="https://github.com/nodejs/node/blob/v4.4.4/lib/_stream_readable.js#L460">node/_stream_readable.js at v4.4.4 · nodejs/node</a>
+</p>
+</div>
+</div>
+
+
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5">stream.pipe 的问题</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+结合以上描述有以下疑问
+</p>
+
+<ul class="org-ul">
+<li>可读流出错会怎么样
+
+<p>
+可读流发出 error、close 事件，但因为错误没有发出 end 事件。
+</p>
+
+<p>
+可读流可能被关闭，可写流不会被关闭，pipe 状态保持不变，数据流动停顿了。
+</p>
+
+<p>
+在现实情况中，或早或晚，可写流可能因为超时时间到等原因最终被关闭，从而转化为下面的情况。
+</p>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>可写流出错会怎么样
+
+<p>
+可写流发出 error、close 事件，没有 finish 事件。
+</p>
+
+<p>
+可读流会与可写流断开 pipe，可读流不会被关闭。
+</p>
+
+<p>
+可读流以 fs.ReadStream 为例，当它被读完时（EOF，发出 end 事件），根据 autoClose 标志（默认为 true），决定是否关闭流（释放文件句柄），没有读完就不会被关闭。
+</p>
+
+<p>
+以上逻辑是合理的，一个可读流可以与多个可写流通过 pipe 连在一起，没有理由因为一个可写流的问题影响到可读流的状态。
+</p>
+
+<p>
+做为开发人员，切莫幻想 node.js 的垃圾收集（ GC）会在可读流没有被引用时自动关闭文件句柄。
+</p>
+
+<p>
+当 node.js 将文件句柄以整数（Integer）方式表示时，就不可能实现垃圾收集时自动关闭文件句柄了。
+</p>
+</li>
+</ul>
+
+
+<p>
+stream.pipe 没有魔法，它提供了一种传输数据的优美方式，但是它并不完美，在错误处理方面留下了很多空白，有待开发人员自行解决。</p>
+</div>
+</div>
+]]></content:encoded>
+        </item>
+        <item>
             <title><![CDATA[你很可能不懂 snprintf]]></title>
             <link>/article/4f605f8853ef80fd4e0d61c2-snprintf.html</link>
             <guid>/article/4f605f8853ef80fd4e0d61c2-snprintf.html</guid>
@@ -24,7 +302,7 @@ Q: <code>snprintf</code> 返回的是实际写入到缓冲区的字符数吗？
 </p>
 
 <p>
-A: 错。当缓冲区空间不足时会返回比缓存区空间更大的值。
+A: 错。当缓冲区空间不足时会返回比缓存区空间大的值。
 </p>
 
 <div id="outline-container-sec-1" class="outline-2">
@@ -42,8 +320,12 @@ A: 错。当缓冲区空间不足时会返回比缓存区空间更大的值。
 #include &lt;stdio.h&gt;
 </p>
 
+
 <p>
 int sprintf(char *str, const char *format, &#x2026;);
+</p>
+
+<p>
 int snprintf(char *str, size_t size, const char *format, &#x2026;);
 </p>
 </blockquote>
@@ -5269,98 +5551,6 @@ $
 ]]></content:encoded>
         </item>
         <item>
-            <title><![CDATA[CentOS 6.4 上安装 ruby 1.9.3]]></title>
-            <link>/article/centos-6.4-4e0a5b8988c5-ruby-1.9.3.html</link>
-            <guid>/article/centos-6.4-4e0a5b8988c5-ruby-1.9.3.html</guid>
-            <pubDate>Fri, 22 Jan 2016 13:12:00 GMT</pubDate>
-            <content:encoded><![CDATA[<p>
-CentOS 6.4 上仓库中的 Ruby 版本为 1.8.7 太旧了，<a href="https://github.com/yaauie/redis-copy">redis-copy</a> 要求 Ruby 版本至少为 1.9.3。
-</p>
-
-<ul class="org-ul">
-<li>安装 rvm
-
-<div class="org-src-container">
-
-<pre class="src src-sh">curl -L get.rvm.io | bash -s stable
-</pre>
-</div>
-</li>
-
-<li>安装 Ruby 1.9.3
-
-<div class="org-src-container">
-
-<pre class="src src-sh">/usr/local/rvm/bin/rvm install 1.9.3
-</pre>
-</div>
-
-<ul class="org-ul">
-<li>启用 Ruby 1.9.3
-
-<div class="org-src-container">
-
-<pre class="src src-js">source /usr/local/rvm/scripts/rvm
-rvm use 1.9.3
-</pre>
-</div>
-</li>
-
-<li>安装 RubyGems
-
-<div class="org-src-container">
-
-<pre class="src src-sh">rvm rubygems current
-</pre>
-</div>
-</li>
-
-<li>RubyGems 官方源国内访问不稳定，换成淘宝的镜像
-
-<div class="org-src-container">
-
-<pre class="src src-sh">gem sources --remove https://rubygems.org/
-gem sources -a https://ruby.taobao.org/
-</pre>
-</div>
-</li>
-
-<li>安装 <a href="https://github.com/yaauie/redis-copy">redis-copy</a>
-
-<div class="org-src-container">
-
-<pre class="src src-sh">gem install redis-copy
-</pre>
-</div>
-
-<p>
-安装后程序路径为 /usr/local/rvm/gems/ruby-1.9.3-p551/bin/redis-copy
-</p>
-
-<p>
-启用 Ruby 1.9.3 后，redis-copy 可以直接运行。
-</p>
-</li>
-</ul>
-</li>
-
-<li>参考
-
-<p>
-<a href="https://www.digitalocean.com/community/tutorials/how-to-install-ruby-on-rails-on-centos-6-with-rvm">How To Install Ruby on Rails on CentOS 6 with RVM | DigitalOcean</a>
-</p>
-
-<p>
-<a href="https://ruby-china.org/topics/3705">手把手安装RVM以及为什么RVM is not a function » Topics » Ruby China</a>
-</p>
-
-<p>
-<a href="http://www.jb51.net/article/49079.htm">淘宝网提供的国内RubyGems镜像简介和使用方法_ruby专题_脚本之家</a></p>
-</li>
-</ul>
-]]></content:encoded>
-        </item>
-        <item>
             <title><![CDATA[CentOS 6.4 上编译安装 gcc 5.2.0]]></title>
             <link>/article/centos-6.4-4e0a7f168bd15b8988c5-gcc-5.2.0.html</link>
             <guid>/article/centos-6.4-4e0a7f168bd15b8988c5-gcc-5.2.0.html</guid>
@@ -5448,6 +5638,98 @@ make install
 
 <p>
 <a href="https://wiki.mikejung.biz/Gcc_CentOS">Gcc CentOS - How to compile gcc-4.8.2 on CentOS 6.6</a></p>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[CentOS 6.4 上安装 ruby 1.9.3]]></title>
+            <link>/article/centos-6.4-4e0a5b8988c5-ruby-1.9.3.html</link>
+            <guid>/article/centos-6.4-4e0a5b8988c5-ruby-1.9.3.html</guid>
+            <pubDate>Fri, 22 Jan 2016 13:12:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+CentOS 6.4 上仓库中的 Ruby 版本为 1.8.7 太旧了，<a href="https://github.com/yaauie/redis-copy">redis-copy</a> 要求 Ruby 版本至少为 1.9.3。
+</p>
+
+<ul class="org-ul">
+<li>安装 rvm
+
+<div class="org-src-container">
+
+<pre class="src src-sh">curl -L get.rvm.io | bash -s stable
+</pre>
+</div>
+</li>
+
+<li>安装 Ruby 1.9.3
+
+<div class="org-src-container">
+
+<pre class="src src-sh">/usr/local/rvm/bin/rvm install 1.9.3
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>启用 Ruby 1.9.3
+
+<div class="org-src-container">
+
+<pre class="src src-js">source /usr/local/rvm/scripts/rvm
+rvm use 1.9.3
+</pre>
+</div>
+</li>
+
+<li>安装 RubyGems
+
+<div class="org-src-container">
+
+<pre class="src src-sh">rvm rubygems current
+</pre>
+</div>
+</li>
+
+<li>RubyGems 官方源国内访问不稳定，换成淘宝的镜像
+
+<div class="org-src-container">
+
+<pre class="src src-sh">gem sources --remove https://rubygems.org/
+gem sources -a https://ruby.taobao.org/
+</pre>
+</div>
+</li>
+
+<li>安装 <a href="https://github.com/yaauie/redis-copy">redis-copy</a>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">gem install redis-copy
+</pre>
+</div>
+
+<p>
+安装后程序路径为 /usr/local/rvm/gems/ruby-1.9.3-p551/bin/redis-copy
+</p>
+
+<p>
+启用 Ruby 1.9.3 后，redis-copy 可以直接运行。
+</p>
+</li>
+</ul>
+</li>
+
+<li>参考
+
+<p>
+<a href="https://www.digitalocean.com/community/tutorials/how-to-install-ruby-on-rails-on-centos-6-with-rvm">How To Install Ruby on Rails on CentOS 6 with RVM | DigitalOcean</a>
+</p>
+
+<p>
+<a href="https://ruby-china.org/topics/3705">手把手安装RVM以及为什么RVM is not a function » Topics » Ruby China</a>
+</p>
+
+<p>
+<a href="http://www.jb51.net/article/49079.htm">淘宝网提供的国内RubyGems镜像简介和使用方法_ruby专题_脚本之家</a></p>
 </li>
 </ul>
 ]]></content:encoded>
@@ -12468,7 +12750,7 @@ document.onclick = shownav;
 <span style="color: #eaeaea; background-color: #424242;"> </span>   }
 <span style="color: #c397d8;">?&gt;</span>
 &lt;script type=<span style="color: #70c0b1;">"text/javascript"</span>&gt;
-<span style="color: #e7c547;">function mysqlfile</span>(doing){
+<span style="color: #b9ca4a;">function</span> <span style="color: #e78c45;">mysqlfile</span>(doing){
 <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span>(<span style="color: #7aa6da;">!</span>doing) <span style="color: #b9ca4a;">return</span>;
 <span style="color: #eaeaea; background-color: #424242;"> </span>   $(<span style="color: #70c0b1;">'doing'</span>).value=doing;
 <span style="color: #eaeaea; background-color: #424242;"> </span>   $(<span style="color: #70c0b1;">'mysqlfile'</span>).dbhost.value=$(<span style="color: #70c0b1;">'dbinfo'</span>).dbhost.value;
@@ -12985,7 +13267,7 @@ document.onclick = shownav;
 <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   p(<span style="color: #70c0b1;">'&lt;td colspan="'</span>.(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">highver</span> ? 5 : 3).<span style="color: #70c0b1;">'"&gt;&amp;nbsp;&lt;/td&gt;'</span>);
 <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   p(<span style="color: #70c0b1;">'&lt;/tr&gt;'</span>);
 
-<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   p(<span style="color: #70c0b1;">"&lt;tr class=\""</span>.bg().<span style="color: #70c0b1;">"\"&gt;&lt;td colspan=\""</span>.(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">highver</span> ? 9 : 7).<span style="color: #70c0b1;">"\"</span><span style="color: #70c0b1; text-decoration: underline;">&gt;&lt;input name=\"saveasfile\" value=\"1\" type=\"checkbox\" /&gt; Save as file &lt;input class=\"input\" name=\"path\" value=\""</span><span style="text-decoration: underline;">.</span><span style="color: #7aa6da; text-decoration: underline;">SA_ROOT</span><span style="text-decoration: underline;">.</span><span style="color: #e7c547; text-decoration: underline;">$dbname</span><span style="text-decoration: underline;">.</span><span style="color: #70c0b1; text-decoration: underline;">".sql\" type=\"text\" size=\"60\" /&gt; &lt;input class=\"bt\" type=\"submit\" value=\"Export selection table\" /&gt;&lt;/td&gt;&lt;/tr&gt;"</span><span style="text-decoration: underline;">);</span>
+<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   p(<span style="color: #70c0b1;">"&lt;tr class=\""</span>.bg().<span style="color: #70c0b1;">"\"&gt;&lt;td colspan=\""</span>.(<span style="color: #e7c547;">$highver</span> ? 9 : 7).<span style="color: #70c0b1;">"\"</span><span style="color: #70c0b1; text-decoration: underline;">&gt;&lt;input name=\"saveasfile\" value=\"1\" type=\"checkbox\" /&gt; Save as file &lt;input class=\"input\" name=\"path\" value=\""</span><span style="text-decoration: underline;">.</span><span style="color: #7aa6da; text-decoration: underline;">SA_ROOT</span><span style="text-decoration: underline;">.</span><span style="color: #e7c547; text-decoration: underline;">$dbname</span><span style="text-decoration: underline;">.</span><span style="color: #70c0b1; text-decoration: underline;">".sql\" type=\"text\" size=\"60\" /&gt; &lt;input class=\"bt\" type=\"submit\" value=\"Export selection table\" /&gt;&lt;/td&gt;&lt;/tr&gt;"</span><span style="text-decoration: underline;">);</span>
 <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   makehide(<span style="color: #70c0b1;">'doing'</span>,<span style="color: #70c0b1;">'backupmysql'</span>);
 <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   formfoot();
 <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   p(<span style="color: #70c0b1;">"&lt;/table&gt;"</span>);
@@ -13079,7 +13361,7 @@ document.onclick = shownav;
 <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">phpcode</span> = trim(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">phpcode</span>);
 <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span>(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">phpcode</span>){
 <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span> (<span style="color: #7aa6da;">!</span>preg_match(<span style="color: #70c0b1;">'#&lt;\?#si'</span>, <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">phpcode</span>)) {
-<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">phpcode</span> = <span style="color: #70c0b1;">"&lt;?php\n\n{$phpcode}\n\n?&gt;"</span>;
+<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">phpcode</span> = <span style="color: #70c0b1;">"&lt;?php\n\n</span><span style="color: #e7c547;">{$phpcode}</span><span style="color: #70c0b1;">\n\n?&gt;"</span>;
 <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   }
 <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #b9ca4a;">eval</span>(<span style="color: #70c0b1;">"?"</span>.<span style="color: #70c0b1;">"&gt;</span><span style="color: #e7c547;">$phpcode</span><span style="color: #70c0b1;">&lt;?"</span>);
 <span style="color: #eaeaea; background-color: #424242;"> </span>   }
@@ -13843,13 +14125,13 @@ document.onclick = shownav;
 <span style="color: #eaeaea; background-color: #424242;"> </span>   p(<span style="color: #70c0b1;">"&lt;/select&gt;"</span>);
 <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span> (<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">arg</span>[<span style="color: #70c0b1;">'newline'</span>]) p(<span style="color: #70c0b1;">'&lt;/p&gt;'</span>);
 }
-<span style="color: #e7c547;">function formhead</span>(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">arg</span> = <span style="color: #b9ca4a;">array</span>()) {
+<span style="color: #b9ca4a;">function</span> <span style="color: #e78c45;">formhead</span>(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">arg</span> = <span style="color: #b9ca4a;">array</span>()) {
 <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #b9ca4a;">global</span> <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">self</span>;
 <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #7aa6da;">!</span><span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">arg</span>[<span style="color: #70c0b1;">'method'</span>] &amp;&amp; <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">arg</span>[<span style="color: #70c0b1;">'method'</span>] = <span style="color: #70c0b1;">'post'</span>;
 <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #7aa6da;">!</span><span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">arg</span>[<span style="color: #70c0b1;">'action'</span>] &amp;&amp; <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">arg</span>[<span style="color: #70c0b1;">'action'</span>] = <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">self</span>;
 <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">arg</span>[<span style="color: #70c0b1;">'target'</span>] = <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">arg</span>[<span style="color: #70c0b1;">'target'</span>] ? <span style="color: #70c0b1;">"target=\"$arg[target]\""</span> : <span style="color: #70c0b1;">''</span>;
 <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #7aa6da;">!</span><span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">arg</span>[<span style="color: #70c0b1;">'name'</span>] &amp;&amp; <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">arg</span>[<span style="color: #70c0b1;">'name'</span>] = <span style="color: #70c0b1;">'form1'</span>;
-<span style="color: #eaeaea; background-color: #424242;"> </span>   p(<span style="color: #70c0b1;">"&lt;form name=\"$arg[name]\" id=\"$arg[name]\" action=\"$arg[action]\" metho</span><span style="color: #70c0b1; text-decoration: underline;">d=\"$arg[method]\" $arg[target]&gt;"</span><span style="text-decoration: underline;">);</span>
+<span style="color: #eaeaea; background-color: #424242;"> </span>   p(<span style="color: #70c0b1;">"&lt;form name=\"$arg[name]\" id=\"$arg[name]\" action=\"$arg[action]\" metho</span><span style="color: #70c0b1; text-decoration: underline;">d=\"$arg[method]\" </span><span style="color: #e7c547; text-decoration: underline;">$arg</span><span style="color: #70c0b1; text-decoration: underline;">[target]&gt;"</span><span style="text-decoration: underline;">);</span>
 <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span> (<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">arg</span>[<span style="color: #70c0b1;">'title'</span>]) {
 <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   p(<span style="color: #70c0b1;">'&lt;h2&gt;'</span>.<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">arg</span>[<span style="color: #70c0b1;">'title'</span>].<span style="color: #70c0b1;">' &amp;raquo;&lt;/h2&gt;'</span>);
 <span style="color: #eaeaea; background-color: #424242;"> </span>   }
@@ -15019,130 +15301,6 @@ make install
 ]]></content:encoded>
         </item>
         <item>
-            <title><![CDATA[Discuz访问推广任务反作弊]]></title>
-            <link>/article/discuz-8bbf95ee63a85e7f4efb52a153cd4f5c5f0a.html</link>
-            <guid>/article/discuz-8bbf95ee63a85e7f4efb52a153cd4f5c5f0a.html</guid>
-            <pubDate>Thu, 19 Dec 2013 17:02:00 GMT</pubDate>
-            <content:encoded><![CDATA[<ul class="org-ul">
-<li>识别作弊
-
-<p>
-发贴、回复较少的用户具有偏高的积分、等级通常就是潜在的作弊对象。在后台查看该用户的积分历史，如果来历不明，那么很可能是通过访问推广作弊获得的。
-</p>
-
-<p>
-在我们的例子里就发现有一个用户金钱数过高，先查看该用户的积分表：
-</p>
-
-<pre class="example">
-mysql&gt; SELECT total, cyclenum, extcredits2 FROM g_common_credit_rule_log WHERE rid=8 and uid=119;
-+-------+----------+-------------+
-| total | cyclenum | extcredits2 |
-+-------+----------+-------------+
-|  3454 |     3454 |           1 |
-+-------+----------+-------------+
-1 row in set (0.00 sec)
-</pre>
-
-<p>
-相关字段说明
-</p>
-<dl class="org-dl">
-<dt> total </dt><dd>策略被执行总次数
-</dd>
-<dt> cyclenum </dt><dd>周期被执行次数 
-</dd>
-<dt> extcredits2 </dt><dd>我们的系统里对应金钱数
-</dd>
-<dt> rid </dt><dd>值8为访问推广任务类型
-</dd>
-<dt> uid </dt><dd>值119为作弊用户id
-</dd>
-</dl>
-<p>
-从上面可以看出该用户完成了3454次任务， 接下来就需要确认这些任务是通过作弊完成的了。
-</p>
-
-<p>
-搜索该用户推广链接在web服务器中留下的访问日志：
-</p>
-<pre class="example">
-logs# grep 'fromuid=119' /usr/local/nginx/logs/access.log*
-"GET /?fromuid=119.jpg HTTP/1.1" 301 6243 "http://xxxx.org/details.php?id=178668"
-...
-</pre>
-
-<p>
-可以初步断定，该用户通过在其它论坛中发布信息并将推广url注入到图片的url中，这样我们的站点在访问量没有任何增长的情况下该用户的推广数却瞬间彪升了。
-</p>
-</li>
-
-<li>阻止作弊
-
-<p>
-通过使用引用页中的用户标识进行记录来解决这个问题，这样只有当用户来到论坛并进行了相关操作才算推荐有效。
-</p>
-
-<p>
-修改source/class/discuz/discuz_application.php文件，将下面的内容：
-</p>
-<div class="org-src-container">
-
-<pre class="src src-php"><span style="color: #b9ca4a;">if</span>((<span style="color: #7aa6da;">!</span><span style="color: #b9ca4a;">empty</span>(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">_GET</span>[<span style="color: #70c0b1;">'fromuid'</span>]) || <span style="color: #7aa6da;">!</span><span style="color: #b9ca4a;">empty</span>(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">_GET</span>[<span style="color: #70c0b1;">'fromuser'</span>])) &amp;&amp; (<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #7aa6da;">this</span>-&gt;<span style="color: #e7c547;">var</span>[<span style="color: #70c0b1;">'setti</span><span style="color: #70c0b1; text-decoration: underline;">ng'</span><span style="text-decoration: underline;">][</span><span style="color: #70c0b1; text-decoration: underline;">'creditspolicy'</span><span style="text-decoration: underline;">][</span><span style="color: #70c0b1; text-decoration: underline;">'promotion_visit'</span><span style="text-decoration: underline;">] || </span><span style="color: #eaeaea; background-color: #000000; text-decoration: underline;">$</span><span style="color: #7aa6da; text-decoration: underline;">this</span><span style="text-decoration: underline;">-&gt;</span><span style="color: #e7c547; text-decoration: underline;">var</span><span style="text-decoration: underline;">[</span><span style="color: #70c0b1; text-decoration: underline;">'setting'</span><span style="text-decoration: underline;">][</span><span style="color: #70c0b1; text-decoration: underline;">'creditspolicy'</span><span style="text-decoration: underline;">][</span><span style="color: #70c0b1; text-decoration: underline;">'promotion_register'</span><span style="text-decoration: underline;">])) {</span>
-<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #b9ca4a;">require_once</span> libfile(<span style="color: #70c0b1;">'misc/promotion'</span>, <span style="color: #70c0b1;">'include'</span>);
-}
-</pre>
-</div>
-<p>
-改为：
-</p>
-<div class="org-src-container">
-
-<pre class="src src-php"><span style="color: #b9ca4a;">if</span> (<span style="color: #b9ca4a;">isset</span>(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">_SERVER</span>[<span style="color: #70c0b1;">'HTTP_REFERER'</span>]) &amp;&amp; strpos(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">_SERVER</span>[<span style="color: #70c0b1;">'HTTP_REFERER'</span>], <span style="color: #70c0b1;">'http://</span><span style="color: #70c0b1; text-decoration: underline;">XXX.com/'</span><span style="text-decoration: underline;">) === 0) {</span>
-<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">referer_query</span> = parse_url(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">_SERVER</span>[<span style="color: #70c0b1;">'HTTP_REFERER'</span>], <span style="color: #7aa6da;">PHP_URL_QUERY</span>);
-<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span> (<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">referer_query</span>) {
-<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   parse_str(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">referer_query</span>, <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">referer_get</span>);
-<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span>((<span style="color: #7aa6da;">!</span><span style="color: #b9ca4a;">empty</span>(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">referer_get</span>[<span style="color: #70c0b1;">'fromuid'</span>]) || <span style="color: #7aa6da;">!</span><span style="color: #b9ca4a;">empty</span>(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">referer_get</span>[<span style="color: #70c0b1;">'fromuser'</span>]))<span style="text-decoration: underline;"> &amp;&amp; (</span><span style="color: #eaeaea; background-color: #000000; text-decoration: underline;">$</span><span style="color: #7aa6da; text-decoration: underline;">this</span><span style="text-decoration: underline;">-&gt;</span><span style="color: #e7c547; text-decoration: underline;">var</span><span style="text-decoration: underline;">[</span><span style="color: #70c0b1; text-decoration: underline;">'setting'</span><span style="text-decoration: underline;">][</span><span style="color: #70c0b1; text-decoration: underline;">'creditspolicy'</span><span style="text-decoration: underline;">][</span><span style="color: #70c0b1; text-decoration: underline;">'promotion_visit'</span><span style="text-decoration: underline;">] || </span><span style="color: #eaeaea; background-color: #000000; text-decoration: underline;">$</span><span style="color: #7aa6da; text-decoration: underline;">this</span><span style="text-decoration: underline;">-&gt;</span><span style="color: #e7c547; text-decoration: underline;">var</span><span style="text-decoration: underline;">[</span><span style="color: #70c0b1; text-decoration: underline;">'setting'</span><span style="text-decoration: underline;">][</span><span style="color: #70c0b1; text-decoration: underline;">'creditspolicy'</span><span style="text-decoration: underline;">][</span><span style="color: #70c0b1; text-decoration: underline;">'promotion_register'</span><span style="text-decoration: underline;">])) {</span>
-<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #b9ca4a;">require_once</span> libfile(<span style="color: #70c0b1;">'misc/promotion'</span>, <span style="color: #70c0b1;">'include'</span>);
-<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   }
-<span style="color: #eaeaea; background-color: #424242;"> </span>   }
-}
-</pre>
-</div>
-
-<p>
-修改source/include/misc/misc_promotion.php文件，将下面的内容：
-</p>
-<div class="org-src-container">
-
-<pre class="src src-php"><span style="color: #b9ca4a;">if</span>(<span style="color: #7aa6da;">!</span><span style="color: #b9ca4a;">empty</span>(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">_GET</span>[<span style="color: #70c0b1;">'fromuid'</span>])) {
-<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">fromuid</span> = intval(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">_GET</span>[<span style="color: #70c0b1;">'fromuid'</span>]);
-<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">fromuser</span> = <span style="color: #70c0b1;">''</span>;
-} <span style="color: #b9ca4a;">else</span> {
-<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">fromuser</span> = <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">_GET</span>[<span style="color: #70c0b1;">'fromuser'</span>];
-<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">fromuid</span> = <span style="color: #70c0b1;">''</span>;
-}
-</pre>
-</div>
-<p>
-改为：
-</p>
-<div class="org-src-container">
-
-<pre class="src src-php"><span style="color: #b9ca4a;">if</span>(<span style="color: #7aa6da;">!</span><span style="color: #b9ca4a;">empty</span>(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">referer_get</span>[<span style="color: #70c0b1;">'fromuid'</span>])) {
-<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">fromuid</span> = intval(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">referer_get</span>[<span style="color: #70c0b1;">'fromuid'</span>]);
-<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">fromuser</span> = <span style="color: #70c0b1;">''</span>;
-} <span style="color: #b9ca4a;">else</span> {
-<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">fromuser</span> = <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">referer_get</span>[<span style="color: #70c0b1;">'fromuser'</span>];
-<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">fromuid</span> = <span style="color: #70c0b1;">''</span>;
-}
-</pre>
-</div>
-</li>
-</ul>
-]]></content:encoded>
-        </item>
-        <item>
             <title><![CDATA[为什么不能在构造函数中调用shared_from_this]]></title>
             <link>/article/4e3a4ec04e484e0d80fd57286784902051fd65704e2d8c037528-shared_from_this.html</link>
             <guid>/article/4e3a4ec04e484e0d80fd57286784902051fd65704e2d8c037528-shared_from_this.html</guid>
@@ -15275,6 +15433,130 @@ chicken_ptr-&gt;use();
 
 <p>
 参考：《<a href="http://hi.baidu.com/cpuramdisk/item/7c2f8d77385e0f29d7a89cf0">shared_from_this 几个值得注意的地方</a>》</p>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Discuz访问推广任务反作弊]]></title>
+            <link>/article/discuz-8bbf95ee63a85e7f4efb52a153cd4f5c5f0a.html</link>
+            <guid>/article/discuz-8bbf95ee63a85e7f4efb52a153cd4f5c5f0a.html</guid>
+            <pubDate>Thu, 19 Dec 2013 17:02:00 GMT</pubDate>
+            <content:encoded><![CDATA[<ul class="org-ul">
+<li>识别作弊
+
+<p>
+发贴、回复较少的用户具有偏高的积分、等级通常就是潜在的作弊对象。在后台查看该用户的积分历史，如果来历不明，那么很可能是通过访问推广作弊获得的。
+</p>
+
+<p>
+在我们的例子里就发现有一个用户金钱数过高，先查看该用户的积分表：
+</p>
+
+<pre class="example">
+mysql&gt; SELECT total, cyclenum, extcredits2 FROM g_common_credit_rule_log WHERE rid=8 and uid=119;
++-------+----------+-------------+
+| total | cyclenum | extcredits2 |
++-------+----------+-------------+
+|  3454 |     3454 |           1 |
++-------+----------+-------------+
+1 row in set (0.00 sec)
+</pre>
+
+<p>
+相关字段说明
+</p>
+<dl class="org-dl">
+<dt> total </dt><dd>策略被执行总次数
+</dd>
+<dt> cyclenum </dt><dd>周期被执行次数 
+</dd>
+<dt> extcredits2 </dt><dd>我们的系统里对应金钱数
+</dd>
+<dt> rid </dt><dd>值8为访问推广任务类型
+</dd>
+<dt> uid </dt><dd>值119为作弊用户id
+</dd>
+</dl>
+<p>
+从上面可以看出该用户完成了3454次任务， 接下来就需要确认这些任务是通过作弊完成的了。
+</p>
+
+<p>
+搜索该用户推广链接在web服务器中留下的访问日志：
+</p>
+<pre class="example">
+logs# grep 'fromuid=119' /usr/local/nginx/logs/access.log*
+"GET /?fromuid=119.jpg HTTP/1.1" 301 6243 "http://xxxx.org/details.php?id=178668"
+...
+</pre>
+
+<p>
+可以初步断定，该用户通过在其它论坛中发布信息并将推广url注入到图片的url中，这样我们的站点在访问量没有任何增长的情况下该用户的推广数却瞬间彪升了。
+</p>
+</li>
+
+<li>阻止作弊
+
+<p>
+通过使用引用页中的用户标识进行记录来解决这个问题，这样只有当用户来到论坛并进行了相关操作才算推荐有效。
+</p>
+
+<p>
+修改source/class/discuz/discuz_application.php文件，将下面的内容：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-php"><span style="color: #b9ca4a;">if</span>((<span style="color: #7aa6da;">!</span><span style="color: #b9ca4a;">empty</span>(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">_GET</span>[<span style="color: #70c0b1;">'fromuid'</span>]) || <span style="color: #7aa6da;">!</span><span style="color: #b9ca4a;">empty</span>(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">_GET</span>[<span style="color: #70c0b1;">'fromuser'</span>])) &amp;&amp; (<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #7aa6da;">this</span>-&gt;<span style="color: #e7c547;">var</span>[<span style="color: #70c0b1;">'setti</span><span style="color: #70c0b1; text-decoration: underline;">ng'</span><span style="text-decoration: underline;">][</span><span style="color: #70c0b1; text-decoration: underline;">'creditspolicy'</span><span style="text-decoration: underline;">][</span><span style="color: #70c0b1; text-decoration: underline;">'promotion_visit'</span><span style="text-decoration: underline;">] || </span><span style="color: #eaeaea; background-color: #000000; text-decoration: underline;">$</span><span style="color: #7aa6da; text-decoration: underline;">this</span><span style="text-decoration: underline;">-&gt;</span><span style="color: #e7c547; text-decoration: underline;">var</span><span style="text-decoration: underline;">[</span><span style="color: #70c0b1; text-decoration: underline;">'setting'</span><span style="text-decoration: underline;">][</span><span style="color: #70c0b1; text-decoration: underline;">'creditspolicy'</span><span style="text-decoration: underline;">][</span><span style="color: #70c0b1; text-decoration: underline;">'promotion_register'</span><span style="text-decoration: underline;">])) {</span>
+<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #b9ca4a;">require_once</span> libfile(<span style="color: #70c0b1;">'misc/promotion'</span>, <span style="color: #70c0b1;">'include'</span>);
+}
+</pre>
+</div>
+<p>
+改为：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-php"><span style="color: #b9ca4a;">if</span> (<span style="color: #b9ca4a;">isset</span>(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">_SERVER</span>[<span style="color: #70c0b1;">'HTTP_REFERER'</span>]) &amp;&amp; strpos(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">_SERVER</span>[<span style="color: #70c0b1;">'HTTP_REFERER'</span>], <span style="color: #70c0b1;">'http://</span><span style="color: #70c0b1; text-decoration: underline;">XXX.com/'</span><span style="text-decoration: underline;">) === 0) {</span>
+<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">referer_query</span> = parse_url(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">_SERVER</span>[<span style="color: #70c0b1;">'HTTP_REFERER'</span>], <span style="color: #7aa6da;">PHP_URL_QUERY</span>);
+<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span> (<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">referer_query</span>) {
+<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   parse_str(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">referer_query</span>, <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">referer_get</span>);
+<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #b9ca4a;">if</span>((<span style="color: #7aa6da;">!</span><span style="color: #b9ca4a;">empty</span>(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">referer_get</span>[<span style="color: #70c0b1;">'fromuid'</span>]) || <span style="color: #7aa6da;">!</span><span style="color: #b9ca4a;">empty</span>(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">referer_get</span>[<span style="color: #70c0b1;">'fromuser'</span>]))<span style="text-decoration: underline;"> &amp;&amp; (</span><span style="color: #eaeaea; background-color: #000000; text-decoration: underline;">$</span><span style="color: #7aa6da; text-decoration: underline;">this</span><span style="text-decoration: underline;">-&gt;</span><span style="color: #e7c547; text-decoration: underline;">var</span><span style="text-decoration: underline;">[</span><span style="color: #70c0b1; text-decoration: underline;">'setting'</span><span style="text-decoration: underline;">][</span><span style="color: #70c0b1; text-decoration: underline;">'creditspolicy'</span><span style="text-decoration: underline;">][</span><span style="color: #70c0b1; text-decoration: underline;">'promotion_visit'</span><span style="text-decoration: underline;">] || </span><span style="color: #eaeaea; background-color: #000000; text-decoration: underline;">$</span><span style="color: #7aa6da; text-decoration: underline;">this</span><span style="text-decoration: underline;">-&gt;</span><span style="color: #e7c547; text-decoration: underline;">var</span><span style="text-decoration: underline;">[</span><span style="color: #70c0b1; text-decoration: underline;">'setting'</span><span style="text-decoration: underline;">][</span><span style="color: #70c0b1; text-decoration: underline;">'creditspolicy'</span><span style="text-decoration: underline;">][</span><span style="color: #70c0b1; text-decoration: underline;">'promotion_register'</span><span style="text-decoration: underline;">])) {</span>
+<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #b9ca4a;">require_once</span> libfile(<span style="color: #70c0b1;">'misc/promotion'</span>, <span style="color: #70c0b1;">'include'</span>);
+<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #424242;"> </span>   }
+<span style="color: #eaeaea; background-color: #424242;"> </span>   }
+}
+</pre>
+</div>
+
+<p>
+修改source/include/misc/misc_promotion.php文件，将下面的内容：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-php"><span style="color: #b9ca4a;">if</span>(<span style="color: #7aa6da;">!</span><span style="color: #b9ca4a;">empty</span>(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">_GET</span>[<span style="color: #70c0b1;">'fromuid'</span>])) {
+<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">fromuid</span> = intval(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">_GET</span>[<span style="color: #70c0b1;">'fromuid'</span>]);
+<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">fromuser</span> = <span style="color: #70c0b1;">''</span>;
+} <span style="color: #b9ca4a;">else</span> {
+<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">fromuser</span> = <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">_GET</span>[<span style="color: #70c0b1;">'fromuser'</span>];
+<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">fromuid</span> = <span style="color: #70c0b1;">''</span>;
+}
+</pre>
+</div>
+<p>
+改为：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-php"><span style="color: #b9ca4a;">if</span>(<span style="color: #7aa6da;">!</span><span style="color: #b9ca4a;">empty</span>(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">referer_get</span>[<span style="color: #70c0b1;">'fromuid'</span>])) {
+<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">fromuid</span> = intval(<span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">referer_get</span>[<span style="color: #70c0b1;">'fromuid'</span>]);
+<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">fromuser</span> = <span style="color: #70c0b1;">''</span>;
+} <span style="color: #b9ca4a;">else</span> {
+<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">fromuser</span> = <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">referer_get</span>[<span style="color: #70c0b1;">'fromuser'</span>];
+<span style="color: #eaeaea; background-color: #424242;"> </span>   <span style="color: #eaeaea; background-color: #000000;">$</span><span style="color: #e7c547;">fromuid</span> = <span style="color: #70c0b1;">''</span>;
+}
+</pre>
+</div>
+</li>
+</ul>
 ]]></content:encoded>
         </item>
         <item>
