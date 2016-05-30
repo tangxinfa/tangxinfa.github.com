@@ -13662,78 +13662,87 @@ class RedisShard {
 
    collectd 用到了 RRDtool 中的四种数据类型：ABSOLUTE、COUNTER、DERIVE、GAUGE，《[[http://blog.kankanan.com/article/collectd-6570636e7c7b578b8be689e3.html][collectd 数据类型详解]]》 已有描述，而具体如何使用则看本文。
 
-   假设要上报一个 100/秒 的统计值，在一个时间间隔（10 秒）内分成两部分上报，分别使用四种数据类型进行上报。
+   假设要上报一个 100/秒 的统计值，在一个时间间隔（10 秒）内分成多部分上报，分别使用四种数据类型进行上报。
 
    =absolute.sh=
    #+begin_src sh
-    #!/bin/bash
+     #!/bin/bash
 
-    HOSTNAME="${COLLECTD_HOSTNAME:-localhost}"
-    VALUE=0
+     HOSTNAME="${COLLECTD_HOSTNAME:-localhost}"
+     VALUE=0
 
-    while [ 1 ]; do
-        sleep 9
-        VALUE=900
-        echo "PUTVAL \"$HOSTNAME/test/absolute\" N:$VALUE"
-        sleep 1
-        VALUE=100
-        echo "PUTVAL \"$HOSTNAME/test/absolute\" N:$VALUE"
-    done
+     while [ 1 ]; do
+         sleep 3
+         VALUE=200
+         echo "PUTVAL \"$HOSTNAME/test/absolute\" N:$VALUE"
+         sleep 1
+         VALUE=100
+         echo "PUTVAL \"$HOSTNAME/test/absolute\" N:$VALUE"
+         sleep 6
+         VALUE=700
+         echo "PUTVAL \"$HOSTNAME/test/absolute\" N:$VALUE"
+     done
    #+end_src
 
    =ABSOLUTE= 类型值的处理
    #+begin_quote
-   将时间间隔（10 秒）内的值进行累加，然后与时间间隔（10 秒）相除
+   将时间间隔（10 秒）内的上报的值进行累加，然后与时间间隔（10 秒）相除
 
-   (900 + 100)/10 == 100
+   (200 + 100 + 700)/10 == 100
    #+end_quote
 
    =counter.sh=
    #+begin_src sh
-    #!/bin/bash
+     #!/bin/bash
 
-    HOSTNAME="${COLLECTD_HOSTNAME:-localhost}"
-    VALUE=0
+     HOSTNAME="${COLLECTD_HOSTNAME:-localhost}"
+     VALUE=0
 
-    while [ 1 ]; do
-        sleep 9
-        VALUE=$[VALUE+900]
-        echo "PUTVAL \"$HOSTNAME/test/counter\" N:$VALUE"
-        sleep 1
-        VALUE=$[VALUE+100]
-        echo "PUTVAL \"$HOSTNAME/test/counter\" N:$VALUE"
-    done
+     while [ 1 ]; do
+         sleep 3
+         VALUE=$[VALUE+500]
+         echo "PUTVAL \"$HOSTNAME/test/counter\" N:$VALUE"
+         sleep 1
+         VALUE=$[VALUE+200]
+         echo "PUTVAL \"$HOSTNAME/test/counter\" N:$VALUE"
+         sleep 6
+         VALUE=$[VALUE+300]
+         echo "PUTVAL \"$HOSTNAME/test/counter\" N:$VALUE"
+     done
    #+end_src
 
    =COUNTER= 类型值的处理
    #+begin_quote
-   将时间间隔（10 秒）内的值进行累加，减去上一时间隔的累加值，然后与时间间隔（10 秒）相除
+   将时间间隔（10 秒）内的变化值（时间间隔内最后上报的值减去上一时间间隔最后上报的值）与时间间隔（10 秒）相除
 
-   ((1000 + 900 + 100) - 1000) / 10 == 100
+   (2000 - 1000) / 10 == 100
    #+end_quote
 
    =derive.sh=
    #+begin_src sh
-    #!/bin/bash
+     #!/bin/bash
 
-    HOSTNAME="${COLLECTD_HOSTNAME:-localhost}"
-    VALUE=0
+     HOSTNAME="${COLLECTD_HOSTNAME:-localhost}"
+     VALUE=0
 
-    while [ 1 ]; do
-        sleep 9
-        VALUE=$[VALUE+900]
-        echo "PUTVAL \"$HOSTNAME/test/derive\" N:$VALUE"
-        sleep 1
-        VALUE=$[VALUE+100]
-        echo "PUTVAL \"$HOSTNAME/test/derive\" N:$VALUE"
-    done
+     while [ 1 ]; do
+         sleep 3
+         VALUE=$[VALUE+500]
+         echo "PUTVAL \"$HOSTNAME/test/counter\" N:$VALUE"
+         sleep 1
+         VALUE=$[VALUE+200]
+         echo "PUTVAL \"$HOSTNAME/test/counter\" N:$VALUE"
+         sleep 6
+         VALUE=$[VALUE+300]
+         echo "PUTVAL \"$HOSTNAME/test/counter\" N:$VALUE"
+     done
    #+end_src
 
    =DERIVE= 类型值的处理
    #+begin_quote
-   将时间间隔（10 秒）内的值进行累加，减去上一时间隔的累加值，然后与时间间隔（10 秒）相除
+   将时间间隔（10 秒）内的变化值（时间间隔内最后上报的值减去上一时间间隔最后上报的值）与时间间隔（10 秒）相除
 
-   ((1000 + 900 + 100) - 1000) / 10 == 100
+   (2000 - 1000) / 10 == 100
    #+end_quote
 
    =gauge.sh=
@@ -13763,7 +13772,7 @@ class RedisShard {
 
 ** =COUNTER= VS =DERIVE=
 
-   这两者非常相似，不同点表现在当前时间间隔（10 秒）的值小于上一时间间隔（10 秒）的值时：
+   这两者非常相似，不同点表现在当前上报的值小于上一上报值时：
 
    - =COUNTER= 认为数据发生了溢出，会进行”回绕“计算，只要在数据集定义的取值范围（Min-Max）内，仍会做为当前时间间隔（10 秒）的值。
 
@@ -13771,7 +13780,7 @@ class RedisShard {
   
      因此建议在 =COUNTER= 类型数据集上设置合理的取值范围，一方面支持”回绕“计算，另一方面又不受误计算的影响。
 
-   - =DERIVE= 认为这是异常值，丢弃该值，当前时间间隔（10 秒）的值为 UNKNOWN 。
+   - =DERIVE= 认为这是异常值，丢弃该值。
 
 
    =COUNTER= 和 =DERIVE= 类型的值与上一值紧密相关，需要减去上一值才是变化值。

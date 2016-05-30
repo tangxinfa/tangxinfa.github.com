@@ -135,7 +135,7 @@ collectd 用到了 RRDtool 中的四种数据类型：ABSOLUTE、COUNTER、DERIV
 </p>
 
 <p>
-假设要上报一个 100/秒 的统计值，在一个时间间隔（10 秒）内分成两部分上报，分别使用四种数据类型进行上报。
+假设要上报一个 100/秒 的统计值，在一个时间间隔（10 秒）内分成多部分上报，分别使用四种数据类型进行上报。
 </p>
 
 <p>
@@ -143,19 +143,22 @@ collectd 用到了 RRDtool 中的四种数据类型：ABSOLUTE、COUNTER、DERIV
 </p>
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #999999; font-style: italic;">#</span><span style="color: #999999; font-style: italic;">!/bin/</span><span style="color: #99cc99;">bash</span>
+<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/</span><span style="color: #b5bd68;">bash</span>
 
-<span style="color: #ffcc66;">HOSTNAME</span>=<span style="color: #66cccc;">"${COLLECTD_HOSTNAME:-localhost}"</span>
-<span style="color: #ffcc66;">VALUE</span>=0
+<span style="color: #f0c674;">HOSTNAME</span>=<span style="color: #8abeb7;">"${COLLECTD_HOSTNAME:-localhost}"</span>
+<span style="color: #f0c674;">VALUE</span>=0
 
-<span style="color: #99cc99;">while</span> [ 1 ]; <span style="color: #99cc99;">do</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   sleep 9
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">VALUE</span>=900
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cc99cc;">echo</span> <span style="color: #66cccc;">"PUTVAL \"$HOSTNAME/test/absolute\" N:$VALUE"</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   sleep 1
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">VALUE</span>=100
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cc99cc;">echo</span> <span style="color: #66cccc;">"PUTVAL \"$HOSTNAME/test/absolute\" N:$VALUE"</span>
-<span style="color: #99cc99;">done</span>
+<span style="color: #b5bd68;">while</span> [ 1 ]; <span style="color: #b5bd68;">do</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   sleep 3
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #f0c674;">VALUE</span>=200
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"PUTVAL \"$HOSTNAME/test/absolute\" N:$VALUE"</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   sleep 1
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #f0c674;">VALUE</span>=100
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"PUTVAL \"$HOSTNAME/test/absolute\" N:$VALUE"</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   sleep 6
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #f0c674;">VALUE</span>=700
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"PUTVAL \"$HOSTNAME/test/absolute\" N:$VALUE"</span>
+<span style="color: #b5bd68;">done</span>
 </pre>
 </div>
 
@@ -164,11 +167,11 @@ collectd 用到了 RRDtool 中的四种数据类型：ABSOLUTE、COUNTER、DERIV
 </p>
 <blockquote>
 <p>
-将时间间隔（10 秒）内的值进行累加，然后与时间间隔（10 秒）相除
+将时间间隔（10 秒）内的上报的值进行累加，然后与时间间隔（10 秒）相除
 </p>
 
 <p>
-(900 + 100)/10 == 100
+(200 + 100 + 700)/10 == 100
 </p>
 </blockquote>
 
@@ -177,19 +180,22 @@ collectd 用到了 RRDtool 中的四种数据类型：ABSOLUTE、COUNTER、DERIV
 </p>
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #999999; font-style: italic;">#</span><span style="color: #999999; font-style: italic;">!/bin/</span><span style="color: #99cc99;">bash</span>
+<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/</span><span style="color: #b5bd68;">bash</span>
 
-<span style="color: #ffcc66;">HOSTNAME</span>=<span style="color: #66cccc;">"${COLLECTD_HOSTNAME:-localhost}"</span>
-<span style="color: #ffcc66;">VALUE</span>=0
+<span style="color: #f0c674;">HOSTNAME</span>=<span style="color: #8abeb7;">"${COLLECTD_HOSTNAME:-localhost}"</span>
+<span style="color: #f0c674;">VALUE</span>=0
 
-<span style="color: #99cc99;">while</span> [ 1 ]; <span style="color: #99cc99;">do</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   sleep 9
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">VALUE</span>=$[VALUE+900]
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cc99cc;">echo</span> <span style="color: #66cccc;">"PUTVAL \"$HOSTNAME/test/counter\" N:$VALUE"</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   sleep 1
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">VALUE</span>=$[VALUE+100]
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cc99cc;">echo</span> <span style="color: #66cccc;">"PUTVAL \"$HOSTNAME/test/counter\" N:$VALUE"</span>
-<span style="color: #99cc99;">done</span>
+<span style="color: #b5bd68;">while</span> [ 1 ]; <span style="color: #b5bd68;">do</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   sleep 3
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #f0c674;">VALUE</span>=$[VALUE+500]
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"PUTVAL \"$HOSTNAME/test/counter\" N:$VALUE"</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   sleep 1
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #f0c674;">VALUE</span>=$[VALUE+200]
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"PUTVAL \"$HOSTNAME/test/counter\" N:$VALUE"</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   sleep 6
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #f0c674;">VALUE</span>=$[VALUE+300]
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"PUTVAL \"$HOSTNAME/test/counter\" N:$VALUE"</span>
+<span style="color: #b5bd68;">done</span>
 </pre>
 </div>
 
@@ -198,11 +204,11 @@ collectd 用到了 RRDtool 中的四种数据类型：ABSOLUTE、COUNTER、DERIV
 </p>
 <blockquote>
 <p>
-将时间间隔（10 秒）内的值进行累加，减去上一时间隔的累加值，然后与时间间隔（10 秒）相除
+将时间间隔（10 秒）内的变化值（时间间隔内最后上报的值减去上一时间间隔最后上报的值）与时间间隔（10 秒）相除
 </p>
 
 <p>
-((1000 + 900 + 100) - 1000) / 10 == 100
+(2000 - 1000) / 10 == 100
 </p>
 </blockquote>
 
@@ -211,19 +217,22 @@ collectd 用到了 RRDtool 中的四种数据类型：ABSOLUTE、COUNTER、DERIV
 </p>
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #999999; font-style: italic;">#</span><span style="color: #999999; font-style: italic;">!/bin/</span><span style="color: #99cc99;">bash</span>
+<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/</span><span style="color: #b5bd68;">bash</span>
 
-<span style="color: #ffcc66;">HOSTNAME</span>=<span style="color: #66cccc;">"${COLLECTD_HOSTNAME:-localhost}"</span>
-<span style="color: #ffcc66;">VALUE</span>=0
+<span style="color: #f0c674;">HOSTNAME</span>=<span style="color: #8abeb7;">"${COLLECTD_HOSTNAME:-localhost}"</span>
+<span style="color: #f0c674;">VALUE</span>=0
 
-<span style="color: #99cc99;">while</span> [ 1 ]; <span style="color: #99cc99;">do</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   sleep 9
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">VALUE</span>=$[VALUE+900]
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cc99cc;">echo</span> <span style="color: #66cccc;">"PUTVAL \"$HOSTNAME/test/derive\" N:$VALUE"</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   sleep 1
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">VALUE</span>=$[VALUE+100]
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cc99cc;">echo</span> <span style="color: #66cccc;">"PUTVAL \"$HOSTNAME/test/derive\" N:$VALUE"</span>
-<span style="color: #99cc99;">done</span>
+<span style="color: #b5bd68;">while</span> [ 1 ]; <span style="color: #b5bd68;">do</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   sleep 3
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #f0c674;">VALUE</span>=$[VALUE+500]
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"PUTVAL \"$HOSTNAME/test/counter\" N:$VALUE"</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   sleep 1
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #f0c674;">VALUE</span>=$[VALUE+200]
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"PUTVAL \"$HOSTNAME/test/counter\" N:$VALUE"</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   sleep 6
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #f0c674;">VALUE</span>=$[VALUE+300]
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"PUTVAL \"$HOSTNAME/test/counter\" N:$VALUE"</span>
+<span style="color: #b5bd68;">done</span>
 </pre>
 </div>
 
@@ -232,11 +241,11 @@ collectd 用到了 RRDtool 中的四种数据类型：ABSOLUTE、COUNTER、DERIV
 </p>
 <blockquote>
 <p>
-将时间间隔（10 秒）内的值进行累加，减去上一时间隔的累加值，然后与时间间隔（10 秒）相除
+将时间间隔（10 秒）内的变化值（时间间隔内最后上报的值减去上一时间间隔最后上报的值）与时间间隔（10 秒）相除
 </p>
 
 <p>
-((1000 + 900 + 100) - 1000) / 10 == 100
+(2000 - 1000) / 10 == 100
 </p>
 </blockquote>
 
@@ -245,19 +254,19 @@ collectd 用到了 RRDtool 中的四种数据类型：ABSOLUTE、COUNTER、DERIV
 </p>
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #999999; font-style: italic;">#</span><span style="color: #999999; font-style: italic;">!/bin/</span><span style="color: #99cc99;">bash</span>
+<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/</span><span style="color: #b5bd68;">bash</span>
 
-<span style="color: #ffcc66;">HOSTNAME</span>=<span style="color: #66cccc;">"${COLLECTD_HOSTNAME:-localhost}"</span>
-<span style="color: #ffcc66;">VALUE</span>=0
+<span style="color: #f0c674;">HOSTNAME</span>=<span style="color: #8abeb7;">"${COLLECTD_HOSTNAME:-localhost}"</span>
+<span style="color: #f0c674;">VALUE</span>=0
 
-<span style="color: #99cc99;">while</span> [ 1 ]; <span style="color: #99cc99;">do</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   sleep 8
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">VALUE</span>=50
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cc99cc;">echo</span> <span style="color: #66cccc;">"PUTVAL \"$HOSTNAME/test/gauge\" N:$VALUE"</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   sleep 2
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">VALUE</span>=300
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cc99cc;">echo</span> <span style="color: #66cccc;">"PUTVAL \"$HOSTNAME/test/gauge\" N:$VALUE"</span>
-<span style="color: #99cc99;">done</span>
+<span style="color: #b5bd68;">while</span> [ 1 ]; <span style="color: #b5bd68;">do</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   sleep 8
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #f0c674;">VALUE</span>=50
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"PUTVAL \"$HOSTNAME/test/gauge\" N:$VALUE"</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   sleep 2
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #f0c674;">VALUE</span>=300
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"PUTVAL \"$HOSTNAME/test/gauge\" N:$VALUE"</span>
+<span style="color: #b5bd68;">done</span>
 </pre>
 </div>
 
@@ -281,7 +290,7 @@ collectd 用到了 RRDtool 中的四种数据类型：ABSOLUTE、COUNTER、DERIV
 <h2 id="sec-3"><code>COUNTER</code> VS <code>DERIVE</code></h2>
 <div class="outline-text-2" id="text-3">
 <p>
-这两者非常相似，不同点表现在当前时间间隔（10 秒）的值小于上一时间间隔（10 秒）的值时：
+这两者非常相似，不同点表现在当前上报的值小于上一上报值时：
 </p>
 
 <ul class="org-ul">
@@ -296,7 +305,7 @@ collectd 用到了 RRDtool 中的四种数据类型：ABSOLUTE、COUNTER、DERIV
 </p>
 </li>
 
-<li><code>DERIVE</code> 认为这是异常值，丢弃该值，当前时间间隔（10 秒）的值为 UNKNOWN 。
+<li><code>DERIVE</code> 认为这是异常值，丢弃该值。
 </li>
 </ul>
 
