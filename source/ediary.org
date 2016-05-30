@@ -13613,3 +13613,215 @@ class RedisShard {
 
    
    stream.pipe 没有魔法，它提供了一种传输数据的优美方式，但是它并不完美，在错误处理方面留下了很多空白，有待开发人员自行解决。
+
+* TODO collectd 问题诊断方法                                       :collectd:
+
+** 输出日志
+
+   =collectd.conf=
+   #+begin_example
+     LoadPlugin "logfile"
+     <Plugin "logfile">
+       LogLevel "info"
+       File "/var/log/collectd.log"
+       Timestamp true
+     </Plugin>
+   #+end_example
+
+   collectd-exec 插件执行的脚本标准错误输出（stderr）会出现在日志文件中（/var/log/collectd.log）。
+
+** 网络抓包
+
+   使用 tcpdump 抓包
+   #+begin_src sh
+     tcpdump -i any host <collectd server ip> -XX -tttt -nnnn -s 0 -w ~/<collectd server ip>.pcap
+   #+end_src
+   请将 =<collectd server ip>= 替换为 collectd.conf 中 =network= 插件中的 =Server= 值。
+
+   使用 wireshark 查看抓到的包，右键菜单中选择 =Decode As...= ，弹出的列表中选择按 =collectd= 协议进行解析。
+
+   检查上报的数据是否有问题。
+
+   如果上报的数据是正常的，则有可能是以前上报了有问题的数据导致，请尝试从 collectd 服务器上直接将相应的 rrd 文件删除。
+
+** 分析 rrd 文件
+
+* DONE 理解 collectd 的四种数据类型                                :collectd:
+  CLOSED: [2016-05-30 Mon 14:32]
+
+** collectd 的基础是 [[http://oss.oetiker.ch/rrdtool/][RRDtool]]
+    
+   #+begin_quote
+   RRDtool is the OpenSource industry standard, high performance data logging and graphing system for time series data.
+   #+end_quote
+
+   #+begin_quote
+   What makes RRDtool so special?
+
+   RRDtool is GNU licensed software developed by Tobias Oetiker, a system manager at the Swiss Federal Institute of Technology. Though it is a database, there are distinct differences between RRDtool databases and other databases as listed below:
+
+  * RRDtool stores data; that makes it a back-end tool. The RRDtool command set allows one to create graphs; that makes it a front-end tool as well. Other databases just store data and can not create graphs.
+
+  * In case of linear databases, new data gets appended at the bottom of the database table. Thus its size keeps on increasing, whereas the size of an RRDtool database is determined at creation time. Imagine an RRDtool database as the perimeter of a circle. Data is added along the perimeter. When new data reaches the starting point, it overwrites existing data. This way, the size of an RRDtool database always remains constant. The name "Round Robin" stems from this behavior.
+
+  * Other databases store the values as supplied. RRDtool can be configured to calculate the rate of change from the previous to the current value and store this information instead.
+
+  * Other databases get updated when values are supplied. The RRDtool database is structured in such a way that it needs data at predefined time intervals. If it does not get a new value during the interval, it stores an UNKNOWN value for that interval. So, when using the RRDtool database, it is imperative to use scripts that run at regular intervals to ensure a constant data flow to update the RRDtool database.
+   #+end_quote
+
+   #+begin_quote
+   是什么让 RRDtool 如此特殊？
+
+   RRDtool 是由 Tobias Oetiker 开发的遵循 GNU 协议的软件，他是 Swiss Federal Institute of Technology 的 system manager。虽然 RRDtool 是一个数据库，但与其它数据库有着明显的区别，如下所述：
+
+  * RRDtool 存储数据，是后端工具。RRDtool 命令集可用于创建图表，因此它也是前端工具。其它数据库只存储数据但不创建图表。
+
+  * 做为线性数据库，新数据追加在数据库的底部。这样它的尺寸会不断增长，然而 RRDtool 数据库的尺寸在创建时确定。想像 RRDtool 数据库是圆周长。数据随着周长添加。当新数据达到起始点，它会覆盖已存在的数据。这样，RRDtool 数据库的尺寸总是保持不变。因此得名“Round Robin”。
+
+  * 其它数据库存储供应的数据值。而 RRDtool 可配置为计算前一个值到当前值的变化率，做为替代物进行存储。
+
+  * 其它数据库在供应数据值时就会进行更新。RRDtool 数据库构造为需要预定义时间间隔的数据。在一个时间间隔内，如果它无法获取到一个新值，它会为该时间间隔存储一个未知（UNKNOWN） 值。因此，使用 RRDtool 数据库时，必须定期运行脚本确保恒定的数据流去更新 RRDtool 数据库。
+   #+end_quote
+
+   以上引用自 [[http://oss.oetiker.ch/rrdtool/tut/rrd-beginners.en.html][RRDtool - rrd-beginners]]
+
+** collectd 的四种数据类型
+
+   RRDtool 默认的时间间隔为 300 秒（5分钟），collectd 默认时间间隔为 10 秒。
+
+   通常的建议是上报数据时，确保时间间隔与 collectd 服务器的设置一致（即 COLLECTD_INTERVAL），
+   但是了解 collectd 会如何处理上报的值，更有利于我们正确地上报数据，获得理想的结果。
+
+   collectd 用到了 RRDtool 中的四种数据类型：ABSOLUTE、COUNTER、DERIVE、GAUGE，《[[http://blog.kankanan.com/article/collectd-6570636e7c7b578b8be689e3.html][collectd 数据类型详解]]》 已有描述，而具体如何使用则看本文。
+
+   假设要上报一个 100/秒 的统计值，在一个时间间隔（10 秒）内分成两部分上报，分别使用四种数据类型进行上报。
+
+   =absolute.sh=
+   #+begin_src sh
+    #!/bin/bash
+
+    HOSTNAME="${COLLECTD_HOSTNAME:-localhost}"
+    VALUE=0
+
+    while [ 1 ]; do
+        sleep 9
+        VALUE=900
+        echo "PUTVAL \"$HOSTNAME/test/absolute\" N:$VALUE"
+        sleep 1
+        VALUE=100
+        echo "PUTVAL \"$HOSTNAME/test/absolute\" N:$VALUE"
+    done
+   #+end_src
+
+   =ABSOLUTE= 类型值的处理
+   #+begin_quote
+   将时间间隔（10 秒）内的值进行累加，然后与时间间隔（10 秒）相除
+
+   (900 + 100)/10 == 100
+   #+end_quote
+
+   =counter.sh=
+   #+begin_src sh
+    #!/bin/bash
+
+    HOSTNAME="${COLLECTD_HOSTNAME:-localhost}"
+    VALUE=0
+
+    while [ 1 ]; do
+        sleep 9
+        VALUE=$[VALUE+900]
+        echo "PUTVAL \"$HOSTNAME/test/counter\" N:$VALUE"
+        sleep 1
+        VALUE=$[VALUE+100]
+        echo "PUTVAL \"$HOSTNAME/test/counter\" N:$VALUE"
+    done
+   #+end_src
+
+   =COUNTER= 类型值的处理
+   #+begin_quote
+   将时间间隔（10 秒）内的值进行累加，减去上一时间隔的累加值，然后与时间间隔（10 秒）相除
+
+   ((1000 + 900 + 100) - 1000) / 10 == 100
+   #+end_quote
+
+   =derive.sh=
+   #+begin_src sh
+    #!/bin/bash
+
+    HOSTNAME="${COLLECTD_HOSTNAME:-localhost}"
+    VALUE=0
+
+    while [ 1 ]; do
+        sleep 9
+        VALUE=$[VALUE+900]
+        echo "PUTVAL \"$HOSTNAME/test/derive\" N:$VALUE"
+        sleep 1
+        VALUE=$[VALUE+100]
+        echo "PUTVAL \"$HOSTNAME/test/derive\" N:$VALUE"
+    done
+   #+end_src
+
+   =DERIVE= 类型值的处理
+   #+begin_quote
+   将时间间隔（10 秒）内的值进行累加，减去上一时间隔的累加值，然后与时间间隔（10 秒）相除
+
+   ((1000 + 900 + 100) - 1000) / 10 == 100
+   #+end_quote
+
+   =gauge.sh=
+   #+begin_src sh
+    #!/bin/bash
+
+    HOSTNAME="${COLLECTD_HOSTNAME:-localhost}"
+    VALUE=0
+
+    while [ 1 ]; do
+        VALUE=150
+        echo "PUTVAL \"$HOSTNAME/test/gauge\" N:$VALUE"
+        sleep 5
+        VALUE=50
+        echo "PUTVAL \"$HOSTNAME/test/gauge\" N:$VALUE"
+        sleep 5
+    done
+   #+end_src
+
+   =GAUGE= 类型值的处理
+   #+begin_quote
+   将时间间隔（10 秒）内的值乘以该值与上一值的时间间隔，再累加，最后与时间间隔（10 秒）相除
+
+   ((150 * 5)+(50 * 5)) / 10 == 100
+   #+end_quote
+
+
+** =COUNTER= VS =DERIVE=
+
+   这两者非常相似，不同点表现在当前时间间隔（10 秒）的值小于上一时间间隔（10 秒）的值时：
+
+   - =COUNTER= 认为数据发生了溢出，会进行”回绕“计算，只要在数据集定义的取值范围（Min-Max）内，仍会做为当前时间间隔（10 秒）的值。
+
+     如生成统计值的程序或设备发生重启，而且重启时间小于一个时间间隔（10 秒），则有可能因”回绕“计算得出巨大的错误值。
+  
+     因此建议在 =COUNTER= 类型数据集上设置合理的取值范围，一方面支持”回绕“计算，另一方面又不受误计算的影响。
+
+   - =DERIVE= 认为这是异常值，丢弃该值，当前时间间隔（10 秒）的值为 UNKNOWN 。
+
+
+** =GAUGE= 与 =ABSOLUTE= 的特殊之处
+
+   =GAUGE= 和 =ABSOLUTE= 都不依赖上一时间间隔的值。
+
+   =GAUGE= 已经是变化率值（数量/秒），其它类型需要 RRDtool 进行累加再除以时间间隔算变化率。
+
+* TODO 构建软件系统                                               :architecture:
+
+  软件系统根据领域（domain）分为两种：
+
+  - 在现实世界中能够找以参照物，也可以说是对现实世界建模
+
+    
+  - 在现实世界中没有对应物，也可以说是臆想的产物
+
+
+  
+
+  
