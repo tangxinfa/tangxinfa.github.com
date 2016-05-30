@@ -13614,38 +13614,6 @@ class RedisShard {
    
    stream.pipe 没有魔法，它提供了一种传输数据的优美方式，但是它并不完美，在错误处理方面留下了很多空白，有待开发人员自行解决。
 
-* TODO collectd 问题诊断方法                                       :collectd:
-
-** 输出日志
-
-   =collectd.conf=
-   #+begin_example
-     LoadPlugin "logfile"
-     <Plugin "logfile">
-       LogLevel "info"
-       File "/var/log/collectd.log"
-       Timestamp true
-     </Plugin>
-   #+end_example
-
-   collectd-exec 插件执行的脚本标准错误输出（stderr）会出现在日志文件中（/var/log/collectd.log）。
-
-** 网络抓包
-
-   使用 tcpdump 抓包
-   #+begin_src sh
-     tcpdump -i any host <collectd server ip> -XX -tttt -nnnn -s 0 -w ~/<collectd server ip>.pcap
-   #+end_src
-   请将 =<collectd server ip>= 替换为 collectd.conf 中 =network= 插件中的 =Server= 值。
-
-   使用 wireshark 查看抓到的包，右键菜单中选择 =Decode As...= ，弹出的列表中选择按 =collectd= 协议进行解析。
-
-   检查上报的数据是否有问题。
-
-   如果上报的数据是正常的，则有可能是以前上报了有问题的数据导致，请尝试从 collectd 服务器上直接将相应的 rrd 文件删除。
-
-** 分析 rrd 文件
-
 * DONE 理解 collectd 的四种数据类型                                :collectd:
   CLOSED: [2016-05-30 Mon 14:32]
 
@@ -13776,12 +13744,12 @@ class RedisShard {
     VALUE=0
 
     while [ 1 ]; do
-        VALUE=150
-        echo "PUTVAL \"$HOSTNAME/test/gauge\" N:$VALUE"
-        sleep 5
+        sleep 8
         VALUE=50
         echo "PUTVAL \"$HOSTNAME/test/gauge\" N:$VALUE"
-        sleep 5
+        sleep 2
+        VALUE=300
+        echo "PUTVAL \"$HOSTNAME/test/gauge\" N:$VALUE"
     done
    #+end_src
 
@@ -13789,7 +13757,7 @@ class RedisShard {
    #+begin_quote
    将时间间隔（10 秒）内的值乘以该值与上一值的时间间隔，再累加，最后与时间间隔（10 秒）相除
 
-   ((150 * 5)+(50 * 5)) / 10 == 100
+   ((50 * 8) + (300 * 2)) / 10 == 100
    #+end_quote
 
 
@@ -13806,12 +13774,61 @@ class RedisShard {
    - =DERIVE= 认为这是异常值，丢弃该值，当前时间间隔（10 秒）的值为 UNKNOWN 。
 
 
-** =GAUGE= 与 =ABSOLUTE= 的特殊之处
+   =COUNTER= 和 =DERIVE= 类型的值与上一值紧密相关，需要减去上一值才是变化值。
+   
+** =ABSOLUTE= VS =GAUGE=
 
-   =GAUGE= 和 =ABSOLUTE= 都不依赖上一时间间隔的值。
+   =ABSOLUTE= 是变化值，而 =GAUGE= 变化率（数量/秒）。
 
-   =GAUGE= 已经是变化率值（数量/秒），其它类型需要 RRDtool 进行累加再除以时间间隔算变化率。
+   =ABSOLUTE= 需要将时间间隔（10 秒）内的值累加再除以时间间隔（10 秒）算出变化率（数量/秒）。
 
+   =GAUGE= 还与当前值到上一值的时间间隔紧密相关，上一值到当前值的时间间隔内的变化率都为当前值。
+
+   =COUNTER= 和 =DERIVE= 类型的值与上一值无关，本身就是变化值（或变化率）。
+
+* DONE collectd 问题诊断方法                                       :collectd:
+  CLOSED: [2016-05-30 Mon 16:27]
+
+** 输出日志
+
+   =collectd.conf=
+   #+begin_example
+     LoadPlugin "logfile"
+     <Plugin "logfile">
+       LogLevel "info"
+       File "/var/log/collectd.log"
+       Timestamp true
+     </Plugin>
+   #+end_example
+
+   collectd-exec 插件执行的脚本标准错误输出（stderr）会出现在日志文件中（/var/log/collectd.log）。
+
+   通过分析日志可以查出统计脚本本身的问题。
+
+** 网络抓包
+
+   使用 tcpdump 抓包
+   #+begin_src sh
+     tcpdump -i any host <collectd server ip> -XX -tttt -nnnn -s 0 -w ~/<collectd server ip>.pcap
+   #+end_src
+   请将 =<collectd server ip>= 替换为 collectd.conf 中 =network= 插件中的 =Server= 值。
+
+   使用 wireshark 查看抓到的包，右键菜单中选择 =Decode As...= ，弹出的列表中选择按 =collectd= 协议进行解析。
+
+   检查上报的数据是否有问题。
+
+   如果上报的数据是正常的，则有可能是以前上报了有问题的数据导致，请尝试从 collectd 服务器上直接将相应的 rrd 文件删除。
+
+** 分析 rrd 文件
+
+   collectd 是使用 RRDtool 进行数据存储，直接查看 rrd 文件数据是最直接的诊断方法。
+
+   #+begin_src sh
+     rrdtool fetch /var/lib/collectd/localhost/test/gauge.rrd AVERAGE --start 1464585532 --end N
+   #+end_src
+
+   RRDtool 的用法请参考 [[http://oss.oetiker.ch/rrdtool/tut/rrdtutorial.en.html][RRDtool - rrdtutorial]]
+   
 * TODO 构建软件系统                                               :architecture:
 
   软件系统根据领域（domain）分为两种：
