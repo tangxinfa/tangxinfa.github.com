@@ -2,7 +2,7 @@
 <html lang="zh-cn">
   <head>
     <meta charset="utf-8"/>
-    <title>linux下修改键位映射 | 看看俺 – KanKanAn.com</title>
+    <title>解决个人用户目录做为 Web 服务根目录的权限问题 | 看看俺 – KanKanAn.com</title>
     <link rel="shortcut icon" href="/static/favicon.ico" />
     <link rel="stylesheet" type="text/less" href="/style/less/o-blog.less"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -44,7 +44,7 @@
 
       <div class="article">
         <header class="article-header">
-          <h1>linux下修改键位映射</h1>
+          <h1>解决个人用户目录做为 Web 服务根目录的权限问题</h1>
       	<div class="qr-code">
       	  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="" alt="" id="qr-code" />
       	  <script>
@@ -55,118 +55,158 @@
       
         <div class="article-content">
           <p>
-在linux下会大量使用ctrl和alt键，但是普通键盘上这两个键所在位置太偏，按起来非常吃力，交换键位可以很好的解决这个问题。
-</p>
-
-<ul class="org-ul">
-<li>通过gnome-tweak-tool进行修改
-
-<p>
-Typing页可以完成常用的修改，如：交换Caps Lock和Ctrl，交换左Ctrl和Alt。但是在我的笔记本上设置好后有时候会失效.
-</p>
-</li>
-
-<li>通过setxkbmap命令进行修改
-
-<p>
-Caps Lock改为Ctrl：setxkbmap -option ctrl:nocaps
+我们在个人帐号目录下进行日常的开发工作，通常使用弱权限帐号（如：nobody）运行 Web 服务器（如：nginx）。
 </p>
 
 <p>
-可以查看/usr/share/X11/xkb/rules/evdev.lst查看支持的交换方式。Ctrl和Alt交换试了一下没有效果。
-</p>
-
-<p>
-将setxkbmap设置命令放到~/.xprofile中即可开机生效。
-</p>
-</li>
-</ul>
-
-
-<ul class="org-ul">
-<li>通过配置~/.Xmodmap进行修改
-
-<p>
-可以完成任意的键盘映射。
-</p>
-
-<p>
-如下所示：Caps Lock改为Ctrl，左Ctrl改为Alt：
+nginx 配置 Web 服务器的根目录为个人用户目录，这样修复代码后刷新浏览器就可以看到效果。
 </p>
 
 <pre class="example">
-keycode 66 = Control_L
-clear Lock
-add control = Control_L
+user nobody;
 
-clear control
-clear mod1
-keycode 37 = Alt_L Meta_L
-add control = Control_L Control_R
-add mod1 = Alt_L Meta_L
+server {
+   listen       80;
+   server_name  www.example.com;
+
+   location / {
+       root   /home/tangxinfa/projects/www.example.com;
+       index  index.html index.htm;
+   }
+}
 </pre>
 
 <p>
-启用设置：
+然而 linux 的用户权限系统禁止 Web 服务器用户（nobody）访问个人用户（tangxinfa）的数据。
 </p>
 
-<div class="org-src-container">
-
-<pre class="src src-sh">xmodmap ~/.Xmodmap
-</pre>
-</div>
-
 <p>
-在~/.xprofile中添加以上指令以便开机生效：
+使用浏览器访问，会得到一个错误页面
 </p>
-
-<div class="org-src-container">
-
-<pre class="src src-sh"><span style="color: #99cc99;">if</span> [ -f $<span style="color: #ffcc66;">HOME</span>/.Xmodmap ]; <span style="color: #99cc99;">then</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   /usr/bin/xmodmap $<span style="color: #ffcc66;">HOME</span>/.Xmodmap
-<span style="color: #99cc99;">fi</span>
+<pre class="example">
+403 Forbidden
 </pre>
-</div>
 
 <p>
-参考：
+使用 linux 命令确认问题是由 linux 的用户权限系统引起
+</p>
+<pre class="example">
+$ sudo -u nobody -g nobody ls -la /home/tangxinfa/projects/www.example.com
+ls: cannot access '/home/tangxinfa/projects/www.example.com': Permission denied
+</pre>
+
+
+<p>
+解决方法有以下几种：
 </p>
 
 <ul class="org-ul">
-<li><a href="http://earthviaradio.wordpress.com/2012/02/06/swapping-the-left-alt-and-ctrl-keys-in-ubuntu-11-10/">Swapping the left Alt and Ctrl keys in Ubuntu 11.10</a>
-</li>
+<li>使用软链接
 
-<li><a href="http://efod.se/writings/linuxbook/html/caps-lock-to-ctrl.html">Changing your caps lock into Ctrl in X</a>
-</li>
-
-<li><a href="https://wiki.archlinux.org/index.php/Xmodmap_(%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87)">Xmodmap (简体中文)</a>
+<p>
+很多人都会下意识地想到通过软链接来解决
+</p>
+<pre class="example">
+sudo ln -s /home/tangxinfa/projects/www.example.com /var/www/
+sudo chown -R nobody:nobody /var/www/www.example.com
+sudo chown -R nobody:nobody /home/tangxinfa/projects/www.example.com
+</pre>
+<p>
+将个人用户目录链到 Web 服务器用户目录下是没有用的，linux 按原始路径（/home/tangxinfa/projects/www.example.com）来检查权限。
+</p>
 </li>
 </ul>
-</li>
 
-<li>清除xmodmap以及setxkbmap的配置
+
+<p>
+可以反过来，将项目从个人用户目录移到 Web 服务器用户目录下，然后反向建一个软链接，即可以让 Web 服务器工作正常，又不影响日常开发。
+</p>
+
+<pre class="example">
+sudo mv /home/tangxinfa/projects/www.example.com /var/www/
+ln -s /var/www/www.example.com /home/tangxinfa/projects/
+</pre>
+
+<p>
+但是，如果项目是版本控制系统（如：git）仓库的一个子项目（目录），将目录变成软链接后 git 会认为目录被删除了。
+</p>
+
+
+<ul class="org-ul">
+<li>用户目录给 Web 服务帐号开放权限
+
+<p>
+按 linux 的帐号权限系统要求，修改（chmod）用户目录的属性，每一级目录的权限都要修改，容易过渡放开权限，引入安全问题。
+</p>
+</li>
+</ul>
+
+
+<p>
+设置 Web 服务帐号为用户帐号
+</p>
+
+<pre class="example">
+user tangxinfa;
+</pre>
+
+<p>
+由于 Web 服务器（nginx）通常配有多个服务，Web 服务帐号是全局共用的，其它服务的目录权限也要进行调整。
+如果 nginx 只运行这一个服务的话，还是可行的。
+</p>
+
+
+<p>
+设置 Web 服务帐号为 root 帐号
+</p>
+
+<pre class="example">
+user root;
+</pre>
+
+<p>
+使用 root 帐号会引入安全隐患，一般不推荐，但很少会遇到目录权限方面的问题，可以应急使用。
+</p>
+
+
+<ul class="org-ul">
+<li>将用户目录挂载到 Web 帐号目录下
+
+<p>
+mount 命令支持将一个目录重新挂载到其它位置
+</p>
 
 <div class="org-src-container">
 
-<pre class="src src-sh">setxkbmap -layout us
+<pre class="src src-sh">sudo mkdir /var/www/www.example.com
+sudo chown nobody:nobody /var/www/www.example.com
+sudo mount --bind -o ro,<span style="color: #ffcc66;">username</span>=nobody /home/tangxinfa/projects/www.example.com<span style="text-decoration: underline;"> /var/www/www.example.com</span>
 </pre>
 </div>
-</li>
-
-<li>换hhkb pro2键盘
 
 <p>
-linux用户必备，ctrl和alt键已经放置到最优位置，而且后面的跳线开关支持常用的键位交换，即使是linux文本模式下也可用。</p>
+Web 服务器和日常开发可以兼顾，是个两全其美方案。
+</p>
 </li>
 </ul>
+
+
+<p>
+在 /etc/fstab 添加挂载项以支持开机自动挂载
+</p>
+
+<pre class="example">
+/home/tangxinfa/projects/www.example.com    /var/www/www.example.com     none    bind,ro    0 0
+</pre>
 
         </div>
         <br />
         <footer class="article-footer">
+          <a class="tag" href="/tag/web/0.html"><i class="icon-tag icon-white"></i> web</a>
           <a class="tag" href="/tag/linux/0.html"><i class="icon-tag icon-white"></i> linux</a>
-          <a class="tag" href="/tag/keyboard/0.html"><i class="icon-tag icon-white"></i> keyboard</a>
+          <a class="tag" href="/tag/nginx/0.html"><i class="icon-tag icon-white"></i> nginx</a>
           <span class="muted">
-            <i class="icon-time icon-white"></i> <time datetime="2014-09-19T14:07:00+0800">2014年9月19日 14时</time>
+            <i class="icon-time icon-white"></i> <time datetime="2016-06-14T13:38:00+0800">2016年6月14日 13时</time>
           </span>
         </footer>
       </div>
