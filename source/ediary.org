@@ -13855,7 +13855,7 @@ class RedisShard {
 
   我们在个人帐号目录下进行日常的开发工作，通常使用弱权限帐号（如：nobody）运行 Web 服务器（如：nginx）。
 
-  nginx 配置 Web 服务器的根目录为个人用户目录，这样修复代码后刷新浏览器就可以看到效果。
+  nginx 配置 Web 服务器的根目录为个人用户目录，这样修改代码后刷新浏览器就可以看到效果。
 
   #+begin_example
     user nobody;
@@ -13878,7 +13878,7 @@ class RedisShard {
     403 Forbidden
   #+end_example
 
-  使用 linux 命令确认问题是由 linux 的用户权限系统引起
+  使用 linux 命令确认问题是由用户权限系统引起
   #+begin_example
     $ sudo -u nobody -g nobody ls -la /home/tangxinfa/projects/www.example.com
     ls: cannot access '/home/tangxinfa/projects/www.example.com': Permission denied
@@ -13897,7 +13897,6 @@ class RedisShard {
   #+end_example
   将个人用户目录链到 Web 服务器用户目录下是没有用的，linux 按原始路径（/home/tangxinfa/projects/www.example.com）来检查权限。
 
-
   可以反过来，将项目从个人用户目录移到 Web 服务器用户目录下，然后反向建一个软链接，即可以让 Web 服务器工作正常，又不影响日常开发。
 
   #+begin_example
@@ -13911,7 +13910,6 @@ class RedisShard {
 - 用户目录给 Web 服务帐号开放权限
 
   按 linux 的帐号权限系统要求，修改（chmod）用户目录的属性，每一级目录的权限都要修改，容易过渡放开权限，引入安全问题。
-
   
   设置 Web 服务帐号为用户帐号
 
@@ -13921,7 +13919,6 @@ class RedisShard {
 
   由于 Web 服务器（nginx）通常配有多个服务，Web 服务帐号是全局共用的，其它服务的目录权限也要进行调整。
   如果 nginx 只运行这一个服务的话，还是可行的。
-    
 
   设置 Web 服务帐号为 root 帐号
 
@@ -13942,11 +13939,126 @@ class RedisShard {
     sudo mount --bind -o ro,username=nobody /home/tangxinfa/projects/www.example.com /var/www/www.example.com
   #+end_src
 
-  Web 服务器和日常开发可以兼顾，是个两全其美方案。
+  Web 服务器和日常开发可以兼顾，两全其美的方案。
 
-  
-  在 /etc/fstab 添加挂载项以支持开机自动挂载
+  bind 形式的挂载放到 /etc/fstab 会挂载失败（估计是挂载时相关依赖还没有准备好），影响开机。
 
+  创建挂载脚本 /usr/sbin/bind-mounts 并添加可执行权限，内容如下
+  #+begin_src sh
+    #!/bin/bash
+
+    mount --bind -o ro,username=nobody /home/tangxinfa/projects/www.example.com /var/www/www.example.com
+  #+end_src
+
+  创建 systemd 服务文件 /usr/lib/systemd/system/bind-mounts.service
   #+begin_example
-    /home/tangxinfa/projects/www.example.com    /var/www/www.example.com     none    bind,ro    0 0
+    [Unit]
+    Description=Bind Mounts
+    After=local-fs.target
+
+    [Service]
+    Type=simple
+    ExecStart=/usr/sbin/bind-mounts
+
+    [Install]
+    WantedBy=multi-user.target
   #+end_example
+
+  启用 bind-mounts 服务
+  #+begin_src sh
+    sudo systemctl enable bind-mounts
+  #+end_src
+
+* TODO 理解 CORS                                              :web:cors:http:
+
+  CORS（Cross-Origin Resource Sharing），即跨源资源共享。
+
+** 客户端请求
+
+
+** 服务器端响应
+
+
+** 参考
+   
+   - [[https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Access_control_CORS][HTTP访问控制(CORS)]]
+
+* DONE system(3) 与 SIGCHLD 信号                                    :linux:c:
+  CLOSED: [2016-07-28 Thu 11:44]
+
+  system(3) 常用于执行 shell 命令
+
+  #+begin_src c
+    #include <stdlib.h>
+    #include <stdio.h>
+
+
+    int main(int argc, char *argv[])
+    {
+        int ret = system("ls -la");
+        printf("ret: %d\n", ret);
+        return ret;
+    }
+  #+end_src
+
+  正常情况下，命令执行成功会返回 0。
+
+  system(3) 在执行的命令结束时会发出 SIGCHLD 信号，收到 SIGCHLD 信号的线程会从系统调用（如：read，write）中断返回，errno 为 EINTR（4: Interrupted system call）。
+  
+  应用程序应该重试被中断的系统调用，但很多时候是通过第三方库间接进行系统调用，而这些库并未考虑周到，误以为系统调用失败。
+
+  那么该如何避免 SIGCHLD 信号中断系统调用呢？
+
+
+  根据 system(3) 函数的 [[http://man7.org/tlpi/code/online/dist/procexec/system.c.html][源码]] ，其关键逻辑如下：
+   
+  - 设置当前线程的 SIGCHLD 信号为阻塞（SIG_BLOCK）状态
+
+  - fork
+
+    + 子进程
+
+      恢复 SIGCHLD 信号处理，然后 execl()。
+
+    + 父进程
+
+      等待子进程（waitpid()）结束，恢复当前线程的 SIGCHLD 信号处理。
+       
+  子进程结束时会给父进程发送 SIGCHLD 信号，父进程会遍历（通常从主线程找起）一个不阻塞 SIGCHLD 的线程进行处理。
+
+
+** 在整个应用中忽略 SIGCHLD 信号会有负作用
+
+   在应用程序最开始的时候（main 函数），添加以下语句
+  
+   #+begin_src c
+     signal(SIGCHLD, SIG_IGN);
+   #+end_src
+    
+   由于子线程会继续主线程的信号处理，这种方式应该是一劳永逸的。
+
+   然后，它会导致 system(3) 总是返回 -1，errno 为 ECHILD（10: No child processes），无法判断命令执行是否成功。
+  
+   [[http://stackoverflow.com/a/25039605/802708][c - system() function while SIGCHLD is ignored - Stack Overflow]] 或 man wait(2) 说明了原因：
+   #+begin_quote
+   POSIX.1-2001 指明，如果将 SIGCHLD 置为 SIG_IGN，或者为 SIGCHLD 指定 SA_NOCLDWAIT 标志（见 sigaction(2)），子进程结束后将不会成为僵尸进程，调用 wait() 或 waitpid() 将阻塞到所有子进程结束后返回错误，errno 设置为 ECHILD。
+
+   POSIX.1-2001 specifies that if the disposition of SIGCHLD is set to SIG_IGN or the SA_NOCLDWAIT flag is set for SIGCHLD (see sigaction(2)), then children that terminate do not become zombies and a call to wait() or waitpid() will block until all children have terminated, and then fail with errno set to ECHILD.
+   #+end_quote
+
+** 在整个应用中阻塞 SIGCHLD 信号
+
+   注意 signal(3) 无法阻塞一个信号，只支持忽略（SIG_IGN）和恢复缺省处理（SIG_DFL）。
+
+   阻塞（ SIG_BLOCK）和取消阻塞（SIG_UNBLOCK）用于信号掩码（Signal Mask），如 sigprocmask(3) ，多线程下请使用 pthread_sigmask(3)。
+
+   在应用程序最开始的时候，添加以下语句
+  
+   #+begin_src c
+     sigset_t set;
+     sigemptyset(&set);
+     sigaddset(&set, SIGCHLD);
+     pthread_sigmask(SIG_BLOCK, &set, NULL);
+   #+end_src
+  
+   由于子线程会继续主线程的信号处理，这种方式应该是一劳永逸的。
