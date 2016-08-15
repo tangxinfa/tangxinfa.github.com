@@ -11456,6 +11456,26 @@ class RedisShard {
 
      有这个问题的 patch，但是没有下文。
 
+   - [[https://github.com/OfflineIMAP/offlineimap][offlineimap]] 新加的 starttls 选项解决了这个问题
+     
+     #+begin_example
+       commit ac2a547ec46d590d041d410723f90f45fcb802fe
+       Author: Nicolas Sebrecht <nicolas.s-dev@laposte.net>
+       Date:   Thu Jun 23 03:55:00 2016 +0200
+
+       learn to disable STARTTLS
+
+       Some servers might have this feature broken.
+
+       Github-ref: https://github.com/OfflineIMAP/offlineimap/issues/207
+       Signed-off-by: Nicolas Sebrecht <nicolas.s-dev@laposte.net>
+     #+end_example
+
+     在 .offlineimaprc 中添加禁用 starttls 配置项
+     #+begin_example
+     starttls = no
+     #+end_example
+
 ** 使用 ssl
 
    .offlineimaprc 配置
@@ -12199,6 +12219,9 @@ class RedisShard {
 
    
    - [[http://redis.io/topics/partitioning][Partitioning: how to split data among multiple Redis instances. – Redis]]
+     
+   
+   - [[http://oldblog.antirez.com/post/redis-presharding.html][Redis Presharding]]
 
 * DONE redis 的关键度量要素                                           :redis:
   CLOSED: [2016-04-14 Thu 22:40]
@@ -14024,7 +14047,7 @@ class RedisShard {
 
       等待子进程（waitpid()）结束，恢复当前线程的 SIGCHLD 信号处理。
        
-  子进程结束时会给父进程发送 SIGCHLD 信号，父进程会遍历（通常从主线程找起）一个不阻塞 SIGCHLD 的线程进行处理。
+  子进程结束时操作系统会给父进程发送 SIGCHLD 信号，父进程会遍历（通常从主线程找起）一个不阻塞 SIGCHLD 的线程进行处理。
 
 
 ** 在整个应用中忽略 SIGCHLD 信号会有负作用
@@ -14062,3 +14085,144 @@ class RedisShard {
    #+end_src
   
    由于子线程会继续主线程的信号处理，这种方式应该是一劳永逸的。
+
+** 参考
+
+   - [[http://www.linuxprogrammingblog.com/all-about-linux-signals?page=show][All about Linux signals | Linux Programming Blog]]
+
+* TODO Redis 双机房部署                                         :redis:linux:
+
+** 简化的核心模型
+
+   - User
+
+     + resources :: 用户拥有的资源列表，即 resource_id 列表
+
+   - Resource
+
+     + resource_id :: 资源 ID
+
+
+     + user_id :: 所属用户的 ID，可以不属于任何用户（user_id == 0）
+
+     
+     resource 为预先批量创建。
+
+** 简化的核心操作
+
+   - get_resources :: user 获取自已拥有的 resource 列表
+
+
+   - get_resource :: user 获取自已拥有的指定 resource_id 对应的 resource
+
+
+   - set_resource_user :: 设置 resource 的 user_id
+
+        如果 resource 当前归其它 user 所有，则操作失败
+
+        user_id == 0 则表示用户放弃 resource
+
+** Redis 双机房部署
+
+   采用 Master-Master 以同时使用双机房的资源。
+
+   数据空间做纵向切分，Master 1 在机房 1，Master 2 在机房 2，互做 Slave 备份。
+
+   - 数据切分方案
+
+     + 按 resource_id 进行切分
+
+       同一 user 的多个 resource 可能位于不同的机房，get_resources 可以从 Slave 获取其它机房的 resource。
+
+       用户将 set_resource_user_id 请求发往机房 1 ，但是 resource 在机房 2 上，需要将请求转发到机房 2。
+
+       是走外部接口（http）？是 HTTP 302 跳转让客户端重新发往新机房，还是HTTP 代理？
+       
+       或者走内部接口（redis pub/sub）？redis pub/sub 跨机房可行吗？
+
+     + 按 user_id 进行切分
+
+       由于 resource 的 user_id 可能随时变动，资源可能在两个房机间浮动，一个 set_resource_user_id 操作需要同时两个机房参与，以维持数据一致性。
+
+       跨机房状态一致性如何保证？性能如何保证？
+
+   - 故障切换方案
+
+     机房故障时，另一机房的 Salve 切为 Master。
+
+     + 机房 1（或 2） 完全不写机房 2（或 1） 的 Master。
+
+     + 机房 2（或 1） 跨机房连接机房 1（或 2） 的 Master 写 Redis。
+
+* TODO dynomite 简介                                                  :redis:
+
+  [[https://github.com/Netflix/dynomite][Dynomite]] 是 [[http://netflix.com][Netflix]] 对亚马逊分布式存储引擎 [[http://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf][Dynamo]] 的一个开源通用实现。
+
+  #+begin_quote
+  Dynomite, inspired by Dynamo whitepaper, is a thin, distributed dynamo layer for different storage engines and protocols.
+  Currently these include Redis and Memcached.
+  Dynomite supports multi-datacenter replication and is designed for high availability. 
+  #+end_quote
+
+** 多数据中心复制
+
+** 数据一致性保证
+   
+   [[https://github.com/Netflix/dynomite/wiki/Consistency][Consistency · Netflix/dynomite Wiki]]
+
+* DONE Redis Sentinel 多机房部署注意事项                              :redis:
+  CLOSED: [2016-08-15 Mon 15:03]
+
+** 级连同步
+
+   级连同步的描述（摘自 [[http://redis.io/topics/replication][Replication – Redis]]）：
+   #+begin_quote
+   Slaves are able to accept connections from other slaves. Aside from connecting a
+   number of slaves to the same master, slaves can also be connected to other slaves in
+   a cascading-like structure.
+   #+end_quote
+    
+   由此可见级连同步可减轻 Master 的流量。
+
+   假设 DataCenter 2 上的两个 Slave 从 DataCenter 1 上的 Master 进行同步，会导致 DataCenter 1 要流出两份流量到 DataCenter 2，开启级连同步（DataCenter 2 上的其中一个 Slave 从另一个 Slave 上进行同步）后，DataCenter 1 只需同步一份流量到 DataCenter2。
+
+   Sentinel 以星状组织 Redis 结点，无法发现二级 Slave（Slave 上连接的其它 Slave），也就无法将二级 Slave 信息提供给客户端应用进行访问，应用需要自行连上二级 Slave。另外，一级 Slave 被 Sentinel 切为 Master 后，二级 Slave 将转化为一级 Slave ，从而被 Sentinel 发现。
+
+   [[file:../static/redis-sentinel_slave_of_slave.png]]
+
+   当 Fail-Over 发生后级连同步会失效。
+
+** 内网流量外网化
+
+   DataCenter 1 中的 Master 与 Slave 可配置为通过内网同步数据（bind 指定内网 IP），但是 DataCenter 2 上部署的应用要通过 Sentinel 访问 DataCenter 1 上的 Master 或 Slave，所以 DataCenter 1 中的 Master 与 Slave 也不得不配置为通过外网同步数据。
+
+   客户端预先获得所有 redis 实例的内外网 IP 信息，还是可以走内网进行优化的，Master 与 Slave 间的同步流量就无能为力了。
+
+   Redis 为内网部署提供了支持，如：
+
+   - Sentinel 的 announce-ip 和 announce-port 选项
+     
+     要求 Redis 版本至少为 2.8，参见 [[https://raw.githubusercontent.com/antirez/redis/2.8/redis.conf][redis.conf]]
+
+   - Redis 的 slave-announce-ip 和 slave-announce-port 选项
+
+     要求 Redis 版本至少为 3.2，参见 [[https://raw.githubusercontent.com/antirez/redis/3.2/redis.conf][redis.conf]]
+
+   它们解决了以下两个问题（见 [[http://redis.io/topics/sentinel#sentinel-docker-nat-and-possible-issues][Redis Sentinel Documentation – Redis - Sentinel, Docker, NAT, and possible issues]]）
+   #+begin_quote
+   Remapping ports and addresses creates issues with Sentinel in two ways:
+
+    1. Sentinel auto-discovery of other Sentinels no longer works, since it is based on 
+       hello messages where each Sentinel announce at which port and IP address they are
+       listening for connection. However Sentinels have no way to understand that an address
+       or port is remapped, so it is announcing an information that is not correct for other
+       Sentinels to connect.
+    2. Slaves are listed in the INFO output of a Redis master in a similar way: the address
+       is detected by the master checking the remote peer of the TCP connection, while the
+       port is advertised by the slave itself during the handshake, however the port may be
+       wrong for the same reason as exposed in point 1.
+   #+end_quote
+
+   但是它们无法解决跨机房部署相关的问题。
+
+   或许可以在系统网络层面来解决这个问题，利用 iptables 的 port forwarding，将外网流量内网化，当我们通过外网 IP 访问同机房的 Redis 服务器时，将它转到 Redis 服务器的内网 IP。
