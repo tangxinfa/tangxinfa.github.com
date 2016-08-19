@@ -12479,7 +12479,6 @@ class RedisShard {
 ** 查看开源项目的 Issues 及 Pull requests
 
    如果这个问题已经有人在着手解决了，估计我们只能够发表一下意见，如果没有则进入下一步。
-
     
 ** Fork 开源项目
 
@@ -12520,6 +12519,15 @@ class RedisShard {
    #+end_src
 
 ** 在特性分支上进行开发
+
+** 多个特性分支间的合并
+
+   可以创建多个分支，并在分支间进行合并
+
+   #+begin_src sh
+     git checkout my-feature-branch1
+     git merge my-feature-branch2
+   #+end_src
 
 ** 从特性分支创建 Pull requests 提交到上游分支
 
@@ -14173,7 +14181,7 @@ class RedisShard {
 * DONE Redis Sentinel 多机房部署注意事项                              :redis:
   CLOSED: [2016-08-15 Mon 15:03]
 
-** 级连同步
+** 级连同步失效
 
    级连同步的描述（摘自 [[http://redis.io/topics/replication][Replication – Redis]]）：
    #+begin_quote
@@ -14190,15 +14198,28 @@ class RedisShard {
 
    [[file:../static/redis-sentinel_slave_of_slave.png]]
 
-   当 Fail-Over 发生后级连同步会失效。
+   当 Fail-Over 发生后级连同步会失效，Redis Sentinel 不支持级连同步
+   #+begin_quote
+   Aside from this problems, there is also the problem that for Sentinel
+   the role of an instance is the one published in INFO by the instance.
+   This means that you can't failover a slave that happens to be the
+   master of other chained instances. Also the chained instances will not
+   be detected, and if detected because of a temporary role change for
+   some reason, they'll be reconfigured to replicate with what Sentinel
+   believe to be the master.
+   Basically you can find your ways to make it working but currently the
+   support for chained replication in Sentinel is near zero.
+
+   Salvatore 
+   #+end_quote
+   引用自 [[https://groups.google.com/d/msg/redis-db/uMOIX3m3Is4/HWhYegU4OawJ][Sentinels in Multi Region configuration - Google 网上论坛]]
 
 ** 内网流量外网化
 
-   DataCenter 1 中的 Master 与 Slave 可配置为通过内网同步数据（bind 指定内网 IP），但是 DataCenter 2 上部署的应用要通过 Sentinel 访问 DataCenter 1 上的 Master 或 Slave，所以 DataCenter 1 中的 Master 与 Slave 也不得不配置为通过外网同步数据。
+   跨机房部署就意味着需要跨机房同步或访问 Redis 数据，如果另一机房有多个 Slave，则会有多份流量，机房外网流量会相应增长，需要预先进行流量规划。
 
-   客户端预先获得所有 redis 实例的内外网 IP 信息，还是可以走内网进行优化的，Master 与 Slave 间的同步流量就无能为力了。
 
-   Redis 为内网部署提供了支持，如：
+   Redis 为内网部署提供了如下配置项
 
    - Sentinel 的 announce-ip 和 announce-port 选项
      
@@ -14208,7 +14229,7 @@ class RedisShard {
 
      要求 Redis 版本至少为 3.2，参见 [[https://raw.githubusercontent.com/antirez/redis/3.2/redis.conf][redis.conf]]
 
-   它们解决了以下两个问题（见 [[http://redis.io/topics/sentinel#sentinel-docker-nat-and-possible-issues][Redis Sentinel Documentation – Redis - Sentinel, Docker, NAT, and possible issues]]）
+   它们用于解决如下两个问题
    #+begin_quote
    Remapping ports and addresses creates issues with Sentinel in two ways:
 
@@ -14222,7 +14243,140 @@ class RedisShard {
        port is advertised by the slave itself during the handshake, however the port may be
        wrong for the same reason as exposed in point 1.
    #+end_quote
+   引用自 [[http://redis.io/topics/sentinel#sentinel-docker-nat-and-possible-issues][Redis Sentinel Documentation – Redis - Sentinel, Docker, NAT, and possible issues]]
 
-   但是它们无法解决跨机房部署相关的问题。
 
-   或许可以在系统网络层面来解决这个问题，利用 iptables 的 port forwarding，将外网流量内网化，当我们通过外网 IP 访问同机房的 Redis 服务器时，将它转到 Redis 服务器的内网 IP。
+   基于 Sentinel 的集群系统中，Redis 实例（角色可能为 Master、Slave 或 Sentinel）是通过 IP 和 PORT 标识的。
+
+   - Master
+     
+     自身监听的 IP 和 PORT 并不重要，只要 Slave 和 Sentinel 能够连上即可，所以往往在所有 IP 上进行监听。
+
+   
+   - Slave
+
+     Slave 配置中指定的 Master 结点 IP 是关键所在。
+
+     Slave 建立到 Master 的 TCP 连接时，Master 获取到的对端 IP 和 PORT 标识该 Slave，在 Master 的 INFO 命令中体现。
+
+     Slave 连接的 Master IP，经由路由规则，也就决定了 Master 看到的是 Slave 的哪一个 IP。
+
+     可以通过 slave-announce-ip 和 slave-announce-port 配置项强制指定。
+
+   - Sentinel
+
+     Sentinel 配置中指定的 Master 结点 IP 是关键所在。
+
+     Sentinel 建立到 Master 的 TCP 连接后，调用 =getsockname= 从 fd 中取得本地 IP，PORT 则为配置的监听端口，并通过 PUBLISH Hello 消息告知其它 Sentinel。
+
+     Sentinel 连接的 Master IP，经由路由规则，也就决定了 Sentinel 看到的自身 IP。
+
+     可以通过 announce-ip 和 announce-port 配置项强制指定。
+
+   DataCenter 2 上部署的应用会通过 Sentinel 获取到 DataCenter 1 上的结点（角色可能为 Master、Slave 或 Sentinel）信息，然后连接、访问，所以 Redis 实例（角色可能为 Master、Slave 或 Sentinel）都至少需要监听外网 IP。
+
+   通过外网 IP 访问同机房内结点，不会导致流量外网化，上级交换机识别到目标 IP 就在网络内，走的还是内网。
+
+   应用程序从 Sentinel 获取 Slave 列表后，最好优先连接同一数据中心的 Slave 结点。
+
+** 相关资源
+
+   - [[https://groups.google.com/forum/#!searchin/redis-db/data$20center|sort:relevance/redis-db/o5afhx9Zn5E/DwQU3JLJJKgJ][Replication for read-scalability - Google 网上论坛]]
+
+     通过公网跨数据中心复制数据相关的问题：安全、迟延等
+
+   
+   - [[https://groups.google.com/d/msg/redis-db/uMOIX3m3Is4/HWhYegU4OawJ][Sentinels in Multi Region configuration - Google 网上论坛]]
+
+     Redis Sentinel 多数据中心配置问题
+
+
+   - [[https://redislabs.com/ebook/redis-in-action/part-3-next-steps-3/chapter-10-scaling-redis/10-1-scaling-reads][Redis in Action - Scaling reads]]
+
+     Redis 压缩、安全传输相关
+
+* DONE Redis Pub/Sub 多机房部署                                       :redis:
+  CLOSED: [2016-08-18 Thu 14:18]
+
+** 由于 Master 上 Publish 的消息会自动同步到所有 Slaves，Redis Pub/Sub 很容易扩展
+
+   #+begin_quote
+   Redis PubSub scales really easily since the Master/Slave replication automatically publishes to all slaves.
+   #+end_quote
+   引用自 [[http://stackoverflow.com/a/6512308/802708][Redis PUBLISH/SUBSCRIBE limits - Stack Overflow]]
+
+** 可以在 Master 上 Publish 消息，然后在 Slave 上 Subscribe 消息，反之不行
+
+   #+begin_quote
+   With replication in-place the  publisher can publish in the master host and the subscribers can subscribe to the slave host.
+
+   It is important to mention that this relationship is one-way. Master –> Slave relationship are unidirectional. It is impossible to publish to the slave and subscribe to the master.
+   
+   ...
+
+   The conclusion is simple: Two ways pub/sub channels across servers require at least 4 Redis hosts.
+   #+end_quote
+   引用自 [[http://blogs.microsoft.co.il/applisec/2013/09/11/pub-sub-across-servers-using-redis/][Pub Sub Across Servers Using Redis | Manu Cohen-Yashar's Blog]]
+
+   需要注意的是，Slave 虽然不可写（Readonly），但是照样可以 Pub/Sub，
+   只是 Publish 的消息不会同步到 Master，所以不会被 Master 上的 Subscriber 接收到，
+   但是 Slave 自身的 Subscriber 仍工作正常。
+
+** 多机房部署的情况下，2 个 Redis 实例可实现双向通讯
+
+   file:../static/redis-pub_sub_multi_datacenter-2.png
+   但是比较低效，Master 所在机房 Publish 的消息会在机房间传输一次（Sync 一次），
+   Slave 所在机房 Publish 的消息会在机房间传输两次（Send、Sync 各一次），
+   而且 Slave 机房部署的应用需要跨机房直接连接到 Master 才能进行 Publish。
+
+   
+** 多机房部署的情况下，4 个 Redis 实例可以实现高效的双向通讯
+
+   file:../static/redis-pub_sub_multi_datacenter-4.png
+   每一次 Publish 的消息会在机房间传输一次，机房间只有 Master/Slave 同步流量。
+
+** Pub/Sub 跨机房部署带来的问题
+
+*** 从 Slave Subscribe 消息后，消息 Publish 一方无法获知 Subscriber 数量
+
+    #+begin_example +n -r
+      # Publish to master, subscribe from master.
+      $ redis-cli -h master.local subscribe test &
+      [1] 20590
+      $ Reading messages... (press Ctrl-C to quit)
+      1) "subscribe"
+      2) "test"
+      3) (integer) 1
+      $ 
+      $ redis-cli -h master.local  publish test "hello from master"
+      1) "message"
+      2) "test"
+      3) "hello from master"
+      (integer) 1                 (ref:subscribers_on_master_perceptible)
+      $ fg
+      redis-cli subscribe test
+        C-c C-c
+      $ 
+      # Publish to master, subscribe from slave.
+      $ redis-cli -h slave.local -p 6380 subscribe test &
+      [1] 20592
+      $ Reading messages... (press Ctrl-C to quit)
+      1) "subscribe"
+      2) "test"
+      3) (integer) 1
+      $ 
+      $ redis-cli -h master.local publish test "hello from master"
+      (integer) 0                 (ref:subscribers_on_slave_nonperceptible)
+      1) "message"
+      2) "test"
+      3) "hello from master"
+      $ 
+    #+end_example
+
+    - 行 [[(subscribers_on_master_perceptible)]]
+      
+      在 Master 上订阅时，发布方得知的订阅者人数为 1
+
+    - 行 [[(subscribers_on_slave_nonperceptible)]]
+      
+      在 Slave 上订阅时，发布方得知的订阅者人数为 0

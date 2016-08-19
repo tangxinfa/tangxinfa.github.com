@@ -56,7 +56,7 @@
         <div class="article-content">
           
 <div id="outline-container-sec-1" class="outline-2">
-<h2 id="sec-1">级连同步</h2>
+<h2 id="sec-1">级连同步失效</h2>
 <div class="outline-text-2" id="text-1">
 <p>
 级连同步的描述（摘自 <a href="http://redis.io/topics/replication">Replication – Redis</a>）：
@@ -88,7 +88,27 @@ Sentinel 以星状组织 Redis 结点，无法发现二级 Slave（Slave 上连�
 </div>
 
 <p>
-当 Fail-Over 发生后级连同步会失效。
+当 Fail-Over 发生后级连同步会失效，Redis Sentinel 不支持级连同步
+</p>
+<blockquote>
+<p>
+Aside from this problems, there is also the problem that for Sentinel
+the role of an instance is the one published in INFO by the instance.
+This means that you can't failover a slave that happens to be the
+master of other chained instances. Also the chained instances will not
+be detected, and if detected because of a temporary role change for
+some reason, they'll be reconfigured to replicate with what Sentinel
+believe to be the master.
+Basically you can find your ways to make it working but currently the
+support for chained replication in Sentinel is near zero.
+</p>
+
+<p>
+Salvatore 
+</p>
+</blockquote>
+<p>
+引用自 <a href="https://groups.google.com/d/msg/redis-db/uMOIX3m3Is4/HWhYegU4OawJ">Sentinels in Multi Region configuration - Google 网上论坛</a>
 </p>
 </div>
 </div>
@@ -97,15 +117,12 @@ Sentinel 以星状组织 Redis 结点，无法发现二级 Slave（Slave 上连�
 <h2 id="sec-2">内网流量外网化</h2>
 <div class="outline-text-2" id="text-2">
 <p>
-DataCenter 1 中的 Master 与 Slave 可配置为通过内网同步数据（bind 指定内网 IP），但是 DataCenter 2 上部署的应用要通过 Sentinel 访问 DataCenter 1 上的 Master 或 Slave，所以 DataCenter 1 中的 Master 与 Slave 也不得不配置为通过外网同步数据。
+跨机房部署就意味着需要跨机房同步或访问 Redis 数据，如果另一机房有多个 Slave，则会有多份流量，机房外网流量会相应增长，需要预先进行流量规划。
 </p>
 
-<p>
-客户端预先获得所有 redis 实例的内外网 IP 信息，还是可以走内网进行优化的，Master 与 Slave 间的同步流量就无能为力了。
-</p>
 
 <p>
-Redis 为内网部署提供了支持，如：
+Redis 为内网部署提供了如下配置项
 </p>
 
 <ul class="org-ul">
@@ -125,7 +142,7 @@ Redis 为内网部署提供了支持，如：
 </ul>
 
 <p>
-它们解决了以下两个问题（见 <a href="http://redis.io/topics/sentinel#sentinel-docker-nat-and-possible-issues">Redis Sentinel Documentation – Redis - Sentinel, Docker, NAT, and possible issues</a>）
+它们用于解决如下两个问题
 </p>
 <blockquote>
 <p>
@@ -146,13 +163,109 @@ wrong for the same reason as exposed in point 1.
 </li>
 </ol>
 </blockquote>
+<p>
+引用自 <a href="http://redis.io/topics/sentinel#sentinel-docker-nat-and-possible-issues">Redis Sentinel Documentation – Redis - Sentinel, Docker, NAT, and possible issues</a>
+</p>
+
 
 <p>
-但是它们无法解决跨机房部署相关的问题。
+基于 Sentinel 的集群系统中，Redis 实例（角色可能为 Master、Slave 或 Sentinel）是通过 IP 和 PORT 标识的。
+</p>
+
+<ul class="org-ul">
+<li>Master
+
+<p>
+自身监听的 IP 和 PORT 并不重要，只要 Slave 和 Sentinel 能够连上即可，所以往往在所有 IP 上进行监听。
+</p>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>Slave
+
+<p>
+Slave 配置中指定的 Master 结点 IP 是关键所在。
 </p>
 
 <p>
-或许可以在系统网络层面来解决这个问题，利用 iptables 的 port forwarding，将外网流量内网化，当我们通过外网 IP 访问同机房的 Redis 服务器时，将它转到 Redis 服务器的内网 IP。</p>
+Slave 建立到 Master 的 TCP 连接时，Master 获取到的对端 IP 和 PORT 标识该 Slave，在 Master 的 INFO 命令中体现。
+</p>
+
+<p>
+Slave 连接的 Master IP，经由路由规则，也就决定了 Master 看到的是 Slave 的哪一个 IP。
+</p>
+
+<p>
+可以通过 slave-announce-ip 和 slave-announce-port 配置项强制指定。
+</p>
+</li>
+
+<li>Sentinel
+
+<p>
+Sentinel 配置中指定的 Master 结点 IP 是关键所在。
+</p>
+
+<p>
+Sentinel 建立到 Master 的 TCP 连接后，调用 <code>getsockname</code> 从 fd 中取得本地 IP，PORT 则为配置的监听端口，并通过 PUBLISH Hello 消息告知其它 Sentinel。
+</p>
+
+<p>
+Sentinel 连接的 Master IP，经由路由规则，也就决定了 Sentinel 看到的自身 IP。
+</p>
+
+<p>
+可以通过 announce-ip 和 announce-port 配置项强制指定。
+</p>
+</li>
+</ul>
+
+<p>
+DataCenter 2 上部署的应用会通过 Sentinel 获取到 DataCenter 1 上的结点（角色可能为 Master、Slave 或 Sentinel）信息，然后连接、访问，所以 Redis 实例（角色可能为 Master、Slave 或 Sentinel）都至少需要监听外网 IP。
+</p>
+
+<p>
+通过外网 IP 访问同机房内结点，不会导致流量外网化，上级交换机识别到目标 IP 就在网络内，走的还是内网。
+</p>
+
+<p>
+应用程序从 Sentinel 获取 Slave 列表后，最好优先连接同一数据中心的 Slave 结点。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">相关资源</h2>
+<div class="outline-text-2" id="text-3">
+<ul class="org-ul">
+<li><a href="https://groups.google.com/forum/#!searchin/redis-db/data$20center|sort:relevance/redis-db/o5afhx9Zn5E/DwQU3JLJJKgJ">Replication for read-scalability - Google 网上论坛</a>
+
+<p>
+通过公网跨数据中心复制数据相关的问题：安全、迟延等
+</p>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><a href="https://groups.google.com/d/msg/redis-db/uMOIX3m3Is4/HWhYegU4OawJ">Sentinels in Multi Region configuration - Google 网上论坛</a>
+
+<p>
+Redis Sentinel 多数据中心配置问题
+</p>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><a href="https://redislabs.com/ebook/redis-in-action/part-3-next-steps-3/chapter-10-scaling-redis/10-1-scaling-reads">Redis in Action - Scaling reads</a>
+
+<p>
+Redis 压缩、安全传输相关</p>
+</li>
+</ul>
 </div>
 </div>
 
