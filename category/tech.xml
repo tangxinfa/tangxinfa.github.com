@@ -4,7 +4,7 @@
         <title>技术 - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/category/tech.xml</link>
-        <lastBuildDate>Fri, 19 Aug 2016 06:11:59 GMT</lastBuildDate>
+        <lastBuildDate>Sun, 21 Aug 2016 05:52:39 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>技术 - 看看俺 – KanKanAn.com</title>
@@ -14,6 +14,315 @@
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <generator>Feed for Node.js</generator>
         <category>技术</category>
+        <item>
+            <title><![CDATA[Redis Sentinel 多机房部署方案]]></title>
+            <link>/article/redis-sentinel-591a673a623f90e87f7265b96848.html</link>
+            <guid>/article/redis-sentinel-591a673a623f90e87f7265b96848.html</guid>
+            <pubDate>Sat, 20 Aug 2016 14:20:00 GMT</pubDate>
+            <content:encoded><![CDATA[
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">减少或避免跨机房 Redis 访问的好处</h2>
+<div class="outline-text-2" id="text-1">
+<ul class="org-ul">
+<li>减少跨机房网络流量
+
+<p>
+很多机房外网流量是有限制的，外网流量过高会影响整个服务的稳定性，甚至拒绝服务。
+</p>
+</li>
+
+<li>更快的响应速度
+
+<p>
+跨机房网络传输的网络延时很高。
+</p>
+</li>
+
+<li>更安全
+
+<p>
+Redis 本身的安全机制很薄弱，目前只支持明文密码验证，依靠 iptables 进行访问限制，运维成本高。
+</p>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">如何减少或避免应用的跨机房访问</h2>
+<div class="outline-text-2" id="text-2">
+</div><div id="outline-container-sec-2-1" class="outline-3">
+<h3 id="sec-2-1">单维的数据模型</h3>
+<div class="outline-text-3" id="text-2-1">
+<p>
+如果整个应用的数据集是单维度的，即基于同一主键，按主键进行数据分片（Sharding）后，同一主键所属的数据会处于同一分片（Shard），按主键访问时是无共享（shared-nothing）的，可以水平无限扩容。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2-2" class="outline-3">
+<h3 id="sec-2-2">多维的数据模型</h3>
+<div class="outline-text-3" id="text-2-2">
+<p>
+如果整个应用的数据集是多维度的，按一个维度进行数据分片（Sharding）后，按另一维度获取数据时，需要同时访问多个分片（Shard）。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2-3" class="outline-3">
+<h3 id="sec-2-3">以博客应用为例</h3>
+<div class="outline-text-3" id="text-2-3">
+<p>
+文章的模型定义如下
+</p>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="left">Field</th>
+<th scope="col" class="left">Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="left">id</td>
+<td class="left">Number</td>
+</tr>
+
+<tr>
+<td class="left">title</td>
+<td class="left">String</td>
+</tr>
+
+<tr>
+<td class="left">author</td>
+<td class="left">Number</td>
+</tr>
+
+<tr>
+<td class="left">content</td>
+<td class="left">String</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+按 id 进行数据分片（Sharding），id 为寄数保存到 Shard 1，id 为 偶数保存到 Shard 2，
+按 id 访问文章时，计算 id 对应的分片（Shard），从分片获得文章数据。
+还可以在模型中添加冗余字段（如：author_name），方便显示作者名称，省去一次关联查询。
+</p>
+
+
+<p>
+要获取 author 的文章列表，则需要在文章发布时按 author 索引文章，模型定义如下
+</p>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="left">Field</th>
+<th scope="col" class="left">Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="left">id</td>
+<td class="left">Number</td>
+</tr>
+
+<tr>
+<td class="left">name</td>
+<td class="left">String</td>
+</tr>
+
+<tr>
+<td class="left">articles</td>
+<td class="left">Set</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+按 id 进行数据分片（Sharding），id 为寄数保存到 Shard 1，id 为 偶数保存到 Shard 2，
+按 id 访问作者时，计算 id 对应的分片（Shard），从分片获得作者数据。
+</p>
+
+
+<p>
+当应用逻辑很简单的时候（如：根据文章 id 展示文章、展示作者的文章列表），结合冗余字段，我们可以做到只从一个数据分区（Shard）中取得数据。但是发表文章时，则一定要同时更新多个分区（Shard）中的数据。
+</p>
+
+
+<p>
+我们之所以如此介意跨分区（Shard）数据访问，是因为有可能两个分区（Shard）相隔甚远（如：部署在横跨大陆的多个数据中心），更高的延迟、费用，更低的稳定性，同时也会引入分布式系统带来的复杂性。
+</p>
+
+<p>
+现实中有价值的应用服务，往往比较复杂，都是多维的数据模型，跨分区（机房）数据访问避无可避。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2-4" class="outline-3">
+<h3 id="sec-2-4">跨机房交互形式</h3>
+<div class="outline-text-3" id="text-2-4">
+<ul class="org-ul">
+<li>管它跨不跨机房
+
+<p>
+一开始应用可能是部署在一个机房里，随着规模的扩大或者需要满足异地灾备，将一部分模块移到另一个机房，模块间的交互从内网移到了外网。以前在内网的时候，网络传输是很快的，设计的接口粒度很细，迁移到外网跨机房环境下，性能以及稳定性可能会无法接受，最终要不断地进行优化。
+</p>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>重定向客户端请求到数据所属的机房
+
+<p>
+如通过 HTTP 302 指示客户端（通常是浏览器）跳转到数据所属机房的域名（或 IP）。
+会增加客户端开发的复杂性，很多逻辑需要放在客户端来完成，能够将机房外网流量尽量减少。
+</p>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>代客户端进行跨机房请求
+
+<p>
+如代理发起 HTTP 请求（或内部通信机制，如：消息队列）到所属机房的域名（或 IP），并转发响应给客户端。
+会增加后台应用开发的复杂性，如果应用有内置的内部通信机制（如：消息队列）复杂性还是可以接受的，会增加机房的外网流量，只能算是一种过渡方案。
+</p>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>支持跨机房访问但引导客户端访问正确的数据中心
+
+<p>
+用户请求涉及的部分数据如果在另一机房，则直接跨机房访问，如同数据在本机房一样进行处理，并在响应中指示客户端下次到另一机房进行访问。后台应用和客户端的开发不会过度复杂，通过引导客户端访问正确的数据中心进行优化。
+</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">协调访问数据分片</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+假设数据按照主键的 hash 值进行取模分片（Sharding），数据与分片（Shard）的对应关系对应如下：
+</p>
+
+<pre class="example">
+shard = hash(key) % count(shards)
+</pre>
+
+
+<p>
+多机房下的数据分片（Sharding）需具备以下特性：
+</p>
+
+<ol class="org-ol">
+<li>数据片（Shard）一定会处于某一机房，但不可同时处于多个机房
+</li>
+
+<li>数据片（Shard）所属机房如果挂了，其它机房的复本之一会被激活，数据片（Shard）重新可用
+</li>
+
+<li>除非所有机房都挂了，否则数据应该总是可用的（Availability）
+</li>
+</ol>
+
+<p>
+以上三点可由 Redis Sentinel 保证。
+</p>
+
+<p>
+Redis Sentinel 以星状组织 Redis 结点拓扑，对于多数据中心部署的 Redis 集群，结点超过 2 个时可能会导致机房间流量暴涨（如：需要从一个机房的 Master 同步多份数据到另一个机房的多个 Slave）。
+所以，最好把数据集切分得更细一些，直到一组 Redis 实例（即 1 Master + 1 Slave）即可容纳并可满足客户端请求。
+</p>
+
+<p>
+直接访问 Redis 往往是耦合度很高的一种形式，Redis 中的数据是所有服务结点共享访问的，访问冲突和状态不一致可能会导致业务出错。
+</p>
+
+<p>
+我们希望机房间除了 Redis 的 Master-Slave 间的数据同步之外不再有其它的交互，最好不要有应用（Application）跨机房操作 Redis 以实现业务逻辑的情况发生。
+</p>
+
+
+<div class="figure">
+<p><img src="../static/redis-restrict_cross_datacenter_flow.png" alt="redis-restrict_cross_datacenter_flow.png" />
+</p>
+</div>
+
+<p>
+如何在限制跨机房 Redis 访问的情况下实现业务逻辑呢？
+</p>
+
+<ul class="org-ul">
+<li>重定向客户端请求到数据所属的机房
+
+<p>
+后端服务结点知道哪个数据中心更适合处理用户的请求，向客户端发出重定向指示即可，不需要耗费其它资源。
+</p>
+</li>
+
+<li>通过跨机房交互满足客户端请求
+
+<p>
+完成请求需要与另一机房的服务交互，如通过调用服务接口（如：Restful API）的形式，完成整个业务逻辑处理。
+也可以将客户端的请求转发到另一机房服务，并将响应发回客户端，相当于是内置了服务代理（Proxy）功能。
+</p>
+</li>
+</ul>
+
+
+<p>
+由此可见，不跨机房访问 Redis 这份美好是有代价的，客户端和服务器端的业务逻辑会更复杂，客户端或服务器端需要针对跨机房的数据进行特殊处理。
+</p>
+
+<p>
+通过选择正确的数据分片（Sharding）方式，确保主要或高频次的客户端请求能够在同一数据中心内完成。次要或低频次的客户端请求允许跨数据中心，通过在本地数据中心部署其它数据中心的复本（Slave）的方式，将跨数据中心"读"转化为本地"读"，少量的跨数据中心"写"不成问题。
+</p>
+
+<p>
+如下图所示
+<img src="../static/redis-embrace_cross_datacenter_flow.png" alt="redis-embrace_cross_datacenter_flow.png" />
+Redis Group 1 存储主要或高频次的数据，Redis Group 2 存储次要或低频次的数据。
+</p>
+
+<p>
+客户端通过 DataCenter 1 访问本地的 Redis Group 1 属于合理的访问。
+业务逻辑可能需要访问 Redis Group 2，读操作可以发往本地的 Redis Group 2 Slave，写操作要跨机房访问 DataCenter 2 中的 Redis Group 2 Master（应该尽量减少）。
+</p>
+
+<p>
+客户端通过 DataCenter 2 访问本地的 Redis Group 2 属于合理的访问。
+业务逻辑主要需要访问 Redis Group 1，读操作可以发往本地的 Redis Group 1 Slave，写操作需要跨机房访问 DataCenter 1 中的 Redis Group 1 Master，
+这是不合理的，因此在发给客户端的响应中指示客户端下次将请求发往 Redis Group 1 Master 所在的 DataCenter 1。</p>
+</div>
+</div>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[Redis Pub/Sub 多机房部署]]></title>
             <link>/article/redis-pub-sub-591a673a623f90e87f72.html</link>
@@ -339,6 +648,9 @@ DataCenter 2 上部署的应用会通过 Sentinel 获取到 DataCenter 1 上的�
 <h2 id="sec-3">相关资源</h2>
 <div class="outline-text-2" id="text-3">
 <ul class="org-ul">
+<li><a href="http://redis.io/topics/sentinel">Redis Sentinel Documentation – Redis</a>
+</li>
+
 <li><a href="https://groups.google.com/forum/#!searchin/redis-db/data$20center|sort:relevance/redis-db/o5afhx9Zn5E/DwQU3JLJJKgJ">Replication for read-scalability - Google 网上论坛</a>
 
 <p>
@@ -2425,11 +2737,11 @@ node.js（javascript）是一门动态语言，很少运行到的代码分支里
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">for</span>(<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">i</span> = 0, <span style="color: #ffcc66;">n</span> = item.name.length; i &lt; n; ++i) {
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   name += item.name[i].match(<span style="color: #66cccc;">/^[0-9a-zA-Z]+$/</span>) ? item.name[i] : <span style="color: #66cccc;">'_</span><span style="color: #66cccc; text-decoration: underline;">'</span><span style="text-decoration: underline;">;</span>
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   process.stdout.write(<span style="color: #66cccc;">"PUTVAL \""</span> + hostname + <span style="color: #66cccc;">"/"</span> + name + <span style="color: #66cccc;">"-loop_de</span><span style="color: #66cccc; text-decoration: underline;">lay"</span><span style="text-decoration: underline;"> + </span><span style="color: #66cccc; text-decoration: underline;">"/delay-"</span><span style="text-decoration: underline;"> + item.pm_id + </span><span style="color: #66cccc; text-decoration: underline;">"\" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #66cccc; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #66cccc; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.pm2_env.axm_monitor[</span><span style="color: #66cccc; text-decoration: underline;">"Loop delay"</span><span style="text-decoration: underline;">].value.replace(</span><span style="color: #66cccc; text-decoration: underline;">'ms'</span><span style="text-decoration: underline;">, </span><span style="color: #66cccc; text-decoration: underline;">''</span><span style="text-decoration: underline;">) + </span><span style="color: #66cccc; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   process.stdout.write(<span style="color: #66cccc;">"PUTVAL \""</span> + hostname + <span style="color: #66cccc;">"/"</span> + name + <span style="color: #66cccc;">"-memory_</span><span style="color: #66cccc; text-decoration: underline;">used"</span><span style="text-decoration: underline;"> + </span><span style="color: #66cccc; text-decoration: underline;">"/gauge-"</span><span style="text-decoration: underline;"> + item.pm_id + </span><span style="color: #66cccc; text-decoration: underline;">"\" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #66cccc; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #66cccc; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.monit.memory + </span><span style="color: #66cccc; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   process.stdout.write(<span style="color: #66cccc;">"PUTVAL \""</span> + hostname + <span style="color: #66cccc;">"/"</span> + name + <span style="color: #66cccc;">"-cpu_use</span><span style="color: #66cccc; text-decoration: underline;">d"</span><span style="text-decoration: underline;"> + </span><span style="color: #66cccc; text-decoration: underline;">"/gauge-"</span><span style="text-decoration: underline;"> + item.pm_id + </span><span style="color: #66cccc; text-decoration: underline;">"\" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #66cccc; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #66cccc; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.monit.cpu + </span><span style="color: #66cccc; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   process.stdout.write(<span style="color: #66cccc;">"PUTVAL \""</span> + hostname + <span style="color: #66cccc;">"/"</span> + name + <span style="color: #66cccc;">"-restart</span><span style="color: #66cccc; text-decoration: underline;">_time"</span><span style="text-decoration: underline;"> + </span><span style="color: #66cccc; text-decoration: underline;">"/gauge-"</span><span style="text-decoration: underline;"> + item.pm_id + </span><span style="color: #66cccc; text-decoration: underline;">"\" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #66cccc; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #66cccc; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.pm2_env.restart_time + </span><span style="color: #66cccc; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   process.stdout.write(<span style="color: #66cccc;">"PUTVAL \""</span> + hostname + <span style="color: #66cccc;">"/"</span> + name + <span style="color: #66cccc;">"-unstabl</span><span style="color: #66cccc; text-decoration: underline;">e_restarts"</span><span style="text-decoration: underline;"> + </span><span style="color: #66cccc; text-decoration: underline;">"/gauge-"</span><span style="text-decoration: underline;"> + item.pm_id + </span><span style="color: #66cccc; text-decoration: underline;">"\" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #66cccc; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #66cccc; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.pm2_env.unstable_restarts + </span><span style="color: #66cccc; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   process.stdout.write(<span style="color: #66cccc;">"PUTVAL \"" + hostname + "</span>/<span style="color: #66cccc;">" + name + "</span>-loop_de<span style="text-decoration: underline;">lay</span><span style="color: #66cccc; text-decoration: underline;">" + "</span><span style="text-decoration: underline;">/delay-</span><span style="color: #66cccc; text-decoration: underline;">" + item.pm_id + "</span><span style="text-decoration: underline;">\</span><span style="color: #66cccc; text-decoration: underline;">" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #66cccc; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #66cccc; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.pm2_env.axm_monitor[</span><span style="color: #66cccc; text-decoration: underline;">"Loop delay"</span><span style="text-decoration: underline;">].value.replace(</span><span style="color: #66cccc; text-decoration: underline;">'ms'</span><span style="text-decoration: underline;">, </span><span style="color: #66cccc; text-decoration: underline;">''</span><span style="text-decoration: underline;">) + </span><span style="color: #66cccc; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   process.stdout.write(<span style="color: #66cccc;">"PUTVAL \"" + hostname + "</span>/<span style="color: #66cccc;">" + name + "</span>-memory_<span style="text-decoration: underline;">used</span><span style="color: #66cccc; text-decoration: underline;">" + "</span><span style="text-decoration: underline;">/gauge-</span><span style="color: #66cccc; text-decoration: underline;">" + item.pm_id + "</span><span style="text-decoration: underline;">\</span><span style="color: #66cccc; text-decoration: underline;">" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #66cccc; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #66cccc; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.monit.memory + </span><span style="color: #66cccc; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   process.stdout.write(<span style="color: #66cccc;">"PUTVAL \"" + hostname + "</span>/<span style="color: #66cccc;">" + name + "</span>-cpu_use<span style="text-decoration: underline;">d</span><span style="color: #66cccc; text-decoration: underline;">" + "</span><span style="text-decoration: underline;">/gauge-</span><span style="color: #66cccc; text-decoration: underline;">" + item.pm_id + "</span><span style="text-decoration: underline;">\</span><span style="color: #66cccc; text-decoration: underline;">" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #66cccc; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #66cccc; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.monit.cpu + </span><span style="color: #66cccc; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   process.stdout.write(<span style="color: #66cccc;">"PUTVAL \"" + hostname + "</span>/<span style="color: #66cccc;">" + name + "</span>-restart<span style="text-decoration: underline;">_time</span><span style="color: #66cccc; text-decoration: underline;">" + "</span><span style="text-decoration: underline;">/gauge-</span><span style="color: #66cccc; text-decoration: underline;">" + item.pm_id + "</span><span style="text-decoration: underline;">\</span><span style="color: #66cccc; text-decoration: underline;">" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #66cccc; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #66cccc; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.pm2_env.restart_time + </span><span style="color: #66cccc; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   process.stdout.write(<span style="color: #66cccc;">"PUTVAL \"" + hostname + "</span>/<span style="color: #66cccc;">" + name + "</span>-unstabl<span style="text-decoration: underline;">e_restarts</span><span style="color: #66cccc; text-decoration: underline;">" + "</span><span style="text-decoration: underline;">/gauge-</span><span style="color: #66cccc; text-decoration: underline;">" + item.pm_id + "</span><span style="text-decoration: underline;">\</span><span style="color: #66cccc; text-decoration: underline;">" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #66cccc; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #66cccc; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.pm2_env.unstable_restarts + </span><span style="color: #66cccc; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   });
 
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   setTimeout(collect, interval*1000);
@@ -6633,98 +6945,6 @@ $
 ]]></content:encoded>
         </item>
         <item>
-            <title><![CDATA[CentOS 6.4 上安装 ruby 1.9.3]]></title>
-            <link>/article/centos-6.4-4e0a5b8988c5-ruby-1.9.3.html</link>
-            <guid>/article/centos-6.4-4e0a5b8988c5-ruby-1.9.3.html</guid>
-            <pubDate>Fri, 22 Jan 2016 13:12:00 GMT</pubDate>
-            <content:encoded><![CDATA[<p>
-CentOS 6.4 上仓库中的 Ruby 版本为 1.8.7 太旧了，<a href="https://github.com/yaauie/redis-copy">redis-copy</a> 要求 Ruby 版本至少为 1.9.3。
-</p>
-
-<ul class="org-ul">
-<li>安装 rvm
-
-<div class="org-src-container">
-
-<pre class="src src-sh">curl -L get.rvm.io | bash -s stable
-</pre>
-</div>
-</li>
-
-<li>安装 Ruby 1.9.3
-
-<div class="org-src-container">
-
-<pre class="src src-sh">/usr/local/rvm/bin/rvm install 1.9.3
-</pre>
-</div>
-
-<ul class="org-ul">
-<li>启用 Ruby 1.9.3
-
-<div class="org-src-container">
-
-<pre class="src src-js">source /usr/local/rvm/scripts/rvm
-rvm use 1.9.3
-</pre>
-</div>
-</li>
-
-<li>安装 RubyGems
-
-<div class="org-src-container">
-
-<pre class="src src-sh">rvm rubygems current
-</pre>
-</div>
-</li>
-
-<li>RubyGems 官方源国内访问不稳定，换成淘宝的镜像
-
-<div class="org-src-container">
-
-<pre class="src src-sh">gem sources --remove https://rubygems.org/
-gem sources -a https://ruby.taobao.org/
-</pre>
-</div>
-</li>
-
-<li>安装 <a href="https://github.com/yaauie/redis-copy">redis-copy</a>
-
-<div class="org-src-container">
-
-<pre class="src src-sh">gem install redis-copy
-</pre>
-</div>
-
-<p>
-安装后程序路径为 /usr/local/rvm/gems/ruby-1.9.3-p551/bin/redis-copy
-</p>
-
-<p>
-启用 Ruby 1.9.3 后，redis-copy 可以直接运行。
-</p>
-</li>
-</ul>
-</li>
-
-<li>参考
-
-<p>
-<a href="https://www.digitalocean.com/community/tutorials/how-to-install-ruby-on-rails-on-centos-6-with-rvm">How To Install Ruby on Rails on CentOS 6 with RVM | DigitalOcean</a>
-</p>
-
-<p>
-<a href="https://ruby-china.org/topics/3705">手把手安装RVM以及为什么RVM is not a function » Topics » Ruby China</a>
-</p>
-
-<p>
-<a href="http://www.jb51.net/article/49079.htm">淘宝网提供的国内RubyGems镜像简介和使用方法_ruby专题_脚本之家</a></p>
-</li>
-</ul>
-]]></content:encoded>
-        </item>
-        <item>
             <title><![CDATA[CentOS 6.4 上编译安装 gcc 5.2.0]]></title>
             <link>/article/centos-6.4-4e0a7f168bd15b8988c5-gcc-5.2.0.html</link>
             <guid>/article/centos-6.4-4e0a7f168bd15b8988c5-gcc-5.2.0.html</guid>
@@ -6812,6 +7032,98 @@ make install
 
 <p>
 <a href="https://wiki.mikejung.biz/Gcc_CentOS">Gcc CentOS - How to compile gcc-4.8.2 on CentOS 6.6</a></p>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[CentOS 6.4 上安装 ruby 1.9.3]]></title>
+            <link>/article/centos-6.4-4e0a5b8988c5-ruby-1.9.3.html</link>
+            <guid>/article/centos-6.4-4e0a5b8988c5-ruby-1.9.3.html</guid>
+            <pubDate>Fri, 22 Jan 2016 13:12:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+CentOS 6.4 上仓库中的 Ruby 版本为 1.8.7 太旧了，<a href="https://github.com/yaauie/redis-copy">redis-copy</a> 要求 Ruby 版本至少为 1.9.3。
+</p>
+
+<ul class="org-ul">
+<li>安装 rvm
+
+<div class="org-src-container">
+
+<pre class="src src-sh">curl -L get.rvm.io | bash -s stable
+</pre>
+</div>
+</li>
+
+<li>安装 Ruby 1.9.3
+
+<div class="org-src-container">
+
+<pre class="src src-sh">/usr/local/rvm/bin/rvm install 1.9.3
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>启用 Ruby 1.9.3
+
+<div class="org-src-container">
+
+<pre class="src src-js">source /usr/local/rvm/scripts/rvm
+rvm use 1.9.3
+</pre>
+</div>
+</li>
+
+<li>安装 RubyGems
+
+<div class="org-src-container">
+
+<pre class="src src-sh">rvm rubygems current
+</pre>
+</div>
+</li>
+
+<li>RubyGems 官方源国内访问不稳定，换成淘宝的镜像
+
+<div class="org-src-container">
+
+<pre class="src src-sh">gem sources --remove https://rubygems.org/
+gem sources -a https://ruby.taobao.org/
+</pre>
+</div>
+</li>
+
+<li>安装 <a href="https://github.com/yaauie/redis-copy">redis-copy</a>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">gem install redis-copy
+</pre>
+</div>
+
+<p>
+安装后程序路径为 /usr/local/rvm/gems/ruby-1.9.3-p551/bin/redis-copy
+</p>
+
+<p>
+启用 Ruby 1.9.3 后，redis-copy 可以直接运行。
+</p>
+</li>
+</ul>
+</li>
+
+<li>参考
+
+<p>
+<a href="https://www.digitalocean.com/community/tutorials/how-to-install-ruby-on-rails-on-centos-6-with-rvm">How To Install Ruby on Rails on CentOS 6 with RVM | DigitalOcean</a>
+</p>
+
+<p>
+<a href="https://ruby-china.org/topics/3705">手把手安装RVM以及为什么RVM is not a function » Topics » Ruby China</a>
+</p>
+
+<p>
+<a href="http://www.jb51.net/article/49079.htm">淘宝网提供的国内RubyGems镜像简介和使用方法_ruby专题_脚本之家</a></p>
 </li>
 </ul>
 ]]></content:encoded>
@@ -13409,7 +13721,7 @@ u{text-decoration: none;<span style="color: #6699cc;">color</span>:<span style="
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span>(p4) $(<span style="color: #66cccc;">'opform'</span>).p4.value=p4;
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span>(p5) $(<span style="color: #66cccc;">'opform'</span>).p4.value=p5;
 }
-<span style="color: #99cc99;">function</span> <span style="color: #f99157;">g</span>(<span style="color: #6699cc;">action</span>,<span style="color: #6699cc;">nowpath</span>,<span style="color: #6699cc;">p1</span>,<span style="color: #6699cc;">p2</span>,<span style="color: #6699cc;">p3</span>,<span style="color: #6699cc;">p4</span>,<span style="color: #6699cc;">p5</span>) {
+<span style="color: #ffcc66;">function g</span>(<span style="color: #6699cc;">action</span>,<span style="color: #6699cc;">nowpath</span>,<span style="color: #6699cc;">p1</span>,<span style="color: #6699cc;">p2</span>,<span style="color: #6699cc;">p3</span>,<span style="color: #6699cc;">p4</span>,<span style="color: #6699cc;">p5</span>) {
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span>(<span style="color: #6699cc;">!</span>action) <span style="color: #99cc99;">return</span>;
 <span style="color: #cccccc; background-color: #515151;"> </span>   s(action,nowpath,p1,p2,p3,p4,p5);
 <span style="color: #cccccc; background-color: #515151;"> </span>   $(<span style="color: #66cccc;">'opform'</span>).submit();
@@ -13548,7 +13860,7 @@ formfoot();
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (<span style="color: #6699cc;">!</span>@file_exists(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">curfile</span>)) {
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   m(basename(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">curfile</span>).<span style="color: #66cccc;">' does not exist'</span>);
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   } <span style="color: #99cc99;">else</span> {
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">time</span> = strtotime(<span style="color: #66cccc;">"</span><span style="color: #ffcc66;">$year</span><span style="color: #66cccc;">-</span><span style="color: #ffcc66;">$month</span><span style="color: #66cccc;">-</span><span style="color: #ffcc66;">$day</span><span style="color: #66cccc;"> </span><span style="color: #ffcc66;">$hour</span><span style="color: #66cccc;">:</span><span style="color: #ffcc66;">$minute</span><span style="color: #66cccc;">:</span><span style="color: #ffcc66;">$second</span><span style="color: #66cccc;">"</span>);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">time</span> = strtotime(<span style="color: #66cccc;">"</span><span style="color: #ffcc66;">$year</span><span style="color: #66cccc;">-</span><span style="color: #ffcc66;">$month</span><span style="color: #66cccc;">-</span><span style="color: #ffcc66;">$day</span><span style="color: #66cccc;"> </span><span style="color: #ffcc66;">$hour</span><span style="color: #66cccc;">:$minute:</span><span style="color: #ffcc66;">$second</span><span style="color: #66cccc;">"</span>);
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   m(<span style="color: #66cccc;">'Modify file the last modified '</span>.(<span style="color: #6699cc;">@touch</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">curfile</span>,<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">time</span>,<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">time</span>) ? <span style="color: #66cccc;">'</span><span style="color: #66cccc; text-decoration: underline;">success'</span><span style="text-decoration: underline;"> : </span><span style="color: #66cccc; text-decoration: underline;">'failed'</span><span style="text-decoration: underline;">));</span>
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
 <span style="color: #cccccc; background-color: #515151;"> </span>   }
@@ -13835,7 +14147,7 @@ document.onclick = shownav;
 <span style="color: #cccccc; background-color: #515151;"> </span>   }
 <span style="color: #cc99cc;">?&gt;</span>
 &lt;script type=<span style="color: #66cccc;">"text/javascript"</span>&gt;
-<span style="color: #ffcc66;">function mysqlfile</span>(doing){
+<span style="color: #99cc99;">function</span> <span style="color: #f99157;">mysqlfile</span>(doing){
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span>(<span style="color: #6699cc;">!</span>doing) <span style="color: #99cc99;">return</span>;
 <span style="color: #cccccc; background-color: #515151;"> </span>   $(<span style="color: #66cccc;">'doing'</span>).value=doing;
 <span style="color: #cccccc; background-color: #515151;"> </span>   $(<span style="color: #66cccc;">'mysqlfile'</span>).dbhost.value=$(<span style="color: #66cccc;">'dbinfo'</span>).dbhost.value;
@@ -14352,7 +14664,7 @@ document.onclick = shownav;
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   p(<span style="color: #66cccc;">'&lt;td colspan="'</span>.(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">highver</span> ? 5 : 3).<span style="color: #66cccc;">'"&gt;&amp;nbsp;&lt;/td&gt;'</span>);
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   p(<span style="color: #66cccc;">'&lt;/tr&gt;'</span>);
 
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   p(<span style="color: #66cccc;">"&lt;tr class=\""</span>.bg().<span style="color: #66cccc;">"\"&gt;&lt;td colspan=\""</span>.(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">highver</span> ? 9 : 7).<span style="color: #66cccc;">"\"</span><span style="color: #66cccc; text-decoration: underline;">&gt;&lt;input name=\"saveasfile\" value=\"1\" type=\"checkbox\" /&gt; Save as file &lt;input class=\"input\" name=\"path\" value=\""</span><span style="text-decoration: underline;">.</span><span style="color: #6699cc; text-decoration: underline;">SA_ROOT</span><span style="text-decoration: underline;">.</span><span style="color: #ffcc66; text-decoration: underline;">$dbname</span><span style="text-decoration: underline;">.</span><span style="color: #66cccc; text-decoration: underline;">".sql\" type=\"text\" size=\"60\" /&gt; &lt;input class=\"bt\" type=\"submit\" value=\"Export selection table\" /&gt;&lt;/td&gt;&lt;/tr&gt;"</span><span style="text-decoration: underline;">);</span>
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   p(<span style="color: #66cccc;">"&lt;tr class=\""</span>.bg().<span style="color: #66cccc;">"\"&gt;&lt;td colspan=\""</span>.(<span style="color: #ffcc66;">$highver</span> ? 9 : 7).<span style="color: #66cccc;">"\"</span><span style="color: #66cccc; text-decoration: underline;">&gt;&lt;input name=\"saveasfile\" value=\"1\" type=\"checkbox\" /&gt; Save as file &lt;input class=\"input\" name=\"path\" value=\""</span><span style="text-decoration: underline;">.</span><span style="color: #6699cc; text-decoration: underline;">SA_ROOT</span><span style="text-decoration: underline;">.</span><span style="color: #ffcc66; text-decoration: underline;">$dbname</span><span style="text-decoration: underline;">.</span><span style="color: #66cccc; text-decoration: underline;">".sql\" type=\"text\" size=\"60\" /&gt; &lt;input class=\"bt\" type=\"submit\" value=\"Export selection table\" /&gt;&lt;/td&gt;&lt;/tr&gt;"</span><span style="text-decoration: underline;">);</span>
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   makehide(<span style="color: #66cccc;">'doing'</span>,<span style="color: #66cccc;">'backupmysql'</span>);
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   formfoot();
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   p(<span style="color: #66cccc;">"&lt;/table&gt;"</span>);
@@ -14446,7 +14758,7 @@ document.onclick = shownav;
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">phpcode</span> = trim(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">phpcode</span>);
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">phpcode</span>){
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (<span style="color: #6699cc;">!</span>preg_match(<span style="color: #66cccc;">'#&lt;\?#si'</span>, <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">phpcode</span>)) {
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">phpcode</span> = <span style="color: #66cccc;">"&lt;?php\n\n{$phpcode}\n\n?&gt;"</span>;
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">phpcode</span> = <span style="color: #66cccc;">"&lt;?php\n\n</span><span style="color: #ffcc66;">{$phpcode}</span><span style="color: #66cccc;">\n\n?&gt;"</span>;
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">eval</span>(<span style="color: #66cccc;">"?"</span>.<span style="color: #66cccc;">"&gt;</span><span style="color: #ffcc66;">$phpcode</span><span style="color: #66cccc;">&lt;?"</span>);
 <span style="color: #cccccc; background-color: #515151;"> </span>   }
@@ -15091,7 +15403,7 @@ document.onclick = shownav;
 <span style="color: #cccccc; background-color: #515151;"> </span>   }
 }
 
-<span style="color: #99cc99;">function</span> <span style="color: #f99157;">qy</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">sql</span>) {<span style="color: #f99157; background-color: #515151;"> </span>
+function <span style="color: #ffcc66;">qy</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">sql</span>) {<span style="color: #f99157; background-color: #515151;"> </span>
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">global</span> <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">mysqllink</span>;
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #999999; font-style: italic;">//</span><span style="color: #999999; font-style: italic;">echo $sql.'&lt;br&gt;';</span>
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">res</span> = <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">error</span> = <span style="color: #66cccc;">''</span>;
@@ -15181,7 +15493,7 @@ document.onclick = shownav;
 <span style="color: #cccccc; background-color: #515151;"> </span>   }
 }
 
-<span style="color: #99cc99;">function</span> <span style="color: #f99157;">makeselect</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">arg</span> = <span style="color: #99cc99;">array</span>()){
+<span style="color: #ffcc66;">function makeselect</span>(<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">arg</span> = <span style="color: #99cc99;">array</span>()){
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">arg</span>[<span style="color: #66cccc;">'onchange'</span>]) {
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">onchange</span> = <span style="color: #66cccc;">'onchange="'</span>.<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">arg</span>[<span style="color: #66cccc;">'onchange'</span>].<span style="color: #66cccc;">'"'</span>;
 <span style="color: #cccccc; background-color: #515151;"> </span>   }
@@ -15200,7 +15512,7 @@ document.onclick = shownav;
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   } <span style="color: #99cc99;">else</span> {
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">foreach</span> (<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">arg</span>[<span style="color: #66cccc;">'option'</span>] <span style="color: #99cc99;">as</span> <span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">key</span>=&gt;<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">value</span>) {
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">if</span> (<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">arg</span>[<span style="color: #66cccc;">'selected'</span>]==<span style="color: #cccccc; background-color: #2d2d2d;">$</span><span style="color: #ffcc66;">key</span>) {
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   p(<span style="color: #66cccc;">"&lt;option value=\"$key\" selected&gt;</span><span style="color: #ffcc66;">$value</span><span style="color: #66cccc;">&lt;/option&gt;"</span>);
+<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   p(<span style="color: #66cccc;">"&lt;option value=\"$key\" selected&gt;$value&lt;/option&gt;"</span>);
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   } <span style="color: #99cc99;">else</span> {
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   p(<span style="color: #66cccc;">"&lt;option value=\"$key\"&gt;</span><span style="color: #ffcc66;">$value</span><span style="color: #66cccc;">&lt;/option&gt;"</span>);
 <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   }
