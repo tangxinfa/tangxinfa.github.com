@@ -4,7 +4,7 @@
         <title>mysql - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/mysql.xml</link>
-        <lastBuildDate>Sun, 21 Aug 2016 05:52:39 GMT</lastBuildDate>
+        <lastBuildDate>Fri, 26 Aug 2016 11:20:09 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>mysql - 看看俺 – KanKanAn.com</title>
@@ -14,6 +14,172 @@
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <generator>Feed for Node.js</generator>
         <category>技术</category>
+        <item>
+            <title><![CDATA[mysql 实现 ctime、mtime、atime 语义]]></title>
+            <link>/article/mysql-5b9e73b0-ctime-3001-mtime-3001-atime-8bed4e49.html</link>
+            <guid>/article/mysql-5b9e73b0-ctime-3001-mtime-3001-atime-8bed4e49.html</guid>
+            <pubDate>Fri, 26 Aug 2016 11:18:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+事物有常见的三个时间属性
+</p>
+
+<ul class="org-ul">
+<li>创建时间（ctime）
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>修改时间（mtime）
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>访问时间（atime）
+</li>
+</ul>
+
+
+<p>
+下面考虑使用 mysql 实现。
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">不要使用 REPLACE</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+<a href="http://dev.mysql.com/doc/refman/5.7/en/replace.html">MySQL :: MySQL 5.7 Reference Manual :: 14.2.8 REPLACE Syntax</a>
+</p>
+<blockquote>
+<p>
+REPLACE 像 INSERT 一样运作，除了：表中的旧记录与新记录的主键（PRIMARY KEY）或唯一索引（UNIQUE index）一样时，删掉旧记录再插入新记录。 
+</p>
+
+<p>
+REPLACE works exactly like INSERT, except that if an old row in the table has the same value as a new row for a PRIMARY KEY or a UNIQUE index, the old row is deleted before the new row is inserted. 
+</p>
+</blockquote>
+
+<p>
+这就意味着默认值定义为 <code>DEFAULT CURRENT_TIMESTAMP</code> 的字段，在缺失的情况下会重置为当前时间（CURRENT_TIMESTAMP）。
+</p>
+</div>
+
+<div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1">自行实现创建或修改语义</h3>
+<div class="outline-text-3" id="text-1-1">
+<p>
+更新（UPDATE）记录，如果 <code>affectedRows</code> 为 0，再尝试插入（INSERT）记录。
+</p>
+
+<p>
+由于更新（UPDATE）和插入（INSERT）是两个操作，并发访问的情况下，插入（INSERT）时记录可以已要存在，因此还需要忽略主键冲突错误。
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">不要使用 ON UPDATE CURRENT_TIMESTAMP</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+这里的 <code>UPDATE</code> 是指更新语句（UPDATE、INSERT、REPLACE）是否改动了记录内容，
+新值与旧值不一样表示记录内容变化，会更新字段值为当前时间，否则，不会更新字段值为当前时间。
+</p>
+
+<p>
+可在更新语句中设置字段值为 <code>CURRENT_TIMESTAMP</code> ，强制字段值总是更新为当前时间。
+</p>
+
+<p>
+另外，更新访问时间（atime）时，会导致使用了 <code>ON UPDATE CURRENT_TIMESTAMP</code> 的字段更新为当前时间。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">创建时间（ctime）</h2>
+<div class="outline-text-2" id="text-3">
+</div><div id="outline-container-sec-3-1" class="outline-3">
+<h3 id="sec-3-1">字段定义</h3>
+<div class="outline-text-3" id="text-3-1">
+<pre class="example">
+ctime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+</pre>
+
+<p>
+指定默认值为当前时间，在记录创建时自动设置。
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4">字段值更新</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+INSERT（或 UPDATE） 语句创建（或更新）记录，不指定 <code>ctime</code> 字段。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5">更新时间（mtime）</h2>
+<div class="outline-text-2" id="text-5">
+</div><div id="outline-container-sec-5-1" class="outline-3">
+<h3 id="sec-5-1">字段定义</h3>
+<div class="outline-text-3" id="text-5-1">
+<pre class="example">
+mtime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+</pre>
+
+<p>
+指定默认值为当前时间，在记录创建时自动设置。
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-6" class="outline-2">
+<h2 id="sec-6">字段值更新</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+INSERT 语句创建记录，不指定 <code>mtime</code> 字段，或指定字段值为 CURRENT_TIMESTAMP。
+</p>
+
+<p>
+UPDATE 语句更新记录，指定 <code>mtime</code> 字段值为 CURRENT_TIMESTAMP。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-7" class="outline-2">
+<h2 id="sec-7">访问时间（atime）</h2>
+<div class="outline-text-2" id="text-7">
+</div><div id="outline-container-sec-7-1" class="outline-3">
+<h3 id="sec-7-1">字段定义</h3>
+<div class="outline-text-3" id="text-7-1">
+<pre class="example">
+atime TIMESTAMP NOT NULL DEFAULT "0000-00-00 00:00:00"
+</pre>
+
+<p>
+指定默认值为空时间值（表示未访问），在记录创建时自动设置。
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-8" class="outline-2">
+<h2 id="sec-8">字段值更新</h2>
+<div class="outline-text-2" id="text-8">
+<p>
+UPDATE 语句更新记录，指定 <code>atime</code> 字段值为 CURRENT_TIMESTAMP。</p>
+</div>
+</div>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[node.js下访问mysql注意事项]]></title>
             <link>/article/node.js-4e0b8bbf95ee-mysql-6ce8610f4e8b9879.html</link>
@@ -104,33 +270,33 @@ skip-name-resolve
 
 <dt> 总结性的示例代码 </dt><dd><div class="org-src-container">
 
-<pre class="src src-python"><span style="color: #999999; font-style: italic;">#</span><span style="color: #999999; font-style: italic;">!/usr/bin/env python</span>
-<span style="color: #999999; font-style: italic;">#</span><span style="color: #999999; font-style: italic;">-*- coding: utf-8 -*-</span>
+<pre class="src src-python"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/usr/bin/env python</span>
+<span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">-*- coding: utf-8 -*-</span>
 
-<span style="color: #99cc99;">import</span> MySQLdb
+<span style="color: #b5bd68;">import</span> MySQLdb
 
-<span style="color: #99cc99;">if</span> <span style="color: #cc99cc;">__name__</span> == <span style="color: #66cccc;">'__main__'</span>:
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">mysql</span> = MySQLdb.connect(host=<span style="color: #66cccc;">'localhost'</span>, user=<span style="color: #66cccc;">'root'</span>, passwd=<span style="color: #66cccc;">'123456'</span>, char<span style="text-decoration: underline;">set=</span><span style="color: #66cccc; text-decoration: underline;">'utf8'</span><span style="text-decoration: underline;">)</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">cursor</span> = mysql.cursor()
-<span style="color: #cccccc; background-color: #515151;"> </span>   cursor.execute(<span style="color: #66cccc;">'SET NAMES UTF8'</span>)
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">sql</span> = <span style="color: #66cccc;">'DROP DATABASE IF EXISTS mysqldb_utf8_test'</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   cursor.execute(sql)
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">sql</span> = <span style="color: #66cccc;">'CREATE DATABASE mysqldb_utf8_test DEFAULT CHARACTER SET utf8 COLLATE </span><span style="color: #66cccc; text-decoration: underline;">utf8_general_ci'</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   cursor.execute(sql)
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">mysql</span> = MySQLdb.connect(host=<span style="color: #66cccc;">'localhost'</span>, user=<span style="color: #66cccc;">'root'</span>, passwd=<span style="color: #66cccc;">'123456'</span>, db=<span style="color: #66cccc;">'</span><span style="color: #66cccc; text-decoration: underline;">mysqldb_utf8_test'</span><span style="text-decoration: underline;">, charset=</span><span style="color: #66cccc; text-decoration: underline;">'utf8'</span><span style="text-decoration: underline;">)</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">cursor</span> = mysql.cursor()
-<span style="color: #cccccc; background-color: #515151;"> </span>   cursor.execute(<span style="color: #66cccc;">'SET NAMES UTF8'</span>)
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">sql</span> = <span style="color: #66cccc;">'CREATE TABLE utf8_table(key_field VARCHAR(32) NOT NULL, value_field V</span><span style="color: #66cccc; text-decoration: underline;">ARCHAR(255) NOT NULL)'</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   cursor.execute(sql)
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">key</span> = <span style="color: #66cccc;">'tangxinfa'</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">value</span> = <span style="color: #66cccc;">'&#22909;&#20154;&#19968;&#20010;'</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">sql</span> = <span style="color: #66cccc;">'INSERT INTO utf8_table VALUES("%s", "%s")'</span>%(key, value)
-<span style="color: #cccccc; background-color: #515151;"> </span>   cursor.execute(sql)       <span style="color: #999999; font-style: italic;">#</span><span style="color: #999999; font-style: italic;">&#27880;&#24847;&#26576;&#20123;&#26087;&#29256;&#26412;&#30340;mysql&#65288;&#22914;4.1.22&#20197;&#19979;&#65289;&#65292;mysql.character_set_name</span><span style="color: #999999; font-style: italic; text-decoration: underline;">()&#24635;&#26159;&#36820;&#22238;latin1&#65292;&#20250;&#24341;&#36215;&#20081;&#30721;&#65292;&#38656;&#35201;&#25913;&#20026;cursor.execute('INSERT INTO utf8_table VALUES("%s", "%s")', (key, value))</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #ffcc66;">sql</span> = <span style="color: #66cccc;">'select * from utf8_table'</span>
-<span style="color: #cccccc; background-color: #515151;"> </span>   cursor.execute(sql)
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">for</span> record <span style="color: #99cc99;">in</span> cursor.fetchall():
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">for</span> item <span style="color: #99cc99;">in</span> record:
-<span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #cccccc; background-color: #515151;"> </span>   <span style="color: #99cc99;">print</span> item.encode(<span style="color: #66cccc;">'utf8'</span>)
+<span style="color: #b5bd68;">if</span> <span style="color: #b294bb;">__name__</span> == <span style="color: #8abeb7;">'__main__'</span>:
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #f0c674;">mysql</span> = MySQLdb.connect(host=<span style="color: #8abeb7;">'localhost'</span>, user=<span style="color: #8abeb7;">'root'</span>, passwd=<span style="color: #8abeb7;">'123456'</span>, char<span style="text-decoration: underline;">set=</span><span style="color: #8abeb7; text-decoration: underline;">'utf8'</span><span style="text-decoration: underline;">)</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #f0c674;">cursor</span> = mysql.cursor()
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   cursor.execute(<span style="color: #8abeb7;">'SET NAMES UTF8'</span>)
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #f0c674;">sql</span> = <span style="color: #8abeb7;">'DROP DATABASE IF EXISTS mysqldb_utf8_test'</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   cursor.execute(sql)
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #f0c674;">sql</span> = <span style="color: #8abeb7;">'CREATE DATABASE mysqldb_utf8_test DEFAULT CHARACTER SET utf8 COLLATE </span><span style="color: #8abeb7; text-decoration: underline;">utf8_general_ci'</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   cursor.execute(sql)
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #f0c674;">mysql</span> = MySQLdb.connect(host=<span style="color: #8abeb7;">'localhost'</span>, user=<span style="color: #8abeb7;">'root'</span>, passwd=<span style="color: #8abeb7;">'123456'</span>, db=<span style="color: #8abeb7;">'</span><span style="color: #8abeb7; text-decoration: underline;">mysqldb_utf8_test'</span><span style="text-decoration: underline;">, charset=</span><span style="color: #8abeb7; text-decoration: underline;">'utf8'</span><span style="text-decoration: underline;">)</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #f0c674;">cursor</span> = mysql.cursor()
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   cursor.execute(<span style="color: #8abeb7;">'SET NAMES UTF8'</span>)
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #f0c674;">sql</span> = <span style="color: #8abeb7;">'CREATE TABLE utf8_table(key_field VARCHAR(32) NOT NULL, value_field V</span><span style="color: #8abeb7; text-decoration: underline;">ARCHAR(255) NOT NULL)'</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   cursor.execute(sql)
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #f0c674;">key</span> = <span style="color: #8abeb7;">'tangxinfa'</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #f0c674;">value</span> = <span style="color: #8abeb7;">'&#22909;&#20154;&#19968;&#20010;'</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #f0c674;">sql</span> = <span style="color: #8abeb7;">'INSERT INTO utf8_table VALUES("%s", "%s")'</span>%(key, value)
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   cursor.execute(sql)       <span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">&#27880;&#24847;&#26576;&#20123;&#26087;&#29256;&#26412;&#30340;mysql&#65288;&#22914;4.1.22&#20197;&#19979;&#65289;&#65292;mysql.character_set_name</span><span style="color: #969896; font-style: italic; text-decoration: underline;">()&#24635;&#26159;&#36820;&#22238;latin1&#65292;&#20250;&#24341;&#36215;&#20081;&#30721;&#65292;&#38656;&#35201;&#25913;&#20026;cursor.execute('INSERT INTO utf8_table VALUES("%s", "%s")', (key, value))</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #f0c674;">sql</span> = <span style="color: #8abeb7;">'select * from utf8_table'</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   cursor.execute(sql)
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">for</span> record <span style="color: #b5bd68;">in</span> cursor.fetchall():
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">for</span> item <span style="color: #b5bd68;">in</span> record:
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">print</span> item.encode(<span style="color: #8abeb7;">'utf8'</span>)
 </pre>
 </div>
 </dd>

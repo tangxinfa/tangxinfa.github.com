@@ -14526,3 +14526,89 @@ class RedisShard {
    客户端通过 DataCenter 2 访问本地的 Redis Group 2 属于合理的访问。
    业务逻辑主要需要访问 Redis Group 1，读操作可以发往本地的 Redis Group 1 Slave，写操作需要跨机房访问 DataCenter 1 中的 Redis Group 1 Master，
    这是不合理的，因此在发给客户端的响应中指示客户端下次将请求发往 Redis Group 1 Master 所在的 DataCenter 1。
+
+* DONE mysql 实现 ctime、mtime、atime 语义                            :mysql:
+  CLOSED: [2016-08-26 Fri 19:18]
+
+  事物有常见的三个时间属性
+
+  - 创建时间（ctime）
+
+
+  - 修改时间（mtime）
+     
+  
+  - 访问时间（atime）
+
+    
+  下面考虑使用 mysql 实现。
+
+** 不要使用 REPLACE
+
+   [[http://dev.mysql.com/doc/refman/5.7/en/replace.html][MySQL :: MySQL 5.7 Reference Manual :: 14.2.8 REPLACE Syntax]]
+   #+begin_quote
+   REPLACE 像 INSERT 一样运作，除了：表中的旧记录与新记录的主键（PRIMARY KEY）或唯一索引（UNIQUE index）一样时，删掉旧记录再插入新记录。 
+
+   REPLACE works exactly like INSERT, except that if an old row in the table has the same value as a new row for a PRIMARY KEY or a UNIQUE index, the old row is deleted before the new row is inserted. 
+   #+end_quote
+
+   这就意味着默认值定义为 =DEFAULT CURRENT_TIMESTAMP= 的字段，在缺失的情况下会重置为当前时间（CURRENT_TIMESTAMP）。
+
+*** 自行实现创建或修改语义
+
+    更新（UPDATE）记录，如果 =affectedRows= 为 0，再尝试插入（INSERT）记录。
+
+    由于更新（UPDATE）和插入（INSERT）是两个操作，并发访问的情况下，插入（INSERT）时记录可以已要存在，因此还需要忽略主键冲突错误。
+
+** 不要使用 ON UPDATE CURRENT_TIMESTAMP
+
+   这里的 =UPDATE= 是指更新语句（UPDATE、INSERT、REPLACE）是否改动了记录内容，
+   新值与旧值不一样表示记录内容变化，会更新字段值为当前时间，否则，不会更新字段值为当前时间。
+
+   可在更新语句中设置字段值为 =CURRENT_TIMESTAMP= ，强制字段值总是更新为当前时间。
+
+   另外，更新访问时间（atime）时，会导致使用了 =ON UPDATE CURRENT_TIMESTAMP= 的字段更新为当前时间。
+
+** 创建时间（ctime）
+
+*** 字段定义
+
+    #+begin_example
+      ctime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    #+end_example
+
+    指定默认值为当前时间，在记录创建时自动设置。
+
+** 字段值更新
+
+   INSERT（或 UPDATE） 语句创建（或更新）记录，不指定 =ctime= 字段。
+
+** 更新时间（mtime）
+
+*** 字段定义
+
+    #+begin_example
+      mtime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    #+end_example
+
+    指定默认值为当前时间，在记录创建时自动设置。
+
+** 字段值更新
+
+   INSERT 语句创建记录，不指定 =mtime= 字段，或指定字段值为 CURRENT_TIMESTAMP。
+
+   UPDATE 语句更新记录，指定 =mtime= 字段值为 CURRENT_TIMESTAMP。
+
+** 访问时间（atime）
+
+*** 字段定义
+
+    #+begin_example
+      atime TIMESTAMP NOT NULL DEFAULT "0000-00-00 00:00:00"
+    #+end_example
+
+    指定默认值为空时间值（表示未访问），在记录创建时自动设置。
+
+** 字段值更新
+
+   UPDATE 语句更新记录，指定 =atime= 字段值为 CURRENT_TIMESTAMP。
