@@ -4,7 +4,7 @@
         <title>pm2 - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/pm2.xml</link>
-        <lastBuildDate>Fri, 26 Aug 2016 11:20:09 GMT</lastBuildDate>
+        <lastBuildDate>Fri, 02 Sep 2016 02:33:53 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>pm2 - 看看俺 – KanKanAn.com</title>
@@ -14,6 +14,148 @@
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <generator>Feed for Node.js</generator>
         <category>技术</category>
+        <item>
+            <title><![CDATA[使用 pm2 启动 bash 后台脚本]]></title>
+            <link>/article/4f7f7528-pm2-542f52a8-bash-540e53f0811a672c.html</link>
+            <guid>/article/4f7f7528-pm2-542f52a8-bash-540e53f0811a672c.html</guid>
+            <pubDate>Fri, 02 Sep 2016 02:28:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+我们常常会使用 bash 写一些后台运行的守护进程，然后使用 crontab 实现开机启动并监控，
+也可以改为使用 pm2 来运行，功能更强大，更简单规范。
+</p>
+
+<p>
+使用 pm2 来管理后台进程仍然可以获得其大部分功能，如：
+</p>
+
+<ul class="org-ul">
+<li>日志管理
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>监控
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>进程管理
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>开机启动
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>崩溃重启
+</li>
+</ul>
+
+
+<p>
+如下定义 process.json
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-json">{
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span> apps : [{
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   name      : <span style="color: #3e999f;">"run-log-analyze"</span>,
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   script    : <span style="color: #3e999f;">"./tools/run-log-analyze.sh"</span>,
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   env: {
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   },
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   merge_logs: <span style="color: #4271ae;">true</span>,
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   error_file: <span style="color: #3e999f;">"tools/run-log-analyze.log"</span>,
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   out_file: <span style="color: #3e999f;">"tools/run-log-analyze.log"</span>,
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   exec_mode: <span style="color: #3e999f;">"fork"</span>
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span> }]
+}
+</pre>
+</div>
+
+<p>
+run-log-analyze.sh 用于实时分析应用的日志
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">tail -f ./run.log | bunyan --strict -c <span style="color: #3e999f;">'this.msg == "file uploaded"'</span> -0 | json -<span style="text-decoration: underline;">ga file | ./tools/file-scan -o ./tools/file-scan-successed.log -e ./tools/file-scan-failed.log</span>
+</pre>
+</div>
+
+<p>
+上面的脚本不断读取 run.log，将上传的文件路径名提取出来，然后传给文件扫描程序（./tools/file-scan），扫描成功日志文件为 ./tools/file-scan-successed.log，扫描失败日志文件为 ./tools/file-scan-failed.log。
+</p>
+
+<p>
+现在在尝试启动进程
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">pm2 start process.json
+</pre>
+</div>
+
+<p>
+查看进程运行状态
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">pm2 list
+</pre>
+</div>
+
+<p>
+然后尝试重启
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">pm2 restart process.json
+</pre>
+</div>
+
+<p>
+发现后台有两个 <code>file-scan</code> 及 <code>tail -f ./run.log</code> 进程，restart 没有将子进程杀死，不过父进程 /bin/bash 进程倒是杀死了。
+</p>
+
+<p>
+估计是 bash 使用 pm2 fork-mode 运行后，其终端被 detach 了，相当于是后台 daemon 进程，bash 进程死掉后， <code>tail -f ./run.log</code> 进程收不到 SIGHUP 信号也就没有跟着退出。
+</p>
+
+<p>
+可以利用 tail 命令的参数 <code>-pid</code> ，指定 bash 结束时中断 <code>tail -f</code> 命令
+</p>
+
+<p>
+<code>main tail</code>
+</p>
+<blockquote>
+<p>
+&#x2013;pid=PID
+       with -f, terminate after process ID, PID dies  
+</p>
+</blockquote>
+
+<p>
+将 run-log-analyze.sh 改写如下
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">tail -f --pid=$<span style="color: #eab700;">$</span> ./run.log | bunyan --strict -c <span style="color: #3e999f;">'this.msg == "file uploaded"'</span> -0<span style="text-decoration: underline;"> | json -ga file | ./tools/file-scan -o ./tools/file-scan-successed.log -e ./tools/file-scan-failed.log</span>
+</pre>
+</div>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[使用 collectd 监控 pm2 应用性能]]></title>
             <link>/article/4f7f7528-collectd-76d163a7-pm2-5e947528602780fd.html</link>
@@ -121,40 +263,40 @@ node.js（javascript）是一门动态语言，很少运行到的代码分支里
 </p>
 <div class="org-src-container">
 
-<pre class="src src-js"><span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">os</span> = require(<span style="color: #8abeb7;">'os'</span>);
-<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">exec</span> = require(<span style="color: #8abeb7;">'child_process'</span>).exec;
+<pre class="src src-js"><span style="color: #718c00;">var</span> <span style="color: #eab700;">os</span> = require(<span style="color: #3e999f;">'os'</span>);
+<span style="color: #718c00;">var</span> <span style="color: #eab700;">exec</span> = require(<span style="color: #3e999f;">'child_process'</span>).exec;
 
 
-<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">hostname</span> = process.env.COLLECTD_HOSTNAME || os.hostname();
-<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">interval</span> = parseInt(process.env.COLLECTD_INTERVAL, 10) || 1;
+<span style="color: #718c00;">var</span> <span style="color: #eab700;">hostname</span> = process.env.COLLECTD_HOSTNAME || os.hostname();
+<span style="color: #718c00;">var</span> <span style="color: #eab700;">interval</span> = parseInt(process.env.COLLECTD_INTERVAL, 10) || 1;
 
-<span style="color: #b5bd68;">function</span> <span style="color: #de935f;">collect</span> () {
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   exec(<span style="color: #8abeb7;">'pm2 jlist'</span>, <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">error</span>, <span style="color: #f0c674;">stdout</span>, <span style="color: #f0c674;">stderr</span>) {
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (error) {
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   process.stderr.write(error.toString());
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   process.exit(1);
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   }
+<span style="color: #718c00;">function</span> <span style="color: #f5871f;">collect</span> () {
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   exec(<span style="color: #3e999f;">'pm2 jlist'</span>, <span style="color: #718c00;">function</span> (<span style="color: #eab700;">error</span>, <span style="color: #eab700;">stdout</span>, <span style="color: #eab700;">stderr</span>) {
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span> (error) {
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   process.stderr.write(error.toString());
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   process.exit(1);
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
 
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (stderr) {
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   process.stderr.write(stderr.toString() + <span style="color: #8abeb7;">"\n"</span>);
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   }
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span> (stderr) {
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   process.stderr.write(stderr.toString() + <span style="color: #3e999f;">"\n"</span>);
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
 
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">timestamp</span> = Math.floor(Date.now() / 1000);
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">list</span> = JSON.parse(stdout);
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   list.forEach(<span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">item</span>) {
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">name</span> = <span style="color: #8abeb7;">''</span>;
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">for</span>(<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">i</span> = 0, <span style="color: #f0c674;">n</span> = item.name.length; i &lt; n; ++i) {
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   name += item.name[i].match(<span style="color: #8abeb7;">/^[0-9a-zA-Z]+$/</span>) ? item.name[i] : <span style="color: #8abeb7;">'_</span><span style="color: #8abeb7; text-decoration: underline;">'</span><span style="text-decoration: underline;">;</span>
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   }
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   process.stdout.write(<span style="color: #8abeb7;">"PUTVAL \"" + hostname + "</span>/<span style="color: #8abeb7;">" + name + "</span>-loop_de<span style="text-decoration: underline;">lay</span><span style="color: #8abeb7; text-decoration: underline;">" + "</span><span style="text-decoration: underline;">/delay-</span><span style="color: #8abeb7; text-decoration: underline;">" + item.pm_id + "</span><span style="text-decoration: underline;">\</span><span style="color: #8abeb7; text-decoration: underline;">" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #8abeb7; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #8abeb7; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.pm2_env.axm_monitor[</span><span style="color: #8abeb7; text-decoration: underline;">"Loop delay"</span><span style="text-decoration: underline;">].value.replace(</span><span style="color: #8abeb7; text-decoration: underline;">'ms'</span><span style="text-decoration: underline;">, </span><span style="color: #8abeb7; text-decoration: underline;">''</span><span style="text-decoration: underline;">) + </span><span style="color: #8abeb7; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   process.stdout.write(<span style="color: #8abeb7;">"PUTVAL \"" + hostname + "</span>/<span style="color: #8abeb7;">" + name + "</span>-memory_<span style="text-decoration: underline;">used</span><span style="color: #8abeb7; text-decoration: underline;">" + "</span><span style="text-decoration: underline;">/gauge-</span><span style="color: #8abeb7; text-decoration: underline;">" + item.pm_id + "</span><span style="text-decoration: underline;">\</span><span style="color: #8abeb7; text-decoration: underline;">" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #8abeb7; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #8abeb7; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.monit.memory + </span><span style="color: #8abeb7; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   process.stdout.write(<span style="color: #8abeb7;">"PUTVAL \"" + hostname + "</span>/<span style="color: #8abeb7;">" + name + "</span>-cpu_use<span style="text-decoration: underline;">d</span><span style="color: #8abeb7; text-decoration: underline;">" + "</span><span style="text-decoration: underline;">/gauge-</span><span style="color: #8abeb7; text-decoration: underline;">" + item.pm_id + "</span><span style="text-decoration: underline;">\</span><span style="color: #8abeb7; text-decoration: underline;">" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #8abeb7; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #8abeb7; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.monit.cpu + </span><span style="color: #8abeb7; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   process.stdout.write(<span style="color: #8abeb7;">"PUTVAL \"" + hostname + "</span>/<span style="color: #8abeb7;">" + name + "</span>-restart<span style="text-decoration: underline;">_time</span><span style="color: #8abeb7; text-decoration: underline;">" + "</span><span style="text-decoration: underline;">/gauge-</span><span style="color: #8abeb7; text-decoration: underline;">" + item.pm_id + "</span><span style="text-decoration: underline;">\</span><span style="color: #8abeb7; text-decoration: underline;">" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #8abeb7; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #8abeb7; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.pm2_env.restart_time + </span><span style="color: #8abeb7; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   process.stdout.write(<span style="color: #8abeb7;">"PUTVAL \"" + hostname + "</span>/<span style="color: #8abeb7;">" + name + "</span>-unstabl<span style="text-decoration: underline;">e_restarts</span><span style="color: #8abeb7; text-decoration: underline;">" + "</span><span style="text-decoration: underline;">/gauge-</span><span style="color: #8abeb7; text-decoration: underline;">" + item.pm_id + "</span><span style="text-decoration: underline;">\</span><span style="color: #8abeb7; text-decoration: underline;">" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #8abeb7; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #8abeb7; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.pm2_env.unstable_restarts + </span><span style="color: #8abeb7; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   });
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">var</span> <span style="color: #eab700;">timestamp</span> = Math.floor(Date.now() / 1000);
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">var</span> <span style="color: #eab700;">list</span> = JSON.parse(stdout);
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   list.forEach(<span style="color: #718c00;">function</span> (<span style="color: #eab700;">item</span>) {
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">var</span> <span style="color: #eab700;">name</span> = <span style="color: #3e999f;">''</span>;
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">for</span>(<span style="color: #718c00;">var</span> <span style="color: #eab700;">i</span> = 0, <span style="color: #eab700;">n</span> = item.name.length; i &lt; n; ++i) {
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   name += item.name[i].match(<span style="color: #3e999f;">/^[0-9a-zA-Z]+$/</span>) ? item.name[i] : <span style="color: #3e999f;">'_</span><span style="color: #3e999f; text-decoration: underline;">'</span><span style="text-decoration: underline;">;</span>
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   process.stdout.write(<span style="color: #3e999f;">"PUTVAL \"" + hostname + "</span>/<span style="color: #3e999f;">" + name + "</span>-loop_de<span style="text-decoration: underline;">lay</span><span style="color: #3e999f; text-decoration: underline;">" + "</span><span style="text-decoration: underline;">/delay-</span><span style="color: #3e999f; text-decoration: underline;">" + item.pm_id + "</span><span style="text-decoration: underline;">\</span><span style="color: #3e999f; text-decoration: underline;">" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #3e999f; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #3e999f; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.pm2_env.axm_monitor[</span><span style="color: #3e999f; text-decoration: underline;">"Loop delay"</span><span style="text-decoration: underline;">].value.replace(</span><span style="color: #3e999f; text-decoration: underline;">'ms'</span><span style="text-decoration: underline;">, </span><span style="color: #3e999f; text-decoration: underline;">''</span><span style="text-decoration: underline;">) + </span><span style="color: #3e999f; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   process.stdout.write(<span style="color: #3e999f;">"PUTVAL \"" + hostname + "</span>/<span style="color: #3e999f;">" + name + "</span>-memory_<span style="text-decoration: underline;">used</span><span style="color: #3e999f; text-decoration: underline;">" + "</span><span style="text-decoration: underline;">/gauge-</span><span style="color: #3e999f; text-decoration: underline;">" + item.pm_id + "</span><span style="text-decoration: underline;">\</span><span style="color: #3e999f; text-decoration: underline;">" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #3e999f; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #3e999f; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.monit.memory + </span><span style="color: #3e999f; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   process.stdout.write(<span style="color: #3e999f;">"PUTVAL \"" + hostname + "</span>/<span style="color: #3e999f;">" + name + "</span>-cpu_use<span style="text-decoration: underline;">d</span><span style="color: #3e999f; text-decoration: underline;">" + "</span><span style="text-decoration: underline;">/gauge-</span><span style="color: #3e999f; text-decoration: underline;">" + item.pm_id + "</span><span style="text-decoration: underline;">\</span><span style="color: #3e999f; text-decoration: underline;">" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #3e999f; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #3e999f; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.monit.cpu + </span><span style="color: #3e999f; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   process.stdout.write(<span style="color: #3e999f;">"PUTVAL \"" + hostname + "</span>/<span style="color: #3e999f;">" + name + "</span>-restart<span style="text-decoration: underline;">_time</span><span style="color: #3e999f; text-decoration: underline;">" + "</span><span style="text-decoration: underline;">/gauge-</span><span style="color: #3e999f; text-decoration: underline;">" + item.pm_id + "</span><span style="text-decoration: underline;">\</span><span style="color: #3e999f; text-decoration: underline;">" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #3e999f; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #3e999f; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.pm2_env.restart_time + </span><span style="color: #3e999f; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   process.stdout.write(<span style="color: #3e999f;">"PUTVAL \"" + hostname + "</span>/<span style="color: #3e999f;">" + name + "</span>-unstabl<span style="text-decoration: underline;">e_restarts</span><span style="color: #3e999f; text-decoration: underline;">" + "</span><span style="text-decoration: underline;">/gauge-</span><span style="color: #3e999f; text-decoration: underline;">" + item.pm_id + "</span><span style="text-decoration: underline;">\</span><span style="color: #3e999f; text-decoration: underline;">" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #3e999f; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #3e999f; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.pm2_env.unstable_restarts + </span><span style="color: #3e999f; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   });
 
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   setTimeout(collect, interval*1000);
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   });
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   setTimeout(collect, interval*1000);
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   });
 }
 
 collect();
@@ -170,24 +312,24 @@ pm2 是使用 root 帐号运行的，collectd exec 插件不允许以 root 权�
 </p>
 <div class="org-src-container">
 
-<pre class="src src-c"><span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;stdio.h&gt;</span>
-<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;sys/types.h&gt;</span>
-<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;sys/stat.h&gt;</span>
-<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;sys/wait.h&gt;</span>
-<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;unistd.h&gt;</span>
-<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;stdlib.h&gt;</span>
-<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;signal.h&gt;</span>
-<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;string.h&gt;</span>
+<pre class="src src-c"><span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;stdio.h&gt;</span>
+<span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;sys/types.h&gt;</span>
+<span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;sys/stat.h&gt;</span>
+<span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;sys/wait.h&gt;</span>
+<span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;unistd.h&gt;</span>
+<span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;stdlib.h&gt;</span>
+<span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;signal.h&gt;</span>
+<span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;string.h&gt;</span>
 
 
-<span style="color: #81a2be;">int</span> <span style="color: #de935f;">main</span>(<span style="color: #81a2be;">int</span> <span style="color: #f0c674;">argc</span>, <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">argv</span>[]) {
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (setuid(0) == -1 || setgid(0) == -1) {
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   perror(<span style="color: #8abeb7;">"setuid or setgid to root user error"</span>);
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   fprintf(stderr, <span style="color: #8abeb7;">"\npermit setuid and setgid to root user: \n\tchown root</span><span style="color: #8abeb7; text-decoration: underline;">:root %s\n\tchmod 4755 %s\n"</span><span style="text-decoration: underline;">, argv[0], argv[0]);</span>
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> EXIT_FAILURE;
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   }
+<span style="color: #4271ae;">int</span> <span style="color: #f5871f;">main</span>(<span style="color: #4271ae;">int</span> <span style="color: #eab700;">argc</span>, <span style="color: #4271ae;">char</span>* <span style="color: #eab700;">argv</span>[]) {
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span> (setuid(0) == -1 || setgid(0) == -1) {
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   perror(<span style="color: #3e999f;">"setuid or setgid to root user error"</span>);
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   fprintf(stderr, <span style="color: #3e999f;">"\npermit setuid and setgid to root user: \n\tchown root</span><span style="color: #3e999f; text-decoration: underline;">:root %s\n\tchmod 4755 %s\n"</span><span style="text-decoration: underline;">, argv[0], argv[0]);</span>
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> EXIT_FAILURE;
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
 
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> system(<span style="color: #8abeb7;">"/bin/bash -c 'export PM2_HOME=${PM2_HOME:-~root/.pm2}; node /</span><span style="color: #8abeb7; text-decoration: underline;">usr/local/bin/collectd-pm2.js'"</span><span style="text-decoration: underline;">);</span>
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> system(<span style="color: #3e999f;">"/bin/bash -c 'export PM2_HOME=${PM2_HOME:-~root/.pm2}; node /</span><span style="color: #3e999f; text-decoration: underline;">usr/local/bin/collectd-pm2.js'"</span><span style="text-decoration: underline;">);</span>
 }
 </pre>
 </div>
@@ -354,12 +496,12 @@ lrwxrwxrwx 1 tangxinfa tangxinfa 0 3月   2 14:00 /proc/22387/exe -&gt; /usr/bin
 </p>
 <div class="org-src-container">
 
-<pre class="src src-js"><span style="color: #b5bd68;">return</span> fork(cluster.settings.exec, cluster.settings.args, {
-<span style="color: #c5c8c6; background-color: #373b41;"> </span> env: workerEnv,
-<span style="color: #c5c8c6; background-color: #373b41;"> </span> silent: cluster.settings.silent,
-<span style="color: #c5c8c6; background-color: #373b41;"> </span> execArgv: execArgv,
-<span style="color: #c5c8c6; background-color: #373b41;"> </span> gid: cluster.settings.gid,
-<span style="color: #c5c8c6; background-color: #373b41;"> </span> uid: cluster.settings.uid
+<pre class="src src-js"><span style="color: #718c00;">return</span> fork(cluster.settings.exec, cluster.settings.args, {
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span> env: workerEnv,
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span> silent: cluster.settings.silent,
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span> execArgv: execArgv,
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span> gid: cluster.settings.gid,
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span> uid: cluster.settings.uid
 });
 </pre>
 </div>
@@ -546,11 +688,11 @@ pm2 delete app2
 
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #969896; font-style: italic;"># </span><span style="color: #969896; font-style: italic;">&#28165;&#31354;&#36827;&#31243;&#24182;&#36864;&#20986; pm2&#65292;&#22238;&#21040;&#24178;&#20928;&#30340;&#31995;&#32479;&#29366;&#24577;</span>
+<pre class="src src-sh"><span style="color: #8e908c; font-style: italic;"># </span><span style="color: #8e908c; font-style: italic;">&#28165;&#31354;&#36827;&#31243;&#24182;&#36864;&#20986; pm2&#65292;&#22238;&#21040;&#24178;&#20928;&#30340;&#31995;&#32479;&#29366;&#24577;</span>
 sudo systemctl stop pm2
 ps aux | grep node
 
-<span style="color: #969896; font-style: italic;"># </span><span style="color: #969896; font-style: italic;">&#21551;&#21160; pm2 &#26381;&#21153;&#65292;&#39564;&#35777;&#19968;&#19979;&#24212;&#29992;&#26159;&#21542;&#27491;&#24120;&#21551;&#21160;</span>
+<span style="color: #8e908c; font-style: italic;"># </span><span style="color: #8e908c; font-style: italic;">&#21551;&#21160; pm2 &#26381;&#21153;&#65292;&#39564;&#35777;&#19968;&#19979;&#24212;&#29992;&#26159;&#21542;&#27491;&#24120;&#21551;&#21160;</span>
 sudo systemctl start pm2
 pm2 list
 </pre>
@@ -661,7 +803,7 @@ pm2 本身就是一套用户全局的进程管理工具，使用全局的 node.j
 </p>
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/</span><span style="color: #b5bd68;">bash</span>
+<pre class="src src-sh"><span style="color: #8e908c; font-style: italic;">#</span><span style="color: #8e908c; font-style: italic;">!/bin/</span><span style="color: #718c00;">bash</span>
 
 /usr/local/node-v5.0.0/bin/node ./dump.js
 </pre>
@@ -678,7 +820,7 @@ pm2 本身就是一套用户全局的进程管理工具，使用全局的 node.j
 
 <pre class="src src-js">#!/usr/local/node-v5.0.0/bin/node
 
-<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">fs</span> = require(<span style="color: #8abeb7;">'fs'</span>);
+<span style="color: #718c00;">var</span> <span style="color: #eab700;">fs</span> = require(<span style="color: #3e999f;">'fs'</span>);
 ...
 </pre>
 </div>
@@ -926,8 +1068,8 @@ Error: Cannot find module '../encodings'
 
 <div class="org-src-container">
 
-<pre class="src src-js"><span style="color: #b5bd68;">if</span> (!iconv.encodings)
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   iconv.encodings = require(<span style="color: #8abeb7;">"../encodings"</span>); <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">Lazy load all encoding definit</span><span style="color: #969896; font-style: italic; text-decoration: underline;">ions.</span>
+<pre class="src src-js"><span style="color: #718c00;">if</span> (!iconv.encodings)
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   iconv.encodings = require(<span style="color: #3e999f;">"../encodings"</span>); <span style="color: #8e908c; font-style: italic;">// </span><span style="color: #8e908c; font-style: italic;">Lazy load all encoding definit</span><span style="color: #8e908c; font-style: italic; text-decoration: underline;">ions.</span>
 </pre>
 </div>
 
@@ -1158,25 +1300,25 @@ node.js下最常用的后台服务监护工具有：<a href="https://github.com/
 </p>
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/</span><span style="color: #b5bd68;">bash</span>
+<pre class="src src-sh"><span style="color: #8e908c; font-style: italic;">#</span><span style="color: #8e908c; font-style: italic;">!/bin/</span><span style="color: #718c00;">bash</span>
 
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">PATH</span>=$<span style="color: #f0c674;">PATH</span>:<span style="color: #b294bb;">`pwd`</span>/node/bin:<span style="color: #b294bb;">`pwd`</span>/../node/bin:<span style="color: #b294bb;">`pwd`</span>/node_modules/forever/bi<span style="text-decoration: underline;">n:/usr/local/node/bin</span>
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">NODE_ENV</span>=${<span style="color: #f0c674;">NODE_ENV</span>:-production}
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">NODE_CONFIG_DIR</span>=<span style="color: #b294bb;">`pwd`</span>/config
+<span style="color: #8959a8;">export</span> <span style="color: #eab700;">PATH</span>=$<span style="color: #eab700;">PATH</span>:<span style="color: #8959a8;">`pwd`</span>/node/bin:<span style="color: #8959a8;">`pwd`</span>/../node/bin:<span style="color: #8959a8;">`pwd`</span>/node_modules/forever/bi<span style="text-decoration: underline;">n:/usr/local/node/bin</span>
+<span style="color: #8959a8;">export</span> <span style="color: #eab700;">NODE_ENV</span>=${<span style="color: #eab700;">NODE_ENV</span>:-production}
+<span style="color: #8959a8;">export</span> <span style="color: #eab700;">NODE_CONFIG_DIR</span>=<span style="color: #8959a8;">`pwd`</span>/config
 
-<span style="color: #f0c674;">SCRIPT</span>=<span style="color: #b294bb;">`pwd`</span>/src/index.js
-<span style="color: #f0c674;">LOGFILE</span>=<span style="color: #b294bb;">`pwd`</span>/run.log
+<span style="color: #eab700;">SCRIPT</span>=<span style="color: #8959a8;">`pwd`</span>/src/index.js
+<span style="color: #eab700;">LOGFILE</span>=<span style="color: #8959a8;">`pwd`</span>/run.log
 
-<span style="color: #f0c674;">running</span>=<span style="color: #b294bb;">`forever list | grep "$SCRIPT" | grep -v grep | wc -l`</span>
+<span style="color: #eab700;">running</span>=<span style="color: #8959a8;">`forever list | grep "$SCRIPT" | grep -v grep | wc -l`</span>
 
-<span style="color: #b5bd68;">if</span> [ $<span style="color: #f0c674;">running</span> -lt 1 ]; <span style="color: #b5bd68;">then</span>
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   forever start --spinSleepTime=10000 --killSignal=SIGINT --pidFile=<span style="color: #b294bb;">`pwd`</span>/run.<span style="text-decoration: underline;">pid -l $</span><span style="color: #f0c674; text-decoration: underline;">LOGFILE</span><span style="text-decoration: underline;"> -a -w --watchDirectory=</span><span style="color: #b294bb; text-decoration: underline;">`pwd`</span><span style="text-decoration: underline;">/src --watchIgnore=</span><span style="color: #8abeb7; text-decoration: underline;">".svn/*"</span><span style="text-decoration: underline;"> </span><span style="color: #8abeb7; text-decoration: underline;">"$SCRIPT"</span>
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b294bb;">echo</span> -e <span style="color: #8abeb7;">"\nRunning."</span>
-<span style="color: #b5bd68;">else</span>
-<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b294bb;">echo</span> -e <span style="color: #8abeb7;">"\nAlready running."</span>
-<span style="color: #b5bd68;">fi</span>
+<span style="color: #718c00;">if</span> [ $<span style="color: #eab700;">running</span> -lt 1 ]; <span style="color: #718c00;">then</span>
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   forever start --spinSleepTime=10000 --killSignal=SIGINT --pidFile=<span style="color: #8959a8;">`pwd`</span>/run.<span style="text-decoration: underline;">pid -l $</span><span style="color: #eab700; text-decoration: underline;">LOGFILE</span><span style="text-decoration: underline;"> -a -w --watchDirectory=</span><span style="color: #8959a8; text-decoration: underline;">`pwd`</span><span style="text-decoration: underline;">/src --watchIgnore=</span><span style="color: #3e999f; text-decoration: underline;">".svn/*"</span><span style="text-decoration: underline;"> </span><span style="color: #3e999f; text-decoration: underline;">"$SCRIPT"</span>
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8959a8;">echo</span> -e <span style="color: #3e999f;">"\nRunning."</span>
+<span style="color: #718c00;">else</span>
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8959a8;">echo</span> -e <span style="color: #3e999f;">"\nAlready running."</span>
+<span style="color: #718c00;">fi</span>
 
-forever list | grep <span style="color: #8abeb7;">"$SCRIPT"</span>
+forever list | grep <span style="color: #3e999f;">"$SCRIPT"</span>
 </pre>
 </div>
 
@@ -1186,13 +1328,13 @@ forever list | grep <span style="color: #8abeb7;">"$SCRIPT"</span>
 </p>
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/</span><span style="color: #b5bd68;">bash</span>
+<pre class="src src-sh"><span style="color: #8e908c; font-style: italic;">#</span><span style="color: #8e908c; font-style: italic;">!/bin/</span><span style="color: #718c00;">bash</span>
 
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">PATH</span>=$<span style="color: #f0c674;">PATH</span>:<span style="color: #b294bb;">`pwd`</span>/node/bin:<span style="color: #b294bb;">`pwd`</span>/../node/bin:<span style="color: #b294bb;">`pwd`</span>/node_modules/forever/bi<span style="text-decoration: underline;">n:/usr/local/node/bin</span>
+<span style="color: #8959a8;">export</span> <span style="color: #eab700;">PATH</span>=$<span style="color: #eab700;">PATH</span>:<span style="color: #8959a8;">`pwd`</span>/node/bin:<span style="color: #8959a8;">`pwd`</span>/../node/bin:<span style="color: #8959a8;">`pwd`</span>/node_modules/forever/bi<span style="text-decoration: underline;">n:/usr/local/node/bin</span>
 
-<span style="color: #f0c674;">SCRIPT</span>=<span style="color: #b294bb;">`pwd`</span>/src/index.js
+<span style="color: #eab700;">SCRIPT</span>=<span style="color: #8959a8;">`pwd`</span>/src/index.js
 
-forever stop <span style="color: #8abeb7;">"$SCRIPT"</span>
+forever stop <span style="color: #3e999f;">"$SCRIPT"</span>
 </pre>
 </div>
 
@@ -1202,13 +1344,13 @@ forever stop <span style="color: #8abeb7;">"$SCRIPT"</span>
 </p>
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/</span><span style="color: #b5bd68;">bash</span>
+<pre class="src src-sh"><span style="color: #8e908c; font-style: italic;">#</span><span style="color: #8e908c; font-style: italic;">!/bin/</span><span style="color: #718c00;">bash</span>
 
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">PATH</span>=$<span style="color: #f0c674;">PATH</span>:<span style="color: #b294bb;">`pwd`</span>/node/bin:<span style="color: #b294bb;">`pwd`</span>/../node/bin:<span style="color: #b294bb;">`pwd`</span>/node_modules/forever/bi<span style="text-decoration: underline;">n:/usr/local/node/bin</span>
+<span style="color: #8959a8;">export</span> <span style="color: #eab700;">PATH</span>=$<span style="color: #eab700;">PATH</span>:<span style="color: #8959a8;">`pwd`</span>/node/bin:<span style="color: #8959a8;">`pwd`</span>/../node/bin:<span style="color: #8959a8;">`pwd`</span>/node_modules/forever/bi<span style="text-decoration: underline;">n:/usr/local/node/bin</span>
 
-<span style="color: #f0c674;">SCRIPT</span>=<span style="color: #b294bb;">`pwd`</span>/src/index.js
+<span style="color: #eab700;">SCRIPT</span>=<span style="color: #8959a8;">`pwd`</span>/src/index.js
 
-forever restart <span style="color: #8abeb7;">"$SCRIPT"</span> || ./start.sh
+forever restart <span style="color: #3e999f;">"$SCRIPT"</span> || ./start.sh
 </pre>
 </div>
 </li>
@@ -1343,11 +1485,11 @@ forever未对启动的程序进行唯一性标识，导致程序可能意外启�
 </p>
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #b294bb;">export</span> <span style="color: #f0c674;">PATH</span>=<span style="color: #b294bb;">`pwd`</span>/node/bin:<span style="color: #b294bb;">`pwd`</span>/../node/bin:<span style="color: #b294bb;">`pwd`</span>/node_modules/pm2/bin:/usr/loc<span style="text-decoration: underline;">al/node/bin:$</span><span style="color: #f0c674; text-decoration: underline;">PATH</span>
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">NODE_ENV</span>=${<span style="color: #f0c674;">NODE_ENV</span>:-production}
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">NODE_CONFIG_DIR</span>=<span style="color: #b294bb;">`pwd`</span>/config
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">APP_NAME</span>=<span style="color: #8abeb7;">"upload-fiddle"</span>
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">APP_SCRIPT</span>=<span style="color: #b294bb;">`pwd`</span>/src/index.js
+<pre class="src src-sh"><span style="color: #8959a8;">export</span> <span style="color: #eab700;">PATH</span>=<span style="color: #8959a8;">`pwd`</span>/node/bin:<span style="color: #8959a8;">`pwd`</span>/../node/bin:<span style="color: #8959a8;">`pwd`</span>/node_modules/pm2/bin:/usr/loc<span style="text-decoration: underline;">al/node/bin:$</span><span style="color: #eab700; text-decoration: underline;">PATH</span>
+<span style="color: #8959a8;">export</span> <span style="color: #eab700;">NODE_ENV</span>=${<span style="color: #eab700;">NODE_ENV</span>:-production}
+<span style="color: #8959a8;">export</span> <span style="color: #eab700;">NODE_CONFIG_DIR</span>=<span style="color: #8959a8;">`pwd`</span>/config
+<span style="color: #8959a8;">export</span> <span style="color: #eab700;">APP_NAME</span>=<span style="color: #3e999f;">"upload-fiddle"</span>
+<span style="color: #8959a8;">export</span> <span style="color: #eab700;">APP_SCRIPT</span>=<span style="color: #8959a8;">`pwd`</span>/src/index.js
 </pre>
 </div>
 
@@ -1357,10 +1499,10 @@ forever未对启动的程序进行唯一性标识，导致程序可能意外启�
 </p>
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/</span><span style="color: #b5bd68;">bash</span>
+<pre class="src src-sh"><span style="color: #8e908c; font-style: italic;">#</span><span style="color: #8e908c; font-style: italic;">!/bin/</span><span style="color: #718c00;">bash</span>
 
-<span style="color: #b294bb;">source</span> .bashrc
-pm2 --node-args=<span style="color: #8abeb7;">"--harmony"</span> -n <span style="color: #8abeb7;">"$APP_NAME"</span> start <span style="color: #8abeb7;">"$APP_SCRIPT"</span> -i 0 --watch <span style="color: #8abeb7;">"`pw</span><span style="color: #8abeb7; text-decoration: underline;">d`/src/*.js"</span>
+<span style="color: #8959a8;">source</span> .bashrc
+pm2 --node-args=<span style="color: #3e999f;">"--harmony"</span> -n <span style="color: #3e999f;">"$APP_NAME"</span> start <span style="color: #3e999f;">"$APP_SCRIPT"</span> -i 0 --watch <span style="color: #3e999f;">"`pw</span><span style="color: #3e999f; text-decoration: underline;">d`/src/*.js"</span>
 </pre>
 </div>
 
@@ -1370,10 +1512,10 @@ pm2 --node-args=<span style="color: #8abeb7;">"--harmony"</span> -n <span style=
 </p>
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/</span><span style="color: #b5bd68;">bash</span>
+<pre class="src src-sh"><span style="color: #8e908c; font-style: italic;">#</span><span style="color: #8e908c; font-style: italic;">!/bin/</span><span style="color: #718c00;">bash</span>
 
-<span style="color: #b294bb;">source</span> .bashrc
-pm2 --node-args=<span style="color: #8abeb7;">"--harmony"</span> stop <span style="color: #8abeb7;">"$APP_NAME"</span>
+<span style="color: #8959a8;">source</span> .bashrc
+pm2 --node-args=<span style="color: #3e999f;">"--harmony"</span> stop <span style="color: #3e999f;">"$APP_NAME"</span>
 </pre>
 </div>
 
@@ -1383,10 +1525,10 @@ pm2 --node-args=<span style="color: #8abeb7;">"--harmony"</span> stop <span styl
 </p>
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/</span><span style="color: #b5bd68;">bash</span>
+<pre class="src src-sh"><span style="color: #8e908c; font-style: italic;">#</span><span style="color: #8e908c; font-style: italic;">!/bin/</span><span style="color: #718c00;">bash</span>
 
-<span style="color: #b294bb;">source</span> .bashrc
-pm2 --node-args=<span style="color: #8abeb7;">"--harmony"</span> restart <span style="color: #8abeb7;">"$APP_NAME"</span>
+<span style="color: #8959a8;">source</span> .bashrc
+pm2 --node-args=<span style="color: #3e999f;">"--harmony"</span> restart <span style="color: #3e999f;">"$APP_NAME"</span>
 </pre>
 </div>
 </li>

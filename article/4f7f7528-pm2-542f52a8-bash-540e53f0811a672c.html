@@ -2,7 +2,7 @@
 <html lang="zh-cn">
   <head>
     <meta charset="utf-8"/>
-    <title>CentOS 6.4 上编译安装 gcc 5.2.0 | 看看俺 – KanKanAn.com</title>
+    <title>使用 pm2 启动 bash 后台脚本 | 看看俺 – KanKanAn.com</title>
     <link rel="shortcut icon" href="/static/favicon.ico" />
     <link rel="stylesheet" type="text/less" href="/style/less/o-blog.less"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -44,7 +44,7 @@
 
       <div class="article">
         <header class="article-header">
-          <h1>CentOS 6.4 上编译安装 gcc 5.2.0</h1>
+          <h1>使用 pm2 启动 bash 后台脚本</h1>
       	<div class="qr-code">
       	  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="" alt="" id="qr-code" />
       	  <script>
@@ -55,114 +55,149 @@
       
         <div class="article-content">
           <p>
-node.js 4.x 的第三方扩展编译时要求 gcc 版本为 4.8，但是 CentOS 6.4 仓库里的版本为 4.4.7，
-在生产环境从第三方仓库里安装最新版 gcc 又不放心，还是自已从源代码编译安装吧。
+我们常常会使用 bash 写一些后台运行的守护进程，然后使用 crontab 实现开机启动并监控，
+也可以改为使用 pm2 来运行，功能更强大，更简单规范。
+</p>
+
+<p>
+使用 pm2 来管理后台进程仍然可以获得其大部分功能，如：
 </p>
 
 <ul class="org-ul">
-<li>下载 gcc 源代码
+<li>日志管理
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>监控
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>进程管理
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>开机启动
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>崩溃重启
+</li>
+</ul>
+
+
+<p>
+如下定义 process.json
+</p>
 
 <div class="org-src-container">
 
-<pre class="src src-sh">wget http://mirror.lzu.edu.cn/gnu/gcc/gcc-5.2.0/gcc-5.2.0.tar.bz2
-tar xjvf gcc-5.2.0.tar.bz2
-<span style="color: #8959a8;">cd</span> gcc-5.2.0
+<pre class="src src-json">{
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span> apps : [{
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   name      : <span style="color: #3e999f;">"run-log-analyze"</span>,
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   script    : <span style="color: #3e999f;">"./tools/run-log-analyze.sh"</span>,
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   env: {
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   },
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   merge_logs: <span style="color: #4271ae;">true</span>,
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   error_file: <span style="color: #3e999f;">"tools/run-log-analyze.log"</span>,
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   out_file: <span style="color: #3e999f;">"tools/run-log-analyze.log"</span>,
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   exec_mode: <span style="color: #3e999f;">"fork"</span>
+<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span> }]
+}
 </pre>
 </div>
 
 <p>
-官方的下载地址为 <a href="ftp://ftp.gnu.org/gnu/gcc/">ftp://ftp.gnu.org/gnu/gcc/</a> ，使用国内镜像 <a href="http://mirror.lzu.edu.cn/gnu/gcc">http://mirror.lzu.edu.cn/gnu/gcc</a> 快很多。
+run-log-analyze.sh 用于实时分析应用的日志
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">tail -f ./run.log | bunyan --strict -c <span style="color: #3e999f;">'this.msg == "file uploaded"'</span> -0 | json -<span style="text-decoration: underline;">ga file | ./tools/file-scan -o ./tools/file-scan-successed.log -e ./tools/file-scan-failed.log</span>
+</pre>
+</div>
+
+<p>
+上面的脚本不断读取 run.log，将上传的文件路径名提取出来，然后传给文件扫描程序（./tools/file-scan），扫描成功日志文件为 ./tools/file-scan-successed.log，扫描失败日志文件为 ./tools/file-scan-failed.log。
 </p>
 
 <p>
-gnu 中国的 <a href="https://www.gnu.org/prep/ftp.html">镜像列表</a>
+现在在尝试启动进程
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">pm2 start process.json
+</pre>
+</div>
+
+<p>
+查看进程运行状态
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">pm2 list
+</pre>
+</div>
+
+<p>
+然后尝试重启
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">pm2 restart process.json
+</pre>
+</div>
+
+<p>
+发现后台有两个 <code>file-scan</code> 及 <code>tail -f ./run.log</code> 进程，restart 没有将子进程杀死，不过父进程 /bin/bash 进程倒是杀死了。
+</p>
+
+<p>
+估计是 bash 使用 pm2 fork-mode 运行后，其终端被 detach 了，相当于是后台 daemon 进程，bash 进程死掉后， <code>tail -f ./run.log</code> 进程收不到 SIGHUP 信号也就没有跟着退出。
+</p>
+
+<p>
+可以利用 tail 命令的参数 <code>-pid</code> ，指定 bash 结束时中断 <code>tail -f</code> 命令
+</p>
+
+<p>
+<code>main tail</code>
 </p>
 <blockquote>
 <p>
-Asia
-</p>
-
-<p>
-China
-    <a href="http://mirror.hust.edu.cn/gnu/">http://mirror.hust.edu.cn/gnu/</a>
-    <a href="http://mirrors.ustc.edu.cn/gnu/">http://mirrors.ustc.edu.cn/gnu/</a>
-    <a href="ftp://mirrors.ustc.edu.cn/gnu/">ftp://mirrors.ustc.edu.cn/gnu/</a>
-    rsync://mirrors.ustc.edu.cn/gnu/
+&#x2013;pid=PID
+       with -f, terminate after process ID, PID dies  
 </p>
 </blockquote>
-</li>
-
-<li>安装依赖的包
-
-<div class="org-src-container">
-
-<pre class="src src-sh">yum install gmp-devel mpfr-devel libmpc-devel
-</pre>
-</div>
 
 <p>
-参考自 INSTALL 目录下的文档。
-</p>
-</li>
-
-<li>编译安装
-
-<div class="org-src-container">
-
-<pre class="src src-sh">./configure --prefix=/opt/gcc-5.2.0 --disable-multilib &amp;&amp;<span style="color: #3e999f;">\</span>
-make &amp;&amp;<span style="color: #3e999f;">\</span>
-make -k check &amp;&amp;<span style="color: #3e999f;">\</span>
-make install
-</pre>
-</div>
-
-<p>
-<code>--disable-multilib</code> 只编译 64 位。
-</p>
-
-<p>
-编译时间会耗时几个小时，这段时间最好去干点别的。
-</p>
-</li>
-
-<li>切换gcc版本
-
-<div class="org-src-container">
-
-<pre class="src src-sh"><span style="color: #8959a8;">export</span> <span style="color: #eab700;">PATH</span>=/opt/gcc-5.2.0/bin:$<span style="color: #eab700;">PATH</span>
-</pre>
-</div>
-
-<p>
-或
+将 run-log-analyze.sh 改写如下
 </p>
 
 <div class="org-src-container">
 
-<pre class="src src-sh"><span style="color: #8959a8;">export</span> <span style="color: #eab700;">CC</span>=/opt/gcc-5.2.0/bin/gcc
-<span style="color: #8959a8;">export</span> <span style="color: #eab700;">CPP</span>=/opt/gcc-5.2.0/bin/cpp
-<span style="color: #8959a8;">export</span> <span style="color: #eab700;">CXX</span>=/opt/gcc-5.2.0/bin/c++
+<pre class="src src-sh">tail -f --pid=$<span style="color: #eab700;">$</span> ./run.log | bunyan --strict -c <span style="color: #3e999f;">'this.msg == "file uploaded"'</span> -0<span style="text-decoration: underline;"> | json -ga file | ./tools/file-scan -o ./tools/file-scan-successed.log -e ./tools/file-scan-failed.log</span>
 </pre>
 </div>
-</li>
-
-<li>参考
-
-<p>
-<a href="http://superuser.com/questions/381160/how-to-install-gcc-4-7-x-4-8-x-on-centos">yum - How to Install gcc 4.7.x/4.8.x on CentOS - Super User</a>
-</p>
-
-<p>
-<a href="https://wiki.mikejung.biz/Gcc_CentOS">Gcc CentOS - How to compile gcc-4.8.2 on CentOS 6.6</a></p>
-</li>
-</ul>
 
         </div>
         <br />
         <footer class="article-footer">
           <a class="tag" href="/tag/linux/0.html"><i class="icon-tag icon-white"></i> linux</a>
+          <a class="tag" href="/tag/node/0.html"><i class="icon-tag icon-white"></i> node</a>
+          <a class="tag" href="/tag/pm2/0.html"><i class="icon-tag icon-white"></i> pm2</a>
           <span class="muted">
-            <i class="icon-time icon-white"></i> <time datetime="2016-01-22T21:12:00+0800">2016年1月22日 21时</time>
+            <i class="icon-time icon-white"></i> <time datetime="2016-09-02T10:28:00+0800">2016年9月2日 10时</time>
           </span>
         </footer>
       </div>
