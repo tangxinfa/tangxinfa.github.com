@@ -60,15 +60,15 @@ system(3) 常用于执行 shell 命令
 
 <div class="org-src-container">
 
-<pre class="src src-c"><span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;stdlib.h&gt;</span>
-<span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;stdio.h&gt;</span>
+<pre class="src src-c"><span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;stdlib.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;stdio.h&gt;</span>
 
 
-<span style="color: #4271ae;">int</span> <span style="color: #f5871f;">main</span>(<span style="color: #4271ae;">int</span> <span style="color: #eab700;">argc</span>, <span style="color: #4271ae;">char</span> *<span style="color: #eab700;">argv</span>[])
+<span style="color: #81a2be;">int</span> <span style="color: #de935f;">main</span>(<span style="color: #81a2be;">int</span> <span style="color: #f0c674;">argc</span>, <span style="color: #81a2be;">char</span> *<span style="color: #f0c674;">argv</span>[])
 {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4271ae;">int</span> <span style="color: #eab700;">ret</span> = system(<span style="color: #3e999f;">"ls -la"</span>);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   printf(<span style="color: #3e999f;">"ret: %d\n"</span>, ret);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> ret;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">ret</span> = system(<span style="color: #8abeb7;">"ls -la"</span>);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   printf(<span style="color: #8abeb7;">"ret: %d\n"</span>, ret);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> ret;
 }
 </pre>
 </div>
@@ -98,20 +98,20 @@ system(3) 在执行的命令结束时会发出 SIGCHLD 信号，收到 SIGCHLD �
 <li>设置当前线程的 SIGCHLD 信号为阻塞（SIG_BLOCK）状态
 </li>
 
-<li>fork
+<li>fork(3)
 
 <ul class="org-ul">
 <li>子进程
 
 <p>
-恢复 SIGCHLD 信号处理，然后 execl()。
+恢复 SIGCHLD 信号处理，然后 execl(3)。
 </p>
 </li>
 
 <li>父进程
 
 <p>
-等待子进程（waitpid()）结束，恢复当前线程的 SIGCHLD 信号处理。
+等待子进程（waitpid(3)）结束，恢复当前线程的 SIGCHLD 信号处理。
 </p>
 </li>
 </ul>
@@ -124,7 +124,7 @@ system(3) 在执行的命令结束时会发出 SIGCHLD 信号，收到 SIGCHLD �
 
 
 <div id="outline-container-sec-1" class="outline-2">
-<h2 id="sec-1">在整个应用中忽略 SIGCHLD 信号会有负作用</h2>
+<h2 id="sec-1">在整个应用中忽略 SIGCHLD 信号会导致获取不到子进程退出码</h2>
 <div class="outline-text-2" id="text-1">
 <p>
 在应用程序最开始的时候（main 函数），添加以下语句
@@ -137,15 +137,15 @@ system(3) 在执行的命令结束时会发出 SIGCHLD 信号，收到 SIGCHLD �
 </div>
 
 <p>
-由于子线程会继续主线程的信号处理，这种方式应该是一劳永逸的。
+子线程会继承主线程的信号处理，也就不会导致系统调用被中断。
 </p>
 
 <p>
-然后，它会导致 system(3) 总是返回 -1，errno 为 ECHILD（10: No child processes），无法判断命令执行是否成功。
+然而，它会导致 system(3) 总是返回 -1，errno 为 ECHILD（10: No child processes），无法判断命令执行是否成功。
 </p>
 
 <p>
-<a href="http://stackoverflow.com/a/25039605/802708">c - system() function while SIGCHLD is ignored - Stack Overflow</a> 或 man wait(2) 说明了原因：
+<a href="http://stackoverflow.com/a/25039605/802708">c - system() function while SIGCHLD is ignored - Stack Overflow</a> 或 man wait(2)
 </p>
 <blockquote>
 <p>
@@ -156,11 +156,43 @@ POSIX.1-2001 指明，如果将 SIGCHLD 置为 SIG_IGN，或者为 SIGCHLD 指�
 POSIX.1-2001 specifies that if the disposition of SIGCHLD is set to SIG_IGN or the SA_NOCLDWAIT flag is set for SIGCHLD (see sigaction(2)), then children that terminate do not become zombies and a call to wait() or waitpid() will block until all children have terminated, and then fail with errno set to ECHILD.
 </p>
 </blockquote>
+
+<p>
+<a href="https://www.win.tue.nl/~aeb/linux/lk/lk-5.html">The Linux kernel: Signals</a>
+</p>
+<blockquote>
+<p>
+If the parent is not interested it can say so explicitly (before the fork) using
+</p>
+
+<p>
+signal(SIGCHLD, SIG_IGN);
+</p>
+
+<p>
+or
+</p>
+
+<p>
+struct sigaction act;
+act.sa_handler = something;
+act.sa_flags = SA_NOCLDWAIT;
+sigaction (SIGCHLD, &amp;act, NULL);
+</p>
+
+<p>
+and as a result it will not hear about deceased children, and children will not be transformed into zombies. Note that the default action for SIGCHLD is to ignore this signal; nevertheless signal(SIGCHLD, SIG_IGN) has effect, namely that of preventing the transformation of children into zombies. In this situation, if the parent does a wait(), this call will return only when all children have exited, and then returns -1 with errno set to ECHILD.
+</p>
+</blockquote>
+
+<p>
+system(3) 调用 waitpid(3) 时，子进程已经被系统自动回收，消失得无影无踪，也就取不到子进程的返回值。
+</p>
 </div>
 </div>
 
 <div id="outline-container-sec-2" class="outline-2">
-<h2 id="sec-2">在整个应用中阻塞 SIGCHLD 信号</h2>
+<h2 id="sec-2">在整个应用中阻塞 SIGCHLD 信号可能导致孙进程僵尸</h2>
 <div class="outline-text-2" id="text-2">
 <p>
 注意 signal(3) 无法阻塞一个信号，只支持忽略（SIG_IGN）和恢复缺省处理（SIG_DFL）。
@@ -171,29 +203,104 @@ POSIX.1-2001 specifies that if the disposition of SIGCHLD is set to SIG_IGN or t
 </p>
 
 <p>
-在应用程序最开始的时候，添加以下语句
+主线程在创建子线程之前阻塞 SIGCHLD 信号
 </p>
 
 <div class="org-src-container">
 
-<pre class="src src-c"><span style="color: #4271ae;">sigset_t</span> <span style="color: #eab700;">set</span>;
+<pre class="src src-c"><span style="color: #81a2be;">sigset_t</span> <span style="color: #f0c674;">set</span>;
 sigemptyset(&amp;set);
 sigaddset(&amp;set, SIGCHLD);
-pthread_sigmask(SIG_BLOCK, &amp;set, <span style="color: #4271ae;">NULL</span>);
+pthread_sigmask(SIG_BLOCK, &amp;set, <span style="color: #81a2be;">NULL</span>);
 </pre>
 </div>
 
 <p>
-由于子线程会继续主线程的信号处理，这种方式应该是一劳永逸的。
+通过继承主线程的信号处理，子线程调用 system(3) 创建子进程时能够保证其中的 waitpid(3) 调用成功获取子进程的退出码。
+</p>
+
+<p>
+man signal(7)
+</p>
+<blockquote>
+<p>
+通过 fork(2) 创建的子进程继承父进程的信号掩码，该信号掩码即使在 execve(2) 后仍得以保留。
+</p>
+
+<p>
+A child created via fork(2) inherits a copy of its parent's signal mask; the signal mask is preserved across execve(2).
+</p>
+</blockquote>
+
+<p>
+system(3) 在替换进程为新程序（execl(3)）之前，会恢复为默认的信号掩码（SIGCHLD 处于阻塞状态），可能干扰子进程运行，
+如通过 system(3) 启动了 sshd，有用户尝试登录，sshd 会再 fork(3) 一个孙进程，然后在 SIGCHLD 信号处理函数中通过 waitpid(3) 回收孙进程，但是从父进程（调用 system(3)的进程）继承而来信号掩码阻塞了 SIGCHLD 信号，导致孙进程结束后成为僵尸进程。
+</p>
+
+<p>
+相关 BUG 报告
+<a href="https://bugzilla.mindrot.org/show_bug.cgi?id=271">271 – SSHD should unblock SIGCHLD - POSIX signal blocks survive exec()</a>
+</p>
+
+<p>
+在调用 system(3) 前取消对 SIGCHLD 的阻塞，调用返回后恢复对 SIGCHLD 的阻塞，可以解决这个问题
+</p>
+<div class="org-src-container">
+
+<pre class="src src-C"><span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">&#23553;&#35013; system(3) &#65292;&#19968;&#26041;&#38754;&#36991;&#20813;&#20013;&#26029;&#31995;&#32479;&#35843;&#29992;&#65292;&#21478;&#19968;&#26041;&#38754;&#36991;&#20813;&#20986;&#29616;&#20725;&#23608;&#23385;&#36827;&#31243;.</span>
+<span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">&#35831;&#35760;&#24471;&#20840;&#23616;&#22581;&#22622; SIGCHLD &#20449;&#21495;.</span>
+<span style="color: #81a2be;">int</span> <span style="color: #de935f;">system2</span>(<span style="color: #b5bd68;">const</span> <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">command</span>)
+{
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">&#35843;&#29992; system(3) &#21069;&#21462;&#28040;&#23545; SIGCHLD &#30340;&#38459;&#22622;</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">sigset_t</span> <span style="color: #f0c674;">set</span>;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   sigemptyset(&amp;set);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   sigaddset(&amp;set, SIGCHLD);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   pthread_sigmask(SIG_UNBLOCK, &amp;set, <span style="color: #81a2be;">NULL</span>);
+
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">code</span> = system(command);
+
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">&#35843;&#29992; system(3) &#21518;&#24674;&#22797;&#23545; SIGCHLD &#30340;&#38459;&#22622;</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   sigemptyset(&amp;set);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   sigaddset(&amp;set, SIGCHLD);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   pthread_sigmask(SIG_BLOCK, &amp;set, <span style="color: #81a2be;">NULL</span>);
+
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> code;
+}
+</pre>
+</div>
+
+<p>
+考虑到还有 popen(3)/pclose(3) 也可以用来创建子进程，所以还有很多替换工作。
 </p>
 </div>
 </div>
 
 <div id="outline-container-sec-3" class="outline-2">
-<h2 id="sec-3">参考</h2>
+<h2 id="sec-3">折衷方案</h2>
 <div class="outline-text-2" id="text-3">
+<p>
+放任 SIGCHLD 不管会任由它将其它线程的系统调用中断，而堵塞它也可能因为僵尸孙进程而影响系统的稳定性，所以只能选择忽略它，当需要通过 system(3) 的返回值确定命令执行是否成功时，可以改用 popen(3)/pclose(3) 通过读取命令的标准输出进行判断。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4">参考</h2>
+<div class="outline-text-2" id="text-4">
 <ul class="org-ul">
 <li><a href="http://www.linuxprogrammingblog.com/all-about-linux-signals?page=show">All about Linux signals | Linux Programming Blog</a>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><a href="https://www.win.tue.nl/~aeb/linux/lk/lk-5.html">The Linux kernel: Signals</a>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><a href="http://www.oschina.net/question/54100_30293">Linux下调用system()函数导致的问题 - 开源中国社区</a>
 </li>
 </ul>
 </div>

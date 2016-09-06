@@ -14056,20 +14056,20 @@ class RedisShard {
    
   - 设置当前线程的 SIGCHLD 信号为阻塞（SIG_BLOCK）状态
 
-  - fork
+  - fork(3)
 
     + 子进程
 
-      恢复 SIGCHLD 信号处理，然后 execl()。
+      恢复 SIGCHLD 信号处理，然后 execl(3)。
 
     + 父进程
 
-      等待子进程（waitpid()）结束，恢复当前线程的 SIGCHLD 信号处理。
+      等待子进程（waitpid(3)）结束，恢复当前线程的 SIGCHLD 信号处理。
        
   子进程结束时操作系统会给父进程发送 SIGCHLD 信号，父进程会遍历（通常从主线程找起）一个不阻塞 SIGCHLD 的线程进行处理。
 
 
-** 在整个应用中忽略 SIGCHLD 信号会有负作用
+** 在整个应用中忽略 SIGCHLD 信号会导致获取不到子进程退出码
 
    在应用程序最开始的时候（main 函数），添加以下语句
   
@@ -14077,24 +14077,42 @@ class RedisShard {
      signal(SIGCHLD, SIG_IGN);
    #+end_src
     
-   由于子线程会继续主线程的信号处理，这种方式应该是一劳永逸的。
+   子线程会继承主线程的信号处理，也就不会导致系统调用被中断。
 
-   然后，它会导致 system(3) 总是返回 -1，errno 为 ECHILD（10: No child processes），无法判断命令执行是否成功。
+   然而，它会导致 system(3) 总是返回 -1，errno 为 ECHILD（10: No child processes），无法判断命令执行是否成功。
   
-   [[http://stackoverflow.com/a/25039605/802708][c - system() function while SIGCHLD is ignored - Stack Overflow]] 或 man wait(2) 说明了原因：
+   [[http://stackoverflow.com/a/25039605/802708][c - system() function while SIGCHLD is ignored - Stack Overflow]] 或 man wait(2)
    #+begin_quote
    POSIX.1-2001 指明，如果将 SIGCHLD 置为 SIG_IGN，或者为 SIGCHLD 指定 SA_NOCLDWAIT 标志（见 sigaction(2)），子进程结束后将不会成为僵尸进程，调用 wait() 或 waitpid() 将阻塞到所有子进程结束后返回错误，errno 设置为 ECHILD。
 
    POSIX.1-2001 specifies that if the disposition of SIGCHLD is set to SIG_IGN or the SA_NOCLDWAIT flag is set for SIGCHLD (see sigaction(2)), then children that terminate do not become zombies and a call to wait() or waitpid() will block until all children have terminated, and then fail with errno set to ECHILD.
    #+end_quote
 
-** 在整个应用中阻塞 SIGCHLD 信号
+   [[https://www.win.tue.nl/~aeb/linux/lk/lk-5.html][The Linux kernel: Signals]]
+   #+begin_quote
+   If the parent is not interested it can say so explicitly (before the fork) using
+
+    signal(SIGCHLD, SIG_IGN);
+
+   or
+
+    struct sigaction act;
+    act.sa_handler = something;
+    act.sa_flags = SA_NOCLDWAIT;
+    sigaction (SIGCHLD, &act, NULL);
+
+and as a result it will not hear about deceased children, and children will not be transformed into zombies. Note that the default action for SIGCHLD is to ignore this signal; nevertheless signal(SIGCHLD, SIG_IGN) has effect, namely that of preventing the transformation of children into zombies. In this situation, if the parent does a wait(), this call will return only when all children have exited, and then returns -1 with errno set to ECHILD.
+   #+end_quote
+
+   system(3) 调用 waitpid(3) 时，子进程已经被系统自动回收，消失得无影无踪，也就取不到子进程的返回值。
+
+** 在整个应用中阻塞 SIGCHLD 信号可能导致孙进程僵尸
 
    注意 signal(3) 无法阻塞一个信号，只支持忽略（SIG_IGN）和恢复缺省处理（SIG_DFL）。
 
    阻塞（ SIG_BLOCK）和取消阻塞（SIG_UNBLOCK）用于信号掩码（Signal Mask），如 sigprocmask(3) ，多线程下请使用 pthread_sigmask(3)。
 
-   在应用程序最开始的时候，添加以下语句
+   主线程在创建子线程之前阻塞 SIGCHLD 信号
   
    #+begin_src c
      sigset_t set;
@@ -14103,11 +14121,60 @@ class RedisShard {
      pthread_sigmask(SIG_BLOCK, &set, NULL);
    #+end_src
   
-   由于子线程会继续主线程的信号处理，这种方式应该是一劳永逸的。
+   通过继承主线程的信号处理，子线程调用 system(3) 创建子进程时能够保证其中的 waitpid(3) 调用成功获取子进程的退出码。
+
+   man signal(7)
+   #+begin_quote
+   通过 fork(2) 创建的子进程继承父进程的信号掩码，该信号掩码即使在 execve(2) 后仍得以保留。
+
+   A child created via fork(2) inherits a copy of its parent's signal mask; the signal mask is preserved across execve(2).
+   #+end_quote
+
+   system(3) 在替换进程为新程序（execl(3)）之前，会恢复为默认的信号掩码（SIGCHLD 处于阻塞状态），可能干扰子进程运行，
+   如通过 system(3) 启动了 sshd，有用户尝试登录，sshd 会再 fork(3) 一个孙进程，然后在 SIGCHLD 信号处理函数中通过 waitpid(3) 回收孙进程，但是从父进程（调用 system(3)的进程）继承而来信号掩码阻塞了 SIGCHLD 信号，导致孙进程结束后成为僵尸进程。
+
+   相关 BUG 报告
+   [[https://bugzilla.mindrot.org/show_bug.cgi?id=271][271 – SSHD should unblock SIGCHLD - POSIX signal blocks survive exec()]]
+
+   在调用 system(3) 前取消对 SIGCHLD 的阻塞，调用返回后恢复对 SIGCHLD 的阻塞，可以解决这个问题
+   #+begin_src C
+     // 封装 system(3) ，一方面避免中断系统调用，另一方面避免出现僵尸孙进程.
+     // 请记得全局堵塞 SIGCHLD 信号.
+     int system2(const char* command)
+     {
+         // 调用 system(3) 前取消对 SIGCHLD 的阻塞
+         sigset_t set;
+         sigemptyset(&set);
+         sigaddset(&set, SIGCHLD);
+         pthread_sigmask(SIG_UNBLOCK, &set, NULL);
+
+         int code = system(command);
+
+         // 调用 system(3) 后恢复对 SIGCHLD 的阻塞
+         sigemptyset(&set);
+         sigaddset(&set, SIGCHLD);
+         pthread_sigmask(SIG_BLOCK, &set, NULL);
+
+         return code;
+     }
+   #+end_src
+
+   考虑到还有 popen(3)/pclose(3) 也可以用来创建子进程，所以还有很多替换工作。
+
+** 折衷方案
+
+   放任 SIGCHLD 不管会任由它将其它线程的系统调用中断，而堵塞它也可能因为僵尸孙进程而影响系统的稳定性，所以只能选择忽略它，当需要通过 system(3) 的返回值确定命令执行是否成功时，可以改用 popen(3)/pclose(3) 通过读取命令的标准输出进行判断。
 
 ** 参考
 
    - [[http://www.linuxprogrammingblog.com/all-about-linux-signals?page=show][All about Linux signals | Linux Programming Blog]]
+
+   
+   - [[https://www.win.tue.nl/~aeb/linux/lk/lk-5.html][The Linux kernel: Signals]]
+
+
+   - [[http://www.oschina.net/question/54100_30293][Linux下调用system()函数导致的问题 - 开源中国社区]]
+
 
 * TODO Redis 双机房部署                                         :redis:linux:
 
@@ -14696,7 +14763,7 @@ class RedisShard {
 
   可以利用 tail 命令的参数 =-pid= ，指定 bash 结束时中断 =tail -f= 命令
 
-  =main tail=
+  =man tail=
   #+begin_quote
        --pid=PID
               with -f, terminate after process ID, PID dies  

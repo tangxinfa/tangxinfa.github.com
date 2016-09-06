@@ -4,7 +4,7 @@
         <title>c - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/c.xml</link>
-        <lastBuildDate>Fri, 02 Sep 2016 02:33:53 GMT</lastBuildDate>
+        <lastBuildDate>Tue, 06 Sep 2016 09:11:36 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>c - 看看俺 – KanKanAn.com</title>
@@ -25,15 +25,15 @@ system(3) 常用于执行 shell 命令
 
 <div class="org-src-container">
 
-<pre class="src src-c"><span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;stdlib.h&gt;</span>
-<span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;stdio.h&gt;</span>
+<pre class="src src-c"><span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;stdlib.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;stdio.h&gt;</span>
 
 
-<span style="color: #4271ae;">int</span> <span style="color: #f5871f;">main</span>(<span style="color: #4271ae;">int</span> <span style="color: #eab700;">argc</span>, <span style="color: #4271ae;">char</span> *<span style="color: #eab700;">argv</span>[])
+<span style="color: #81a2be;">int</span> <span style="color: #de935f;">main</span>(<span style="color: #81a2be;">int</span> <span style="color: #f0c674;">argc</span>, <span style="color: #81a2be;">char</span> *<span style="color: #f0c674;">argv</span>[])
 {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4271ae;">int</span> <span style="color: #eab700;">ret</span> = system(<span style="color: #3e999f;">"ls -la"</span>);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   printf(<span style="color: #3e999f;">"ret: %d\n"</span>, ret);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> ret;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">ret</span> = system(<span style="color: #8abeb7;">"ls -la"</span>);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   printf(<span style="color: #8abeb7;">"ret: %d\n"</span>, ret);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> ret;
 }
 </pre>
 </div>
@@ -63,20 +63,20 @@ system(3) 在执行的命令结束时会发出 SIGCHLD 信号，收到 SIGCHLD �
 <li>设置当前线程的 SIGCHLD 信号为阻塞（SIG_BLOCK）状态
 </li>
 
-<li>fork
+<li>fork(3)
 
 <ul class="org-ul">
 <li>子进程
 
 <p>
-恢复 SIGCHLD 信号处理，然后 execl()。
+恢复 SIGCHLD 信号处理，然后 execl(3)。
 </p>
 </li>
 
 <li>父进程
 
 <p>
-等待子进程（waitpid()）结束，恢复当前线程的 SIGCHLD 信号处理。
+等待子进程（waitpid(3)）结束，恢复当前线程的 SIGCHLD 信号处理。
 </p>
 </li>
 </ul>
@@ -89,7 +89,7 @@ system(3) 在执行的命令结束时会发出 SIGCHLD 信号，收到 SIGCHLD �
 
 
 <div id="outline-container-sec-1" class="outline-2">
-<h2 id="sec-1">在整个应用中忽略 SIGCHLD 信号会有负作用</h2>
+<h2 id="sec-1">在整个应用中忽略 SIGCHLD 信号会导致获取不到子进程退出码</h2>
 <div class="outline-text-2" id="text-1">
 <p>
 在应用程序最开始的时候（main 函数），添加以下语句
@@ -102,15 +102,15 @@ system(3) 在执行的命令结束时会发出 SIGCHLD 信号，收到 SIGCHLD �
 </div>
 
 <p>
-由于子线程会继续主线程的信号处理，这种方式应该是一劳永逸的。
+子线程会继承主线程的信号处理，也就不会导致系统调用被中断。
 </p>
 
 <p>
-然后，它会导致 system(3) 总是返回 -1，errno 为 ECHILD（10: No child processes），无法判断命令执行是否成功。
+然而，它会导致 system(3) 总是返回 -1，errno 为 ECHILD（10: No child processes），无法判断命令执行是否成功。
 </p>
 
 <p>
-<a href="http://stackoverflow.com/a/25039605/802708">c - system() function while SIGCHLD is ignored - Stack Overflow</a> 或 man wait(2) 说明了原因：
+<a href="http://stackoverflow.com/a/25039605/802708">c - system() function while SIGCHLD is ignored - Stack Overflow</a> 或 man wait(2)
 </p>
 <blockquote>
 <p>
@@ -121,11 +121,43 @@ POSIX.1-2001 指明，如果将 SIGCHLD 置为 SIG_IGN，或者为 SIGCHLD 指�
 POSIX.1-2001 specifies that if the disposition of SIGCHLD is set to SIG_IGN or the SA_NOCLDWAIT flag is set for SIGCHLD (see sigaction(2)), then children that terminate do not become zombies and a call to wait() or waitpid() will block until all children have terminated, and then fail with errno set to ECHILD.
 </p>
 </blockquote>
+
+<p>
+<a href="https://www.win.tue.nl/~aeb/linux/lk/lk-5.html">The Linux kernel: Signals</a>
+</p>
+<blockquote>
+<p>
+If the parent is not interested it can say so explicitly (before the fork) using
+</p>
+
+<p>
+signal(SIGCHLD, SIG_IGN);
+</p>
+
+<p>
+or
+</p>
+
+<p>
+struct sigaction act;
+act.sa_handler = something;
+act.sa_flags = SA_NOCLDWAIT;
+sigaction (SIGCHLD, &amp;act, NULL);
+</p>
+
+<p>
+and as a result it will not hear about deceased children, and children will not be transformed into zombies. Note that the default action for SIGCHLD is to ignore this signal; nevertheless signal(SIGCHLD, SIG_IGN) has effect, namely that of preventing the transformation of children into zombies. In this situation, if the parent does a wait(), this call will return only when all children have exited, and then returns -1 with errno set to ECHILD.
+</p>
+</blockquote>
+
+<p>
+system(3) 调用 waitpid(3) 时，子进程已经被系统自动回收，消失得无影无踪，也就取不到子进程的返回值。
+</p>
 </div>
 </div>
 
 <div id="outline-container-sec-2" class="outline-2">
-<h2 id="sec-2">在整个应用中阻塞 SIGCHLD 信号</h2>
+<h2 id="sec-2">在整个应用中阻塞 SIGCHLD 信号可能导致孙进程僵尸</h2>
 <div class="outline-text-2" id="text-2">
 <p>
 注意 signal(3) 无法阻塞一个信号，只支持忽略（SIG_IGN）和恢复缺省处理（SIG_DFL）。
@@ -136,29 +168,104 @@ POSIX.1-2001 specifies that if the disposition of SIGCHLD is set to SIG_IGN or t
 </p>
 
 <p>
-在应用程序最开始的时候，添加以下语句
+主线程在创建子线程之前阻塞 SIGCHLD 信号
 </p>
 
 <div class="org-src-container">
 
-<pre class="src src-c"><span style="color: #4271ae;">sigset_t</span> <span style="color: #eab700;">set</span>;
+<pre class="src src-c"><span style="color: #81a2be;">sigset_t</span> <span style="color: #f0c674;">set</span>;
 sigemptyset(&amp;set);
 sigaddset(&amp;set, SIGCHLD);
-pthread_sigmask(SIG_BLOCK, &amp;set, <span style="color: #4271ae;">NULL</span>);
+pthread_sigmask(SIG_BLOCK, &amp;set, <span style="color: #81a2be;">NULL</span>);
 </pre>
 </div>
 
 <p>
-由于子线程会继续主线程的信号处理，这种方式应该是一劳永逸的。
+通过继承主线程的信号处理，子线程调用 system(3) 创建子进程时能够保证其中的 waitpid(3) 调用成功获取子进程的退出码。
+</p>
+
+<p>
+man signal(7)
+</p>
+<blockquote>
+<p>
+通过 fork(2) 创建的子进程继承父进程的信号掩码，该信号掩码即使在 execve(2) 后仍得以保留。
+</p>
+
+<p>
+A child created via fork(2) inherits a copy of its parent's signal mask; the signal mask is preserved across execve(2).
+</p>
+</blockquote>
+
+<p>
+system(3) 在替换进程为新程序（execl(3)）之前，会恢复为默认的信号掩码（SIGCHLD 处于阻塞状态），可能干扰子进程运行，
+如通过 system(3) 启动了 sshd，有用户尝试登录，sshd 会再 fork(3) 一个孙进程，然后在 SIGCHLD 信号处理函数中通过 waitpid(3) 回收孙进程，但是从父进程（调用 system(3)的进程）继承而来信号掩码阻塞了 SIGCHLD 信号，导致孙进程结束后成为僵尸进程。
+</p>
+
+<p>
+相关 BUG 报告
+<a href="https://bugzilla.mindrot.org/show_bug.cgi?id=271">271 – SSHD should unblock SIGCHLD - POSIX signal blocks survive exec()</a>
+</p>
+
+<p>
+在调用 system(3) 前取消对 SIGCHLD 的阻塞，调用返回后恢复对 SIGCHLD 的阻塞，可以解决这个问题
+</p>
+<div class="org-src-container">
+
+<pre class="src src-C"><span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">&#23553;&#35013; system(3) &#65292;&#19968;&#26041;&#38754;&#36991;&#20813;&#20013;&#26029;&#31995;&#32479;&#35843;&#29992;&#65292;&#21478;&#19968;&#26041;&#38754;&#36991;&#20813;&#20986;&#29616;&#20725;&#23608;&#23385;&#36827;&#31243;.</span>
+<span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">&#35831;&#35760;&#24471;&#20840;&#23616;&#22581;&#22622; SIGCHLD &#20449;&#21495;.</span>
+<span style="color: #81a2be;">int</span> <span style="color: #de935f;">system2</span>(<span style="color: #b5bd68;">const</span> <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">command</span>)
+{
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">&#35843;&#29992; system(3) &#21069;&#21462;&#28040;&#23545; SIGCHLD &#30340;&#38459;&#22622;</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">sigset_t</span> <span style="color: #f0c674;">set</span>;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   sigemptyset(&amp;set);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   sigaddset(&amp;set, SIGCHLD);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   pthread_sigmask(SIG_UNBLOCK, &amp;set, <span style="color: #81a2be;">NULL</span>);
+
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">code</span> = system(command);
+
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">&#35843;&#29992; system(3) &#21518;&#24674;&#22797;&#23545; SIGCHLD &#30340;&#38459;&#22622;</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   sigemptyset(&amp;set);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   sigaddset(&amp;set, SIGCHLD);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   pthread_sigmask(SIG_BLOCK, &amp;set, <span style="color: #81a2be;">NULL</span>);
+
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> code;
+}
+</pre>
+</div>
+
+<p>
+考虑到还有 popen(3)/pclose(3) 也可以用来创建子进程，所以还有很多替换工作。
 </p>
 </div>
 </div>
 
 <div id="outline-container-sec-3" class="outline-2">
-<h2 id="sec-3">参考</h2>
+<h2 id="sec-3">折衷方案</h2>
 <div class="outline-text-2" id="text-3">
+<p>
+放任 SIGCHLD 不管会任由它将其它线程的系统调用中断，而堵塞它也可能因为僵尸孙进程而影响系统的稳定性，所以只能选择忽略它，当需要通过 system(3) 的返回值确定命令执行是否成功时，可以改用 popen(3)/pclose(3) 通过读取命令的标准输出进行判断。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4">参考</h2>
+<div class="outline-text-2" id="text-4">
 <ul class="org-ul">
 <li><a href="http://www.linuxprogrammingblog.com/all-about-linux-signals?page=show">All about Linux signals | Linux Programming Blog</a>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><a href="https://www.win.tue.nl/~aeb/linux/lk/lk-5.html">The Linux kernel: Signals</a>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><a href="http://www.oschina.net/question/54100_30293">Linux下调用system()函数导致的问题 - 开源中国社区</a>
 </li>
 </ul>
 </div>
@@ -265,20 +372,20 @@ snprintf 常用于字符串格式化（如：拼接 SQL 或 shell 命令），�
 </p>
 <div class="org-src-container">
 
-<pre class="src src-c"><span style="color: #718c00;">const</span> <span style="color: #4271ae;">char</span>* <span style="color: #eab700;">fields</span>[] = {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #3e999f;">"name"</span>,
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #3e999f;">"age"</span>,
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #3e999f;">"city"</span>
+<pre class="src src-c"><span style="color: #b5bd68;">const</span> <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">fields</span>[] = {
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #8abeb7;">"name"</span>,
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #8abeb7;">"age"</span>,
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #8abeb7;">"city"</span>
 };
 
-<span style="color: #4271ae;">char</span> <span style="color: #eab700;">sql</span>[10] = <span style="color: #3e999f;">"select "</span>;
-<span style="color: #4271ae;">int</span> <span style="color: #eab700;">pos</span> = 0;
+<span style="color: #81a2be;">char</span> <span style="color: #f0c674;">sql</span>[10] = <span style="color: #8abeb7;">"select "</span>;
+<span style="color: #81a2be;">int</span> <span style="color: #f0c674;">pos</span> = 0;
 
-<span style="color: #718c00;">for</span>(<span style="color: #4271ae;">int</span> <span style="color: #eab700;">i</span> = 0; i &lt; <span style="color: #718c00;">sizeof</span>(fields)/<span style="color: #718c00;">sizeof</span>(fields[0]); ++i) {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   pos += snprintf(sql + pos, <span style="color: #718c00;">sizeof</span>(sql) - pos, <span style="color: #3e999f;">"%s%s"</span>, (i ? <span style="color: #3e999f;">", "</span> : <span style="color: #3e999f;">""</span>), field<span style="text-decoration: underline;">s[i]);</span>
+<span style="color: #b5bd68;">for</span>(<span style="color: #81a2be;">int</span> <span style="color: #f0c674;">i</span> = 0; i &lt; <span style="color: #b5bd68;">sizeof</span>(fields)/<span style="color: #b5bd68;">sizeof</span>(fields[0]); ++i) {
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   pos += snprintf(sql + pos, <span style="color: #b5bd68;">sizeof</span>(sql) - pos, <span style="color: #8abeb7;">"%s%s"</span>, (i ? <span style="color: #8abeb7;">", "</span> : <span style="color: #8abeb7;">""</span>), field<span style="text-decoration: underline;">s[i]);</span>
 }
 
-snprintf(sql + pos, <span style="color: #718c00;">sizeof</span>(sql) - pos, <span style="color: #3e999f;">" from users"</span>);
+snprintf(sql + pos, <span style="color: #b5bd68;">sizeof</span>(sql) - pos, <span style="color: #8abeb7;">" from users"</span>);
 </pre>
 </div>
 
@@ -302,20 +409,20 @@ snprintf(sql + pos, <span style="color: #718c00;">sizeof</span>(sql) - pos, <spa
 <div class="outline-text-2" id="text-3">
 <div class="org-src-container">
 
-<pre class="src src-c"><span style="color: #4271ae;">int</span> <span style="color: #eab700;">pos</span> = 0;
-<span style="color: #4271ae;">int</span> <span style="color: #eab700;">n</span> = snprintf(buffer + pos, <span style="color: #718c00;">sizeof</span>(buffer) - pos, <span style="color: #3e999f;">"%s"</span>, <span style="color: #3e999f;">"hello"</span>);
-<span style="color: #718c00;">if</span> (n &gt;= <span style="color: #718c00;">sizeof</span>(buffer) - pos) {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">// </span><span style="color: #8e908c; font-style: italic;">a return value of size or more means that the output was truncated</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   fprintf(stderr, <span style="color: #3e999f;">"error: buffer size not enough\n"</span>);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span>;
+<pre class="src src-c"><span style="color: #81a2be;">int</span> <span style="color: #f0c674;">pos</span> = 0;
+<span style="color: #81a2be;">int</span> <span style="color: #f0c674;">n</span> = snprintf(buffer + pos, <span style="color: #b5bd68;">sizeof</span>(buffer) - pos, <span style="color: #8abeb7;">"%s"</span>, <span style="color: #8abeb7;">"hello"</span>);
+<span style="color: #b5bd68;">if</span> (n &gt;= <span style="color: #b5bd68;">sizeof</span>(buffer) - pos) {
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">a return value of size or more means that the output was truncated</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   fprintf(stderr, <span style="color: #8abeb7;">"error: buffer size not enough\n"</span>);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span>;
 }
 n += pos;
 
-n = snprintf(buffer + pos, <span style="color: #718c00;">sizeof</span>(buffer) - pos, <span style="color: #3e999f;">"%s"</span>, <span style="color: #3e999f;">" snprintf"</span>);
-<span style="color: #718c00;">if</span> (n &gt;= <span style="color: #718c00;">sizeof</span>(buffer) - pos) {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">// </span><span style="color: #8e908c; font-style: italic;">a return value of size or more means that the output was truncated</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   fprintf(stderr, <span style="color: #3e999f;">"error: buffer size not enough\n"</span>);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span>;
+n = snprintf(buffer + pos, <span style="color: #b5bd68;">sizeof</span>(buffer) - pos, <span style="color: #8abeb7;">"%s"</span>, <span style="color: #8abeb7;">" snprintf"</span>);
+<span style="color: #b5bd68;">if</span> (n &gt;= <span style="color: #b5bd68;">sizeof</span>(buffer) - pos) {
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">a return value of size or more means that the output was truncated</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   fprintf(stderr, <span style="color: #8abeb7;">"error: buffer size not enough\n"</span>);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span>;
 }
 n += pos;
 </pre>
@@ -338,65 +445,65 @@ n += pos;
 
 <div class="org-src-container">
 
-<pre class="src src-c"><span class="linenr"> 1: </span><span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;curl/curl.h&gt;</span>
-<span class="linenr"> 2: </span><span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;stdint.h&gt;</span>
-<span class="linenr"> 3: </span><span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;string.h&gt;</span>
+<pre class="src src-c"><span class="linenr"> 1: </span><span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;curl/curl.h&gt;</span>
+<span class="linenr"> 2: </span><span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;stdint.h&gt;</span>
+<span class="linenr"> 3: </span><span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;string.h&gt;</span>
 <span class="linenr"> 4: </span>
 <span class="linenr"> 5: </span>
-<span class="linenr"> 6: </span><span style="color: #8959a8;">#define</span> <span style="color: #eab700;">RESPONSE_BODY_SIZE</span> 128
+<span class="linenr"> 6: </span><span style="color: #b294bb;">#define</span> <span style="color: #f0c674;">RESPONSE_BODY_SIZE</span> 128
 <span class="linenr"> 7: </span>
-<span class="linenr"> 8: </span><span style="color: #718c00;">static</span> <span style="color: #4271ae;">size_t</span> <span style="color: #f5871f;">write_function</span>(<span style="color: #718c00;">const</span> <span style="color: #4271ae;">void</span> *<span style="color: #eab700;">buffer</span>, <span style="color: #718c00;">const</span> <span style="color: #4271ae;">size_t</span> <span style="color: #eab700;">size</span>, <span style="color: #718c00;">const</span> <span style="color: #4271ae;">size_t</span><span style="text-decoration: underline;"> </span><span style="color: #eab700; text-decoration: underline;">nmemb</span><span style="text-decoration: underline;">, </span><span style="color: #4271ae; text-decoration: underline;">void</span><span style="text-decoration: underline;"> *</span><span style="color: #eab700; text-decoration: underline;">user_p</span><span style="text-decoration: underline;">)</span>
+<span class="linenr"> 8: </span><span style="color: #b5bd68;">static</span> <span style="color: #81a2be;">size_t</span> <span style="color: #de935f;">write_function</span>(<span style="color: #b5bd68;">const</span> <span style="color: #81a2be;">void</span> *<span style="color: #f0c674;">buffer</span>, <span style="color: #b5bd68;">const</span> <span style="color: #81a2be;">size_t</span> <span style="color: #f0c674;">size</span>, <span style="color: #b5bd68;">const</span> <span style="color: #81a2be;">size_t</span><span style="text-decoration: underline;"> </span><span style="color: #f0c674; text-decoration: underline;">nmemb</span><span style="text-decoration: underline;">, </span><span style="color: #81a2be; text-decoration: underline;">void</span><span style="text-decoration: underline;"> *</span><span style="color: #f0c674; text-decoration: underline;">user_p</span><span style="text-decoration: underline;">)</span>
 <span class="linenr"> 9: </span>{
-<span class="linenr">10: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4271ae;">char</span>* <span style="color: #eab700;">response_body</span> = (<span style="color: #4271ae;">char</span>*)user_p;
-<span class="linenr">11: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4271ae;">uint32_t</span> <span style="color: #eab700;">response_body_len</span> = strlen(response_body);
-<span class="linenr">12: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4271ae;">uint32_t</span> <span style="color: #eab700;">len</span> = size*nmemb;
-<span class="linenr">13: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span> (len &gt; RESPONSE_BODY_SIZE - response_body_len - 1) {
-<span class="linenr">14: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   len = RESPONSE_BODY_SIZE - response_body_len - 1;
-<span class="linenr">15: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
-<span id="coderef-curl_write_function_buffer" class="coderef-off"><span class="linenr">16: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   memcpy(response_body + response_body_len, buffer, len);</span>
-<span id="coderef-curl_write_function_return" class="coderef-off"><span class="linenr">17: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> size*nmemb;</span>
+<span class="linenr">10: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">response_body</span> = (<span style="color: #81a2be;">char</span>*)user_p;
+<span class="linenr">11: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">uint32_t</span> <span style="color: #f0c674;">response_body_len</span> = strlen(response_body);
+<span class="linenr">12: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">uint32_t</span> <span style="color: #f0c674;">len</span> = size*nmemb;
+<span class="linenr">13: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (len &gt; RESPONSE_BODY_SIZE - response_body_len - 1) {
+<span class="linenr">14: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   len = RESPONSE_BODY_SIZE - response_body_len - 1;
+<span class="linenr">15: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   }
+<span id="coderef-curl_write_function_buffer" class="coderef-off"><span class="linenr">16: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   memcpy(response_body + response_body_len, buffer, len);</span>
+<span id="coderef-curl_write_function_return" class="coderef-off"><span class="linenr">17: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> size*nmemb;</span>
 <span class="linenr">18: </span>}
 <span class="linenr">19: </span>
-<span class="linenr">20: </span><span style="color: #4271ae;">int</span> <span style="color: #f5871f;">main</span>(<span style="color: #4271ae;">int</span> <span style="color: #eab700;">argc</span>, <span style="color: #4271ae;">char</span> *<span style="color: #eab700;">argv</span>[])
+<span class="linenr">20: </span><span style="color: #81a2be;">int</span> <span style="color: #de935f;">main</span>(<span style="color: #81a2be;">int</span> <span style="color: #f0c674;">argc</span>, <span style="color: #81a2be;">char</span> *<span style="color: #f0c674;">argv</span>[])
 <span class="linenr">21: </span>{
-<span class="linenr">22: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">const</span> <span style="color: #4271ae;">char</span>* <span style="color: #eab700;">url</span> = <span style="color: #3e999f;">"http://www.example.com/dns_servers"</span>;
-<span class="linenr">23: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">struct</span> <span style="color: #4271ae;">curl_slist</span> *<span style="color: #eab700;">headers</span> = <span style="color: #4271ae;">NULL</span>;
-<span class="linenr">24: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   headers = curl_slist_append(headers, <span style="color: #3e999f;">"Content-Type: application/json"</span>);
-<span class="linenr">25: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">const</span> <span style="color: #4271ae;">char</span>* <span style="color: #eab700;">request_body</span> = <span style="color: #3e999f;">"{\"host\": \"8.8.8.8\", \"port\": 53}"</span>;
+<span class="linenr">22: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">const</span> <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">url</span> = <span style="color: #8abeb7;">"http://www.example.com/dns_servers"</span>;
+<span class="linenr">23: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">struct</span> <span style="color: #81a2be;">curl_slist</span> *<span style="color: #f0c674;">headers</span> = <span style="color: #81a2be;">NULL</span>;
+<span class="linenr">24: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   headers = curl_slist_append(headers, <span style="color: #8abeb7;">"Content-Type: application/json"</span>);
+<span class="linenr">25: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">const</span> <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">request_body</span> = <span style="color: #8abeb7;">"{\"host\": \"8.8.8.8\", \"port\": 53}"</span>;
 <span class="linenr">26: </span>
-<span class="linenr">27: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4271ae;">CURL</span> *<span style="color: #eab700;">curl</span>;
-<span class="linenr">28: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4271ae;">CURLcode</span> <span style="color: #eab700;">res</span>;
-<span class="linenr">29: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4271ae;">char</span> <span style="color: #eab700;">response_body</span>[RESPONSE_BODY_SIZE] = {<span style="color: #3e999f;">'\0'</span>};
-<span class="linenr">30: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4271ae;">long</span> <span style="color: #eab700;">response_code</span> = 0;
+<span class="linenr">27: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">CURL</span> *<span style="color: #f0c674;">curl</span>;
+<span class="linenr">28: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">CURLcode</span> <span style="color: #f0c674;">res</span>;
+<span class="linenr">29: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">char</span> <span style="color: #f0c674;">response_body</span>[RESPONSE_BODY_SIZE] = {<span style="color: #8abeb7;">'\0'</span>};
+<span class="linenr">30: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">long</span> <span style="color: #f0c674;">response_code</span> = 0;
 <span class="linenr">31: </span>
-<span class="linenr">32: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   curl = curl_easy_init();
-<span class="linenr">33: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span>(curl) {
-<span class="linenr">34: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   curl_easy_setopt(curl, CURLOPT_URL, url);
-<span class="linenr">35: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-<span class="linenr">36: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, request_body);
-<span class="linenr">37: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, strlen(request_body));
-<span id="coderef-curl_nosignal" class="coderef-off"><span class="linenr">38: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);</span>
-<span class="linenr">39: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-<span class="linenr">40: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_function);
-<span class="linenr">41: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   curl_easy_setopt(curl, CURLOPT_WRITEDATA, response_body);
-<span class="linenr">42: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   res = curl_easy_perform(curl);
-<span class="linenr">43: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span> (res == CURLE_OK) {
-<span id="coderef-curl_response_code" class="coderef-off"><span class="linenr">44: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &amp;response_code<span style="text-decoration: underline;">);</span></span>
-<span class="linenr">45: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
-<span class="linenr">46: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span>(res != CURLE_OK) {
-<span class="linenr">47: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   fprintf(stderr, <span style="color: #3e999f;">"request to %s error(%d): %s"</span>, url, res, curl_easy_s<span style="text-decoration: underline;">trerror(res));</span>
-<span class="linenr">48: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
-<span class="linenr">49: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   curl_easy_cleanup(curl);
-<span class="linenr">50: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
+<span class="linenr">32: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   curl = curl_easy_init();
+<span class="linenr">33: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span>(curl) {
+<span class="linenr">34: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   curl_easy_setopt(curl, CURLOPT_URL, url);
+<span class="linenr">35: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+<span class="linenr">36: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, request_body);
+<span class="linenr">37: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, strlen(request_body));
+<span id="coderef-curl_nosignal" class="coderef-off"><span class="linenr">38: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);</span>
+<span class="linenr">39: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+<span class="linenr">40: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_function);
+<span class="linenr">41: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   curl_easy_setopt(curl, CURLOPT_WRITEDATA, response_body);
+<span class="linenr">42: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   res = curl_easy_perform(curl);
+<span class="linenr">43: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (res == CURLE_OK) {
+<span id="coderef-curl_response_code" class="coderef-off"><span class="linenr">44: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &amp;response_code<span style="text-decoration: underline;">);</span></span>
+<span class="linenr">45: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   }
+<span class="linenr">46: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span>(res != CURLE_OK) {
+<span class="linenr">47: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   fprintf(stderr, <span style="color: #8abeb7;">"request to %s error(%d): %s"</span>, url, res, curl_easy_s<span style="text-decoration: underline;">trerror(res));</span>
+<span class="linenr">48: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   }
+<span class="linenr">49: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   curl_easy_cleanup(curl);
+<span class="linenr">50: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   }
 <span class="linenr">51: </span>
-<span class="linenr">52: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   curl_slist_free_all(headers);
-<span class="linenr">53: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span> (response_code == 201) {
-<span class="linenr">54: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   fprintf(stderr, <span style="color: #3e999f;">"request to %s successful: %s\n"</span>, url, response_body);
-<span class="linenr">55: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> 0;
-<span class="linenr">56: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
+<span class="linenr">52: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   curl_slist_free_all(headers);
+<span class="linenr">53: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (response_code == 201) {
+<span class="linenr">54: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   fprintf(stderr, <span style="color: #8abeb7;">"request to %s successful: %s\n"</span>, url, response_body);
+<span class="linenr">55: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> 0;
+<span class="linenr">56: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   }
 <span class="linenr">57: </span>
-<span class="linenr">58: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   fprintf(stderr, <span style="color: #3e999f;">"request to %s response failed(%ld): %s\n"</span>, url, response_co<span style="text-decoration: underline;">de, response_body);</span>
-<span class="linenr">59: </span><span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> 1;
+<span class="linenr">58: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   fprintf(stderr, <span style="color: #8abeb7;">"request to %s response failed(%ld): %s\n"</span>, url, response_co<span style="text-decoration: underline;">de, response_body);</span>
+<span class="linenr">59: </span><span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> 1;
 <span class="linenr">60: </span>}
 </pre>
 </div>
@@ -543,37 +650,37 @@ n += pos;
 
 <div class="org-src-container">
 
-<pre class="src src-c"><span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;unistd.h&gt;</span>
-<span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;sys/types.h&gt;</span>
-<span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;netinet/in.h&gt;</span>
-<span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;arpa/inet.h&gt;</span>
-<span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;arpa/nameser.h&gt;</span>
-<span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;resolv.h&gt;</span>
+<pre class="src src-c"><span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;unistd.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;sys/types.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;netinet/in.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;arpa/inet.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;arpa/nameser.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;resolv.h&gt;</span>
 
-<span style="color: #4271ae;">int</span> <span style="color: #f5871f;">main</span>(<span style="color: #4271ae;">int</span> <span style="color: #eab700;">argc</span>, <span style="color: #4271ae;">char</span> *<span style="color: #eab700;">argv</span>[])
+<span style="color: #81a2be;">int</span> <span style="color: #de935f;">main</span>(<span style="color: #81a2be;">int</span> <span style="color: #f0c674;">argc</span>, <span style="color: #81a2be;">char</span> *<span style="color: #f0c674;">argv</span>[])
 {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">struct</span> <span style="color: #4271ae;">__res_state</span> <span style="color: #eab700;">res</span>;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   res.options &amp;= ~ RES_INIT;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">struct</span> <span style="color: #81a2be;">__res_state</span> <span style="color: #f0c674;">res</span>;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   res.options &amp;= ~ RES_INIT;
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4271ae;">int</span> <span style="color: #eab700;">err</span> = res_ninit(&amp;res);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span> (err) {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   fprintf(stderr, <span style="color: #3e999f;">"res_init error: %d\n"</span>, err);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> err;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">err</span> = res_ninit(&amp;res);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   fprintf(stderr, <span style="color: #8abeb7;">"res_init error: %d\n"</span>, err);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> err;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   }
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4271ae;">char</span> <span style="color: #eab700;">ip</span>[16];
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">for</span>(<span style="color: #4271ae;">int</span> <span style="color: #eab700;">i</span> = 0 ; i &lt; res.nscount; ++i) {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   ip[0] = <span style="color: #3e999f;">'\0'</span>;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span> (<span style="color: #4271ae;">!</span> inet_ntop(AF_INET, &amp;res.nsaddr_list[i].sin_addr, ip, <span style="color: #718c00;">sizeof</span>(ip))) <span style="text-decoration: underline;">{</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   perror(<span style="color: #3e999f;">"inet_ntop"</span>);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">continue</span>;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   printf(<span style="color: #3e999f;">"ip: %s\n"</span>, ip);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">char</span> <span style="color: #f0c674;">ip</span>[16];
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">for</span>(<span style="color: #81a2be;">int</span> <span style="color: #f0c674;">i</span> = 0 ; i &lt; res.nscount; ++i) {
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   ip[0] = <span style="color: #8abeb7;">'\0'</span>;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (<span style="color: #81a2be;">!</span> inet_ntop(AF_INET, &amp;res.nsaddr_list[i].sin_addr, ip, <span style="color: #b5bd68;">sizeof</span>(ip))) <span style="text-decoration: underline;">{</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   perror(<span style="color: #8abeb7;">"inet_ntop"</span>);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">continue</span>;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   }
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   printf(<span style="color: #8abeb7;">"ip: %s\n"</span>, ip);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   }
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   res_nclose(&amp;res);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   res_nclose(&amp;res);
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> 0;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> 0;
 }
 </pre>
 </div>
@@ -811,11 +918,11 @@ signal(SIGCHLD, SIG_IGN);
 
 <div class="org-src-container">
 
-<pre class="src src-c"><span style="color: #718c00;">struct</span> <span style="color: #4271ae;">timeval</span> <span style="color: #eab700;">tv</span>;
+<pre class="src src-c"><span style="color: #b5bd68;">struct</span> <span style="color: #81a2be;">timeval</span> <span style="color: #f0c674;">tv</span>;
 tv.tv_sec  = 10;
 tv.tv_usec = 0;
-setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (<span style="color: #4271ae;">char</span>*)&amp;tv, <span style="color: #718c00;">sizeof</span>(<span style="color: #718c00;">struct</span> <span style="color: #4271ae;">timeval</span>));
-setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (<span style="color: #4271ae;">char</span>*)&amp;tv, <span style="color: #718c00;">sizeof</span>(<span style="color: #718c00;">struct</span> <span style="color: #4271ae;">timeval</span>));
+setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (<span style="color: #81a2be;">char</span>*)&amp;tv, <span style="color: #b5bd68;">sizeof</span>(<span style="color: #b5bd68;">struct</span> <span style="color: #81a2be;">timeval</span>));
+setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (<span style="color: #81a2be;">char</span>*)&amp;tv, <span style="color: #b5bd68;">sizeof</span>(<span style="color: #b5bd68;">struct</span> <span style="color: #81a2be;">timeval</span>));
 </pre>
 </div>
 </li>
@@ -833,22 +940,22 @@ setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (<span style="color: #4271ae;">char</s
 
 <div class="org-src-container">
 
-<pre class="src src-c"><span style="color: #4271ae;">int</span> <span style="color: #eab700;">readed</span> = SSL_read(ssl, data, size);
-<span style="color: #718c00;">if</span> (readed &lt;= 0) {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span> (SSL_get_error(ssl, readed) == SSL_ERROR_WANT_READ) {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">// </span><span style="color: #8e908c; font-style: italic;">timeout</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   } <span style="color: #718c00;">else</span> {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">// </span><span style="color: #8e908c; font-style: italic;">error</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
+<pre class="src src-c"><span style="color: #81a2be;">int</span> <span style="color: #f0c674;">readed</span> = SSL_read(ssl, data, size);
+<span style="color: #b5bd68;">if</span> (readed &lt;= 0) {
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (SSL_get_error(ssl, readed) == SSL_ERROR_WANT_READ) {
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">timeout</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   } <span style="color: #b5bd68;">else</span> {
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">error</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   }
 }
 
-<span style="color: #4271ae;">int</span> <span style="color: #eab700;">writed</span> = SSL_write(ssl, data, size);
-<span style="color: #718c00;">if</span> (writed &lt;= 0) {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span> (SSL_get_error(ssl, writed) == SSL_ERROR_WANT_WRITE) {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">// </span><span style="color: #8e908c; font-style: italic;">timeout</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   } <span style="color: #718c00;">else</span> {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">// </span><span style="color: #8e908c; font-style: italic;">error</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
+<span style="color: #81a2be;">int</span> <span style="color: #f0c674;">writed</span> = SSL_write(ssl, data, size);
+<span style="color: #b5bd68;">if</span> (writed &lt;= 0) {
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (SSL_get_error(ssl, writed) == SSL_ERROR_WANT_WRITE) {
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">timeout</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   } <span style="color: #b5bd68;">else</span> {
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">error</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   }
 }
 </pre>
 </div>
@@ -896,7 +1003,7 @@ setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (<span style="color: #4271ae;">char</s
 </p>
 <div class="org-src-container">
 
-<pre class="src src-sh">sudo -u <span style="color: #3e999f;">"nobody"</span> ./as_root <span style="color: #3e999f;">"reboot"</span>
+<pre class="src src-sh">sudo -u <span style="color: #8abeb7;">"nobody"</span> ./as_root <span style="color: #8abeb7;">"reboot"</span>
 </pre>
 </div>
 
@@ -936,145 +1043,145 @@ setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (<span style="color: #4271ae;">char</s
 </p>
 <div class="org-src-container">
 
-<pre class="src src-c"><span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;openssl/ssl.h&gt;</span>
-<span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;openssl/bio.h&gt;</span>
-<span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;openssl/err.h&gt;</span>
-<span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;winsock2.h&gt;</span>
-<span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;stdio.h&gt;</span>
-<span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;string.h&gt;</span>
-<span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;time.h&gt;</span>
+<pre class="src src-c"><span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;openssl/ssl.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;openssl/bio.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;openssl/err.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;winsock2.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;stdio.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;string.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;time.h&gt;</span>
 
-<span style="color: #718c00;">typedef</span> <span style="color: #718c00;">struct</span> <span style="color: #4271ae;">_TimeInfo</span>
+<span style="color: #b5bd68;">typedef</span> <span style="color: #b5bd68;">struct</span> <span style="color: #81a2be;">_TimeInfo</span>
 {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4271ae;">time_t</span> <span style="color: #eab700;">client</span>;  <span style="color: #8e908c; font-style: italic;">/*</span><span style="color: #8e908c; font-style: italic;">&#23458;&#25143;&#31471;&#30340;&#26102;&#38388;</span><span style="color: #8e908c; font-style: italic;">*/</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4271ae;">time_t</span> <span style="color: #eab700;">server</span>;  <span style="color: #8e908c; font-style: italic;">/*</span><span style="color: #8e908c; font-style: italic;">&#26381;&#21153;&#22120;&#30340;&#26102;&#38388;</span><span style="color: #8e908c; font-style: italic;">*/</span>
-} <span style="color: #4271ae;">TimeInfo</span>;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">time_t</span> <span style="color: #f0c674;">client</span>;  <span style="color: #969896; font-style: italic;">/*</span><span style="color: #969896; font-style: italic;">&#23458;&#25143;&#31471;&#30340;&#26102;&#38388;</span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">time_t</span> <span style="color: #f0c674;">server</span>;  <span style="color: #969896; font-style: italic;">/*</span><span style="color: #969896; font-style: italic;">&#26381;&#21153;&#22120;&#30340;&#26102;&#38388;</span><span style="color: #969896; font-style: italic;">*/</span>
+} <span style="color: #81a2be;">TimeInfo</span>;
 
-<span style="color: #8959a8;">/**</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span><span style="color: #8959a8;">* &#21516;&#27493;&#31995;&#32479;&#26102;&#38388;.</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span><span style="color: #8959a8;">*/</span>
-<span style="color: #4271ae;">BOOL</span> <span style="color: #f5871f;">syncSystemTime</span>(<span style="color: #4271ae;">time_t</span> <span style="color: #eab700;">t</span>)
+<span style="color: #b294bb;">/**</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span><span style="color: #b294bb;">* &#21516;&#27493;&#31995;&#32479;&#26102;&#38388;.</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span><span style="color: #b294bb;">*/</span>
+<span style="color: #81a2be;">BOOL</span> <span style="color: #de935f;">syncSystemTime</span>(<span style="color: #81a2be;">time_t</span> <span style="color: #f0c674;">t</span>)
 {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4271ae;">SYSTEMTIME</span> <span style="color: #eab700;">st</span>;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4271ae;">FILETIME</span>   <span style="color: #eab700;">ft</span>;<span style="color: #f5871f; background-color: #d6d6d6;">  </span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4271ae;">LONGLONG</span>   <span style="color: #eab700;">ll</span>;<span style="color: #f5871f; background-color: #d6d6d6;">  </span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">SYSTEMTIME</span> <span style="color: #f0c674;">st</span>;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">FILETIME</span>   <span style="color: #f0c674;">ft</span>;<span style="color: #de935f; background-color: #373b41;">  </span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">LONGLONG</span>   <span style="color: #f0c674;">ll</span>;<span style="color: #de935f; background-color: #373b41;">  </span>
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   ll = Int32x32To64(t, 10000000) + 116444736000000000; <span style="color: #8e908c; font-style: italic;">//</span><span style="color: #8e908c; font-style: italic;">1970.01.01</span><span style="color: #f5871f; background-color: #d6d6d6;">  </span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   ll = Int32x32To64(t, 10000000) + 116444736000000000; <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">1970.01.01</span><span style="color: #de935f; background-color: #373b41;">  </span>
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   ft.dwLowDateTime  = (<span style="color: #4271ae;">DWORD</span>)ll;<span style="color: #f5871f; background-color: #d6d6d6;">  </span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   ft.dwHighDateTime = (<span style="color: #4271ae;">DWORD</span>)(ll &gt;&gt; 32);<span style="color: #f5871f; background-color: #d6d6d6;">  </span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   ft.dwLowDateTime  = (<span style="color: #81a2be;">DWORD</span>)ll;<span style="color: #de935f; background-color: #373b41;">  </span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   ft.dwHighDateTime = (<span style="color: #81a2be;">DWORD</span>)(ll &gt;&gt; 32);<span style="color: #de935f; background-color: #373b41;">  </span>
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> FileTimeToSystemTime(&amp;ft, &amp;st) &amp;&amp; SetSystemTime(&amp;st);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> FileTimeToSystemTime(&amp;ft, &amp;st) &amp;&amp; SetSystemTime(&amp;st);
 }
 
-<span style="color: #8959a8;">/**</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span><span style="color: #8959a8;">* &#33719;&#21462;SSL&#25569;&#25163;&#36807;&#31243;&#20013;&#26381;&#21153;&#22120;&#19982;&#23458;&#25143;&#31471;&#21452;&#26041;&#30340;&#31995;&#32479;&#26102;&#38388;.</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span><span style="color: #8959a8;">*/</span>
-<span style="color: #4271ae;">void</span> <span style="color: #f5871f;">getSSLHandleShakeTimeInfo</span>(<span style="color: #4271ae;">int</span> <span style="color: #eab700;">write_p</span>,
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>  <span style="color: #4271ae;">int</span> <span style="color: #eab700;">version</span>,
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>  <span style="color: #4271ae;">int</span> <span style="color: #eab700;">content_type</span>,
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>  <span style="color: #718c00;">const</span> <span style="color: #4271ae;">unsigned</span> <span style="color: #4271ae;">char</span>* <span style="color: #eab700;">buf</span>,
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>  <span style="color: #4271ae;">size_t</span> <span style="color: #eab700;">len</span>,
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>  <span style="color: #4271ae;">SSL</span> *<span style="color: #eab700;">ssl</span>,
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>  <span style="color: #4271ae;">TimeInfo</span> *<span style="color: #eab700;">ti</span>)
+<span style="color: #b294bb;">/**</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span><span style="color: #b294bb;">* &#33719;&#21462;SSL&#25569;&#25163;&#36807;&#31243;&#20013;&#26381;&#21153;&#22120;&#19982;&#23458;&#25143;&#31471;&#21452;&#26041;&#30340;&#31995;&#32479;&#26102;&#38388;.</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span><span style="color: #b294bb;">*/</span>
+<span style="color: #81a2be;">void</span> <span style="color: #de935f;">getSSLHandleShakeTimeInfo</span>(<span style="color: #81a2be;">int</span> <span style="color: #f0c674;">write_p</span>,
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>  <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">version</span>,
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>  <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">content_type</span>,
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>  <span style="color: #b5bd68;">const</span> <span style="color: #81a2be;">unsigned</span> <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">buf</span>,
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>  <span style="color: #81a2be;">size_t</span> <span style="color: #f0c674;">len</span>,
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>  <span style="color: #81a2be;">SSL</span> *<span style="color: #f0c674;">ssl</span>,
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>  <span style="color: #81a2be;">TimeInfo</span> *<span style="color: #f0c674;">ti</span>)
 {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span>(content_type != 22)   <span style="color: #8e908c; font-style: italic;">//</span><span style="color: #8e908c; font-style: italic;">require handshake message</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span>;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span>(len &lt; 42)
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span>;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span>(buf[0] == 1)          <span style="color: #8e908c; font-style: italic;">//</span><span style="color: #8e908c; font-style: italic;">ClientHello Message send from client to server</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   ti-&gt;client = htonl(*((<span style="color: #4271ae;">u_long</span>*)(buf + 6)));
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">else</span> <span style="color: #718c00;">if</span>(buf[0] == 2)     <span style="color: #8e908c; font-style: italic;">//</span><span style="color: #8e908c; font-style: italic;">ServerHello Message send from server to client</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   ti-&gt;server = htonl(*((<span style="color: #4271ae;">u_long</span>*)(buf + 6)));
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">else</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span>;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span>(content_type != 22)   <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">require handshake message</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span>;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span>(len &lt; 42)
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span>;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span>(buf[0] == 1)          <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">ClientHello Message send from client to server</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   ti-&gt;client = htonl(*((<span style="color: #81a2be;">u_long</span>*)(buf + 6)));
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">else</span> <span style="color: #b5bd68;">if</span>(buf[0] == 2)     <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">ServerHello Message send from server to client</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   ti-&gt;server = htonl(*((<span style="color: #81a2be;">u_long</span>*)(buf + 6)));
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">else</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span>;
 }
 
-<span style="color: #4271ae;">int</span> <span style="color: #f5871f;">main</span>()
+<span style="color: #81a2be;">int</span> <span style="color: #de935f;">main</span>()
 {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4271ae;">BIO</span> * <span style="color: #eab700;">bio</span>;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4271ae;">SSL</span> * <span style="color: #eab700;">ssl</span>;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4271ae;">SSL_CTX</span> * <span style="color: #eab700;">ctx</span>;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4271ae;">TimeInfo</span> <span style="color: #eab700;">timeInfo</span> = {-1, -1};
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4271ae;">BOOL</span> <span style="color: #eab700;">timeSynced</span> = FALSE;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4271ae;">long</span> <span style="color: #eab700;">result</span>;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">BIO</span> * <span style="color: #f0c674;">bio</span>;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">SSL</span> * <span style="color: #f0c674;">ssl</span>;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">SSL_CTX</span> * <span style="color: #f0c674;">ctx</span>;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">TimeInfo</span> <span style="color: #f0c674;">timeInfo</span> = {-1, -1};
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">BOOL</span> <span style="color: #f0c674;">timeSynced</span> = FALSE;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">long</span> <span style="color: #f0c674;">result</span>;
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">/* </span><span style="color: #8e908c; font-style: italic;">Set up the library </span><span style="color: #8e908c; font-style: italic;">*/</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   SSL_library_init();
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   ERR_load_BIO_strings();
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   SSL_load_error_strings();
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">Set up the library </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   SSL_library_init();
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   ERR_load_BIO_strings();
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   SSL_load_error_strings();
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">/* </span><span style="color: #8e908c; font-style: italic;">Set up the SSL context </span><span style="color: #8e908c; font-style: italic;">*/</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   ctx = SSL_CTX_new(SSLv3_client_method());
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span>(ctx == <span style="color: #4271ae;">NULL</span>)
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   fprintf(stderr, <span style="color: #3e999f;">"Error new SSL_CTX\n"</span>);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   ERR_print_errors_fp(stderr);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   SSL_CTX_free(ctx);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> 0;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">Set up the SSL context </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   ctx = SSL_CTX_new(SSLv3_client_method());
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span>(ctx == <span style="color: #81a2be;">NULL</span>)
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   {
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   fprintf(stderr, <span style="color: #8abeb7;">"Error new SSL_CTX\n"</span>);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   ERR_print_errors_fp(stderr);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   SSL_CTX_free(ctx);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> 0;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   }
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">/* </span><span style="color: #8e908c; font-style: italic;">Get Server and Client system time via SSL Handshake </span><span style="color: #8e908c; font-style: italic;">*/</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   SSL_CTX_set_msg_callback(ctx, getSSLHandleShakeTimeInfo);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   SSL_CTX_set_msg_callback_arg(ctx, &amp;timeInfo);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">Get Server and Client system time via SSL Handshake </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   SSL_CTX_set_msg_callback(ctx, getSSLHandleShakeTimeInfo);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   SSL_CTX_set_msg_callback_arg(ctx, &amp;timeInfo);
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">/* </span><span style="color: #8e908c; font-style: italic;">Load the trust store </span><span style="color: #8e908c; font-style: italic;">*/</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span>(<span style="color: #4271ae;">!</span> SSL_CTX_load_verify_locations(ctx, <span style="color: #3e999f;">".\\certs\\cacert.pem"</span>, <span style="color: #4271ae;">NULL</span>))
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   fprintf(stderr, <span style="color: #3e999f;">"Error loading trust store\n"</span>);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   ERR_print_errors_fp(stderr);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   SSL_CTX_free(ctx);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> 0;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">Load the trust store </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span>(<span style="color: #81a2be;">!</span> SSL_CTX_load_verify_locations(ctx, <span style="color: #8abeb7;">".\\certs\\cacert.pem"</span>, <span style="color: #81a2be;">NULL</span>))
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   {
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   fprintf(stderr, <span style="color: #8abeb7;">"Error loading trust store\n"</span>);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   ERR_print_errors_fp(stderr);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   SSL_CTX_free(ctx);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> 0;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   }
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">/* </span><span style="color: #8e908c; font-style: italic;">Setup the connection </span><span style="color: #8e908c; font-style: italic;">*/</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   bio = BIO_new_ssl_connect(ctx);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">Setup the connection </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   bio = BIO_new_ssl_connect(ctx);
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">/* </span><span style="color: #8e908c; font-style: italic;">Set the SSL_MODE_AUTO_RETRY flag </span><span style="color: #8e908c; font-style: italic;">*/</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   BIO_get_ssl(bio, &amp; ssl);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">Set the SSL_MODE_AUTO_RETRY flag </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   BIO_get_ssl(bio, &amp; ssl);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">/* </span><span style="color: #8e908c; font-style: italic;">Create and setup the connection </span><span style="color: #8e908c; font-style: italic;">*/</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   BIO_set_conn_hostname(bio, <span style="color: #3e999f;">"192.168.1.5:5555"</span>);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span>(BIO_do_connect(bio) &lt;= 0)
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   fprintf(stderr, <span style="color: #3e999f;">"Error attempting to connect\n"</span>);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   ERR_print_errors_fp(stderr);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   BIO_free_all(bio);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   SSL_CTX_free(ctx);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> 0;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">Create and setup the connection </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   BIO_set_conn_hostname(bio, <span style="color: #8abeb7;">"192.168.1.5:5555"</span>);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span>(BIO_do_connect(bio) &lt;= 0)
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   {
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   fprintf(stderr, <span style="color: #8abeb7;">"Error attempting to connect\n"</span>);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   ERR_print_errors_fp(stderr);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   BIO_free_all(bio);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   SSL_CTX_free(ctx);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> 0;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   }
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">/* </span><span style="color: #8e908c; font-style: italic;">Check the certificate </span><span style="color: #8e908c; font-style: italic;">*/</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">switch</span>(SSL_get_verify_result(ssl))
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">case</span> X509_V_OK:
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">break</span>;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">case</span> X509_V_ERR_CERT_NOT_YET_VALID:
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">case</span> X509_V_ERR_CERT_HAS_EXPIRED:
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span>(timeInfo.server != -1 &amp;&amp; timeInfo.client != -1)
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   {
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   printf(<span style="color: #3e999f;">"&#24403;&#21069;&#23458;&#25143;&#31471;&#26102;&#38388;: %s"</span>, ctime(&amp;timeInfo.client));
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   printf(<span style="color: #3e999f;">"&#24403;&#21069;&#26381;&#21153;&#22120;&#26102;&#38388;: %s"</span>, ctime(&amp;timeInfo.server));
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   printf(<span style="color: #3e999f;">"&#23581;&#35797;&#19982;&#26381;&#21153;&#22120;&#26102;&#38388;&#21516;&#27493;"</span>);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">Check the certificate </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">switch</span>(SSL_get_verify_result(ssl))
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   {
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">case</span> X509_V_OK:
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">break</span>;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">case</span> X509_V_ERR_CERT_NOT_YET_VALID:
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">case</span> X509_V_ERR_CERT_HAS_EXPIRED:
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span>(timeInfo.server != -1 &amp;&amp; timeInfo.client != -1)
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   {
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   printf(<span style="color: #8abeb7;">"&#24403;&#21069;&#23458;&#25143;&#31471;&#26102;&#38388;: %s"</span>, ctime(&amp;timeInfo.client));
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   printf(<span style="color: #8abeb7;">"&#24403;&#21069;&#26381;&#21153;&#22120;&#26102;&#38388;: %s"</span>, ctime(&amp;timeInfo.server));
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   printf(<span style="color: #8abeb7;">"&#23581;&#35797;&#19982;&#26381;&#21153;&#22120;&#26102;&#38388;&#21516;&#27493;"</span>);
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">if</span>(syncSystemTime(timeInfo.server))
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   printf(<span style="color: #3e999f;">"&#25104;&#21151;\n"</span>);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">else</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   printf(<span style="color: #3e999f;">"&#22833;&#36133;\n"</span>);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   printf(<span style="color: #3e999f;">"&#35831;&#37325;&#35797;&#36830;&#25509;&#26381;&#21153;&#22120;&#65281;\n"</span>);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">default</span>:
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   fprintf(stderr, <span style="color: #3e999f;">"Certificate verification error: %i\n"</span>, SSL_get_verify_r<span style="text-decoration: underline;">esult(ssl));</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   BIO_free_all(bio);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   SSL_CTX_free(ctx);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> 0;
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   }
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span>(syncSystemTime(timeInfo.server))
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   printf(<span style="color: #8abeb7;">"&#25104;&#21151;\n"</span>);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">else</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   printf(<span style="color: #8abeb7;">"&#22833;&#36133;\n"</span>);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   printf(<span style="color: #8abeb7;">"&#35831;&#37325;&#35797;&#36830;&#25509;&#26381;&#21153;&#22120;&#65281;\n"</span>);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   }
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">default</span>:
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   fprintf(stderr, <span style="color: #8abeb7;">"Certificate verification error: %i\n"</span>, SSL_get_verify_r<span style="text-decoration: underline;">esult(ssl));</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   BIO_free_all(bio);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   SSL_CTX_free(ctx);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> 0;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   }
 
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #8e908c; font-style: italic;">/* </span><span style="color: #8e908c; font-style: italic;">Close the connection and free the context </span><span style="color: #8e908c; font-style: italic;">*/</span>
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   BIO_free_all(bio);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   SSL_CTX_free(ctx);
-<span style="color: #4d4d4c; background-color: #d6d6d6;"> </span>   <span style="color: #718c00;">return</span> 0;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">Close the connection and free the context </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   BIO_free_all(bio);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   SSL_CTX_free(ctx);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> 0;
 }
 </pre>
 </div>
