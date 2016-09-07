@@ -14049,22 +14049,26 @@ class RedisShard {
   
   应用程序应该重试被中断的系统调用，但很多时候是通过第三方库间接进行系统调用，而这些库并未考虑周到，误以为系统调用失败。
 
+  另外还有信号标志 SA_RESTART ，用于自动重试被中断的系统调用，考虑到它只支持部分系统调用，而且我用到的平台不支持这一标志，所以不作考虑。
+
   那么该如何避免 SIGCHLD 信号中断系统调用呢？
 
 
   根据 system(3) 函数的 [[http://man7.org/tlpi/code/online/dist/procexec/system.c.html][源码]] ，其关键逻辑如下：
-   
-  - 设置当前线程的 SIGCHLD 信号为阻塞（SIG_BLOCK）状态
+
+  - 保存信号掩码
+
+  - 设置信号掩码为阻塞（SIG_BLOCK） SIGCHLD 信号
 
   - fork(3)
 
     + 子进程
 
-      恢复 SIGCHLD 信号处理，然后 execl(3)。
+      重置为保存的信号掩码，然后 execl(3)
 
     + 父进程
 
-      等待子进程（waitpid(3)）结束，恢复当前线程的 SIGCHLD 信号处理。
+      等待子进程（waitpid(3)）结束，重置为保存的信号掩码
        
   子进程结束时操作系统会给父进程发送 SIGCHLD 信号，父进程会遍历（通常从主线程找起）一个不阻塞 SIGCHLD 的线程进行处理。
 
@@ -14106,9 +14110,37 @@ and as a result it will not hear about deceased children, and children will not 
 
    system(3) 调用 waitpid(3) 时，子进程已经被系统自动回收，消失得无影无踪，也就取不到子进程的返回值。
 
-** 在整个应用中阻塞 SIGCHLD 信号可能导致孙进程僵尸
+*** 使用 popen(3)/pclose(3) 来代替 system(3) 通过分析标准输出来判断命令执行是否成功
 
-   注意 signal(3) 无法阻塞一个信号，只支持忽略（SIG_IGN）和恢复缺省处理（SIG_DFL）。
+    #+begin_src c
+      int system2(const char* command, char* output, size_t output_size)
+      {
+          FILE* p = popen(command, "r");
+          if (p) {
+              memset(output, '\0', output_size);
+              fread(output, output_size - 1, 1, p);
+              pclose(p);
+              return 0;
+          }
+
+          return -1;
+      }
+    #+end_src
+
+    使用示例
+
+    #+begin_src C
+      char output[255];
+      if (0 == system2("mkdir /test; echo ret=$?", output, sizeof(output)) && strstr(output, "ret=0")) {
+          printf("mkdir /test successed");
+      } else {
+          printf("mkdir /test failed");
+      }
+    #+end_src
+
+** 在整个应用中阻塞 SIGCHLD 信号可能导致出现僵尸进程
+
+   signal(3) 无法阻塞一个信号，只支持忽略（SIG_IGN）和恢复缺省处理（SIG_DFL）。
 
    阻塞（ SIG_BLOCK）和取消阻塞（SIG_UNBLOCK）用于信号掩码（Signal Mask），如 sigprocmask(3) ，多线程下请使用 pthread_sigmask(3)。
 
@@ -14130,40 +14162,54 @@ and as a result it will not hear about deceased children, and children will not 
    A child created via fork(2) inherits a copy of its parent's signal mask; the signal mask is preserved across execve(2).
    #+end_quote
 
-   system(3) 在替换进程为新程序（execl(3)）之前，会恢复为默认的信号掩码（SIGCHLD 处于阻塞状态），可能干扰子进程运行，
-   如通过 system(3) 启动了 sshd，有用户尝试登录，sshd 会再 fork(3) 一个孙进程，然后在 SIGCHLD 信号处理函数中通过 waitpid(3) 回收孙进程，但是从父进程（调用 system(3)的进程）继承而来信号掩码阻塞了 SIGCHLD 信号，导致孙进程结束后成为僵尸进程。
+   system(3) 在替换进程为新程序（execl(3)）之前，会重置为保存的信号掩码，也就是阻塞 SIGCHLD 信号状态，子进程继承这一掩码可能会产生问题。
 
-   相关 BUG 报告
-   [[https://bugzilla.mindrot.org/show_bug.cgi?id=271][271 – SSHD should unblock SIGCHLD - POSIX signal blocks survive exec()]]
+*** 在整个应用中阻塞 SIGCHLD 信号会导致一种常用的回收僵尸进程的方法失效
 
-   在调用 system(3) 前取消对 SIGCHLD 的阻塞，调用返回后恢复对 SIGCHLD 的阻塞，可以解决这个问题
-   #+begin_src C
-     // 封装 system(3) ，一方面避免中断系统调用，另一方面避免出现僵尸孙进程.
-     // 请记得全局堵塞 SIGCHLD 信号.
-     int system2(const char* command)
-     {
-         // 调用 system(3) 前取消对 SIGCHLD 的阻塞
-         sigset_t set;
-         sigemptyset(&set);
-         sigaddset(&set, SIGCHLD);
-         pthread_sigmask(SIG_UNBLOCK, &set, NULL);
+    [[http://www.microhowto.info/howto/reap_zombie_processes_using_a_sigchld_handler.html][Reap zombie processes using a SIGCHLD handler]] 有详细描述
 
-         int code = system(command);
+    #+begin_quote
+    The method described here has two steps:
 
-         // 调用 system(3) 后恢复对 SIGCHLD 的阻塞
-         sigemptyset(&set);
-         sigaddset(&set, SIGCHLD);
-         pthread_sigmask(SIG_BLOCK, &set, NULL);
+    1. Define a handler for SIGCHLD that calls waitpid.
 
-         return code;
-     }
-   #+end_src
+    2. Register the SIGCHLD handler.
+    #+end_quote
 
-   考虑到还有 popen(3)/pclose(3) 也可以用来创建子进程，所以还有很多替换工作。
+    这种回收僵尸进程的方法不但我们自已不能使用，并且我们调用的子进程也不能使用，除非子进程聪明到先清除 SIGCHLD 信号掩码。
 
-** 折衷方案
+    相关 BUG 报告
+    [[https://bugzilla.mindrot.org/show_bug.cgi?id=271][271 – SSHD should unblock SIGCHLD - POSIX signal blocks survive exec()]]
 
-   放任 SIGCHLD 不管会任由它将其它线程的系统调用中断，而堵塞它也可能因为僵尸孙进程而影响系统的稳定性，所以只能选择忽略它，当需要通过 system(3) 的返回值确定命令执行是否成功时，可以改用 popen(3)/pclose(3) 通过读取命令的标准输出进行判断。
+    通过 system(3) 启动 sshd，有用户尝试登录，sshd 会再 fork(3) 一个孙进程，然后在 SIGCHLD 信号处理函数中通过 waitpid(3) 回收孙进程，但是从父进程（调用 system(3)的进程）继承而来信号掩码阻塞了 SIGCHLD 信号，导致孙进程结束后成为僵尸进程。
+
+*** 在调用 system(3) 前暂时取消对 SIGCHLD 的阻塞
+
+    #+begin_src C
+      // 封装 system(3) ，一方面避免中断系统调用，另一方面避免出现僵尸孙进程.
+      // 请记得全局堵塞 SIGCHLD 信号.
+      int system2(const char* command)
+      {
+          // 调用 system(3) 前取消对 SIGCHLD 的阻塞
+          sigset_t set;
+          sigemptyset(&set);
+          sigaddset(&set, SIGCHLD);
+          pthread_sigmask(SIG_UNBLOCK, &set, NULL);
+
+          int code = system(command);
+
+          // 调用 system(3) 后恢复对 SIGCHLD 的阻塞
+          sigemptyset(&set);
+          sigaddset(&set, SIGCHLD);
+          pthread_sigmask(SIG_BLOCK, &set, NULL);
+
+          return code;
+      }
+    #+end_src
+
+    在调用 system(3) 前暂时取消对 SIGCHLD 的阻塞，使子进程继承到正确的信号掩码，调用返回后恢复对 SIGCHLD 的阻塞，可以解决这个问题。
+
+    另外还有 popen(3)/pclose(3) 也可以用来创建子进程，也要相应进行替换。
 
 ** 参考
 

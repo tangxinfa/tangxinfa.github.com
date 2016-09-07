@@ -4,7 +4,7 @@
         <title>linux - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/linux.xml</link>
-        <lastBuildDate>Tue, 06 Sep 2016 09:11:36 GMT</lastBuildDate>
+        <lastBuildDate>Wed, 07 Sep 2016 11:27:48 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>linux - 看看俺 – KanKanAn.com</title>
@@ -193,6 +193,10 @@ system(3) 在执行的命令结束时会发出 SIGCHLD 信号，收到 SIGCHLD �
 </p>
 
 <p>
+另外还有信号标志 SA_RESTART ，用于自动重试被中断的系统调用，考虑到它只支持部分系统调用，而且我用到的平台不支持这一标志，所以不作考虑。
+</p>
+
+<p>
 那么该如何避免 SIGCHLD 信号中断系统调用呢？
 </p>
 
@@ -202,7 +206,10 @@ system(3) 在执行的命令结束时会发出 SIGCHLD 信号，收到 SIGCHLD �
 </p>
 
 <ul class="org-ul">
-<li>设置当前线程的 SIGCHLD 信号为阻塞（SIG_BLOCK）状态
+<li>保存信号掩码
+</li>
+
+<li>设置信号掩码为阻塞（SIG_BLOCK） SIGCHLD 信号
 </li>
 
 <li>fork(3)
@@ -211,14 +218,14 @@ system(3) 在执行的命令结束时会发出 SIGCHLD 信号，收到 SIGCHLD �
 <li>子进程
 
 <p>
-恢复 SIGCHLD 信号处理，然后 execl(3)。
+重置为保存的信号掩码，然后 execl(3)
 </p>
 </li>
 
 <li>父进程
 
 <p>
-等待子进程（waitpid(3)）结束，恢复当前线程的 SIGCHLD 信号处理。
+等待子进程（waitpid(3)）结束，重置为保存的信号掩码
 </p>
 </li>
 </ul>
@@ -296,13 +303,50 @@ and as a result it will not hear about deceased children, and children will not 
 system(3) 调用 waitpid(3) 时，子进程已经被系统自动回收，消失得无影无踪，也就取不到子进程的返回值。
 </p>
 </div>
+
+<div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1">使用 popen(3)/pclose(3) 来代替 system(3) 通过分析标准输出来判断命令执行是否成功</h3>
+<div class="outline-text-3" id="text-1-1">
+<div class="org-src-container">
+
+<pre class="src src-c"><span style="color: #81a2be;">int</span> <span style="color: #de935f;">system2</span>(<span style="color: #b5bd68;">const</span> <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">command</span>, <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">output</span>, <span style="color: #81a2be;">size_t</span> <span style="color: #f0c674;">output_size</span>)
+{
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #81a2be;">FILE</span>* <span style="color: #f0c674;">p</span> = popen(command, <span style="color: #8abeb7;">"r"</span>);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">if</span> (p) {
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   memset(output, <span style="color: #8abeb7;">'\0'</span>, output_size);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   fread(output, output_size - 1, 1, p);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   pclose(p);
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> 0;
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   }
+
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   <span style="color: #b5bd68;">return</span> -1;
+}
+</pre>
+</div>
+
+<p>
+使用示例
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-C"><span style="color: #81a2be;">char</span> <span style="color: #f0c674;">output</span>[255];
+<span style="color: #b5bd68;">if</span> (0 == system2(<span style="color: #8abeb7;">"mkdir /test; echo ret=$?"</span>, output, <span style="color: #b5bd68;">sizeof</span>(output)) &amp;&amp; strstr(o<span style="text-decoration: underline;">utput, </span><span style="color: #8abeb7; text-decoration: underline;">"ret=0"</span><span style="text-decoration: underline;">)) {</span>
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   printf(<span style="color: #8abeb7;">"mkdir /test successed"</span>);
+} <span style="color: #b5bd68;">else</span> {
+<span style="color: #c5c8c6; background-color: #373b41;"> </span>   printf(<span style="color: #8abeb7;">"mkdir /test failed"</span>);
+}
+</pre>
+</div>
+</div>
+</div>
 </div>
 
 <div id="outline-container-sec-2" class="outline-2">
-<h2 id="sec-2">在整个应用中阻塞 SIGCHLD 信号可能导致孙进程僵尸</h2>
+<h2 id="sec-2">在整个应用中阻塞 SIGCHLD 信号可能导致出现僵尸进程</h2>
 <div class="outline-text-2" id="text-2">
 <p>
-注意 signal(3) 无法阻塞一个信号，只支持忽略（SIG_IGN）和恢复缺省处理（SIG_DFL）。
+signal(3) 无法阻塞一个信号，只支持忽略（SIG_IGN）和恢复缺省处理（SIG_DFL）。
 </p>
 
 <p>
@@ -340,8 +384,33 @@ A child created via fork(2) inherits a copy of its parent's signal mask; the sig
 </blockquote>
 
 <p>
-system(3) 在替换进程为新程序（execl(3)）之前，会恢复为默认的信号掩码（SIGCHLD 处于阻塞状态），可能干扰子进程运行，
-如通过 system(3) 启动了 sshd，有用户尝试登录，sshd 会再 fork(3) 一个孙进程，然后在 SIGCHLD 信号处理函数中通过 waitpid(3) 回收孙进程，但是从父进程（调用 system(3)的进程）继承而来信号掩码阻塞了 SIGCHLD 信号，导致孙进程结束后成为僵尸进程。
+system(3) 在替换进程为新程序（execl(3)）之前，会重置为保存的信号掩码，也就是阻塞 SIGCHLD 信号状态，子进程继承这一掩码可能会产生问题。
+</p>
+</div>
+
+<div id="outline-container-sec-2-1" class="outline-3">
+<h3 id="sec-2-1">在整个应用中阻塞 SIGCHLD 信号会导致一种常用的回收僵尸进程的方法失效</h3>
+<div class="outline-text-3" id="text-2-1">
+<p>
+<a href="http://www.microhowto.info/howto/reap_zombie_processes_using_a_sigchld_handler.html">Reap zombie processes using a SIGCHLD handler</a> 有详细描述
+</p>
+
+<blockquote>
+<p>
+The method described here has two steps:
+</p>
+
+<ol class="org-ol">
+<li>Define a handler for SIGCHLD that calls waitpid.
+</li>
+
+<li>Register the SIGCHLD handler.
+</li>
+</ol>
+</blockquote>
+
+<p>
+这种回收僵尸进程的方法不但我们自已不能使用，并且我们调用的子进程也不能使用，除非子进程聪明到先清除 SIGCHLD 信号掩码。
 </p>
 
 <p>
@@ -350,8 +419,14 @@ system(3) 在替换进程为新程序（execl(3)）之前，会恢复为默认�
 </p>
 
 <p>
-在调用 system(3) 前取消对 SIGCHLD 的阻塞，调用返回后恢复对 SIGCHLD 的阻塞，可以解决这个问题
+通过 system(3) 启动 sshd，有用户尝试登录，sshd 会再 fork(3) 一个孙进程，然后在 SIGCHLD 信号处理函数中通过 waitpid(3) 回收孙进程，但是从父进程（调用 system(3)的进程）继承而来信号掩码阻塞了 SIGCHLD 信号，导致孙进程结束后成为僵尸进程。
 </p>
+</div>
+</div>
+
+<div id="outline-container-sec-2-2" class="outline-3">
+<h3 id="sec-2-2">在调用 system(3) 前暂时取消对 SIGCHLD 的阻塞</h3>
+<div class="outline-text-3" id="text-2-2">
 <div class="org-src-container">
 
 <pre class="src src-C"><span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">&#23553;&#35013; system(3) &#65292;&#19968;&#26041;&#38754;&#36991;&#20813;&#20013;&#26029;&#31995;&#32479;&#35843;&#29992;&#65292;&#21478;&#19968;&#26041;&#38754;&#36991;&#20813;&#20986;&#29616;&#20725;&#23608;&#23385;&#36827;&#31243;.</span>
@@ -377,23 +452,19 @@ system(3) 在替换进程为新程序（execl(3)）之前，会恢复为默认�
 </div>
 
 <p>
-考虑到还有 popen(3)/pclose(3) 也可以用来创建子进程，所以还有很多替换工作。
+在调用 system(3) 前暂时取消对 SIGCHLD 的阻塞，使子进程继承到正确的信号掩码，调用返回后恢复对 SIGCHLD 的阻塞，可以解决这个问题。
 </p>
+
+<p>
+另外还有 popen(3)/pclose(3) 也可以用来创建子进程，也要相应进行替换。
+</p>
+</div>
 </div>
 </div>
 
 <div id="outline-container-sec-3" class="outline-2">
-<h2 id="sec-3">折衷方案</h2>
+<h2 id="sec-3">参考</h2>
 <div class="outline-text-2" id="text-3">
-<p>
-放任 SIGCHLD 不管会任由它将其它线程的系统调用中断，而堵塞它也可能因为僵尸孙进程而影响系统的稳定性，所以只能选择忽略它，当需要通过 system(3) 的返回值确定命令执行是否成功时，可以改用 popen(3)/pclose(3) 通过读取命令的标准输出进行判断。
-</p>
-</div>
-</div>
-
-<div id="outline-container-sec-4" class="outline-2">
-<h2 id="sec-4">参考</h2>
-<div class="outline-text-2" id="text-4">
 <ul class="org-ul">
 <li><a href="http://www.linuxprogrammingblog.com/all-about-linux-signals?page=show">All about Linux signals | Linux Programming Blog</a>
 </li>
