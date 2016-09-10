@@ -14221,7 +14221,6 @@ and as a result it will not hear about deceased children, and children will not 
 
    - [[http://www.oschina.net/question/54100_30293][Linux下调用system()函数导致的问题 - 开源中国社区]]
 
-
 * TODO Redis 双机房部署                                         :redis:linux:
 
 ** 简化的核心模型
@@ -14820,3 +14819,264 @@ and as a result it will not hear about deceased children, and children will not 
   #+begin_src sh
     tail -f --pid=$$ ./run.log | bunyan --strict -c 'this.msg == "file uploaded"' -0 | json -ga file | ./tools/file-scan -o ./tools/file-scan-successed.log -e ./tools/file-scan-failed.log
   #+end_src
+
+* DONE ioredis Sentinel 实现就近访问                             :redis:node:
+  CLOSED: [2016-09-10 Sat 18:12]
+
+** [[https://github.com/luin/ioredis/][ioredis]] 支持按角色（Role）进行连接
+
+   引用自 [[https://github.com/luin/ioredis/][ioredis]]
+   #+begin_quote
+   ioredis 保证即使故障转移（failover）后你连接的结点依然是 master 。当故障转移发生，ioredis 会向 sentinels 询问新的 master 结点并连接，而不是尝试重连失效的结点（恢复可用后它会降级为 slave）。故障转移期间发送的所有命令将放入队列，当新连接建立后再执行，不会丢失命令。
+
+   可以指定 role 选项为 slave 以连接 slave 结点，ioredis 将尝试连接指定 master 的一个随机 slave 结点，并且保证连接的结点总是 slave 角色。当连接的结点因为故障转移而提升为 master，ioredis 将从该结点断开连接并询问 sentinels 获取另一个 slave 结点进行连接。
+
+   ioredis guarantees that the node you connected to is always a master even after a failover. When a failover happens, instead of trying to reconnect to the failed node (which will be demoted to slave when it's available again), ioredis will ask sentinels for the new master node and connect to it. All commands sent during the failover are queued and will be executed when the new connection is established so that none of the commands will be lost.
+
+   It's possible to connect to a slave instead of a master by specifying the option role with the value of slave, and ioredis will try to connect to a random slave of the specified master, with the guarantee that the connected node is always a slave. If the current node is promoted to master due to a failover, ioredis will disconnect from it and ask the sentinels for another slave node to connect to.
+   #+end_quote
+
+** [[https://github.com/luin/ioredis/][ioredis]] 会随机选择一个 Slave
+
+   引用自 ioredis/lib/connectors/sentinel_connector.js
+   #+begin_src js
+     SentinelConnector.prototype.resolveSlave = function (client, callback) {
+       client.sentinel('slaves', this.options.name, function (err, result) {
+         client.disconnect();
+         if (err) {
+           return callback(err);
+         }
+         var selectedSlave;
+         if (Array.isArray(result)) {
+           var availableSlaves = [];
+           for (var i = 0; i < result.length; ++i) {
+             var slave = utils.packObject(result[i]);
+             if (slave.flags && !slave.flags.match(/(disconnected|s_down|o_down)/)) {
+               availableSlaves.push(slave);
+             }
+           }
+           selectedSlave = _.sample(availableSlaves);
+         }
+         callback(null, selectedSlave ? { host: selectedSlave.ip, port: selectedSlave.port } : null);
+       });
+     };
+   #+end_src
+
+** 优先选择本地 Slave
+
+   相关讨论
+
+   [[https://github.com/luin/ioredis/issues/38][rfc - a preferred slave list in a sentinel setup · Issue #38 · luin/ioredis]]
+
+   短期内应该不会实现。
+
+
+   尝试自已实现优先选择本地 Slave 算法：按 IP 地址进行推断，前三段一样则认为是本地。
+
+   假设本机 IP 为 11.22.33.1，则 Slave 11.22.33.123 由于前三段（11.22.33）与本机相同被认定为是本地 Slave，而 Slave 11.22.99.1 由于前三段（11.22.99）与本机不同被认定为是异地 Slave。
+
+   实现如下
+
+   #+begin_src js
+      var _ = require('lodash');
+      var util = require('util');
+      var net = require('net');
+
+     /**
+      ,* A SentinelConnector.prototype.resolveSlave replacement, prefer local slave.
+      ,*
+      ,* @param client redis client.
+      ,* @param callback function (err, slave) called when done.
+      ,*                 slave with a extra boolean field "local_node" to indicate slave is in local network.
+      ,*
+      ,*/
+     function resolveSlavePreferLocal (client, callback) {
+         client.sentinel('slaves', this.options.name, function (err, result) {
+             if (err) {
+                 client.disconnect();
+                 return callback(err);
+             }
+             var localIP = client.stream.localAddress;
+             client.disconnect();
+
+             var localIPSegments = new Array(4);
+             if (net.isIPv4(localIP)) {
+                 localIPSegments = localIP.split('.');
+             }
+
+             var selectedSlave;
+             if (Array.isArray(result)) {
+                 var localSlaves = [];
+                 var remoteSlaves = [];
+                 for (var i = 0; i < result.length; ++i) {
+                     var slave = utils.packObject(result[i]);
+                     if (slave.flags && !slave.flags.match(/(disconnected|s_down|o_down)/)) {
+                         if (net.isIPv4(slave.ip)) {
+                             var slaveIpSegments = slave.ip.split('.');
+                             if (localIPSegments[0] === slaveIpSegments[0] &&
+                                 localIPSegments[1] === slaveIpSegments[1] &&
+                                 localIPSegments[2] === slaveIpSegments[2]) {
+                                 localSlaves.push(slave);
+                                 continue;
+                             }
+                         }
+
+                         remoteSlaves.push(slave);
+                     }
+                 }
+                 selectedSlave = _.sample(localSlaves.length ? localSlaves : remoteSlaves);
+             }
+             callback(null, selectedSlave ? { host: selectedSlave.ip, port: selectedSlave.port, local_node: Boolean(localSlaves.length) } : null);
+         });
+     };
+
+     /**
+      ,* Prefer connect to local slave.
+      ,*
+      ,* @param client redis client.
+      ,*
+      ,* @return is this change successful.
+      ,*/
+     function preferLocalSlave(client) {
+         if (client.connector.resolveSlave) {
+             client.connector.resolveSlave = resolveSlavePreferLocal;
+             return true;
+         }
+
+         return false;
+     }
+   #+end_src
+  
+   用法如下
+
+   #+begin_src js
+     var options = {name: "data", sentinels: sentinels, db: 0, role: "slave"}
+     var client = new Redis(options);
+     if (preferLocalSlave(client)) {
+         logger.warn("prefer local slave on redis sentinel(" + JSON.stringify(options) + ")");
+     }
+   #+end_src
+
+** 优先选择本地结点
+
+   假设 redis 是以 1 Master + 1 Slave 方式进行跨机房部署，那么我们希望实现优先连接本地结点（忽略其角色），
+   连接成功后该连接可能是 Master 也可能是 Slave，我们把它当 Slave 用准没错。
+
+   在上一节的基础上，实现如下
+
+   #+begin_src js
+     /**
+      ,* A SentinelConnector.prototype.resolveMaster replacement, indicate the resolved node is local node.
+      ,*
+      ,* @param client redis client.
+      ,* @param callback function (err, master) called when done.
+      ,*                 master with a extra boolean field "local_node" to indicate master is in local network.
+      ,*
+      ,*/
+     function resolveMasterPreferLocal (client, callback) {
+         client.sentinel('get-master-addr-by-name', this.options.name, function (err, result) {
+             if (err) {
+                 client.disconnect();
+                 return callback(err);
+             }
+
+             var localIP = client.stream.localAddress;
+             client.disconnect();
+
+             var localIPSegments = new Array(4);
+             if (net.isIPv4(localIP)) {
+                 localIPSegments = localIP.split('.');
+             }
+
+             var local_node = false;
+             if (Array.isArray(result)) {
+                 var ip = result[0];
+                 if (net.isIPv4(ip)) {
+                     var ipSegments = ip.split('.');
+                     if (localIPSegments[0] === ipSegments[0] &&
+                         localIPSegments[1] === ipSegments[1] &&
+                         localIPSegments[2] === ipSegments[2]) {
+                         local_node = true;
+                     }
+                 }
+             }
+
+             callback(null, Array.isArray(result) ? { host: result[0], port: result[1], local_node: local_node } : null);
+         });
+     };
+
+     /**
+      ,* A SentinelConnector.prototype.resolve replacement, prefer resolve to local node.
+      ,*
+      ,* @param endpoint sentinel endpoint to connect.
+      ,* @param callback function (err, node) called when done.
+      ,*                 node with a extra boolean field "local_node" to indicate node is in local network.
+      ,*
+      ,*/
+     function resolvePreferLocal(endpoint, callback) {
+         var client = new Redis({
+             port: endpoint.port,
+             host: endpoint.host,
+             retryStrategy: null,
+             enableReadyCheck: false,
+             connectTimeout: this.options.connectTimeout
+         });
+
+         if (this.options.role === 'slave') {
+             var self = this;
+             this.resolveSlave(client, function (slave_err, slave) {
+                 if (slave_err || !slave ||!slave.local_node) {
+                     client = new Redis({
+                         port: endpoint.port,
+                         host: endpoint.host,
+                         retryStrategy: null,
+                         enableReadyCheck: false,
+                         connectTimeout: self.options.connectTimeout
+                     });
+                     return self.resolveMaster(client, function (master_err, master) {
+                         if (!master_err && master && master.local_node) {
+                             return callback(null, master);
+                         } else if (slave || master) {
+                             return callback(null, slave || master);
+                         }
+
+                         return callback(slave_err || master_err, null);
+                     });
+                 }
+             });
+         } else {
+             this.resolveMaster(client, callback);
+         }
+     }
+
+     /**
+      ,* Prefer connect to local redis node, slave first.
+      ,*
+      ,* @param client redis client.
+      ,*
+      ,* @return is this change successful.
+      ,*/
+     function preferLocal(client) {
+         if (client.connector.resolveSlave) {
+             if (client.connector.resolveSlave != resolveSlavePreferLocal) {
+                 preferLocalSlave(client);
+             }
+
+             client.connector.resolveMaster = resolveMasterPreferLocal;
+             client.connector.resolve = resolvePreferLocal;
+             return true;
+         }
+
+         return false;
+     }
+   #+end_src
+
+   用法如下
+
+   #+begin_src js
+     var options = {name: "data", sentinels: sentinels, db: 0, role: "slave"}
+     var client = new Redis(options);
+     if (preferLocal(client)) {
+         logger.warn("prefer local on redis sentinel(" + JSON.stringify(options) + ")");
+     }
+   #+end_src
