@@ -14905,6 +14905,7 @@ and as a result it will not hear about deceased children, and children will not 
              }
 
              var selectedSlave;
+             var local_node = false;
              if (Array.isArray(result)) {
                  var localSlaves = [];
                  var remoteSlaves = [];
@@ -14925,8 +14926,9 @@ and as a result it will not hear about deceased children, and children will not 
                      }
                  }
                  selectedSlave = _.sample(localSlaves.length ? localSlaves : remoteSlaves);
+                 local_node = Boolean(localSlaves.length);
              }
-             callback(null, selectedSlave ? { host: selectedSlave.ip, port: selectedSlave.port, local_node: Boolean(localSlaves.length) } : null);
+             callback(null, selectedSlave ? { host: selectedSlave.ip, port: selectedSlave.port, local_node: local_node } : null);
          });
      };
 
@@ -14965,6 +14967,8 @@ and as a result it will not hear about deceased children, and children will not 
    在上一节的基础上，实现如下
 
    #+begin_src js
+     var Redis = require('ioredis');
+
      /**
       ,* A SentinelConnector.prototype.resolveMaster replacement, indicate the resolved node is local node.
       ,*
@@ -15042,6 +15046,8 @@ and as a result it will not hear about deceased children, and children will not 
 
                          return callback(slave_err || master_err, null);
                      });
+                 } else {
+                     return callback(null, slave);
                  }
              });
          } else {
