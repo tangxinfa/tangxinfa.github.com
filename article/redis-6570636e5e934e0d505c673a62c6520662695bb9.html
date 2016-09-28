@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+  <head>
+    <meta charset="utf-8"/>
+    <title>redis 数据库不停机拆分扩容 | 看看俺 – KanKanAn.com</title>
+    <link rel="shortcut icon" href="/static/favicon.ico" />
+    <link rel="stylesheet" type="text/less" href="/style/less/o-blog.less"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="generator" content="o-blog"/>
+    <script src="/style/js/less-1.3.0.min.js" type="text/javascript"></script>
+    <script src="/style/js/jquery-1.7.1.min.js" type="text/javascript"></script>
+    <script src="/style/bootstrap/js/bootstrap-modal.js" type="text/javascript"></script>
+    <script src="/style/bootstrap/js/bootstrap-transition.js" type="text/javascript"></script>
+    <script src="/style/bootstrap/js/bootstrap-dropdown.js" type="text/javascript"></script>
+    <script src="/style/bootstrap/js/bootstrap-collapse.js" type="text/javascript"></script>
+    <script src="/style/js/prettify.js" type="text/javascript"></script>
+    <script src="/style/js/o-blog.linenumber.js" type="text/javascript"></script>
+    <script src="/style/js/o-blog-fix.js" type="text/javascript"></script>
+  </head>
+  <body>
+    <div class="navbar navbar-fixed-top" id="header">
+      <div class="navbar-inner">
+	    <div class="container">
+	      <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="/" style="line-height:100%;">看看俺 – KanKanAn.com</a>
+	      <div class="nav-collapse collapse">
+            <ul class="org-ul">
+              <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
+                
+                <li><a href="/index.html"><i class="icon-folder-close icon-white"></i> 技术</a></li>
+                <li><a href="/category/life/0.html"><i class="icon-folder-close icon-white"></i> 生活</a></li>
+            </ul>
+	      </div>
+	    </div>
+      </div>
+    </div>
+
+    <div class="container container-fluid" id="page">
+      <div class="push-header"></div>
+
+      <div class="article">
+        <header class="article-header">
+          <h1>redis 数据库不停机拆分扩容</h1>
+      	<div class="qr-code">
+      	  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="" alt="" id="qr-code" />
+      	  <script>
+      	    document.getElementById("qr-code").src = "http://chart.apis.google.com/chart?chs=90x90&cht=qr&chld=|0&chl=" + encodeURIComponent(document.location.href);
+      	  </script>
+      	</div>
+        </header>
+      
+        <div class="article-content">
+          <p>
+服务开发之始，难以估算最终的数据规模，如按最大容量规划，则会增加项目起步时的复杂性，还有就是资源浪费。
+</p>
+
+<p>
+所以很多时候，数据都是塞在一个 redis 实例中，当服务规模扩大，单个 redis 实例不足以支撑未来的访问量时，再拆分数据（Partitioning）。
+</p>
+
+<p>
+Redis 有很多数据迁移工具，如：<a href="https://github.com/yaauie/redis-copy">redis-copy</a> 、<a href="https://github.com/salimane/redis-tools">redis-copy.py</a> 、<a href="http://redis.io/commands/migrate">migrate</a> 等，但是迁移的数据量大时需要不短的时间，会对业务稳定性造成影响。
+</p>
+
+<p>
+真正可靠的迁移手段估计只有 Redis replication 方式。
+</p>
+
+<p>
+引用自 <a href="http://redis.io/topics/partitioning#presharding">Partitioning: how to split data among multiple Redis instances. – Redis</a>
+</p>
+<blockquote>
+<p>
+Using Redis replication you will likely be able to do the move with minimal or no
+downtime for your users:
+</p>
+
+<ul class="org-ul">
+<li>Start empty instances in your new server.
+</li>
+<li>Move data configuring these new instances as slaves for your source instances.
+</li>
+<li>Stop your clients.
+</li>
+<li>Update the configuration of the moved instances with the new server IP address.
+</li>
+<li>Send the SLAVEOF NO ONE command to the slaves in the new server.
+</li>
+<li>Restart your clients with the new updated configuration.
+</li>
+<li>Finally shut down the no longer used instances in the old server.
+</li>
+</ul>
+</blockquote>
+
+<p>
+引用自 <a href="http://redis.io/topics/admin">Redis Administration – Redis</a>
+</p>
+<blockquote>
+<p>
+Upgrading or restarting a Redis instance without downtime
+</p>
+
+<p>
+Redis is designed to be a very long running process in your server. For instance many
+configuration options can be modified without any kind of restart using the CONFIG SET
+command.
+</p>
+
+<p>
+Starting from Redis 2.2 it is even possible to switch from AOF to RDB snapshots
+persistence or the other way around without restarting Redis. Check the output of the
+CONFIG GET * command for more information.
+</p>
+
+<p>
+However from time to time a restart is mandatory, for instance in order to upgrade the
+Redis process to a newer version, or when you need to modify some configuration parameter
+that is currently not supported by the CONFIG command.
+</p>
+
+<p>
+The following steps provide a very commonly used way in order to avoid any downtime.
+</p>
+
+<ul class="org-ul">
+<li>Setup your new Redis instance as a slave for your current Redis instance. In order to
+do so you need a different server, or a server that has enough RAM to keep two
+instances of Redis running at the same time.
+</li>
+<li>If you use a single server, make sure that the slave is started in a different port
+than the master instance, otherwise the slave will not be able to start at all.
+</li>
+<li>Wait for the replication initial synchronization to complete (check the slave log
+file).
+</li>
+<li>Make sure using INFO that there are the same number of keys in the master and in the
+slave. Check with redis-cli that the slave is working as you wish and is replying to
+your commands.
+</li>
+<li>Allow writes to the slave using CONFIG SET slave-read-only no
+</li>
+<li>Configure all your clients in order to use the new instance (that is, the slave).
+</li>
+<li>Once you are sure that the master is no longer receiving any query (you can check
+this with the MONITOR command), elect the slave to master using the SLAVEOF NO ONE
+command, and shut down your master.
+</li>
+</ul>
+</blockquote>
+
+<p>
+以下步骤可以不断进行，直到将数据拆到很细的粒度，值得注意的是这种拆分方法只支持将一部分数据拆分到全新的 Redis 实例。
+</p>
+
+<ul class="org-ul">
+<li>创建新 Redis 实例为旧 Redis 实例的 Slave
+</li>
+
+<li>服务同时连接新旧 Redis 实例
+
+<p>
+迁移时代码需要更新并重启服务，服务需支持优雅重启：服务进程依次重启使得客户感觉不到服务被中断。
+</p>
+
+<p>
+通过预先连接新旧 Redis 实例，使得接下来的迁移动作不需要重启服务，一键瞬间完成。
+</p>
+
+<p>
+迁移后，清除新旧 Redis 实例中的删除脏数据可能耗时较长，对于通过 scan 扫描数据的业务逻辑部分，需容忍脏数据：根据 hash 规则，扫描到数据不属于当前 Redis 实例时忽略掉，避免使用脏数据。
+</p>
+</li>
+
+<li>让新 Redis 实例可写
+
+<pre class="example">
+config set slave-read-only on
+</pre>
+
+<p>
+旧 Redis 的写请求还会同步到新的 Redis 实例。
+</p>
+
+<p>
+要求新旧 Redis 实例比较稳定，发生全量同步会导致数据丢失。
+</p>
+</li>
+
+<li>服务从新 Redis 实例访问迁移走的数据
+
+<p>
+可以通过给所有服务结点广播消息方式实现，将服务的 Redis 访问快速切到新 Redis 实例上。
+</p>
+
+<p>
+正常情况下，旧 Redis 中已迁移的数据应该不会再有读写，如果有的话可能是还没有迁移干净，应该立即找到访问源，进行中断或迁移。
+</p>
+</li>
+
+<li>新 Redis 实例断开与旧实例的 Master-Slave 关系
+</li>
+
+<li>删除旧 Redis 实例中已迁走的数据
+</li>
+
+<li>删除新 Redis 实例中多迁来的数据
+</li>
+</ul>
+
+        </div>
+        <br />
+        <footer class="article-footer">
+          <a class="tag" href="/tag/redis/0.html"><i class="icon-tag icon-white"></i> redis</a>
+          <span class="muted">
+            <i class="icon-time icon-white"></i> <time datetime="2016-09-22T11:02:00+0800">2016年9月22日 11时</time>
+          </span>
+        </footer>
+      </div>
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+  /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+  var disqus_shortname = 'kankananblog';
+
+  /* * * DON'T EDIT BELOW THIS LINE * * */
+  (function() {
+  var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+  dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+      <div class="push-footer"></div>
+    </div>
+
+    <div id="footer">
+  	  <div class="copyright" style="text-align: center;">
+  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
+  	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
+  	  </div>
+    </div>
+  </body>
+</html>

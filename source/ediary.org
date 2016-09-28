@@ -3155,7 +3155,7 @@ class RedisShard {
 
    - =./uc_server/data/tmp/angel.php=
 
-     #+begin_src php
+     #+begin_src web
        <?php
        error_reporting(7);
        @set_magic_quotes_runtime(0);
@@ -14878,9 +14878,12 @@ and as a result it will not hear about deceased children, and children will not 
    实现如下
 
    #+begin_src js
-      var _ = require('lodash');
-      var util = require('util');
-      var net = require('net');
+     var Redis     = require('ioredis'),
+         utils     = require('ioredis/lib/utils'),
+         _         = require('lodash'),
+         net       = require('net'),
+         assert    = require('assert');
+
 
      /**
       ,* A SentinelConnector.prototype.resolveSlave replacement, prefer local slave.
@@ -14891,6 +14894,7 @@ and as a result it will not hear about deceased children, and children will not 
       ,*
       ,*/
      function resolveSlavePreferLocal (client, callback) {
+         var self = this;
          client.sentinel('slaves', this.options.name, function (err, result) {
              if (err) {
                  client.disconnect();
@@ -14928,6 +14932,9 @@ and as a result it will not hear about deceased children, and children will not 
                  selectedSlave = _.sample(localSlaves.length ? localSlaves : remoteSlaves);
                  local_node = Boolean(localSlaves.length);
              }
+
+             console.warn('redis(' + JSON.stringify({name: self.options.name, db: self.options.db, sentinels: self.options.sentinels}) + ') resolve slave to' + (local_node ? ' local' : '') + ': ' + selectedSlave.ip + ':' + selectedSlave.port);
+
              callback(null, selectedSlave ? { host: selectedSlave.ip, port: selectedSlave.port, local_node: local_node } : null);
          });
      };
@@ -14940,9 +14947,13 @@ and as a result it will not hear about deceased children, and children will not 
       ,* @return is this change successful.
       ,*/
      function preferLocalSlave(client) {
-         if (client.connector.resolveSlave) {
-             client.connector.resolveSlave = resolveSlavePreferLocal;
-             return true;
+         if (client.options.role === 'slave' && client.connector.resolveSlave) {
+             if (client.options.lazyConnect && client.status == 'wait') {
+                 client.connector.resolveSlave = resolveSlavePreferLocal;
+                 return true;
+             }
+
+             console.warn('redis client(' + JSON.stringify({name: client.options.name, db: client.options.db, sentinels: client.options.sentinels}) + ') status unexpected');
          }
 
          return false;
@@ -14952,12 +14963,14 @@ and as a result it will not hear about deceased children, and children will not 
    用法如下
 
    #+begin_src js
-     var options = {name: "data", sentinels: sentinels, db: 0, role: "slave"}
+     var options = {name: "data", sentinels: sentinels, db: 0, role: "slave", lazyConnect: true}
      var client = new Redis(options);
      if (preferLocalSlave(client)) {
-         logger.warn("prefer local slave on redis sentinel(" + JSON.stringify(options) + ")");
+         console.warn("prefer local slave on redis sentinel(" + JSON.stringify(options) + ")");
      }
    #+end_src
+
+   值得注意的是必须指定 =lazyConnect: true= ，这样才能通过替换 client 中的方法实现功能。 
 
 ** 优先选择本地结点
 
@@ -14967,8 +14980,6 @@ and as a result it will not hear about deceased children, and children will not 
    在上一节的基础上，实现如下
 
    #+begin_src js
-     var Redis = require('ioredis');
-
      /**
       ,* A SentinelConnector.prototype.resolveMaster replacement, indicate the resolved node is local node.
       ,*
@@ -15018,6 +15029,8 @@ and as a result it will not hear about deceased children, and children will not 
       ,*
       ,*/
      function resolvePreferLocal(endpoint, callback) {
+         assert(this.options.role === 'slave');
+
          var client = new Redis({
              port: endpoint.port,
              host: endpoint.host,
@@ -15026,33 +15039,43 @@ and as a result it will not hear about deceased children, and children will not 
              connectTimeout: this.options.connectTimeout
          });
 
-         if (this.options.role === 'slave') {
-             var self = this;
-             this.resolveSlave(client, function (slave_err, slave) {
-                 if (slave_err || !slave ||!slave.local_node) {
-                     client = new Redis({
-                         port: endpoint.port,
-                         host: endpoint.host,
-                         retryStrategy: null,
-                         enableReadyCheck: false,
-                         connectTimeout: self.options.connectTimeout
-                     });
-                     return self.resolveMaster(client, function (master_err, master) {
-                         if (!master_err && master && master.local_node) {
-                             return callback(null, master);
-                         } else if (slave || master) {
-                             return callback(null, slave || master);
-                         }
-
-                         return callback(slave_err || master_err, null);
-                     });
-                 } else {
-                     return callback(null, slave);
+         var self = this;
+         this.resolveSlave(client, function (slave_err, slave) {
+             if (slave_err || !slave ||!slave.local_node) {
+                 if (slave_err) {
+                     console.error('redis(' + JSON.stringify({name: self.options.name, db: self.options.db, sentinels: self.options.sentinels}) + ') resolve slave error(' + slave_err.toString() + ')');
                  }
-             });
-         } else {
-             this.resolveMaster(client, callback);
-         }
+                 client = new Redis({
+                     port: endpoint.port,
+                     host: endpoint.host,
+                     retryStrategy: null,
+                     enableReadyCheck: false,
+                     connectTimeout: self.options.connectTimeout
+                 });
+                 return self.resolveMaster(client, function (master_err, master) {
+                     if (master_err) {
+                         console.error('redis(' + JSON.stringify({name: self.options.name, db: self.options.db, sentinels: self.options.sentinels}) + ') resolve master error(' + master_err.toString() + ')');
+                     }
+                     if (!master_err && master && master.local_node) {
+                         console.warn('redis(' + JSON.stringify({name: self.options.name, db: self.options.db, sentinels: self.options.sentinels}) + ') resolve slave to local master: ' + master.host + ':' + master.port);
+                         return callback(null, master);
+                     } else if (slave || master) {
+                         return callback(null, slave || master);
+                     }
+
+                     return callback(slave_err || master_err, null);
+                 });
+             } else {
+                 return callback(null, slave);
+             }
+         });
+     }
+
+     /**
+      ,* A SentinelConnector.prototype.check replacement, enable connect local master when connect to slave.
+      ,*/
+     function checkPreferLocal(info) {
+         return true;
      }
 
      /**
@@ -15063,14 +15086,19 @@ and as a result it will not hear about deceased children, and children will not 
       ,* @return is this change successful.
       ,*/
      function preferLocal(client) {
-         if (client.connector.resolveSlave) {
-             if (client.connector.resolveSlave != resolveSlavePreferLocal) {
-                 preferLocalSlave(client);
+         if (client.options.role === 'slave' && client.connector.resolveSlave) {
+             if (client.options.lazyConnect && client.status == 'wait') {
+                 if (client.connector.resolveSlave != resolveSlavePreferLocal) {
+                     preferLocalSlave(client);
+                 }
+
+                 client.connector.resolveMaster = resolveMasterPreferLocal;
+                 client.connector.resolve = resolvePreferLocal;
+                 client.connector.check = checkPreferLocal;
+                 return true;
              }
 
-             client.connector.resolveMaster = resolveMasterPreferLocal;
-             client.connector.resolve = resolvePreferLocal;
-             return true;
+             console.warn('redis client(' + JSON.stringify({name: client.options.name, db: client.options.db, sentinels: client.options.sentinels}) + ') status unexpected');
          }
 
          return false;
@@ -15080,9 +15108,103 @@ and as a result it will not hear about deceased children, and children will not 
    用法如下
 
    #+begin_src js
-     var options = {name: "data", sentinels: sentinels, db: 0, role: "slave"}
+     var options = {name: "data", sentinels: sentinels, db: 0, role: "slave", lazyConnect: true}
      var client = new Redis(options);
      if (preferLocal(client)) {
-         logger.warn("prefer local on redis sentinel(" + JSON.stringify(options) + ")");
+         console.warn("prefer local on redis sentinel(" + JSON.stringify(options) + ")");
      }
    #+end_src
+
+* DONE redis 数据库不停机拆分扩容                                     :redis:
+  CLOSED: [2016-09-22 Thu 11:02]
+
+服务开发之始，难以估算最终的数据规模，如按最大容量规划，则会增加项目起步时的复杂性，还有就是资源浪费。
+
+所以很多时候，数据都是塞在一个 redis 实例中，当服务规模扩大，单个 redis 实例不足以支撑未来的访问量时，再拆分数据（Partitioning）。
+
+Redis 有很多数据迁移工具，如：[[https://github.com/yaauie/redis-copy][redis-copy]] 、[[https://github.com/salimane/redis-tools][redis-copy.py]] 、[[http://redis.io/commands/migrate][migrate]] 等，但是迁移的数据量大时需要不短的时间，会对业务稳定性造成影响。
+
+真正可靠的迁移手段估计只有 Redis replication 方式。
+
+引用自 [[http://redis.io/topics/partitioning#presharding][Partitioning: how to split data among multiple Redis instances. – Redis]]
+#+begin_quote
+Using Redis replication you will likely be able to do the move with minimal or no
+downtime for your users:
+
+  * Start empty instances in your new server.
+  * Move data configuring these new instances as slaves for your source instances.
+  * Stop your clients.
+  * Update the configuration of the moved instances with the new server IP address.
+  * Send the SLAVEOF NO ONE command to the slaves in the new server.
+  * Restart your clients with the new updated configuration.
+  * Finally shut down the no longer used instances in the old server.
+#+end_quote
+
+引用自 [[http://redis.io/topics/admin][Redis Administration – Redis]]
+#+begin_quote
+Upgrading or restarting a Redis instance without downtime
+
+Redis is designed to be a very long running process in your server. For instance many
+configuration options can be modified without any kind of restart using the CONFIG SET
+command.
+
+Starting from Redis 2.2 it is even possible to switch from AOF to RDB snapshots
+persistence or the other way around without restarting Redis. Check the output of the
+CONFIG GET * command for more information.
+
+However from time to time a restart is mandatory, for instance in order to upgrade the
+Redis process to a newer version, or when you need to modify some configuration parameter
+that is currently not supported by the CONFIG command.
+
+The following steps provide a very commonly used way in order to avoid any downtime.
+
+  * Setup your new Redis instance as a slave for your current Redis instance. In order to
+    do so you need a different server, or a server that has enough RAM to keep two
+    instances of Redis running at the same time.
+  * If you use a single server, make sure that the slave is started in a different port
+    than the master instance, otherwise the slave will not be able to start at all.
+  * Wait for the replication initial synchronization to complete (check the slave log
+    file).
+  * Make sure using INFO that there are the same number of keys in the master and in the
+    slave. Check with redis-cli that the slave is working as you wish and is replying to
+    your commands.
+  * Allow writes to the slave using CONFIG SET slave-read-only no
+  * Configure all your clients in order to use the new instance (that is, the slave).
+  * Once you are sure that the master is no longer receiving any query (you can check
+    this with the MONITOR command), elect the slave to master using the SLAVEOF NO ONE
+    command, and shut down your master.
+#+end_quote
+
+以下步骤可以不断进行，直到将数据拆到很细的粒度，值得注意的是这种拆分方法只支持将一部分数据拆分到全新的 Redis 实例。
+
+- 创建新 Redis 实例为旧 Redis 实例的 Slave
+
+- 服务同时连接新旧 Redis 实例
+
+  迁移时代码需要更新并重启服务，服务需支持优雅重启：服务进程依次重启使得客户感觉不到服务被中断。
+  
+  通过预先连接新旧 Redis 实例，使得接下来的迁移动作不需要重启服务，一键瞬间完成。
+
+  迁移后，清除新旧 Redis 实例中的删除脏数据可能耗时较长，对于通过 scan 扫描数据的业务逻辑部分，需容忍脏数据：根据 hash 规则，扫描到数据不属于当前 Redis 实例时忽略掉，避免使用脏数据。
+  
+- 让新 Redis 实例可写
+
+  #+begin_example
+    config set slave-read-only on
+  #+end_example
+    
+  旧 Redis 的写请求还会同步到新的 Redis 实例。
+  
+  要求新旧 Redis 实例比较稳定，发生全量同步会导致数据丢失。
+
+- 服务从新 Redis 实例访问迁移走的数据
+  
+  可以通过给所有服务结点广播消息方式实现，将服务的 Redis 访问快速切到新 Redis 实例上。
+
+  正常情况下，旧 Redis 中已迁移的数据应该不会再有读写，如果有的话可能是还没有迁移干净，应该立即找到访问源，进行中断或迁移。
+  
+- 新 Redis 实例断开与旧实例的 Master-Slave 关系
+
+- 删除旧 Redis 实例中已迁走的数据
+
+- 删除新 Redis 实例中多迁来的数据
