@@ -179,11 +179,11 @@ command, and shut down your master.
 <li>让新 Redis 实例可写
 
 <pre class="example">
-config set slave-read-only on
+config set slave-read-only no
 </pre>
 
 <p>
-旧 Redis 的写请求还会同步到新的 Redis 实例。
+新 Redis 实例也可写入，旧 Redis 的写请求还会同步到新的 Redis 实例，使得迁移过程中数据基本不丢失。
 </p>
 
 <p>
@@ -203,12 +203,23 @@ config set slave-read-only on
 </li>
 
 <li>新 Redis 实例断开与旧实例的 Master-Slave 关系
-</li>
 
-<li>删除旧 Redis 实例中已迁走的数据
+<p>
+新 Redis 实例改为角色为 Master，恢复 <code>slave-read-only</code> 配置项为 <code>yes</code> 。
+</p>
+
+<p>
+新的 Redis 实例可以进一步使用 Redis Sentinel 来监控以实现高可用。
+</p>
 </li>
 
 <li>删除新 Redis 实例中多迁来的数据
+</li>
+
+<li>删除旧 Redis 实例中已迁走的数据
+
+<p>
+所有数据都迁移走后，可以将它停掉。</p>
 </li>
 </ul>
 

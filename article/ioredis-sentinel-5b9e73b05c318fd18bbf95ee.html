@@ -115,7 +115,7 @@ It's possible to connect to a slave instead of a master by specifying the option
 </div>
 
 <div id="outline-container-sec-3" class="outline-2">
-<h2 id="sec-3">优先选择本地 Slave</h2>
+<h2 id="sec-3">优先选择本地 Slave （不使用 preferredSlaves 选项）</h2>
 <div class="outline-text-2" id="text-3">
 <p>
 相关讨论
@@ -126,7 +126,7 @@ It's possible to connect to a slave instead of a master by specifying the option
 </p>
 
 <p>
-短期内应该不会实现。
+preferredSlaves 选项已经在 2.4.0 版实现，下面的代码依赖之前的 ioredis 版本代码，仅供参考，不建议使用。
 </p>
 
 
@@ -248,8 +248,12 @@ It's possible to connect to a slave instead of a master by specifying the option
 </div>
 
 <div id="outline-container-sec-4" class="outline-2">
-<h2 id="sec-4">优先选择本地结点</h2>
+<h2 id="sec-4">优先选择本地结点 （不使用 preferredSlaves 选项）</h2>
 <div class="outline-text-2" id="text-4">
+<p>
+preferredSlaves 选项已经在 2.4.0 版实现，下面的代码依赖之前的 ioredis 版本代码，仅供参考，不建议使用。
+</p>
+
 <p>
 假设 redis 是以 1 Master + 1 Slave 方式进行跨机房部署，那么我们希望实现优先连接本地结点（忽略其角色），
 连接成功后该连接可能是 Master 也可能是 Slave，我们把它当 Slave 用准没错。
@@ -400,6 +404,18 @@ It's possible to connect to a slave instead of a master by specifying the option
 }
 </pre>
 </div>
+</div>
+</div>
+
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5">优先选择本地结点（使用 preferredSlaves 选项）</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+具体实现以及用法请参考 gist <a href="https://gist.github.com/tangxinfa/3361a11acf2270e8388b43bfcb25ce0e">Connect redis with Minimum Distance First(MDF) algorithm</a> ，使用 preferredSlaves 选项实现，要求 ioredis 版本至少为 2.4.0 。
+</p>
+
+<p>
+与前面的实现有一点不同之处：当本地无 slave 而连上本地 master 后，下次重连时即使本地有 slave 了，也还是会继续重连 master。</p>
 </div>
 </div>
 

@@ -14862,13 +14862,13 @@ and as a result it will not hear about deceased children, and children will not 
      };
    #+end_src
 
-** 优先选择本地 Slave
+** 优先选择本地 Slave （不使用 preferredSlaves 选项）
 
    相关讨论
 
    [[https://github.com/luin/ioredis/issues/38][rfc - a preferred slave list in a sentinel setup · Issue #38 · luin/ioredis]]
 
-   短期内应该不会实现。
+   preferredSlaves 选项已经在 2.4.0 版实现，下面的代码依赖之前的 ioredis 版本代码，仅供参考，不建议使用。
 
 
    尝试自已实现优先选择本地 Slave 算法：按 IP 地址进行推断，前三段一样则认为是本地。
@@ -14972,7 +14972,9 @@ and as a result it will not hear about deceased children, and children will not 
 
    值得注意的是必须指定 =lazyConnect: true= ，这样才能通过替换 client 中的方法实现功能。 
 
-** 优先选择本地结点
+** 优先选择本地结点 （不使用 preferredSlaves 选项）
+
+   preferredSlaves 选项已经在 2.4.0 版实现，下面的代码依赖之前的 ioredis 版本代码，仅供参考，不建议使用。
 
    假设 redis 是以 1 Master + 1 Slave 方式进行跨机房部署，那么我们希望实现优先连接本地结点（忽略其角色），
    连接成功后该连接可能是 Master 也可能是 Slave，我们把它当 Slave 用准没错。
@@ -15115,6 +15117,12 @@ and as a result it will not hear about deceased children, and children will not 
      }
    #+end_src
 
+** 优先选择本地结点（使用 preferredSlaves 选项）
+
+   具体实现以及用法请参考 gist [[https://gist.github.com/tangxinfa/3361a11acf2270e8388b43bfcb25ce0e][Connect redis with Minimum Distance First(MDF) algorithm]] ，使用 preferredSlaves 选项实现，要求 ioredis 版本至少为 2.4.0 。
+
+   与前面的实现有一点不同之处：当本地无 slave 而连上本地 master 后，下次重连时即使本地有 slave 了，也还是会继续重连 master。
+
 * DONE redis 数据库不停机拆分扩容                                     :redis:
   CLOSED: [2016-09-22 Thu 11:02]
 
@@ -15190,10 +15198,10 @@ The following steps provide a very commonly used way in order to avoid any downt
 - 让新 Redis 实例可写
 
   #+begin_example
-    config set slave-read-only on
+    config set slave-read-only no
   #+end_example
     
-  旧 Redis 的写请求还会同步到新的 Redis 实例。
+  新 Redis 实例也可写入，旧 Redis 的写请求还会同步到新的 Redis 实例，使得迁移过程中数据基本不丢失。
   
   要求新旧 Redis 实例比较稳定，发生全量同步会导致数据丢失。
 
@@ -15205,6 +15213,12 @@ The following steps provide a very commonly used way in order to avoid any downt
   
 - 新 Redis 实例断开与旧实例的 Master-Slave 关系
 
+  新 Redis 实例改为角色为 Master，恢复 =slave-read-only= 配置项为 =yes= 。
+  
+  新的 Redis 实例可以进一步使用 Redis Sentinel 来监控以实现高可用。
+  
+- 删除新 Redis 实例中多迁来的数据
+
 - 删除旧 Redis 实例中已迁走的数据
 
-- 删除新 Redis 实例中多迁来的数据
+  所有数据都迁移走后，可以将它停掉。
