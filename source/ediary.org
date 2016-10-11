@@ -15222,3 +15222,32 @@ The following steps provide a very commonly used way in order to avoid any downt
 - 删除旧 Redis 实例中已迁走的数据
 
   所有数据都迁移走后，可以将它停掉。
+
+* DONE 解决 DNS 服务器不稳定引起的服务超时问题                     :node:dns:
+  CLOSED: [2016-10-11 Tue 20:30]
+
+  微服务架构下，服务间常常会互相调用，调用前要先解析域名，如果 DNS 服务器不稳定则会导致服务响应超时。
+
+  DNS 服务器一般由运维人员或者数据中心指定，属于不可控的因素，可以在程序内做 DNS 缓存缓解问题。
+
+  通过 [[https://github.com/yahoo/dnscache][dnscache]] 模块可以为 node.js 应用全局启用 DNS 缓存。
+
+  - 安装
+
+    #+begin_src sh
+      npm install dnscache
+    #+end_src
+
+  
+  - 启用 DNS 缓存
+
+    #+begin_src js
+      var dnscache = require('dnscache')({
+          "enable" : true,
+          "ttl" : 300,
+          "cachesize" : 1000
+      });
+    #+end_src
+
+
+  启用 DNS 缓存后，只会在缓存过期后才会重新解析域名，DNS 服务器不稳定造成的影响相应减少。

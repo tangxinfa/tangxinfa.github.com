@@ -4,7 +4,7 @@
         <title>dns - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/dns.xml</link>
-        <lastBuildDate>Mon, 10 Oct 2016 07:39:28 GMT</lastBuildDate>
+        <lastBuildDate>Tue, 11 Oct 2016 12:30:50 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>dns - 看看俺 – KanKanAn.com</title>
@@ -14,6 +14,55 @@
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <generator>Feed for Node.js</generator>
         <category>技术</category>
+        <item>
+            <title><![CDATA[解决 DNS 服务器不稳定引起的服务超时问题]]></title>
+            <link>/article/89e351b3-dns-670d52a156684e0d7a335b9a5f158d777684670d52a18d8565f695ee9898.html</link>
+            <guid>/article/89e351b3-dns-670d52a156684e0d7a335b9a5f158d777684670d52a18d8565f695ee9898.html</guid>
+            <pubDate>Tue, 11 Oct 2016 12:30:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+微服务架构下，服务间常常会互相调用，调用前要先解析域名，如果 DNS 服务器不稳定则会导致服务响应超时。
+</p>
+
+<p>
+DNS 服务器一般由运维人员或者数据中心指定，属于不可控的因素，可以在程序内做 DNS 缓存缓解问题。
+</p>
+
+<p>
+通过 <a href="https://github.com/yahoo/dnscache">dnscache</a> 模块可以为 node.js 应用全局启用 DNS 缓存。
+</p>
+
+<ul class="org-ul">
+<li>安装
+
+<div class="org-src-container">
+
+<pre class="src src-sh">npm install dnscache
+</pre>
+</div>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>启用 DNS 缓存
+
+<div class="org-src-container">
+
+<pre class="src src-js"><span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">dnscache</span> = require(<span style="color: #8abeb7;">'dnscache'</span>)({
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #8abeb7;">"enable"</span> : <span style="color: #81a2be;">true</span>,
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #8abeb7;">"ttl"</span> : 300,
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #8abeb7;">"cachesize"</span> : 1000
+});
+</pre>
+</div>
+</li>
+</ul>
+
+
+<p>
+启用 DNS 缓存后，只会在缓存过期后才会重新解析域名，DNS 服务器不稳定造成的影响相应减少。</p>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[使用 dnsmasq 缓存域名解析结果加快上网速度]]></title>
             <link>/article/4f7f7528-dnsmasq-7f135b5857df540d89e367907ed3679c52a05feb4e0a7f51901f5ea6.html</link>
