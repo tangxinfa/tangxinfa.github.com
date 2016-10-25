@@ -10097,6 +10097,7 @@ class RedisShard {
 
     #+begin_src sh
       export PATH=/opt/gcc-5.2.0/bin:$PATH
+      export LD_LIBRARY_PATH=/opt/gcc-5.2.0/lib64/:$LD_LIBRARY_PATH
     #+end_src
 
     或
@@ -10105,6 +10106,7 @@ class RedisShard {
       export CC=/opt/gcc-5.2.0/bin/gcc
       export CPP=/opt/gcc-5.2.0/bin/cpp
       export CXX=/opt/gcc-5.2.0/bin/c++
+      export LD_LIBRARY_PATH=/opt/gcc-5.2.0/lib64/:$LD_LIBRARY_PATH
     #+end_src
 
   - 参考
@@ -15194,6 +15196,8 @@ The following steps provide a very commonly used way in order to avoid any downt
   通过预先连接新旧 Redis 实例，使得接下来的迁移动作不需要重启服务，一键瞬间完成。
 
   迁移后，清除新旧 Redis 实例中的删除脏数据可能耗时较长，对于通过 scan 扫描数据的业务逻辑部分，需容忍脏数据：根据 hash 规则，扫描到数据不属于当前 Redis 实例时忽略掉，避免使用脏数据。
+
+  Slave 的数据复制进度追上后，进行下一步。
   
 - 让新 Redis 实例可写
 
@@ -15222,6 +15226,41 @@ The following steps provide a very commonly used way in order to avoid any downt
 - 删除旧 Redis 实例中已迁走的数据
 
   所有数据都迁移走后，可以将它停掉。
+
+
+最近看了《 [[http://www.infoq.com/cn/articles/online-data-migration-experience][在线数据迁移经验：如何为正在飞行的飞机更换引擎]] 》，发现前面的 redis 操作步骤与文章中的在线数据迁移步骤极其相似：
+
+- 迁移前
+
+  写旧、读旧
+
+- 上线双写
+
+  写新、写旧、读旧
+
+- 历史数据搬迁
+
+  写新、写旧、读旧
+
+- 切读
+
+  写新、写旧、读新
+
+- 清理
+
+  写新、读新。
+
+这是一种数据迁移的通用模式。
+
+
+另一篇文章《[[http://www.brunton-spall.co.uk/post/2014/05/06/database-migrations-done-right/][Database migrations done right - Michael Brunton-Spall]]》提出了一个基本原则:
+
+#+begin_quote
+你做出的每一处改动必须与系统的其余部分保持向后兼容
+
+Every change you make must be backward compatible with the rest of the system
+#+end_quote
+
 
 * DONE 解决 DNS 服务器不稳定引起的服务超时问题                     :node:dns:
   CLOSED: [2016-10-11 Tue 20:30]

@@ -174,6 +174,10 @@ command, and shut down your master.
 <p>
 迁移后，清除新旧 Redis 实例中的删除脏数据可能耗时较长，对于通过 scan 扫描数据的业务逻辑部分，需容忍脏数据：根据 hash 规则，扫描到数据不属于当前 Redis 实例时忽略掉，避免使用脏数据。
 </p>
+
+<p>
+Slave 的数据复制进度追上后，进行下一步。
+</p>
 </li>
 
 <li>让新 Redis 实例可写
@@ -219,9 +223,71 @@ config set slave-read-only no
 <li>删除旧 Redis 实例中已迁走的数据
 
 <p>
-所有数据都迁移走后，可以将它停掉。</p>
+所有数据都迁移走后，可以将它停掉。
+</p>
 </li>
 </ul>
+
+
+<p>
+最近看了《 <a href="http://www.infoq.com/cn/articles/online-data-migration-experience">在线数据迁移经验：如何为正在飞行的飞机更换引擎</a> 》，发现前面的 redis 操作步骤与文章中的在线数据迁移步骤极其相似：
+</p>
+
+<ul class="org-ul">
+<li>迁移前
+
+<p>
+写旧、读旧
+</p>
+</li>
+
+<li>上线双写
+
+<p>
+写新、写旧、读旧
+</p>
+</li>
+
+<li>历史数据搬迁
+
+<p>
+写新、写旧、读旧
+</p>
+</li>
+
+<li>切读
+
+<p>
+写新、写旧、读新
+</p>
+</li>
+
+<li>清理
+
+<p>
+写新、读新。
+</p>
+</li>
+</ul>
+
+<p>
+这是一种数据迁移的通用模式。
+</p>
+
+
+<p>
+另一篇文章《<a href="http://www.brunton-spall.co.uk/post/2014/05/06/database-migrations-done-right/">Database migrations done right - Michael Brunton-Spall</a>》提出了一个基本原则:
+</p>
+
+<blockquote>
+<p>
+你做出的每一处改动必须与系统的其余部分保持向后兼容
+</p>
+
+<p>
+Every change you make must be backward compatible with the rest of the system
+</p>
+</blockquote>
 
         </div>
         <br />
