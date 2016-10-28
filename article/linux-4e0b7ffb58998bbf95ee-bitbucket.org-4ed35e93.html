@@ -55,11 +55,15 @@
       
         <div class="article-content">
           <p>
-今天往bitbucket.org push时才发现bitbucket被GFW了。我的仓库为Mercurial hg，hg项目根目录下的 <code>.hg/hgrc</code> 配置文件中可指定http_proxy，试了一下不支持socks代理（我的浏览器用它来翻墙），最终使用tsocks软件实现翻墙访问bitbucket.org仓库。
+今天往 bitbucket.org push 时才发现 bitbucket 被 GFW 了。我的仓库为 Mercurial hg，hg 项目根目录下的 <code>.hg/hgrc</code> 配置文件中可指定 http_proxy，试了一下不支持 socks 代理（我的浏览器用它来翻墙），最终使用 tsocks 或 proxychains 实现翻墙访问 bitbucket.org 仓库。
 </p>
 
-<ul class="org-ul">
-<li>利用vps建本地socks代理的脚本 <code>ssh_proxy.sh</code>
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">使用 ssh 服务代理网络访问</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+创建本地 socks 代理的脚本 <code>ssh_proxy.sh</code>
+</p>
 <div class="org-src-container">
 
 <pre class="src src-sh"><span style="color: #999999; font-style: italic;">#</span><span style="color: #999999; font-style: italic;">!/bin/</span><span style="color: #99cc99;">bash</span>
@@ -81,11 +85,12 @@
 </div>
 
 <p>
-请将user@host改为你的vps用户及主机，并配置为免输入密码。
+请将 user@host 改为你的 vps 用户及主机，并配置为免输入密码。
 </p>
-</li>
 
-<li>启动socks代理脚本
+<p>
+启动 socks 代理脚本
+</p>
 
 <div class="org-src-container">
 
@@ -94,11 +99,86 @@
 </div>
 
 <p>
-浏览器也可以利用它来翻墙。
+通过 ssh 隧道是最简单的方式，vps 一般都会开 ssh 服务，拿来即用。
 </p>
-</li>
+</div>
+</div>
 
-<li>安装tsocks
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">使用 shadowsocks 服务代理网络访问</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+vps 上安装并启动 shadowsocks 服务器（ss-server），配置文件 <code>/etc/shadowsocks.json</code> 内容如下
+</p>
+<div class="org-src-container">
+
+<pre class="src src-json">{
+<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #99cc99;">"server"</span>:<span style="color: #66cccc;">"0.0.0.0"</span>,
+<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #99cc99;">"server_port"</span>:<span style="color: #6699cc;">8989</span>,
+<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #99cc99;">"password"</span>:<span style="color: #66cccc;">"7FdiirqD"</span>,
+<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #99cc99;">"timeout"</span>:<span style="color: #6699cc;">600</span>,
+<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #99cc99;">"method"</span>:<span style="color: #66cccc;">"aes-256-cfb"</span>,
+<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #99cc99;">"fast_open"</span>: <span style="color: #6699cc;">false</span>,
+<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #99cc99;">"workers"</span>: <span style="color: #6699cc;">1</span>
+}
+</pre>
+</div>
+
+<p>
+<code>password</code> 请自行进行修改。
+</p>
+
+<p>
+pc 上安装并启动 shadowsocks 客户端（ss-local），配置文件 <code>/etc/shadowsocks.json</code> 内容如下
+</p>
+<div class="org-src-container">
+
+<pre class="src src-json">{
+<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #99cc99;">"server"</span>:<span style="color: #66cccc;">"X.X.X.X"</span>,
+<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #99cc99;">"server_port"</span>:<span style="color: #6699cc;">8989</span>,
+<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #99cc99;">"local_port"</span>:<span style="color: #6699cc;">7070</span>,
+<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #99cc99;">"password"</span>:<span style="color: #66cccc;">"7FdiirqD"</span>,
+<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #99cc99;">"timeout"</span>:<span style="color: #6699cc;">600</span>,
+<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #99cc99;">"method"</span>:<span style="color: #66cccc;">"aes-256-cfb"</span>,
+<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #99cc99;">"fast_open"</span>: <span style="color: #6699cc;">false</span>,
+<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #99cc99;">"workers"</span>: <span style="color: #6699cc;">1</span>
+}
+</pre>
+</div>
+
+<p>
+<code>server</code> 请自行修改为真正的 shadowsocks 服务器外网 IP。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">透明代理</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+firefox 可以配置为通过 socks 代理联网，但绝大多数应用是不支持的，而透明代理（Transparent Proxy）可以使这些应用也使用代理联网。
+</p>
+</div>
+
+<div id="outline-container-sec-3-1" class="outline-3">
+<h3 id="sec-3-1">ss-redir</h3>
+<div class="outline-text-3" id="text-3-1">
+<p>
+shadowsocks 自带的本地透明代理客户端，可以使整个系统都使用代理访问网络。
+</p>
+
+<p>
+参考 <a href="http://manpages.org/ss-redir">man ss-redir (1): shadowsocks client as transparent proxy, libev port</a>
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-3-2" class="outline-3">
+<h3 id="sec-3-2">tsocks</h3>
+<div class="outline-text-3" id="text-3-2">
+<ul class="org-ul">
+<li>安装
+
 <div class="org-src-container">
 
 <pre class="src src-sh">yaourt -S tsocks
@@ -106,7 +186,7 @@
 </div>
 </li>
 
-<li>配置tsocks
+<li>配置
 
 <p>
 <code>/etc/tsocks.conf</code>
@@ -120,26 +200,35 @@ local = 10.0.0.0/255.0.0.0
 server = 127.0.0.1
 server_port = 7070
 </pre>
+
 <p>
 具体用法 <code>man tsocks.conf</code>
 </p>
 </li>
 
-<li>使用tsocks让hg用上socks代理功能
+<li>使用
+
+<p>
+让 hg 用上 socks 代理功能
+</p>
+
 <div class="org-src-container">
 
 <pre class="src src-sh">tsocks hg push
 </pre>
 </div>
+
 <p>
-tsocks看起来很通用，应该也可以让git等进行socks代理访问。
+tsocks 看起来很通用，应该也可以让 git 等进行 socks 代理访问。
 </p>
 </li>
 </ul>
+</div>
+</div>
 
-<div id="outline-container-sec-1" class="outline-2">
-<h2 id="sec-1">更好的选择 proxychains</h2>
-<div class="outline-text-2" id="text-1">
+<div id="outline-container-sec-3-3" class="outline-3">
+<h3 id="sec-3-3">proxychains</h3>
+<div class="outline-text-3" id="text-3-3">
 <p>
 tsocks 不支持代理访问 https
 </p>
@@ -172,13 +261,8 @@ $ proxychains curl https://www.baidu.com
 </pre>
 
 <p>
-proxychains 的安装配置请参考
-</p>
-
-<ul class="org-ul">
-<li><a href="https://sites.google.com/a/pickdreams.org/snail-library/Home/yong-tsocks-heproxychains-dai-lilinux-xia-suo-you-ruan-jian">用tsocks和proxychains代理Linux下所有软件 - 蜗牛图书馆</a>
-</li>
-</ul>
+proxychains 的安装配置请参考：<a href="https://sites.google.com/a/pickdreams.org/snail-library/Home/yong-tsocks-heproxychains-dai-lilinux-xia-suo-you-ruan-jian">用tsocks和proxychains代理Linux下所有软件 - 蜗牛图书馆</a></p>
+</div>
 </div>
 </div>
 

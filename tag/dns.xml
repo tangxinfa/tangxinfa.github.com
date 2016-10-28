@@ -4,7 +4,7 @@
         <title>dns - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/dns.xml</link>
-        <lastBuildDate>Tue, 25 Oct 2016 08:16:12 GMT</lastBuildDate>
+        <lastBuildDate>Fri, 28 Oct 2016 08:59:57 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>dns - 看看俺 – KanKanAn.com</title>
@@ -60,7 +60,11 @@ DNS 服务器一般由运维人员或者数据中心指定，属于不可控的�
 
 
 <p>
-启用 DNS 缓存后，只会在缓存过期后才会重新解析域名，DNS 服务器不稳定造成的影响相应减少。</p>
+启用 DNS 缓存后，只会在缓存过期后才会重新解析域名，如果重新解析域名时 DNS 服务器不稳定还是会导致服务响应超时，相比不用 dnscache 这种问题出现的机率减少了。
+</p>
+
+<p>
+想到一个对 dnscache 的改进：引入一个刷新时间 refresh_time （远小于缓存时间 ttl），每隔一段时间（refresh_time）异步重新解析一次缓存的域名，如果解析成功则更新 dnscache 并延长 ttl，这样只有当一段时间内（约为 ttl） DNS 服务器始终不稳定才会对服务造成影响。</p>
 ]]></content:encoded>
         </item>
         <item>

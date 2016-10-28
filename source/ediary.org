@@ -1819,95 +1819,145 @@ class RedisShard {
 * DONE linux下翻墙访问bitbucket.org仓库                  :linux:hg:bitbucket:
   CLOSED: [2013-06-28 Fri 13:57]
   
-  今天往bitbucket.org push时才发现bitbucket被GFW了。我的仓库为Mercurial hg，hg项目根目录下的 =.hg/hgrc= 配置文件中可指定http_proxy，试了一下不支持socks代理（我的浏览器用它来翻墙），最终使用tsocks软件实现翻墙访问bitbucket.org仓库。
+  今天往 bitbucket.org push 时才发现 bitbucket 被 GFW 了。我的仓库为 Mercurial hg，hg 项目根目录下的 =.hg/hgrc= 配置文件中可指定 http_proxy，试了一下不支持 socks 代理（我的浏览器用它来翻墙），最终使用 tsocks 或 proxychains 实现翻墙访问 bitbucket.org 仓库。
 
-  - 利用vps建本地socks代理的脚本 =ssh_proxy.sh=
-    #+begin_src sh
-      #!/bin/bash
-      
-      n=`ps waux | grep 'bash .*/ssh_proxy.sh' | grep -v grep | wc -l`
-      if [ $n -lt 3 ]; then
-          while [ true ]; do
-              n=`ps aux | grep 'ssh' | grep '7070' | grep -v grep | wc -l`
-              if [ $n -lt 1 ]; then
-                  echo "start ssh connecting"
-                  ssh -qTnNf -D 7070 user@host
-              fi
-              echo "wait for next checking"
-              sleep 30
-          done
-      fi
-      echo "ssh_proxy.sh already running"
-      
-    #+end_src
+** 使用 ssh 服务代理网络访问
 
-    请将user@host改为你的vps用户及主机，并配置为免输入密码。
+   创建本地 socks 代理的脚本 =ssh_proxy.sh=
+   #+begin_src sh
+     #!/bin/bash
 
-  - 启动socks代理脚本
+     n=`ps waux | grep 'bash .*/ssh_proxy.sh' | grep -v grep | wc -l`
+     if [ $n -lt 3 ]; then
+         while [ true ]; do
+             n=`ps aux | grep 'ssh' | grep '7070' | grep -v grep | wc -l`
+             if [ $n -lt 1 ]; then
+                 echo "start ssh connecting"
+                 ssh -qTnNf -D 7070 user@host
+             fi
+             echo "wait for next checking"
+             sleep 30
+         done
+     fi
+     echo "ssh_proxy.sh already running"
+   #+end_src
+
+   请将 user@host 改为你的 vps 用户及主机，并配置为免输入密码。
     
-    #+begin_src sh
-      nohup bash ./ssh_proxy.sh &
-    #+end_src
+   启动 socks 代理脚本
+    
+   #+begin_src sh
+     nohup bash ./ssh_proxy.sh &
+   #+end_src
 
-    浏览器也可以利用它来翻墙。
+   通过 ssh 隧道是最简单的方式，vps 一般都会开 ssh 服务，拿来即用。
 
-  - 安装tsocks
-    #+begin_src sh
-      yaourt -S tsocks
-    #+end_src
+** 使用 shadowsocks 服务代理网络访问
 
-  - 配置tsocks
+   vps 上安装并启动 shadowsocks 服务器（ss-server），配置文件 =/etc/shadowsocks.json= 内容如下
+   #+begin_src json
+     {
+       "server":"0.0.0.0",
+       "server_port":8989,
+       "password":"7FdiirqD",
+       "timeout":600,
+       "method":"aes-256-cfb",
+       "fast_open": false,
+       "workers": 1
+     }
+   #+end_src
 
-    =/etc/tsocks.conf=
+   =password= 请自行进行修改。
+
+   pc 上安装并启动 shadowsocks 客户端（ss-local），配置文件 =/etc/shadowsocks.json= 内容如下
+   #+begin_src json
+     {
+       "server":"X.X.X.X",
+       "server_port":8989,
+       "local_port":7070,
+       "password":"7FdiirqD",
+       "timeout":600,
+       "method":"aes-256-cfb",
+       "fast_open": false,
+       "workers": 1
+     }
+   #+end_src
+
+   =server= 请自行修改为真正的 shadowsocks 服务器外网 IP。
+
+** 透明代理
+
+   firefox 可以配置为通过 socks 代理联网，但绝大多数应用是不支持的，而透明代理（Transparent Proxy）可以使这些应用也使用代理联网。
+
+*** ss-redir
+
+    shadowsocks 自带的本地透明代理客户端，可以使整个系统都使用代理访问网络。
+
+    参考 [[http://manpages.org/ss-redir][man ss-redir (1): shadowsocks client as transparent proxy, libev port]]
+   
+*** tsocks
+   
+    - 安装
+
+      #+begin_src sh
+        yaourt -S tsocks
+      #+end_src
+
+    - 配置
+
+      =/etc/tsocks.conf=
+      #+begin_example
+        # We can access 192.168.0.* directly
+        local = 192.168.0.0/255.255.255.0
+        local = 10.0.0.0/255.0.0.0
+
+        # Otherwise we use the server
+        server = 127.0.0.1
+        server_port = 7070
+      #+end_example
+
+      具体用法 =man tsocks.conf=
+
+    - 使用
+      
+      让 hg 用上 socks 代理功能
+    
+      #+begin_src sh
+        tsocks hg push
+      #+end_src
+
+      tsocks 看起来很通用，应该也可以让 git 等进行 socks 代理访问。
+    
+*** proxychains
+
+    tsocks 不支持代理访问 https
+   
     #+begin_example
-      # We can access 192.168.0.* directly
-      local = 192.168.0.0/255.255.255.0
-      local = 10.0.0.0/255.0.0.0
-      
-      # Otherwise we use the server
-      server = 127.0.0.1
-      server_port = 7070
+      $ tsocks curl https://www.baidu.com
+      curl: (7) Failed to connect to www.baidu.com port 443: Connection refused
     #+end_example
-    具体用法 =man tsocks.conf=
 
-  - 使用tsocks让hg用上socks代理功能
-    #+begin_src sh
-      tsocks hg push
-    #+end_src
-    tsocks看起来很通用，应该也可以让git等进行socks代理访问。
-    
-** 更好的选择 proxychains
-
-   tsocks 不支持代理访问 https
+    proxychains 支持代理访问 https
    
-   #+begin_example
-     $ tsocks curl https://www.baidu.com
-     curl: (7) Failed to connect to www.baidu.com port 443: Connection refused
-   #+end_example
+    #+begin_example
+      $ proxychains curl https://www.baidu.com
+      [proxychains] config file found: /etc/proxychains.conf
+      [proxychains] preloading /usr/lib/libproxychains4.so
+      [proxychains] DLL init: proxychains-ng 4.11
+      [proxychains] Dynamic chain  ...  127.0.0.1:7070  ...  www.baidu.com:443  ...  OK
+      <html>
+      <head>
+          <script>
+              location.replace(location.href.replace("https://","http://"));
+          </script>
+      </head>
+      <body>
+          <noscript><meta http-equiv="refresh" content="0;url=http://www.baidu.com/"></noscript>
+      </body>
+      </html>
+    #+end_example
 
-   proxychains 支持代理访问 https
-   
-   #+begin_example
-     $ proxychains curl https://www.baidu.com
-     [proxychains] config file found: /etc/proxychains.conf
-     [proxychains] preloading /usr/lib/libproxychains4.so
-     [proxychains] DLL init: proxychains-ng 4.11
-     [proxychains] Dynamic chain  ...  127.0.0.1:7070  ...  www.baidu.com:443  ...  OK
-     <html>
-     <head>
-         <script>
-             location.replace(location.href.replace("https://","http://"));
-         </script>
-     </head>
-     <body>
-         <noscript><meta http-equiv="refresh" content="0;url=http://www.baidu.com/"></noscript>
-     </body>
-     </html>
-   #+end_example
-
-   proxychains 的安装配置请参考
-   
-   - [[https://sites.google.com/a/pickdreams.org/snail-library/Home/yong-tsocks-heproxychains-dai-lilinux-xia-suo-you-ruan-jian][用tsocks和proxychains代理Linux下所有软件 - 蜗牛图书馆]]
+    proxychains 的安装配置请参考：[[https://sites.google.com/a/pickdreams.org/snail-library/Home/yong-tsocks-heproxychains-dai-lilinux-xia-suo-you-ruan-jian][用tsocks和proxychains代理Linux下所有软件 - 蜗牛图书馆]]
 
 * TODO 《架构风格与基于网络的软件架构设计》读书笔记            :REST:reading:
   
@@ -15261,7 +15311,6 @@ The following steps provide a very commonly used way in order to avoid any downt
 Every change you make must be backward compatible with the rest of the system
 #+end_quote
 
-
 * DONE 解决 DNS 服务器不稳定引起的服务超时问题                     :node:dns:
   CLOSED: [2016-10-11 Tue 20:30]
 
@@ -15289,4 +15338,7 @@ Every change you make must be backward compatible with the rest of the system
     #+end_src
 
 
-  启用 DNS 缓存后，只会在缓存过期后才会重新解析域名，DNS 服务器不稳定造成的影响相应减少。
+  启用 DNS 缓存后，只会在缓存过期后才会重新解析域名，如果重新解析域名时 DNS 服务器不稳定还是会导致服务响应超时，相比不用 dnscache 这种问题出现的机率减少了。
+
+  想到一个对 dnscache 的改进：引入一个刷新时间 refresh_time （远小于缓存时间 ttl），每隔一段时间（refresh_time）异步重新解析一次缓存的域名，如果解析成功则更新 dnscache 并延长 ttl，这样只有当一段时间内（约为 ttl） DNS 服务器始终不稳定才会对服务造成影响。
+
