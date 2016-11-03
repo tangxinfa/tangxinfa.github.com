@@ -15345,7 +15345,7 @@ Every change you make must be backward compatible with the rest of the system
 * DONE blobmsg_json 只支持一种整型                            :openwrt:linux:
   CLOSED: [2016-10-31 Mon 20:23]
 
-  在使用 libubox 时，发现 blobmsg_policy 中使用 BLOBMSG_TYPE_INT64 或 BLOBMSG_TYPE_INT16 类型后， =ubus list -v= 显示的参数类型为 =(unknown)= ，blobmsg_parse 解析请求相应字段为 NULL，如下例所示
+  在使用 ubus 时，发现 =blobmsg_policy= 中使用 =BLOBMSG_TYPE_INT64= 或 =BLOBMSG_TYPE_INT16= 类型后， =ubus list -v= 显示的参数类型为 =(unknown)= ， =blobmsg_parse= 解析请求相应字段为 =NULL= ，如下例所示
 
   =blobmsg_json_test.c=
   #+begin_src C
@@ -15394,15 +15394,25 @@ Every change you make must be backward compatible with the rest of the system
   引用相关讨论 [[http://logs.nslu2-linux.org/livelogs/openwrt-devel/openwrt-devel.20151103.txt]]
   #+begin_quote
   Nov 03 00:43:43 <txomon> So I think I found something strange in ubus, but I am not too sure. For some reason, declaring within a policy BLOBMSG_TYPE_INT16, won't be accepted, and blobmsg_get_u16 will return null
+  
   Nov 03 00:44:04 <txomon> I mean, it is accepted but it will refuse to work
+  
   Nov 03 00:44:17 <txomon> and in ubus -v list will appear as nil
+  
   Nov 03 00:45:00 <txomon> it will appear as "(unknown)"
+  
   Nov 03 00:47:17 <txomon> looking at the cli code, I understand why it appears as unknown, because int16 is not in there, but anyway, why doesn't it work for my client?
+  
   Nov 03 00:48:17 <txomon> It might be because ubus cli is not prepared to send uint16?
+  
   Nov 03 00:48:39 <txomon> (I always refer to BLOBMSG_TYPE_INT16)
+  
   Nov 03 00:51:44 <txomon> well, I understand it isn't because json doesn't have such thing as int16... and indeed libubox/blobmsg_json.c L72 is just prepared for u32, but anyway, that means you can't use any datatype that doesn't match those ones!
+  
   Nov 03 00:52:03 <txomon> shouldn't ubus cli inspect the interface and then send the correct datatype through ubus?
+  
   Nov 03 00:55:27 <txomon> I suppose it's the same for uhttpd-mod-ubus
+  
   Nov 03 01:01:23 <txomon> I have checked and yeah... so I will just use BLOBMSG_TYPE_INT32.... why does ubus even support that then? :(
   #+end_quote
 
@@ -15443,7 +15453,7 @@ Every change you make must be backward compatible with the rest of the system
     }
   #+end_src
 
-  而解析 blobmsg 时，因为与定义的类型不一致，相应字段被丢弃，引用自 =blobmsg.c=
+  而解析 blobmsg 时，因为与预定义类型 =blobmsg_policy= 不一致 ~blob_id(attr) != policy[i].type~ ，相应字段被丢弃，引用自 =blobmsg.c=
   #+begin_src C
     int blobmsg_parse(const struct blobmsg_policy *policy, int policy_len,
                       struct blob_attr **tb, void *data, unsigned int len)
@@ -15492,50 +15502,81 @@ Every change you make must be backward compatible with the rest of the system
     }
   #+end_src
 
-  最终决定不使用 BLOBMSG_TYPE_INT64 和 BLOBMSG_TYPE_INT16 类型。
+  =ubus= 命令行工具以及 =uhttpd-mod-ubus= 以 json 做为请求格式，因此不支持 =BLOBMSG_TYPE_INT64= 和 =BLOBMSG_TYPE_INT16= 字段类型，数据类型定义 =blobmsg_policy= 需要做一下折衷：
 
-  BLOBMSG_TYPE_INT16 改用 BLOBMSG_TYPE_INT32。
+  - =BLOBMSG_TYPE_INT16= 改用 =BLOBMSG_TYPE_INT32=
 
-  BLOBMSG_TYPE_INT64 改用 BLOBMSG_TYPE_STRING，封装一下方便使用
+  - =BLOBMSG_TYPE_INT64= 改用 =BLOBMSG_TYPE_STRING=
+
+    封装一下方便使用
+
+    #+begin_src C
+      /**
+       ,* 解析字符串形式传递的 uint64_t 消息字段值.
+       ,* UBUS 传递 uint64_t 类型字段存在 BUG，需要以字符串形式传递.
+       ,* 用于替换@ref blobmsg_get_u64.
+       ,*
+       ,* @param attr 消息字段.
+       ,*
+       ,* @return 消息字段值. @ref blobmsg_get_string.
+       ,*/
+      static inline uint64_t
+      blobmsg_get_u64string(struct blob_attr *attr) {
+          char* str = blobmsg_get_string(attr);
+          if (str) {
+              char* end = NULL;
+              uint64_t value = strtoull(str, &end, 10);
+              if (end && end[0] == '\0') {
+                  return value;
+              }
+          }
+
+          return 0;
+      }
+
+      /**
+       ,* 添加字符串形式传递的 uint64_t 消息字段.
+       ,* UBUS 传递 uint64_t 类型字段存在 BUG，需要以字符串形式传递.
+       ,* 用于替换@ref blobmsg_add_u64.
+       ,*
+       ,* @param buf 消息缓冲区.
+       ,* @param name 消息字段名.
+       ,* @param val 消息字段值.
+       ,*
+       ,* @return 是否成功. @ref blobmsg_add_string.
+       ,*/
+      static inline int
+      blobmsg_add_u64string(struct blob_buf *buf, const char *name, uint64_t val) {
+          char value[20 + 1] = {'\0'};
+          snprintf(value, sizeof(value), "%"PRIu64, val);
+          return blobmsg_add_string(buf, name, value);
+      }
+    #+end_src
+
+
+  C 中 64 位整形的取值范围，见 =/usr/include/limits.h=
   #+begin_src C
-    /**
-     ,* 解析字符串形式传递的 uint64_t 消息字段值.
-     ,* UBUS 传递 uint64_t 类型字段存在 BUG，需要以字符串形式传递.
-     ,* 用于替换@ref blobmsg_get_u64.
-     ,*
-     ,* @param attr 消息字段.
-     ,*
-     ,* @return 消息字段值. @ref blobmsg_get_string.
-     ,*/
-    static inline uint64_t
-    blobmsg_get_u64string(struct blob_attr *attr) {
-        char* str = blobmsg_get_string(attr);
-        if (str) {
-            char* end = NULL;
-            uint64_t value = strtoull(str, &end, 10);
-            if (end && end[0] == '\0') {
-                return value;
-            }
-        }
+    /* Minimum and maximum values a `signed long int' can hold.  */
+    #  if __WORDSIZE == 64
+    #   define LONG_MAX     9223372036854775807L
+    #  else
+    #   define LONG_MAX     2147483647L
+    #  endif
+    #  define LONG_MIN  (-LONG_MAX - 1L)
 
-        return 0;
-    }
-
-    /**
-     ,* 添加字符串形式传递的 uint64_t 消息字段.
-     ,* UBUS 传递 uint64_t 类型字段存在 BUG，需要以字符串形式传递.
-     ,* 用于替换@ref blobmsg_add_u64.
-     ,*
-     ,* @param buf 消息缓冲区.
-     ,* @param name 消息字段名.
-     ,* @param val 消息字段值.
-     ,*
-     ,* @return 是否成功. @ref blobmsg_add_string.
-     ,*/
-    static inline int
-    blobmsg_add_u64string(struct blob_buf *buf, const char *name, uint64_t val) {
-        char value[20 + 1] = {'\0'};
-        snprintf(value, sizeof(value), "%"PRIu64, val);
-        return blobmsg_add_string(buf, name, value);
-    }
+    /* Maximum value an `unsigned long int' can hold.  (Minimum is 0.)  */
+    #  if __WORDSIZE == 64
+    #   define ULONG_MAX    18446744073709551615UL
+    #  else
+    #   define ULONG_MAX    4294967295UL
+    #  endif
   #+end_src
+
+  JSON/JavaScript 中 64 位整形的取值范围，引用自 [[https://cdivilly.wordpress.com/2012/04/11/json-javascript-large-64-bit-integers/][JSON/JavaScript and large 64 bit integer values | The former blog of cdivilly]]
+  #+begin_quote
+  JavaScript represents all numbers internally as 64 bit floating point values (see the ECMAScript spec here). This means JavaScript runtimes are not able to handle integer values larger than 9007199254740992 (2^53).
+
+  Note that all the positive and negative integers whose magnitude is no greater than 2^53 are representable in the Number type
+  #+end_quote
+
+  可见，json 转 blobmsg 不将整型转化为 =BLOBMSG_TYPE_INT64= 因为 json 不能精确表示 64 位整型。

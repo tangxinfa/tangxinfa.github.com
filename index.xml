@@ -4,7 +4,7 @@
         <title>看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com</link>
-        <lastBuildDate>Mon, 31 Oct 2016 12:24:26 GMT</lastBuildDate>
+        <lastBuildDate>Thu, 03 Nov 2016 12:02:44 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>看看俺 – KanKanAn.com</title>
@@ -22,7 +22,7 @@
             <guid>/article/blobmsg_json-53ea652f63014e0079cd6574578b.html</guid>
             <pubDate>Mon, 31 Oct 2016 12:23:00 GMT</pubDate>
             <content:encoded><![CDATA[<p>
-在使用 libubox 时，发现 blobmsg_policy 中使用 BLOBMSG_TYPE_INT64 或 BLOBMSG_TYPE_INT16 类型后， <code>ubus list -v</code> 显示的参数类型为 <code>(unknown)</code> ，blobmsg_parse 解析请求相应字段为 NULL，如下例所示
+在使用 ubus 时，发现 <code>blobmsg_policy</code> 中使用 <code>BLOBMSG_TYPE_INT64</code> 或 <code>BLOBMSG_TYPE_INT16</code> 类型后， <code>ubus list -v</code> 显示的参数类型为 <code>(unknown)</code> ， <code>blobmsg_parse</code> 解析请求相应字段为 <code>NULL</code> ，如下例所示
 </p>
 
 <p>
@@ -81,15 +81,45 @@ parse failed: width
 <blockquote>
 <p>
 Nov 03 00:43:43 &lt;txomon&gt; So I think I found something strange in ubus, but I am not too sure. For some reason, declaring within a policy BLOBMSG_TYPE_INT16, won't be accepted, and blobmsg_get_u16 will return null
+</p>
+
+<p>
 Nov 03 00:44:04 &lt;txomon&gt; I mean, it is accepted but it will refuse to work
+</p>
+
+<p>
 Nov 03 00:44:17 &lt;txomon&gt; and in ubus -v list will appear as nil
+</p>
+
+<p>
 Nov 03 00:45:00 &lt;txomon&gt; it will appear as "(unknown)"
+</p>
+
+<p>
 Nov 03 00:47:17 &lt;txomon&gt; looking at the cli code, I understand why it appears as unknown, because int16 is not in there, but anyway, why doesn't it work for my client?
+</p>
+
+<p>
 Nov 03 00:48:17 &lt;txomon&gt; It might be because ubus cli is not prepared to send uint16?
+</p>
+
+<p>
 Nov 03 00:48:39 &lt;txomon&gt; (I always refer to BLOBMSG_TYPE_INT16)
+</p>
+
+<p>
 Nov 03 00:51:44 &lt;txomon&gt; well, I understand it isn't because json doesn't have such thing as int16&#x2026; and indeed libubox/blobmsg_json.c L72 is just prepared for u32, but anyway, that means you can't use any datatype that doesn't match those ones!
+</p>
+
+<p>
 Nov 03 00:52:03 &lt;txomon&gt; shouldn't ubus cli inspect the interface and then send the correct datatype through ubus?
+</p>
+
+<p>
 Nov 03 00:55:27 &lt;txomon&gt; I suppose it's the same for uhttpd-mod-ubus
+</p>
+
+<p>
 Nov 03 01:01:23 &lt;txomon&gt; I have checked and yeah&#x2026; so I will just use BLOBMSG_TYPE_INT32&#x2026;. why does ubus even support that then? :(
 </p>
 </blockquote>
@@ -136,7 +166,7 @@ Nov 03 01:01:23 &lt;txomon&gt; I have checked and yeah&#x2026; so I will just us
 </div>
 
 <p>
-而解析 blobmsg 时，因为与定义的类型不一致，相应字段被丢弃，引用自 <code>blobmsg.c</code>
+而解析 blobmsg 时，因为与预定义类型 <code>blobmsg_policy</code> 不一致 <code>blob_id(attr) != policy[i].type</code> ，相应字段被丢弃，引用自 <code>blobmsg.c</code>
 </p>
 <div class="org-src-container">
 
@@ -157,7 +187,7 @@ Nov 03 01:01:23 &lt;txomon&gt; I have checked and yeah&#x2026; so I will just us
 <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   pslen[i] = strlen(policy[i].name);
 <span style="color: #969896; background-color: #1d1f21;"> </span>   }
 
-<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #de935f;">__blob_for_each_attr</span>(attr, data, len) {
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #f0c674;">__blob_for_each_attr</span>(attr, data, len) {
 <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   hdr = blob_data(attr);
 <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #b5bd68;">for</span> (i = 0; i &lt; policy_len; i++) {
 <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #b5bd68;">if</span> (<span style="color: #81a2be;">!</span>policy[i].name)
@@ -189,16 +219,19 @@ Nov 03 01:01:23 &lt;txomon&gt; I have checked and yeah&#x2026; so I will just us
 </div>
 
 <p>
-最终决定不使用 BLOBMSG_TYPE_INT64 和 BLOBMSG_TYPE_INT16 类型。
+<code>ubus</code> 命令行工具以及 <code>uhttpd-mod-ubus</code> 以 json 做为请求格式，因此不支持 <code>BLOBMSG_TYPE_INT64</code> 和 <code>BLOBMSG_TYPE_INT16</code> 字段类型，数据类型定义 <code>blobmsg_policy</code> 需要做一下折衷：
 </p>
 
-<p>
-BLOBMSG_TYPE_INT16 改用 BLOBMSG_TYPE_INT32。
-</p>
+<ul class="org-ul">
+<li><code>BLOBMSG_TYPE_INT16</code> 改用 <code>BLOBMSG_TYPE_INT32</code>
+</li>
+
+<li><code>BLOBMSG_TYPE_INT64</code> 改用 <code>BLOBMSG_TYPE_STRING</code>
 
 <p>
-BLOBMSG_TYPE_INT64 改用 BLOBMSG_TYPE_STRING，封装一下方便使用
+封装一下方便使用
 </p>
+
 <div class="org-src-container">
 
 <pre class="src src-C"><span style="color: #b294bb;">/**</span>
@@ -243,6 +276,47 @@ BLOBMSG_TYPE_INT64 改用 BLOBMSG_TYPE_STRING，封装一下方便使用
 }
 </pre>
 </div>
+</li>
+</ul>
+
+
+<p>
+C 中 64 位整形的取值范围，见 <code>/usr/include/limits.h</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-C"><span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">Minimum and maximum values a `signed long int' can hold.  </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="color: #b294bb;">#  if</span> __WORDSIZE == 64
+<span style="color: #b294bb;">#   define</span> <span style="color: #f0c674;">LONG_MAX</span>     9223372036854775807L
+<span style="color: #b294bb;">#  else</span>
+<span style="color: #b294bb;">#   define</span> <span style="color: #f0c674;">LONG_MAX</span>     2147483647L
+<span style="color: #b294bb;">#  endif</span>
+<span style="color: #b294bb;">#  define</span> <span style="color: #f0c674;">LONG_MIN</span>  (-LONG_MAX - 1L)
+
+<span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">Maximum value an `unsigned long int' can hold.  (Minimum is 0.)  </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="color: #b294bb;">#  if</span> __WORDSIZE == 64
+<span style="color: #b294bb;">#   define</span> <span style="color: #f0c674;">ULONG_MAX</span>    18446744073709551615UL
+<span style="color: #b294bb;">#  else</span>
+<span style="color: #b294bb;">#   define</span> <span style="color: #f0c674;">ULONG_MAX</span>    4294967295UL
+<span style="color: #b294bb;">#  endif</span>
+</pre>
+</div>
+
+<p>
+JSON/JavaScript 中 64 位整形的取值范围，引用自 <a href="https://cdivilly.wordpress.com/2012/04/11/json-javascript-large-64-bit-integers/">JSON/JavaScript and large 64 bit integer values | The former blog of cdivilly</a>
+</p>
+<blockquote>
+<p>
+JavaScript represents all numbers internally as 64 bit floating point values (see the ECMAScript spec here). This means JavaScript runtimes are not able to handle integer values larger than 9007199254740992 (2^53).
+</p>
+
+<p>
+Note that all the positive and negative integers whose magnitude is no greater than 2^53 are representable in the Number type
+</p>
+</blockquote>
+
+<p>
+可见，json 转 blobmsg 不将整型转化为 <code>BLOBMSG_TYPE_INT64</code> 因为 json 不能精确表示 64 位整型。</p>
 ]]></content:encoded>
         </item>
         <item>
@@ -4119,11 +4193,11 @@ node.js（javascript）是一门动态语言，很少运行到的代码分支里
 <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #b5bd68;">for</span>(<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">i</span> = 0, <span style="color: #f0c674;">n</span> = item.name.length; i &lt; n; ++i) {
 <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   name += item.name[i].match(<span style="color: #8abeb7;">/^[0-9a-zA-Z]+$/</span>) ? item.name[i] : <span style="color: #8abeb7;">'_</span><span style="color: #8abeb7; text-decoration: underline;">'</span><span style="text-decoration: underline;">;</span>
 <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   }
-<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   process.stdout.write(<span style="color: #8abeb7;">"PUTVAL \"" + hostname + "</span>/<span style="color: #8abeb7;">" + name + "</span>-loop_de<span style="text-decoration: underline;">lay</span><span style="color: #8abeb7; text-decoration: underline;">" + "</span><span style="text-decoration: underline;">/delay-</span><span style="color: #8abeb7; text-decoration: underline;">" + item.pm_id + "</span><span style="text-decoration: underline;">\</span><span style="color: #8abeb7; text-decoration: underline;">" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #8abeb7; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #8abeb7; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.pm2_env.axm_monitor[</span><span style="color: #8abeb7; text-decoration: underline;">"Loop delay"</span><span style="text-decoration: underline;">].value.replace(</span><span style="color: #8abeb7; text-decoration: underline;">'ms'</span><span style="text-decoration: underline;">, </span><span style="color: #8abeb7; text-decoration: underline;">''</span><span style="text-decoration: underline;">) + </span><span style="color: #8abeb7; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
-<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   process.stdout.write(<span style="color: #8abeb7;">"PUTVAL \"" + hostname + "</span>/<span style="color: #8abeb7;">" + name + "</span>-memory_<span style="text-decoration: underline;">used</span><span style="color: #8abeb7; text-decoration: underline;">" + "</span><span style="text-decoration: underline;">/gauge-</span><span style="color: #8abeb7; text-decoration: underline;">" + item.pm_id + "</span><span style="text-decoration: underline;">\</span><span style="color: #8abeb7; text-decoration: underline;">" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #8abeb7; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #8abeb7; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.monit.memory + </span><span style="color: #8abeb7; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
-<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   process.stdout.write(<span style="color: #8abeb7;">"PUTVAL \"" + hostname + "</span>/<span style="color: #8abeb7;">" + name + "</span>-cpu_use<span style="text-decoration: underline;">d</span><span style="color: #8abeb7; text-decoration: underline;">" + "</span><span style="text-decoration: underline;">/gauge-</span><span style="color: #8abeb7; text-decoration: underline;">" + item.pm_id + "</span><span style="text-decoration: underline;">\</span><span style="color: #8abeb7; text-decoration: underline;">" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #8abeb7; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #8abeb7; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.monit.cpu + </span><span style="color: #8abeb7; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
-<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   process.stdout.write(<span style="color: #8abeb7;">"PUTVAL \"" + hostname + "</span>/<span style="color: #8abeb7;">" + name + "</span>-restart<span style="text-decoration: underline;">_time</span><span style="color: #8abeb7; text-decoration: underline;">" + "</span><span style="text-decoration: underline;">/gauge-</span><span style="color: #8abeb7; text-decoration: underline;">" + item.pm_id + "</span><span style="text-decoration: underline;">\</span><span style="color: #8abeb7; text-decoration: underline;">" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #8abeb7; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #8abeb7; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.pm2_env.restart_time + </span><span style="color: #8abeb7; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
-<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   process.stdout.write(<span style="color: #8abeb7;">"PUTVAL \"" + hostname + "</span>/<span style="color: #8abeb7;">" + name + "</span>-unstabl<span style="text-decoration: underline;">e_restarts</span><span style="color: #8abeb7; text-decoration: underline;">" + "</span><span style="text-decoration: underline;">/gauge-</span><span style="color: #8abeb7; text-decoration: underline;">" + item.pm_id + "</span><span style="text-decoration: underline;">\</span><span style="color: #8abeb7; text-decoration: underline;">" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #8abeb7; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #8abeb7; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.pm2_env.unstable_restarts + </span><span style="color: #8abeb7; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   process.stdout.write(<span style="color: #8abeb7;">"PUTVAL \""</span> + hostname + <span style="color: #8abeb7;">"/"</span> + name + <span style="color: #8abeb7;">"-loop_de</span><span style="color: #8abeb7; text-decoration: underline;">lay"</span><span style="text-decoration: underline;"> + </span><span style="color: #8abeb7; text-decoration: underline;">"/delay-"</span><span style="text-decoration: underline;"> + item.pm_id + </span><span style="color: #8abeb7; text-decoration: underline;">"\" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #8abeb7; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #8abeb7; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.pm2_env.axm_monitor[</span><span style="color: #8abeb7; text-decoration: underline;">"Loop delay"</span><span style="text-decoration: underline;">].value.replace(</span><span style="color: #8abeb7; text-decoration: underline;">'ms'</span><span style="text-decoration: underline;">, </span><span style="color: #8abeb7; text-decoration: underline;">''</span><span style="text-decoration: underline;">) + </span><span style="color: #8abeb7; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   process.stdout.write(<span style="color: #8abeb7;">"PUTVAL \""</span> + hostname + <span style="color: #8abeb7;">"/"</span> + name + <span style="color: #8abeb7;">"-memory_</span><span style="color: #8abeb7; text-decoration: underline;">used"</span><span style="text-decoration: underline;"> + </span><span style="color: #8abeb7; text-decoration: underline;">"/gauge-"</span><span style="text-decoration: underline;"> + item.pm_id + </span><span style="color: #8abeb7; text-decoration: underline;">"\" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #8abeb7; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #8abeb7; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.monit.memory + </span><span style="color: #8abeb7; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   process.stdout.write(<span style="color: #8abeb7;">"PUTVAL \""</span> + hostname + <span style="color: #8abeb7;">"/"</span> + name + <span style="color: #8abeb7;">"-cpu_use</span><span style="color: #8abeb7; text-decoration: underline;">d"</span><span style="text-decoration: underline;"> + </span><span style="color: #8abeb7; text-decoration: underline;">"/gauge-"</span><span style="text-decoration: underline;"> + item.pm_id + </span><span style="color: #8abeb7; text-decoration: underline;">"\" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #8abeb7; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #8abeb7; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.monit.cpu + </span><span style="color: #8abeb7; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   process.stdout.write(<span style="color: #8abeb7;">"PUTVAL \""</span> + hostname + <span style="color: #8abeb7;">"/"</span> + name + <span style="color: #8abeb7;">"-restart</span><span style="color: #8abeb7; text-decoration: underline;">_time"</span><span style="text-decoration: underline;"> + </span><span style="color: #8abeb7; text-decoration: underline;">"/gauge-"</span><span style="text-decoration: underline;"> + item.pm_id + </span><span style="color: #8abeb7; text-decoration: underline;">"\" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #8abeb7; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #8abeb7; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.pm2_env.restart_time + </span><span style="color: #8abeb7; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   process.stdout.write(<span style="color: #8abeb7;">"PUTVAL \""</span> + hostname + <span style="color: #8abeb7;">"/"</span> + name + <span style="color: #8abeb7;">"-unstabl</span><span style="color: #8abeb7; text-decoration: underline;">e_restarts"</span><span style="text-decoration: underline;"> + </span><span style="color: #8abeb7; text-decoration: underline;">"/gauge-"</span><span style="text-decoration: underline;"> + item.pm_id + </span><span style="color: #8abeb7; text-decoration: underline;">"\" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #8abeb7; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #8abeb7; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.pm2_env.unstable_restarts + </span><span style="color: #8abeb7; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
 <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   });
 
 <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   setTimeout(collect, interval*1000);
@@ -18414,7 +18488,7 @@ logs# grep 'fromuid=119' /usr/local/nginx/logs/access.log*
 <span style="color: #969896; background-color: #1d1f21;"> </span>   }
 };
 
-<span style="color: #81a2be;">shared_ptr</span>&lt;<span style="color: #81a2be;">Chicken</span>&gt; <span style="color: #f0c674;">chicken_ptr</span>(<span style="color: #b5bd68;">new</span> <span style="color: #81a2be;">Chicken</span>);
+<span style="color: #81a2be;">shared_ptr</span>&lt;<span style="color: #81a2be;">Chicken</span>&gt; <span style="color: #de935f;">chicken_ptr</span>(<span style="color: #b5bd68;">new</span> <span style="color: #81a2be;">Chicken</span>);
 chicken_ptr-&gt;use();
 </pre>
 </div>
@@ -19400,11 +19474,11 @@ mysql的TIMESTAMP字段类型和sqlite3一样使用UTC时间保存，因为在�
 <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #f0c674;">utctimezone</span> = tz.gettz(<span style="color: #8abeb7;">'UTC'</span>)
 
 <span style="color: #b5bd68;">def</span> <span style="color: #de935f;">parsedatetime</span>(dt, fmt=<span style="color: #8abeb7;">"%Y-%m-%d %H:%M:%S"</span>):
-<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #b294bb;">"""parse local datetime string as utc datetime object"""</span>
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #8abeb7;">"""parse local datetime string as utc datetime object"""</span>
 <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #b5bd68;">return</span> datetime.datetime.strptime(dt, fmt).replace(tzinfo=localtimezone).ast<span style="text-decoration: underline;">imezone(utctimezone)</span>
 
 <span style="color: #b5bd68;">def</span> <span style="color: #de935f;">formatdatetime</span>(dt, fmt=<span style="color: #8abeb7;">"%Y-%m-%d %H:%M:%S"</span>):
-<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #b294bb;">"""format utc datetime object as local datetime string"""</span>
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #8abeb7;">"""format utc datetime object as local datetime string"""</span>
 <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #b5bd68;">return</span> dt.replace(tzinfo=utctimezone).astimezone(localtimezone).strftime(fmt<span style="text-decoration: underline;">)</span>
 
 <span style="color: #b5bd68;">if</span> <span style="color: #b294bb;">__name__</span> == <span style="color: #8abeb7;">'__main__'</span>:
@@ -19472,9 +19546,9 @@ g++ -g add.cpp -o add
 <span style="color: #81a2be;">int</span> <span style="color: #de935f;">main</span>(<span style="color: #81a2be;">int</span> <span style="color: #f0c674;">argc</span>, <span style="color: #81a2be;">char</span> *<span style="color: #f0c674;">argv</span>[])
 {
 <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">base</span> = 1;
-<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #b5bd68;">auto</span> <span style="color: #f0c674;">id_generator_odd</span> = [=]() <span style="color: #b5bd68;">mutable</span> { <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">result</span> = base; base += 2; <span style="color: #b5bd68;">return</span><span style="text-decoration: underline;"> result; };</span>
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #b5bd68;">auto</span> <span style="color: #81a2be;">id_generator_odd</span> = [=]() <span style="color: #b5bd68;">mutable</span> { <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">result</span> = base; base += 2; <span style="color: #b5bd68;">return</span><span style="text-decoration: underline;"> result; };</span>
 <span style="color: #969896; background-color: #1d1f21;"> </span>   base = 0;
-<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #b5bd68;">auto</span> <span style="color: #f0c674;">id_generator_even</span> = [=]() <span style="color: #b5bd68;">mutable</span> { <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">result</span> = base; base += 2; <span style="color: #b5bd68;">retur</span><span style="color: #b5bd68; text-decoration: underline;">n</span><span style="text-decoration: underline;"> result; };</span>
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #b5bd68;">auto</span> <span style="color: #81a2be;">id_generator_even</span> = [=]() <span style="color: #b5bd68;">mutable</span> { <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">result</span> = base; base += 2; <span style="color: #b5bd68;">retur</span><span style="color: #b5bd68; text-decoration: underline;">n</span><span style="text-decoration: underline;"> result; };</span>
 <span style="color: #969896; background-color: #1d1f21;"> </span>   assert(id_generator_odd() == 1);
 <span style="color: #969896; background-color: #1d1f21;"> </span>   assert(id_generator_odd() == 3);
 <span style="color: #969896; background-color: #1d1f21;"> </span>   assert(id_generator_odd() == 5);
@@ -19516,8 +19590,8 @@ g++ -g closure.cpp -o closure -std=c++0x
 
 <span style="color: #81a2be;">int</span> <span style="color: #de935f;">main</span>(<span style="color: #81a2be;">int</span> <span style="color: #f0c674;">argc</span>, <span style="color: #81a2be;">char</span> *<span style="color: #f0c674;">argv</span>[])
 {
-<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #81a2be;">IDGenerator</span> <span style="color: #de935f;">id_generator_odd</span>(<span style="color: #81a2be;">boost</span>::bind(idGenerator, _1, 1, 2));
-<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #81a2be;">IDGenerator</span> <span style="color: #de935f;">id_generator_even</span>(<span style="color: #81a2be;">boost</span>::bind(idGenerator, _1, 0, 2));
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #81a2be;">IDGenerator</span> <span style="color: #f0c674;">id_generator_odd</span>(<span style="color: #81a2be;">boost</span>::bind(idGenerator, _1, 1, 2));
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #81a2be;">IDGenerator</span> <span style="color: #f0c674;">id_generator_even</span>(<span style="color: #81a2be;">boost</span>::bind(idGenerator, _1, 0, 2));
 <span style="color: #969896; background-color: #1d1f21;"> </span>   assert(id_generator_odd.get() == 1);
 <span style="color: #969896; background-color: #1d1f21;"> </span>   assert(id_generator_odd().get() == 3);
 <span style="color: #969896; background-color: #1d1f21;"> </span>   assert(id_generator_odd().get() == 5);
