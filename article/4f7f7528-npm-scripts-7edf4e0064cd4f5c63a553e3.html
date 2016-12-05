@@ -141,7 +141,7 @@ node ./tools/qps.js 或 ./tools/qps.sh
 <li>.bashrc
 
 <p>
-设置环境变量，由于一台机器上可能跑多个服务，而每个服务的环境设置会不一样，所以我们不好直接放置在 <code>~/.bashrc</code> 中。
+设置环境变量，由于一台机器上可能跑多个服务，而每个服务的环境设置会不一样，所以我们不好直接放置在用户根目录下的 <code>.bashrc</code> 中。
 </p>
 </li>
 </ul>
@@ -168,14 +168,14 @@ node ./tools/qps.js 或 ./tools/qps.sh
 <li>stop.sh
 
 <p>
-会先载入 .bashrc 中定义的环境变量，再使用 <code>pm2 stop &lt;app&gt;</code> 启动服务
+会先载入 .bashrc 中定义的环境变量，再使用 <code>pm2 stop &lt;app&gt;</code> 停止服务
 </p>
 </li>
 
 <li>restart.sh
 
 <p>
-会先载入 .bashrc 中定义的环境变量，再使用 <code>pm2 start &lt;app&gt;</code> 启动服务
+会先载入 .bashrc 中定义的环境变量，再使用 <code>pm2 restart &lt;app&gt;</code> 重启服务
 </p>
 </li>
 
@@ -196,7 +196,7 @@ node ./tools/qps.js 或 ./tools/qps.sh
 
 
 <p>
-还有一堆 js 任务脚本，你得决定要不要提供配套的 bash 脚本（确保载入 .bashrc），或者祈祷运行前操作人员会记得载入 <code>.bashrc</code> 环境变量。
+还有一堆 js 任务脚本，你得决定要不要提供配套的 bash 脚本（确保载入 .bashrc），或者祈祷运行前操作人员会记得先载入 <code>.bashrc</code> 。
 </p>
 
 
@@ -227,14 +227,14 @@ npm scripts 示例如下：
 
 <div class="org-src-container">
 
-<pre class="src src-json"><span style="color: #99cc99;">"scripts"</span>: {
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #99cc99;">"node"</span>: <span style="color: #66cccc;">"export NODE_ENV=${NODE_ENV:-production}; node"</span>,
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #99cc99;">"pm2"</span>: <span style="color: #66cccc;">"export NODE_ENV=${NODE_ENV:-production}; PM2=pm2; PM2_USER=${PM2_USER:</span><span style="color: #66cccc; text-decoration: underline;">-root}; [[ $HOME != `echo ~$PM2_USER` ]] &amp;&amp; PM2=\"sudo -u $PM2_USER pm2\"; $PM2"</span><span style="text-decoration: underline;">,</span>
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #99cc99;">"ps"</span>: <span style="color: #66cccc;">"npm run pm2 -- list $npm_package_name"</span>,
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #99cc99;">"prestart"</span>: <span style="color: #66cccc;">"STARTED=`npm -s run pm2 -- jlist | json -a -c \"this.name == '$np</span><span style="color: #66cccc; text-decoration: underline;">m_package_name' &amp;&amp; ['errored', 'stopped'].indexOf(this.pm2_env.status) == -1\" pm2_env.pm_id | wc -l`; [[ $STARTED &gt; 0 ]] &amp;&amp; echo $STARTED process already running; exit $STARTED"</span><span style="text-decoration: underline;">,</span>
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #99cc99;">"start"</span>: <span style="color: #66cccc;">"PM2_FILE=./process.json; [[ -f ./process.${HOSTNAME}.json ]] &amp;&amp; PM2_</span><span style="color: #66cccc; text-decoration: underline;">FILE=./process.${HOSTNAME}.json; npm run pm2 -- start $PM2_FILE"</span><span style="text-decoration: underline;">,</span>
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #99cc99;">"stop"</span>: <span style="color: #66cccc;">"PM2_FILE=./process.json; [[ -f ./process.${HOSTNAME}.json ]] &amp;&amp; PM2_F</span><span style="color: #66cccc; text-decoration: underline;">ILE=./process.${HOSTNAME}.json; npm run pm2 -- stop $PM2_FILE"</span><span style="text-decoration: underline;">,</span>
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #99cc99;">"restart"</span>: <span style="color: #66cccc;">"PM2_FILE=./process.json; [[ -f ./process.${HOSTNAME}.json ]] &amp;&amp; PM</span><span style="color: #66cccc; text-decoration: underline;">2_FILE=./process.${HOSTNAME}.json; npm run pm2 -- startOrGracefulReload $PM2_FILE"</span>
+<pre class="src src-json"><span style="color: #b5bd68;">"scripts"</span>: {
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #b5bd68;">"node"</span>: <span style="color: #8abeb7;">"export NODE_ENV=${NODE_ENV:-production}; node"</span>,
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #b5bd68;">"pm2"</span>: <span style="color: #8abeb7;">"export NODE_ENV=${NODE_ENV:-production}; PM2=pm2; PM2_USER=${PM2_USER:</span><span style="color: #8abeb7; text-decoration: underline;">-root}; [[ $HOME != `echo ~$PM2_USER` ]] &amp;&amp; PM2=\"sudo -u $PM2_USER pm2\"; $PM2"</span><span style="text-decoration: underline;">,</span>
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #b5bd68;">"ps"</span>: <span style="color: #8abeb7;">"npm run pm2 -- list $npm_package_name"</span>,
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #b5bd68;">"prestart"</span>: <span style="color: #8abeb7;">"STARTED=`npm -s run pm2 -- jlist | json -a -c \"this.name == '$np</span><span style="color: #8abeb7; text-decoration: underline;">m_package_name' &amp;&amp; ['errored', 'stopped'].indexOf(this.pm2_env.status) == -1\" pm2_env.pm_id | wc -l`; [[ $STARTED &gt; 0 ]] &amp;&amp; echo $STARTED process already running; exit $STARTED"</span><span style="text-decoration: underline;">,</span>
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #b5bd68;">"start"</span>: <span style="color: #8abeb7;">"PM2_FILE=./process.json; [[ -f ./process.${HOSTNAME}.json ]] &amp;&amp; PM2_</span><span style="color: #8abeb7; text-decoration: underline;">FILE=./process.${HOSTNAME}.json; npm run pm2 -- start $PM2_FILE"</span><span style="text-decoration: underline;">,</span>
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #b5bd68;">"stop"</span>: <span style="color: #8abeb7;">"PM2_FILE=./process.json; [[ -f ./process.${HOSTNAME}.json ]] &amp;&amp; PM2_F</span><span style="color: #8abeb7; text-decoration: underline;">ILE=./process.${HOSTNAME}.json; npm run pm2 -- stop $PM2_FILE"</span><span style="text-decoration: underline;">,</span>
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #b5bd68;">"restart"</span>: <span style="color: #8abeb7;">"PM2_FILE=./process.json; [[ -f ./process.${HOSTNAME}.json ]] &amp;&amp; PM</span><span style="color: #8abeb7; text-decoration: underline;">2_FILE=./process.${HOSTNAME}.json; npm run pm2 -- startOrGracefulReload $PM2_FILE"</span>
 }
 </pre>
 </div>
