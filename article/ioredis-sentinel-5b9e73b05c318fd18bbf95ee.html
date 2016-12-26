@@ -126,8 +126,30 @@ It's possible to connect to a slave instead of a master by specifying the option
 </div>
 
 <div id="outline-container-sec-4" class="outline-2">
-<h2 id="sec-4">优先选择本地 Slave （不使用 preferredSlaves 选项）</h2>
+<h2 id="sec-4">判断本地还是异地的算法</h2>
 <div class="outline-text-2" id="text-4">
+<p>
+按 IP 地址进行推断，前 N 段一样则认为是本地。
+</p>
+
+<p>
+如 N 取值为 3，本机 IP 为 11.22.33.1，则 11.22.33.123 由于前 3 段（11.22.33）与本机相同被认定为是本地，而 11.22.99.1 由于前 3 段（11.22.99）与本机不同被认定为是异地。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5">redis 至少要求 2.8.12</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+redis 2.8.12 实现了一个特性：当 failover （redis 角色变化）后，断开所有 client 的连接。缺少这个特性会导致 failover 发生时到 master 的没有断开而是返回返回 READONLY 错误，可以通过 reconnectOnError 选项判断为 READONLY 错误后触发重连，但是将 redis 用来做 PUB/SUB 时不会出现 READONLY 错误，所以一定要升级到至少 2.8.12 以上。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-6" class="outline-2">
+<h2 id="sec-6">在 &lt;2.4.0 的 ioredis 上实现优先选择本地 Slave</h2>
+<div class="outline-text-2" id="text-6">
 <p>
 相关讨论
 </p>
@@ -137,20 +159,38 @@ It's possible to connect to a slave instead of a master by specifying the option
 </p>
 
 <p>
-preferredSlaves 选项已经在 2.4.0 版实现，下面的代码依赖之前的 ioredis 版本代码，仅供参考，不建议使用。
-</p>
-
-
-<p>
-尝试自已实现优先选择本地 Slave 算法：按 IP 地址进行推断，前三段一样则认为是本地。
+preferredSlaves 选项已经在 2.4.0 版实现，下面的代码在旧版本 ioredis 的基础上实现，仅供参考，不建议使用。
 </p>
 
 <p>
-假设本机 IP 为 11.22.33.1，则 Slave 11.22.33.123 由于前三段（11.22.33）与本机相同被认定为是本地 Slave，而 Slave 11.22.99.1 由于前三段（11.22.99）与本机不同被认定为是异地 Slave。
+主要的通过替换 SentinelConnector.prototype.resolveSlave, SentinelConnector.prototype.resolveMaster, SentinelConnector.prototype.check 实现：
 </p>
 
+<ul class="org-ul">
+<li>从到 sentinel 的连接上取得本机地址
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>从 sentinel 取出 slaves 列表
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>将 slaves 列表分为本地列表和异地列表
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>优先从本地列表随机选择一个 slave
+</li>
+</ul>
+
 <p>
-实现如下
+具体实现如下
 </p>
 
 <div class="org-src-container">
@@ -258,20 +298,42 @@ preferredSlaves 选项已经在 2.4.0 版实现，下面的代码依赖之前的
 </div>
 </div>
 
-<div id="outline-container-sec-5" class="outline-2">
-<h2 id="sec-5">优先选择本地结点 （不使用 preferredSlaves 选项）</h2>
-<div class="outline-text-2" id="text-5">
-<p>
-preferredSlaves 选项已经在 2.4.0 版实现，下面的代码依赖之前的 ioredis 版本代码，仅供参考，不建议使用。
-</p>
-
+<div id="outline-container-sec-7" class="outline-2">
+<h2 id="sec-7">在 &lt;2.4.0 的 ioredis 上实现优先选择本地结点</h2>
+<div class="outline-text-2" id="text-7">
 <p>
 假设 redis 是以 1 Master + 1 Slave 方式进行跨机房部署，那么我们希望实现优先连接本地结点（忽略其角色），
 连接成功后该连接可能是 Master 也可能是 Slave，我们把它当 Slave 用准没错。
 </p>
 
 <p>
-在上一节的基础上，实现如下
+preferredSlaves 选项已经在 2.4.0 版实现，下面的代码依赖之前的 ioredis 版本代码，仅供参考，不建议使用。
+</p>
+
+<p>
+实现逻辑：
+</p>
+
+<ul class="org-ul">
+<li>按上一节的实现获取 slave
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>如果 slave 在本地，则使用该 slave，否则尝试连接 master
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>如果 master 在本地，则使用该 master，否则使用前面的 slave。
+</li>
+</ul>
+
+
+<p>
+具体实现如下
 </p>
 
 <div class="org-src-container">
@@ -418,15 +480,69 @@ preferredSlaves 选项已经在 2.4.0 版实现，下面的代码依赖之前的
 </div>
 </div>
 
-<div id="outline-container-sec-6" class="outline-2">
-<h2 id="sec-6">优先选择本地结点（使用 preferredSlaves 选项）</h2>
-<div class="outline-text-2" id="text-6">
+<div id="outline-container-sec-8" class="outline-2">
+<h2 id="sec-8">在 2.4.x 的 ioredis 上实现优先选择本地结点（使用 preferredSlaves）</h2>
+<div class="outline-text-2" id="text-8">
 <p>
-具体实现以及用法请参考 gist <a href="https://gist.github.com/tangxinfa/3361a11acf2270e8388b43bfcb25ce0e">Connect redis with Minimum Distance First(MDF) algorithm</a> ，使用 preferredSlaves 选项实现，要求 ioredis 版本至少为 2.4.0 。
+具体实现以及用法请参考 gist <a href="https://gist.github.com/tangxinfa/3361a11acf2270e8388b43bfcb25ce0e">Connect redis with Minimum Distance First(MDF) algorithm</a> ，使用 preferredSlaves 选项实现，要求 ioredis 版本至少为 2.4.0 。在 ioredis 上做了一层封装，使用 ioredis 的方式需要改变，没有侵入 ioredis 的代码。
 </p>
 
 <p>
-与前面的实现有一点不同之处：当本地无 slave 而连上本地 master 后，下次重连时即使本地有 slave 了，也还是会继续重连 master。</p>
+实现逻辑如下：
+</p>
+
+<ul class="org-ul">
+<li>使用 preferredSlaves 连接距离最近的 slave
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>如果 slave 是本地结点，则使用该 slave 连接；否则尝试连接 master
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>如果 master 是本地结点，则使用该 master 连接，否则使用前面的 slave 连接。
+</li>
+</ul>
+
+
+<p>
+这导致当本地无 slave 而连上本地 master 后，下次重连时即使本地有 slave 了，也还是会继续重连 master。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-9" class="outline-2">
+<h2 id="sec-9">在 2.4.x 的 ioredis 上实现优先选择本地结点（不使用 preferredSlaves）</h2>
+<div class="outline-text-2" id="text-9">
+<p>
+具体实现以及用法请参考 github 仓库 <a href="https://github.com/tangxinfa/ioredis_sentinel_connector">https://github.com/tangxinfa/ioredis_sentinel_connector</a> ，要求 ioredis 版本为 2.4.x。
+</p>
+
+
+<p>
+通过替换 SentinelConnector.prototype.resolveSlave 及 SentinelConnector.prototype.check 方法实现，主要的实现逻辑：
+</p>
+
+<ul class="org-ul">
+<li>先优先连接本地 slave
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>如果 slave 已经是本地结点，则使用该 slave 连接；否则尝试连接 master
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>如果 master 是本地结点，则使用该 master 连接，否则使用前面的 slave 连接。
+</li>
+</ul>
 </div>
 </div>
 

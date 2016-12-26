@@ -278,7 +278,7 @@ Note that disks are fast and operating systems normally employ write-back cachin
 <div class="org-src-container">
 
 <pre class="src src-js">process.on(<span style="color: #8abeb7;">'uncaughtException'</span>, (err) =&gt; {
-<span style="color: #969896; background-color: #1d1f21;"> </span> fs.writeSync(1, `Caught exception: ${err}`);
+<span style="color: #969896; background-color: #1d1f21;"> </span> fs.writeSync(1, <span style="color: #8abeb7;">`Caught exception: ${err}`</span>);
 });
 </pre>
 </div>
@@ -289,18 +289,14 @@ Note that disks are fast and operating systems normally employ write-back cachin
 <div class="org-src-container">
 
 <pre class="src src-js">process.on(<span style="color: #8abeb7;">'uncaughtException'</span>, (err) =&gt; {
-<span style="color: #969896; background-color: #1d1f21;"> </span>   fs.writeSync(1, `Caught exception: ${err}`);
+<span style="color: #969896; background-color: #1d1f21;"> </span>   fs.writeSync(1, <span style="color: #8abeb7;">`Caught exception: ${err}`</span>);
 <span style="color: #969896; background-color: #1d1f21;"> </span>   process.exit(1);
 });
 </pre>
 </div>
 
 <p>
-process.stdout 和 process.stderr 流中滞留的数据没有机会输出，进程就退出了，只能保证使用 fs.writeSync 进行输出的日志不丢失，用来日志记录 uncaughtException 还是很合适的。
-</p>
-
-<p>
-使用 pm2 时，fs.writeSync 写的异常日志会出现在 <i>root</i>.pm2/pm2.log，可以考虑改用 fs.appendFileSync 将异常日志写到应用的日志文件中。
+process.stdout 和 process.stderr 流中滞留的数据没有机会输出，进程就退出了，只能保证使用 fs.writeSync 进行输出的日志不丢失，用来日志记录 uncaughtException 还是很合适的，使用 pm2 时，上面的代码会将异常日志写到 <i>root</i>.pm2/pm2.log，可以考虑改用 fs.appendFileSync 将异常日志写到应用的日志文件中。
 </p>
 
 <div class="org-src-container">
@@ -313,7 +309,7 @@ process.stdout 和 process.stderr 流中滞留的数据没有机会输出，进�
 </div>
 
 <p>
-服务往往为了安全起见切换（setuid、setgid）到非特权帐号，可能没有权限写 pm2 为应用创建的日志文件。</p>
+但要注意的是，服务往往为了安全起见切换（setuid、setgid）到非特权帐号，可能没有权限写 pm2 为应用创建的日志文件。</p>
 </li>
 </ul>
 </div>

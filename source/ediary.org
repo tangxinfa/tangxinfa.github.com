@@ -7846,9 +7846,7 @@ class RedisShard {
        });
      #+end_src
      
-     process.stdout 和 process.stderr 流中滞留的数据没有机会输出，进程就退出了，只能保证使用 fs.writeSync 进行输出的日志不丢失，用来日志记录 uncaughtException 还是很合适的。
-
-     使用 pm2 时，fs.writeSync 写的异常日志会出现在 /root/.pm2/pm2.log，可以考虑改用 fs.appendFileSync 将异常日志写到应用的日志文件中。
+     process.stdout 和 process.stderr 流中滞留的数据没有机会输出，进程就退出了，只能保证使用 fs.writeSync 进行输出的日志不丢失，用来日志记录 uncaughtException 还是很合适的，使用 pm2 时，上面的代码会将异常日志写到 /root/.pm2/pm2.log，可以考虑改用 fs.appendFileSync 将异常日志写到应用的日志文件中。
 
      #+begin_src js
        process.on('uncaughtException', function(e) {
@@ -7857,7 +7855,7 @@ class RedisShard {
        });
      #+end_src
 
-     服务往往为了安全起见切换（setuid、setgid）到非特权帐号，可能没有权限写 pm2 为应用创建的日志文件。
+     但要注意的是，服务往往为了安全起见切换（setuid、setgid）到非特权帐号，可能没有权限写 pm2 为应用创建的日志文件。
 
 * TODO Callbacks,Promises与Generators                       :javascript:node:
 
@@ -15019,20 +15017,38 @@ and as a result it will not hear about deceased children, and children will not 
      };
    #+end_src
 
-** 优先选择本地 Slave （不使用 preferredSlaves 选项）
+** 判断本地还是异地的算法
+
+   按 IP 地址进行推断，前 N 段一样则认为是本地。
+
+   如 N 取值为 3，本机 IP 为 11.22.33.1，则 11.22.33.123 由于前 3 段（11.22.33）与本机相同被认定为是本地，而 11.22.99.1 由于前 3 段（11.22.99）与本机不同被认定为是异地。
+
+** redis 至少要求 2.8.12
+
+   redis 2.8.12 实现了一个特性：当 failover （redis 角色变化）后，断开所有 client 的连接。缺少这个特性会导致 failover 发生时到 master 的没有断开而是返回返回 READONLY 错误，可以通过 reconnectOnError 选项判断为 READONLY 错误后触发重连，但是将 redis 用来做 PUB/SUB 时不会出现 READONLY 错误，所以一定要升级到至少 2.8.12 以上。
+
+** 在 <2.4.0 的 ioredis 上实现优先选择本地 Slave
 
    相关讨论
 
    [[https://github.com/luin/ioredis/issues/38][rfc - a preferred slave list in a sentinel setup · Issue #38 · luin/ioredis]]
 
-   preferredSlaves 选项已经在 2.4.0 版实现，下面的代码依赖之前的 ioredis 版本代码，仅供参考，不建议使用。
+   preferredSlaves 选项已经在 2.4.0 版实现，下面的代码在旧版本 ioredis 的基础上实现，仅供参考，不建议使用。
+
+   主要的通过替换 SentinelConnector.prototype.resolveSlave, SentinelConnector.prototype.resolveMaster, SentinelConnector.prototype.check 实现：
+
+   - 从到 sentinel 的连接上取得本机地址
+
+     
+   - 从 sentinel 取出 slaves 列表
 
 
-   尝试自已实现优先选择本地 Slave 算法：按 IP 地址进行推断，前三段一样则认为是本地。
+   - 将 slaves 列表分为本地列表和异地列表
 
-   假设本机 IP 为 11.22.33.1，则 Slave 11.22.33.123 由于前三段（11.22.33）与本机相同被认定为是本地 Slave，而 Slave 11.22.99.1 由于前三段（11.22.99）与本机不同被认定为是异地 Slave。
 
-   实现如下
+   - 优先从本地列表随机选择一个 slave
+
+   具体实现如下
 
    #+begin_src js
      var Redis     = require('ioredis'),
@@ -15129,14 +15145,25 @@ and as a result it will not hear about deceased children, and children will not 
 
    值得注意的是必须指定 =lazyConnect: true= ，这样才能通过替换 client 中的方法实现功能。 
 
-** 优先选择本地结点 （不使用 preferredSlaves 选项）
-
-   preferredSlaves 选项已经在 2.4.0 版实现，下面的代码依赖之前的 ioredis 版本代码，仅供参考，不建议使用。
+** 在 <2.4.0 的 ioredis 上实现优先选择本地结点
 
    假设 redis 是以 1 Master + 1 Slave 方式进行跨机房部署，那么我们希望实现优先连接本地结点（忽略其角色），
    连接成功后该连接可能是 Master 也可能是 Slave，我们把它当 Slave 用准没错。
 
-   在上一节的基础上，实现如下
+   preferredSlaves 选项已经在 2.4.0 版实现，下面的代码依赖之前的 ioredis 版本代码，仅供参考，不建议使用。
+
+   实现逻辑：
+
+   - 按上一节的实现获取 slave
+
+     
+   - 如果 slave 在本地，则使用该 slave，否则尝试连接 master
+
+
+   - 如果 master 在本地，则使用该 master，否则使用前面的 slave。
+
+
+   具体实现如下
 
    #+begin_src js
      /**
@@ -15274,11 +15301,38 @@ and as a result it will not hear about deceased children, and children will not 
      }
    #+end_src
 
-** 优先选择本地结点（使用 preferredSlaves 选项）
+** 在 2.4.x 的 ioredis 上实现优先选择本地结点（使用 preferredSlaves）
 
-   具体实现以及用法请参考 gist [[https://gist.github.com/tangxinfa/3361a11acf2270e8388b43bfcb25ce0e][Connect redis with Minimum Distance First(MDF) algorithm]] ，使用 preferredSlaves 选项实现，要求 ioredis 版本至少为 2.4.0 。
+   具体实现以及用法请参考 gist [[https://gist.github.com/tangxinfa/3361a11acf2270e8388b43bfcb25ce0e][Connect redis with Minimum Distance First(MDF) algorithm]] ，使用 preferredSlaves 选项实现，要求 ioredis 版本至少为 2.4.0 。在 ioredis 上做了一层封装，使用 ioredis 的方式需要改变，没有侵入 ioredis 的代码。
 
-   与前面的实现有一点不同之处：当本地无 slave 而连上本地 master 后，下次重连时即使本地有 slave 了，也还是会继续重连 master。
+   实现逻辑如下：
+
+   - 使用 preferredSlaves 连接距离最近的 slave
+
+
+   - 如果 slave 是本地结点，则使用该 slave 连接；否则尝试连接 master
+
+     
+   - 如果 master 是本地结点，则使用该 master 连接，否则使用前面的 slave 连接。
+
+
+   这导致当本地无 slave 而连上本地 master 后，下次重连时即使本地有 slave 了，也还是会继续重连 master。
+
+** 在 2.4.x 的 ioredis 上实现优先选择本地结点（不使用 preferredSlaves）
+
+   具体实现以及用法请参考 github 仓库 [[https://github.com/tangxinfa/ioredis_sentinel_connector]] ，要求 ioredis 版本为 2.4.x。
+
+
+   通过替换 SentinelConnector.prototype.resolveSlave 及 SentinelConnector.prototype.check 方法实现，主要的实现逻辑：
+
+   - 先优先连接本地 slave
+
+
+   - 如果 slave 已经是本地结点，则使用该 slave 连接；否则尝试连接 master
+
+     
+   - 如果 master 是本地结点，则使用该 master 连接，否则使用前面的 slave 连接。
+   
 
 * DONE redis 数据库不停机拆分扩容                                     :redis:
   CLOSED: [2016-09-22 Thu 11:02]
@@ -15889,3 +15943,136 @@ Every change you make must be backward compatible with the rest of the system
 
   
   现在我们只有 npm scripts，所有的一切操作都从 npm run 开始，整个世界清净了。
+
+* TODO 分布式系统的配置信息管理
+
+** 配置信息包括哪些
+
+   - 系统配置
+
+     iptables、sysctl 等。
+
+   - 监听的地址及端口号
+
+     backlog、ulimit、ssl 证书等。
+
+   - 数据库连接信息
+     
+     主机地址、端口号、用户名、密码、库名、字符集等
+
+   - 要调用的第三方服务信息
+
+     服务地址、端口号、分配的身份标识及密钥等
+
+   - 日志文件
+
+     文件路径名、日志级别等
+
+   - 程序运行的用户名及用户组
+
+
+   - 特性开关
+     
+     
+   - 可微调的参数
+
+     连接、请求超时时间、最大连接数、心跳间隔等
+
+     
+   - 用户管理信息
+
+     管理员帐号密码、第三方服务调用方的 IP 及密钥等
+
+   - 接口权限列表
+
+** 谁来进行配置
+
+   一般是开发人员自行配置，也可能会由运维人员来进行线上配置。
+
+** 什么时候进行配置
+
+   服务运行出现问题，会通过调整配置项进行修复，比如：第三方服务地址变动、密钥更换、新的第三方调用方加入、新 API 发布需要更新接口权限列表。
+
+** 配置存放的位置
+
+   - 操作系统配置文件
+
+     主要是 sysctl 内核调优项、iptables 防火墙规则。
+
+   
+   - 应用启动脚本
+
+     主要是 ulimit。
+
+     一般是 bash 脚本。
+   
+
+   - 应用配置文件
+
+     绝大多数变动不怎么频繁，且不需要实时生效的配置项，一般采用 ini、xml、json 做为文件格式。
+
+     可以通过给应用发送信号 reload 配置，从而避免重启服务。
+   
+   - 数据库
+
+     如放到 mysql、redis 数据库中。
+
+     可以通过给应用发送信号 reload 配置，从而避免重启服务。
+
+** 存在的问题
+
+   - 不规范导致难以管理
+
+     由于配置散落在很多地方，难以走查，服务器数量一多，就会出现一台改了配置另一台没有改的情况。
+
+     很难获取当前生效的配置，无法自动进行配置比对以检查配置生效情况。
+
+     配置文件的格式各异，修改时手误可能导致服务重启失败。
+
+   - 配置可能没有生效
+
+     像 sysctl 、iptables 配置项要使用 sysctl 和 iptables 命令生效配置，同时要确保存配置，避免重启后丢失。
+
+     ulimit 的配置需要重启服务进程才能生效。
+
+     放置在应用配置文件或数据库中的配置项，有的需要重启服务才能生效、有的需要向应用发送信号 reload 配置方可生效、有的实时生效。
+
+   - 配置的安全性
+
+     配置中可能包含敏感信息，如：密钥，不适合放到 git 中进行管理，没有一个很好的地方集中进行管理同时保证不丢失、不泄露。
+
+     配置的 reload 难以正确实现，或者不通用，每个应用都要重新造轮子。
+
+** 如何解决这些问题
+
+* TODO 数据分析                          :data_mining:
+
+** 数据分析的过程
+
+   - 明确分析目的与框架
+
+   - 数据收集
+
+   - 数据处理
+
+   - 数据分析
+
+   - 数据展现
+
+   - 撰写报告
+
+     
+   引用自 《[[http://mt.sohu.com/20150706/n416241596.shtml][数据运营经验：什么是数据分析？怎么做数据分析？-搜狐]]》。
+
+
+** gnuplot
+
+   [[http://www.gnuplot.info][gnuplot]] 是一个命令行驱动的交互式绘图工具，除了可以对一些函数进行绘图，还可以读取数据文件，选取指定的列做为 x、y 或 z 轴绘制二维或三维及其它各种数据图。
+
+   属于“数据展现”阶段的工具，具备少量数据分析能力。
+
+   生成 [[http://www.gnuplot.info][gnuplot]] 数据文件的 linux 命令行工具：
+
+   - join
+
+     按指定列合并两个数据文件，形成多列数据表，由 [[http://www.gnuplot.info][gnuplot]] 在一张图上展示多个数据，进行数据相关性分析。
