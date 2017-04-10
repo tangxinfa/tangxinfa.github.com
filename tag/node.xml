@@ -4,7 +4,7 @@
         <title>node - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/node.xml</link>
-        <lastBuildDate>Mon, 26 Dec 2016 10:22:26 GMT</lastBuildDate>
+        <lastBuildDate>Mon, 10 Apr 2017 10:05:50 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>node - 看看俺 – KanKanAn.com</title>
@@ -14,6 +14,141 @@
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <generator>Feed for Node.js</generator>
         <category>技术</category>
+        <item>
+            <title><![CDATA[微信公众号后台开发需要缓存的凭据]]></title>
+            <link>/article/5fae4fe1516c4f1753f7540e53f05f0053d1970089817f135b58768451ed636e.html</link>
+            <guid>/article/5fae4fe1516c4f1753f7540e53f05f0053d1970089817f135b58768451ed636e.html</guid>
+            <pubDate>Mon, 10 Apr 2017 10:03:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+根据《<a href="https://mp.weixin.qq.com/wiki/7/85eff372c164ddc66c47777dc972279f.html">接口频率限制说明 - 微信公众平台开发者文档</a>》，很多接口（API）都有调用次数限制，凭据（Token）使用过程中需注意超时、刷新。对这些凭据进行缓存一方面可以避免超出限制被平台拒绝服务，减少微信公众号接口调用次数也能够减少服务响应时间。
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">全局接口调用凭据</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+根据《<a href="https://mp.weixin.qq.com/wiki/14/9f9c82c1af308e3b14ba9b973f99a8ba.html">获取access token - 微信公众平台开发者文档</a>》中的描述，全局接口调用凭据有以下特性：
+</p>
+
+
+<ul class="org-ul">
+<li>每日调用次数限制
+
+<p>
+新注册帐号每日 2000 次，认证服务号每日 100000 次。
+</p>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>过期时间限制
+
+<p>
+当前为 7200 秒
+</p>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>过期前需重新获取（刷新）
+
+<p>
+旧凭据会失效，刷新过程中公众平台会保证新、旧凭据短时间内同时可用。
+</p>
+</li>
+</ul>
+
+
+<p>
+后台服务往往有多个，而且会多机器、多进程方式部署，所以必须全局缓存该凭据，如使用 <code>Redis</code> 或 <code>Memcached</code> 来缓存；如果每一处业务代码发现凭据过期时擅自去重新获取凭据，高并发情况下可能瞬间出现大量的刷新操作，导致超出每日的接口调用次数限制，最好由一个中控服务负责凭据的管理，其它业务服务需要凭据时访问中控服务，由中控服务来负责凭据的获取、刷新。
+</p>
+</div>
+</div>
+
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">微信网页授权凭据</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+根据《 <a href="https://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1421140183&token=&lang=zh_CN">微信公众平台-微信网页授权</a> 》中的描述，网页授权接口调用凭据有以下特性：
+</p>
+
+
+<ul class="org-ul">
+<li>每日调用次数限制
+
+<p>
+无
+</p>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>过期时间限制
+
+<p>
+当前为 7200 秒
+</p>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>过期前需重新刷新
+</li>
+</ul>
+
+
+<p>
+网页授权凭据是通过用户授权码（ <code>code</code> ）换取的，用户授权码是一次性的，与用户的后继会话交互要依赖该授权凭据（Token）。后台服务往往有多个，而且会多机器、多进程方式部署，所以必须全局缓存该凭据，并在过期前刷新该凭据。
+</p>
+</div>
+</div>
+
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">微信JS接口的临时票据</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+根据《<a href="https://mp.weixin.qq.com/wiki?action=doc&id=mp1421141115&t=0.5032559735352876#fl1">S-SDK使用权限签名算法-获取jsapi_ticket</a> 》中的描述，微信JS接口的临时票据有以下特性：
+</p>
+
+
+<ul class="org-ul">
+<li>每日调用次数限制
+
+<p>
+认证服务号每日 1000000 次
+</p>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>过期时间限制
+
+<p>
+当前为 7200 秒
+</p>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>过期前需重新获取（刷新）
+</li>
+</ul>
+
+
+<p>
+后台服务往往有多个，而且会多机器、多进程方式部署，所以必须全局缓存该凭据，并在过期前重新获取。</p>
+</div>
+</div>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[使用 npm scripts 统一操作接口]]></title>
             <link>/article/4f7f7528-npm-scripts-7edf4e0064cd4f5c63a553e3.html</link>
@@ -394,7 +529,19 @@ It's possible to connect to a slave instead of a master by specifying the option
 <h2 id="sec-5">redis 至少要求 2.8.12</h2>
 <div class="outline-text-2" id="text-5">
 <p>
-redis 2.8.12 实现了一个特性：当 failover （redis 角色变化）后，断开所有 client 的连接。缺少这个特性会导致 failover 发生时到 master 的没有断开而是返回返回 READONLY 错误，可以通过 reconnectOnError 选项判断为 READONLY 错误后触发重连，但是将 redis 用来做 PUB/SUB 时不会出现 READONLY 错误，所以一定要升级到至少 2.8.12 以上。
+redis 2.8.12 实现了一个特性：当 failover （redis 角色变化）后，断开所有 client 的连接。
+</p>
+
+<p>
+缺少这个特性会导致 failover 发生后与原 master 连接还是保持的，后继请求返回 READONLY 错误。
+</p>
+
+<p>
+可以设置 reconnectOnError 选项，判断错误类型为 READONLY 后触发重连。
+</p>
+
+<p>
+但 PUB/SUB 不会出现 READONLY 错误，所以还是要升级到 2.8.12 以上。
 </p>
 </div>
 </div>
@@ -744,25 +891,25 @@ preferredSlaves 选项已经在 2.4.0 版实现，下面的代码依赖之前的
 </p>
 
 <ul class="org-ul">
-<li>使用 preferredSlaves 连接距离最近的 slave
+<li>使用 preferredSlaves 优先连接本地 slave
 </li>
 </ul>
 
 
 <ul class="org-ul">
-<li>如果 slave 是本地结点，则使用该 slave 连接；否则尝试连接 master
+<li>如果 slave 在本地，则使用该 slave 连接；否则尝试连接 master
 </li>
 </ul>
 
 
 <ul class="org-ul">
-<li>如果 master 是本地结点，则使用该 master 连接，否则使用前面的 slave 连接。
+<li>如果 master 在本地，则使用该 master 连接，否则使用前面的 slave 连接。
 </li>
 </ul>
 
 
 <p>
-这导致当本地无 slave 而连上本地 master 后，下次重连时即使本地有 slave 了，也还是会继续重连 master。
+这导致当本地无 slave 而连上本地 master 后，总是重连 master。
 </p>
 </div>
 </div>
@@ -780,19 +927,19 @@ preferredSlaves 选项已经在 2.4.0 版实现，下面的代码依赖之前的
 </p>
 
 <ul class="org-ul">
-<li>先优先连接本地 slave
+<li>优先连接本地 slave
 </li>
 </ul>
 
 
 <ul class="org-ul">
-<li>如果 slave 已经是本地结点，则使用该 slave 连接；否则尝试连接 master
+<li>如果 slave 在本地，则使用该 slave 连接；否则尝试连接 master
 </li>
 </ul>
 
 
 <ul class="org-ul">
-<li>如果 master 是本地结点，则使用该 master 连接，否则使用前面的 slave 连接。
+<li>如果 master 在本地，则使用该 master 连接，否则使用前面的 slave 连接。
 </li>
 </ul>
 </div>
@@ -3021,13 +3168,11 @@ Error: Cannot find module '../encodings'
 </div>
 
 <p>
-这是延迟加载模块，代码本身没有错， <code>../encodings</code> 模块是存在的，以前也有遇到类似问题，不过是在 <code>node.js</code> 一启动就报错，因为系统默认的权限太严格了（如： <code>umask</code> 为 <code>0022</code> ），
-<code>npm install</code> 安装的 <code>node_modules</code> 其它用户（如： <code>nobody</code> ）没有访问权限。这次是在处理用户请求过程中报错，考虑到上面的模块是延迟加载，
-在初始化完成与监听端口处理用户请求的代码之间，我的代码有 <code>setuid</code> 到 <code>nobody</code> 的逻辑，应该还是文件目录权限引起。
+这是延迟加载模块，代码本身没有错， <code>../encodings</code> 模块是存在的，以前也有遇到类似问题，不过是在 <code>node.js</code> 一启动就报错，因为系统默认的权限太严格了（如： <code>umask</code> 为 <code>0077</code> ）， <code>npm install</code> 安装的 <code>node_modules</code> 其它用户（如 <code>nobody</code> ）没有访问权限。这次是在处理用户请求过程中报错，考虑到上面的模块是延迟加载，在初始化完成与监听端口处理用户请求的代码之间，我的代码有 <code>setuid</code> 到 <code>nobody</code> 的逻辑，应该还是文件目录权限引起。
 </p>
 
 <p>
-最终发现是 <code>/usr/local/www.xxxxxxxx.com</code> 在创建时因为系统默认的权限设置太严格（ <code>umask</code> 为 <code>0022</code> ），导致 <code>nobody</code> 用户无法访问，改一下目录权限后问题修复。</p>
+最终发现是 <code>/usr/local/www.xxxxxxxx.com</code> 在创建时因为系统默认的权限设置太严格（ <code>umask</code> 为 <code>0077</code> ），导致 <code>nobody</code> 用户无法访问，改一下目录权限后问题修复。</p>
 ]]></content:encoded>
         </item>
         <item>

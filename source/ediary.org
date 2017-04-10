@@ -9620,11 +9620,10 @@ class RedisShard {
         iconv.encodings = require("../encodings"); // Lazy load all encoding definitions.
   #+end_src
 
-  这是延迟加载模块，代码本身没有错， =../encodings= 模块是存在的，以前也有遇到类似问题，不过是在 =node.js= 一启动就报错，因为系统默认的权限太严格了（如： =umask= 为 =0022= ），
-  =npm install= 安装的 =node_modules= 其它用户（如： =nobody= ）没有访问权限。这次是在处理用户请求过程中报错，考虑到上面的模块是延迟加载，
-  在初始化完成与监听端口处理用户请求的代码之间，我的代码有 =setuid= 到 =nobody= 的逻辑，应该还是文件目录权限引起。
+  这是延迟加载模块，代码本身没有错， =../encodings= 模块是存在的，以前也有遇到类似问题，不过是在 =node.js= 一启动就报错，因为系统默认的权限太严格了（如： =umask= 为 =0077= ）， =npm install= 安装的 =node_modules= 其它用户（如 =nobody= ）没有访问权限。这次是在处理用户请求过程中报错，考虑到上面的模块是延迟加载，在初始化完成与监听端口处理用户请求的代码之间，我的代码有 =setuid= 到 =nobody= 的逻辑，应该还是文件目录权限引起。
 
-  最终发现是 =/usr/local/www.xxxxxxxx.com= 在创建时因为系统默认的权限设置太严格（ =umask= 为 =0022= ），导致 =nobody= 用户无法访问，改一下目录权限后问题修复。
+  最终发现是 =/usr/local/www.xxxxxxxx.com= 在创建时因为系统默认的权限设置太严格（ =umask= 为 =0077= ），导致 =nobody= 用户无法访问，改一下目录权限后问题修复。
+
 * DONE Archlinux下解决上网慢问题                          :archlinux:network:
   CLOSED: [2015-12-30 Wed 10:17]
 
@@ -15025,7 +15024,13 @@ and as a result it will not hear about deceased children, and children will not 
 
 ** redis 至少要求 2.8.12
 
-   redis 2.8.12 实现了一个特性：当 failover （redis 角色变化）后，断开所有 client 的连接。缺少这个特性会导致 failover 发生时到 master 的没有断开而是返回返回 READONLY 错误，可以通过 reconnectOnError 选项判断为 READONLY 错误后触发重连，但是将 redis 用来做 PUB/SUB 时不会出现 READONLY 错误，所以一定要升级到至少 2.8.12 以上。
+   redis 2.8.12 实现了一个特性：当 failover （redis 角色变化）后，断开所有 client 的连接。
+
+   缺少这个特性会导致 failover 发生后与原 master 连接还是保持的，后继请求返回 READONLY 错误。
+
+   可以设置 reconnectOnError 选项，判断错误类型为 READONLY 后触发重连。
+
+   但 PUB/SUB 不会出现 READONLY 错误，所以还是要升级到 2.8.12 以上。
 
 ** 在 <2.4.0 的 ioredis 上实现优先选择本地 Slave
 
@@ -15307,16 +15312,16 @@ and as a result it will not hear about deceased children, and children will not 
 
    实现逻辑如下：
 
-   - 使用 preferredSlaves 连接距离最近的 slave
+   - 使用 preferredSlaves 优先连接本地 slave
 
 
-   - 如果 slave 是本地结点，则使用该 slave 连接；否则尝试连接 master
+   - 如果 slave 在本地，则使用该 slave 连接；否则尝试连接 master
 
      
-   - 如果 master 是本地结点，则使用该 master 连接，否则使用前面的 slave 连接。
+   - 如果 master 在本地，则使用该 master 连接，否则使用前面的 slave 连接。
 
 
-   这导致当本地无 slave 而连上本地 master 后，下次重连时即使本地有 slave 了，也还是会继续重连 master。
+   这导致当本地无 slave 而连上本地 master 后，总是重连 master。
 
 ** 在 2.4.x 的 ioredis 上实现优先选择本地结点（不使用 preferredSlaves）
 
@@ -15325,14 +15330,13 @@ and as a result it will not hear about deceased children, and children will not 
 
    通过替换 SentinelConnector.prototype.resolveSlave 及 SentinelConnector.prototype.check 方法实现，主要的实现逻辑：
 
-   - 先优先连接本地 slave
+   - 优先连接本地 slave
 
 
-   - 如果 slave 已经是本地结点，则使用该 slave 连接；否则尝试连接 master
+   - 如果 slave 在本地，则使用该 slave 连接；否则尝试连接 master
 
      
-   - 如果 master 是本地结点，则使用该 master 连接，否则使用前面的 slave 连接。
-   
+   - 如果 master 在本地，则使用该 master 连接，否则使用前面的 slave 连接。
 
 * DONE redis 数据库不停机拆分扩容                                     :redis:
   CLOSED: [2016-09-22 Thu 11:02]
@@ -15740,8 +15744,31 @@ Every change you make must be backward compatible with the rest of the system
 
   可见，json 转 blobmsg 不将整型转化为 =BLOBMSG_TYPE_INT64= 因为 json 不能精确表示 64 位整型。
 
-* TODO 高可用后台服务的系统思维                                :architecture:
+* TODO 高可用的后台服务                                        :architecture:
 
+** DNS
+
+** 接入层
+
+   接入层（通常为 nginx）可实现以下目标：
+
+   - 通过反向代理进行负载均衡
+
+     
+   - 压缩加密缓存优化
+
+
+   - 提升可用性
+
+     如结合 keepalived 通过浮动 IP 进行容错。
+
+
+   简单的项目不需要接入层，但是复杂一些的项目则很有必要引入。
+
+** 业务层
+
+** 数据存储层
+  
 * DONE 概念设计：认证（Authentication）与授权（Authorization） :architecture:
   CLOSED: [2016-11-30 Wed 14:33]
 
@@ -16076,3 +16103,134 @@ Every change you make must be backward compatible with the rest of the system
    - join
 
      按指定列合并两个数据文件，形成多列数据表，由 [[http://www.gnuplot.info][gnuplot]] 在一张图上展示多个数据，进行数据相关性分析。
+
+* DONE 玩具项目                                                       :think:
+  CLOSED: [2017-01-21 Sat 23:11]
+
+  有一天，你接到一项任务，开发一个系统，这个系统被要求尽快上线，就像众多的其它项目一样，鲜明的互联网风格，快速开发、快速上线。
+
+  你照做了，用最擅长的技术，大量重用以前项目里的东西，顺利地在截止日期前将系统写好并上线。
+
+  它看起来有点粗糙，谈不上高性能、高可用、可扩展这些特性，一句话“Just works”。
+
+  我们很忙，时间很宝贵，现在就为尚不存在的大量用户去做优化是不值得的，我们还有很多这种项目要做，我们信奉“不要过早优化”以及“尽早发布”。
+
+  在互联网行业，上个首页后用户量暴增服务被压垮，并不罕见，是一个幸福的烦恼，我们的服务会及时演进，最终，拥有完美的代码和架构。
+
+  而且不那么忙的时候，我们会静下心来偿还技术债务的，现在已经足够好了，让我们想想还有什么新项目可以做做。
+
+  
+  时间一天天过去，程序员长成了架构师，小王变成了老王。
+
+  每一年都有新的产品走红，小公司变成独角兽，每一次业内会议上都会有大量架构演进的分享。
+
+  或许下一次就轮到我们了，我们会跟着公司一起成长，在业务突飞猛进的情况下，不断打磨我们的技术，我们的程序会从一个个小玩具进化变成高楼大厦。
+
+  
+  所以我们现在还是玩具人生，在别人眼里，我们是一个问号，有待证明的问号。
+
+* TODO WebSocket 与股票应用                              :think:architecture:
+
+  WebSocket 是
+
+  #+begin_quote
+  服务器与客户端（主要是浏览器）的双向消息通讯协议
+  #+end_quote
+
+  应该可以用于股票行情、事件、社交消息推送。
+
+  股票行情的推送可采用 =发布-订阅= 模式，客户端要维护关注的股票，如：自选股、全局指数、当前展示的板块、当前展示的股票等， 
+  然后向服务器 =订阅= 这些股票，服务器实时 =发布= 最新的股票行情，客户端相应进行更新。
+
+  服务主动推送事件、社交消息（可以认为客户端默认已 =订阅= ）。
+
+
+  有可能只使用 =发布-订阅= 来做为服务器与客户端的通信方式，理论上是可以的。
+  如果服务器能够知道客户端的当前状态，就完全消除主动拉取（通常通过 =HTTP= 协议）数据的行为，比如我们可以严格定义客户端
+  应该拥有哪些状态，服务器再主动将状态更新推送给客户端，这需要实现精确的状态同步。
+
+  =发布-订阅= 无法完全替代客户端主动拉取（通常通过 =HTTP= 协议）数据。
+
+* TODO 技术团队开始阶段的管理                                        :manage:
+
+  一个项目（或产品）的开始阶段，人员、资源、设计甚至产品定位等可能还不到位，如果等到所有依赖的东西都到位，时间就白白流逝掉了。
+  处于这种情境下的人其实内心是焦虑的，有种使不上劲的感觉，时间浪费不可怕，可怕的是心气士气。
+
+  这个时候管理的目标是理清思路，确认现阶段能够进行的事项，让团队的工作处于可跟踪状态，总有很多事情在依赖项不到位的情况下也可以推进。
+  虽然业务需求还有完全确定下来，或者实现业务依赖的资源还没有到位，但是一个什么也不做的 APP Demo 还是可以拿出来的，有很多任务其实是立即着手进行的，
+  如用户登录、注销。
+
+* TODO React 技术栈入门                                                   :node:react:
+
+  相比后端，前端的技术演进非常激进，自已还停留在 5 年前的 PC 时代，前端还是 JQuery、Boostrap、Dojo 之类的，裸写 JS、Html、CSS 还是家常便饭，然后移动时代到来，Backbone、Ember、Handlebars 之类的开始兴起，直到最近 Vue、React、Angular 开始刷屏。
+
+  一个趋势就是越来越倚重 Javascript，前端的业务逻辑越来越复杂，到现在连 Html 也由 Javascript 来生成了，个人感觉冲击还是蛮大的，一直都觉得 Html 模板带来的所见即所得是必须坚持的，而 React、Angular 带来的前端工具链依赖，让我觉得什么时候前端开发这么繁琐了。
+
+* DONE 微信公众号后台开发需要缓存的凭据                       :wechat:node:
+  CLOSED: [2017-04-10 Mon 18:03]
+
+  根据《[[https://mp.weixin.qq.com/wiki/7/85eff372c164ddc66c47777dc972279f.html][接口频率限制说明 - 微信公众平台开发者文档]]》，很多接口（API）都有调用次数限制，凭据（Token）使用过程中需注意超时、刷新。对这些凭据进行缓存一方面可以避免超出限制被平台拒绝服务，减少微信公众号接口调用次数也能够减少服务响应时间。
+
+** 全局接口调用凭据
+
+   根据《[[https://mp.weixin.qq.com/wiki/14/9f9c82c1af308e3b14ba9b973f99a8ba.html][获取access token - 微信公众平台开发者文档]]》中的描述，全局接口调用凭据有以下特性：
+
+
+   - 每日调用次数限制
+
+     新注册帐号每日 2000 次，认证服务号每日 100000 次。
+
+
+   - 过期时间限制
+
+     当前为 7200 秒
+
+   
+   - 过期前需重新获取（刷新）
+
+     旧凭据会失效，刷新过程中公众平台会保证新、旧凭据短时间内同时可用。
+
+
+   后台服务往往有多个，而且会多机器、多进程方式部署，所以必须全局缓存该凭据，如使用 =Redis= 或 =Memcached= 来缓存；如果每一处业务代码发现凭据过期时擅自去重新获取凭据，高并发情况下可能瞬间出现大量的刷新操作，导致超出每日的接口调用次数限制，最好由一个中控服务负责凭据的管理，其它业务服务需要凭据时访问中控服务，由中控服务来负责凭据的获取、刷新。
+
+
+** 微信网页授权凭据
+
+   根据《 [[https://mp.weixin.qq.com/wiki?t=resource/res_main&id=mp1421140183&token=&lang=zh_CN][微信公众平台-微信网页授权]] 》中的描述，网页授权接口调用凭据有以下特性：
+
+
+   - 每日调用次数限制
+
+     无
+
+
+   - 过期时间限制
+
+     当前为 7200 秒
+
+   
+   - 过期前需重新刷新
+
+
+   网页授权凭据是通过用户授权码（ =code= ）换取的，用户授权码是一次性的，与用户的后继会话交互要依赖该授权凭据（Token）。后台服务往往有多个，而且会多机器、多进程方式部署，所以必须全局缓存该凭据，并在过期前刷新该凭据。
+
+
+** 微信JS接口的临时票据
+
+   根据《[[https://mp.weixin.qq.com/wiki?action=doc&id=mp1421141115&t=0.5032559735352876#fl1][S-SDK使用权限签名算法-获取jsapi_ticket]] 》中的描述，微信JS接口的临时票据有以下特性：
+
+
+   - 每日调用次数限制
+
+     认证服务号每日 1000000 次
+
+
+   - 过期时间限制
+
+     当前为 7200 秒
+
+   
+   - 过期前需重新获取（刷新）
+
+   
+   后台服务往往有多个，而且会多机器、多进程方式部署，所以必须全局缓存该凭据，并在过期前重新获取。

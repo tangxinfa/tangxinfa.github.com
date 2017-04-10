@@ -4,7 +4,7 @@
         <title>redis - 看看俺 – KanKanAn.com</title>
         <description>记我所思，忆我所为。</description>
         <link>http://blog.kankanan.com/tag/redis.xml</link>
-        <lastBuildDate>Mon, 26 Dec 2016 10:22:26 GMT</lastBuildDate>
+        <lastBuildDate>Mon, 10 Apr 2017 10:05:50 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <image>
             <title>redis - 看看俺 – KanKanAn.com</title>
@@ -348,7 +348,19 @@ It's possible to connect to a slave instead of a master by specifying the option
 <h2 id="sec-5">redis 至少要求 2.8.12</h2>
 <div class="outline-text-2" id="text-5">
 <p>
-redis 2.8.12 实现了一个特性：当 failover （redis 角色变化）后，断开所有 client 的连接。缺少这个特性会导致 failover 发生时到 master 的没有断开而是返回返回 READONLY 错误，可以通过 reconnectOnError 选项判断为 READONLY 错误后触发重连，但是将 redis 用来做 PUB/SUB 时不会出现 READONLY 错误，所以一定要升级到至少 2.8.12 以上。
+redis 2.8.12 实现了一个特性：当 failover （redis 角色变化）后，断开所有 client 的连接。
+</p>
+
+<p>
+缺少这个特性会导致 failover 发生后与原 master 连接还是保持的，后继请求返回 READONLY 错误。
+</p>
+
+<p>
+可以设置 reconnectOnError 选项，判断错误类型为 READONLY 后触发重连。
+</p>
+
+<p>
+但 PUB/SUB 不会出现 READONLY 错误，所以还是要升级到 2.8.12 以上。
 </p>
 </div>
 </div>
@@ -698,25 +710,25 @@ preferredSlaves 选项已经在 2.4.0 版实现，下面的代码依赖之前的
 </p>
 
 <ul class="org-ul">
-<li>使用 preferredSlaves 连接距离最近的 slave
+<li>使用 preferredSlaves 优先连接本地 slave
 </li>
 </ul>
 
 
 <ul class="org-ul">
-<li>如果 slave 是本地结点，则使用该 slave 连接；否则尝试连接 master
+<li>如果 slave 在本地，则使用该 slave 连接；否则尝试连接 master
 </li>
 </ul>
 
 
 <ul class="org-ul">
-<li>如果 master 是本地结点，则使用该 master 连接，否则使用前面的 slave 连接。
+<li>如果 master 在本地，则使用该 master 连接，否则使用前面的 slave 连接。
 </li>
 </ul>
 
 
 <p>
-这导致当本地无 slave 而连上本地 master 后，下次重连时即使本地有 slave 了，也还是会继续重连 master。
+这导致当本地无 slave 而连上本地 master 后，总是重连 master。
 </p>
 </div>
 </div>
@@ -734,19 +746,19 @@ preferredSlaves 选项已经在 2.4.0 版实现，下面的代码依赖之前的
 </p>
 
 <ul class="org-ul">
-<li>先优先连接本地 slave
+<li>优先连接本地 slave
 </li>
 </ul>
 
 
 <ul class="org-ul">
-<li>如果 slave 已经是本地结点，则使用该 slave 连接；否则尝试连接 master
+<li>如果 slave 在本地，则使用该 slave 连接；否则尝试连接 master
 </li>
 </ul>
 
 
 <ul class="org-ul">
-<li>如果 master 是本地结点，则使用该 master 连接，否则使用前面的 slave 连接。
+<li>如果 master 在本地，则使用该 master 连接，否则使用前面的 slave 连接。
 </li>
 </ul>
 </div>

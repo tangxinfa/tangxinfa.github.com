@@ -88,13 +88,11 @@ Error: Cannot find module '../encodings'
 </div>
 
 <p>
-这是延迟加载模块，代码本身没有错， <code>../encodings</code> 模块是存在的，以前也有遇到类似问题，不过是在 <code>node.js</code> 一启动就报错，因为系统默认的权限太严格了（如： <code>umask</code> 为 <code>0022</code> ），
-<code>npm install</code> 安装的 <code>node_modules</code> 其它用户（如： <code>nobody</code> ）没有访问权限。这次是在处理用户请求过程中报错，考虑到上面的模块是延迟加载，
-在初始化完成与监听端口处理用户请求的代码之间，我的代码有 <code>setuid</code> 到 <code>nobody</code> 的逻辑，应该还是文件目录权限引起。
+这是延迟加载模块，代码本身没有错， <code>../encodings</code> 模块是存在的，以前也有遇到类似问题，不过是在 <code>node.js</code> 一启动就报错，因为系统默认的权限太严格了（如： <code>umask</code> 为 <code>0077</code> ）， <code>npm install</code> 安装的 <code>node_modules</code> 其它用户（如 <code>nobody</code> ）没有访问权限。这次是在处理用户请求过程中报错，考虑到上面的模块是延迟加载，在初始化完成与监听端口处理用户请求的代码之间，我的代码有 <code>setuid</code> 到 <code>nobody</code> 的逻辑，应该还是文件目录权限引起。
 </p>
 
 <p>
-最终发现是 <code>/usr/local/www.xxxxxxxx.com</code> 在创建时因为系统默认的权限设置太严格（ <code>umask</code> 为 <code>0022</code> ），导致 <code>nobody</code> 用户无法访问，改一下目录权限后问题修复。</p>
+最终发现是 <code>/usr/local/www.xxxxxxxx.com</code> 在创建时因为系统默认的权限设置太严格（ <code>umask</code> 为 <code>0077</code> ），导致 <code>nobody</code> 用户无法访问，改一下目录权限后问题修复。</p>
 
         </div>
         <br />
