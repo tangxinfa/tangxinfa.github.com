@@ -4,38 +4,22 @@
     <meta charset="utf-8"/>
     <title>估算redis内存占用 | 看看俺 – KanKanAn.com</title>
     <link rel="shortcut icon" href="/static/favicon.ico" />
-    <link rel="stylesheet" type="text/less" href="/style/less/o-blog.less"/>
+    <link rel="stylesheet" type="text/css" href="/style/ediary.css"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="generator" content="o-blog"/>
-    <script src="/style/js/less-1.3.0.min.js" type="text/javascript"></script>
     <script src="/style/js/jquery-1.7.1.min.js" type="text/javascript"></script>
-    <script src="/style/bootstrap/js/bootstrap-modal.js" type="text/javascript"></script>
-    <script src="/style/bootstrap/js/bootstrap-transition.js" type="text/javascript"></script>
-    <script src="/style/bootstrap/js/bootstrap-dropdown.js" type="text/javascript"></script>
-    <script src="/style/bootstrap/js/bootstrap-collapse.js" type="text/javascript"></script>
-    <script src="/style/js/prettify.js" type="text/javascript"></script>
-    <script src="/style/js/o-blog.linenumber.js" type="text/javascript"></script>
     <script src="/style/js/o-blog-fix.js" type="text/javascript"></script>
   </head>
   <body>
     <div class="navbar navbar-fixed-top" id="header">
       <div class="navbar-inner">
-	    <div class="container">
-	      <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </a>
-          <a class="brand" href="/" style="line-height:100%;">看看俺 – KanKanAn.com</a>
-	      <div class="nav-collapse collapse">
-            <ul class="org-ul">
-              <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
-                
-                <li><a href="/index.html"><i class="icon-folder-close icon-white"></i> 技术</a></li>
-                <li><a href="/category/life/0.html"><i class="icon-folder-close icon-white"></i> 生活</a></li>
-            </ul>
-	      </div>
-	    </div>
+        <a class="brand" href="/" style="line-height:100%;">看看俺 – KanKanAn.com</a>
+        <ul class="navbar-links">
+          <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
+          
+          <li><a href="/index.html"><i class="icon-folder-close icon-white"></i> 技术</a></li>
+          <li><a href="/category/life/0.html"><i class="icon-folder-close icon-white"></i> 生活</a></li>
+        </ul>
       </div>
     </div>
 
@@ -45,12 +29,6 @@
       <div class="article">
         <header class="article-header">
           <h1>估算redis内存占用</h1>
-      	<div class="qr-code">
-      	  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="" alt="" id="qr-code" />
-      	  <script>
-      	    document.getElementById("qr-code").src = "http://chart.apis.google.com/chart?chs=90x90&cht=qr&chld=|0&chl=" + encodeURIComponent(document.location.href);
-      	  </script>
-      	</div>
         </header>
       
         <div class="article-content">
@@ -78,30 +56,30 @@
 <li>测试脚本
 <div class="org-src-container">
 
-<pre class="src src-python"><span style="color: #8e908c; font-style: italic;">#</span><span style="color: #8e908c; font-style: italic;">!/bin/env python</span>
+<pre class="src src-python"><span style="color: #999999; font-style: italic;">#</span><span style="color: #999999; font-style: italic;">!/bin/env python</span>
 
-<span style="color: #718c00;">import</span> redis
-<span style="color: #718c00;">import</span> uuid
-<span style="color: #718c00;">import</span> time
+<span style="color: #99cc99;">import</span> redis
+<span style="color: #99cc99;">import</span> uuid
+<span style="color: #99cc99;">import</span> time
 
-<span style="color: #eab700;">r</span> = redis.Redis(host=<span style="color: #3e999f;">'localhost'</span>, port=6379, db=0)
-<span style="color: #718c00;">for</span> num_strings <span style="color: #718c00;">in</span> (100000,):
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   r.flushall()
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   time.sleep(1.0)
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #eab700;">initial_size</span> = r.dbsize()
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #eab700;">initial_info</span> = r.info()
+<span style="color: #ffcc66;">r</span> = redis.Redis(host=<span style="color: #66cccc;">'localhost'</span>, port=6379, db=0)
+<span style="color: #99cc99;">for</span> num_strings <span style="color: #99cc99;">in</span> (100000,):
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   r.flushall()
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   time.sleep(1.0)
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #ffcc66;">initial_size</span> = r.dbsize()
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #ffcc66;">initial_info</span> = r.info()
 
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #718c00;">for</span> i <span style="color: #718c00;">in</span> <span style="color: #8959a8;">xrange</span>(0, num_strings):
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #8e908c; background-color: #ffffff;"> </span>   r.<span style="color: #8959a8;">set</span>(<span style="color: #8959a8;">str</span>(uuid.uuid4()), time.time())
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #8e908c; font-style: italic;">#</span><span style="color: #8e908c; font-style: italic;">r.setex(str(uuid.uuid4()), time.time(), 100000)</span>
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #eab700;">final_size</span> = r.dbsize()
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #eab700;">final_info</span> = r.info()
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #99cc99;">for</span> i <span style="color: #99cc99;">in</span> <span style="color: #cc99cc;">xrange</span>(0, num_strings):
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   r.<span style="color: #cc99cc;">set</span>(<span style="color: #cc99cc;">str</span>(uuid.uuid4()), time.time())
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; font-style: italic;">#</span><span style="color: #999999; font-style: italic;">r.setex(str(uuid.uuid4()), time.time(), 100000)</span>
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #ffcc66;">final_size</span> = r.dbsize()
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #ffcc66;">final_info</span> = r.info()
 
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #718c00;">print</span> <span style="color: #3e999f;">"For %s strings."</span> % (num_strings,)
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #718c00;">print</span> <span style="color: #3e999f;">"Keys: %s =&gt; %s"</span> % (initial_size, final_size)
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #718c00;">print</span> <span style="color: #3e999f;">"Memory: %s =&gt; %s"</span> % (initial_info[<span style="color: #3e999f;">'used_memory'</span>],
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #8e908c; background-color: #ffffff;"> </span>   final_info[<span style="color: #3e999f;">'used_memory'</span>])
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #718c00;">print</span> <span style="color: #3e999f;">"Memory per key: %d"</span>%((<span style="color: #8959a8;">int</span>(final_info[<span style="color: #3e999f;">'used_memory'</span>]) - <span style="color: #8959a8;">int</span>(initial_in<span style="text-decoration: underline;">fo[</span><span style="color: #3e999f; text-decoration: underline;">'used_memory'</span><span style="text-decoration: underline;">])) / num_strings)</span>
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #99cc99;">print</span> <span style="color: #66cccc;">"For %s strings."</span> % (num_strings,)
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #99cc99;">print</span> <span style="color: #66cccc;">"Keys: %s =&gt; %s"</span> % (initial_size, final_size)
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #99cc99;">print</span> <span style="color: #66cccc;">"Memory: %s =&gt; %s"</span> % (initial_info[<span style="color: #66cccc;">'used_memory'</span>],
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   final_info[<span style="color: #66cccc;">'used_memory'</span>])
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #99cc99;">print</span> <span style="color: #66cccc;">"Memory per key: %d"</span>%((<span style="color: #cc99cc;">int</span>(final_info[<span style="color: #66cccc;">'used_memory'</span>]) - <span style="color: #cc99cc;">int</span>(initial_in<span style="text-decoration: underline;">fo[</span><span style="color: #66cccc; text-decoration: underline;">'used_memory'</span><span style="text-decoration: underline;">])) / num_strings)</span>
 </pre>
 </div>
 </li>
@@ -124,36 +102,36 @@
 <li>测试脚本
 <div class="org-src-container">
 
-<pre class="src src-python"><span style="color: #8e908c; font-style: italic;">#</span><span style="color: #8e908c; font-style: italic;">!/bin/env python</span>
+<pre class="src src-python"><span style="color: #999999; font-style: italic;">#</span><span style="color: #999999; font-style: italic;">!/bin/env python</span>
 
-<span style="color: #718c00;">import</span> redis
-<span style="color: #718c00;">import</span> math
-<span style="color: #718c00;">import</span> time
+<span style="color: #99cc99;">import</span> redis
+<span style="color: #99cc99;">import</span> math
+<span style="color: #99cc99;">import</span> time
 
-<span style="color: #eab700;">r</span> = redis.Redis(host=<span style="color: #3e999f;">'localhost'</span>, port=6379, db=0)
-<span style="color: #eab700;">set_capcity</span> = <span style="color: #8959a8;">int</span>(r.config_get(<span style="color: #3e999f;">"set-max-intset-entries"</span>)[<span style="color: #3e999f;">"set-max-intset-entries</span><span style="color: #3e999f; text-decoration: underline;">"</span><span style="text-decoration: underline;">])</span>
+<span style="color: #ffcc66;">r</span> = redis.Redis(host=<span style="color: #66cccc;">'localhost'</span>, port=6379, db=0)
+<span style="color: #ffcc66;">set_capcity</span> = <span style="color: #cc99cc;">int</span>(r.config_get(<span style="color: #66cccc;">"set-max-intset-entries"</span>)[<span style="color: #66cccc;">"set-max-intset-entries</span><span style="color: #66cccc; text-decoration: underline;">"</span><span style="text-decoration: underline;">])</span>
 
-<span style="color: #718c00;">def</span> <span style="color: #f5871f;">set_name</span>(i, num_strings, set_capcity):
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #eab700;">set_num</span> = math.ceil(num_strings/<span style="color: #8959a8;">float</span>(set_capcity))
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #718c00;">return</span> <span style="color: #3e999f;">"s%d"</span>%(i%set_num)
+<span style="color: #99cc99;">def</span> <span style="color: #f99157;">set_name</span>(i, num_strings, set_capcity):
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #ffcc66;">set_num</span> = math.ceil(num_strings/<span style="color: #cc99cc;">float</span>(set_capcity))
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #99cc99;">return</span> <span style="color: #66cccc;">"s%d"</span>%(i%set_num)
 
-<span style="color: #718c00;">for</span> num_strings <span style="color: #718c00;">in</span> (100000,):
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   r.flushall()
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   time.sleep(1.0)
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #eab700;">initial_size</span> = r.dbsize()
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #eab700;">initial_info</span> = r.info()
+<span style="color: #99cc99;">for</span> num_strings <span style="color: #99cc99;">in</span> (100000,):
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   r.flushall()
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   time.sleep(1.0)
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #ffcc66;">initial_size</span> = r.dbsize()
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #ffcc66;">initial_info</span> = r.info()
 
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #718c00;">for</span> i <span style="color: #718c00;">in</span> <span style="color: #8959a8;">xrange</span>(0, num_strings):
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #8e908c; font-style: italic;">#</span><span style="color: #8e908c; font-style: italic;">r.sadd("s", str(i))</span>
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #8e908c; background-color: #ffffff;"> </span>   r.sadd(set_name(i, num_strings, set_capcity), <span style="color: #8959a8;">str</span>(i))
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #eab700;">final_size</span> = r.dbsize()
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #eab700;">final_info</span> = r.info()
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #99cc99;">for</span> i <span style="color: #99cc99;">in</span> <span style="color: #cc99cc;">xrange</span>(0, num_strings):
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; font-style: italic;">#</span><span style="color: #999999; font-style: italic;">r.sadd("s", str(i))</span>
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   r.sadd(set_name(i, num_strings, set_capcity), <span style="color: #cc99cc;">str</span>(i))
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #ffcc66;">final_size</span> = r.dbsize()
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #ffcc66;">final_info</span> = r.info()
 
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #718c00;">print</span> <span style="color: #3e999f;">"For %s strings."</span> % (num_strings,)
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #718c00;">print</span> <span style="color: #3e999f;">"Keys: %s =&gt; %s"</span> % (initial_size, final_size)
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #718c00;">print</span> <span style="color: #3e999f;">"Memory: %s =&gt; %s"</span> % (initial_info[<span style="color: #3e999f;">'used_memory'</span>],
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #8e908c; background-color: #ffffff;"> </span>   final_info[<span style="color: #3e999f;">'used_memory'</span>])
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #718c00;">print</span> <span style="color: #3e999f;">"Memory per key: %d"</span>%((<span style="color: #8959a8;">int</span>(final_info[<span style="color: #3e999f;">'used_memory'</span>]) - <span style="color: #8959a8;">int</span>(initial_in<span style="text-decoration: underline;">fo[</span><span style="color: #3e999f; text-decoration: underline;">'used_memory'</span><span style="text-decoration: underline;">])) / num_strings)</span>
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #99cc99;">print</span> <span style="color: #66cccc;">"For %s strings."</span> % (num_strings,)
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #99cc99;">print</span> <span style="color: #66cccc;">"Keys: %s =&gt; %s"</span> % (initial_size, final_size)
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #99cc99;">print</span> <span style="color: #66cccc;">"Memory: %s =&gt; %s"</span> % (initial_info[<span style="color: #66cccc;">'used_memory'</span>],
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   final_info[<span style="color: #66cccc;">'used_memory'</span>])
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #99cc99;">print</span> <span style="color: #66cccc;">"Memory per key: %d"</span>%((<span style="color: #cc99cc;">int</span>(final_info[<span style="color: #66cccc;">'used_memory'</span>]) - <span style="color: #cc99cc;">int</span>(initial_in<span style="text-decoration: underline;">fo[</span><span style="color: #66cccc; text-decoration: underline;">'used_memory'</span><span style="text-decoration: underline;">])) / num_strings)</span>
 </pre>
 </div>
 </li>
@@ -185,10 +163,10 @@ redis在执行bgsave时，会进行一次fork，fork后的进程负责将内存�
         </div>
         <br />
         <footer class="article-footer">
-          <a class="tag" href="/tag/redis/0.html"><i class="icon-tag icon-white"></i> redis</a>
           <span class="muted">
             <i class="icon-time icon-white"></i> <time datetime="2012-12-16T15:14:00+0800">2012年12月16日 15时</time>
           </span>
+          <a class="tag" href="/tag/redis/0.html"><i class="icon-tag icon-white"></i> redis</a>
         </footer>
       </div>
 

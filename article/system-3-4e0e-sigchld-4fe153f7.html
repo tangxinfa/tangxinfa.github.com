@@ -4,38 +4,22 @@
     <meta charset="utf-8"/>
     <title>system(3) 与 SIGCHLD 信号 | 看看俺 – KanKanAn.com</title>
     <link rel="shortcut icon" href="/static/favicon.ico" />
-    <link rel="stylesheet" type="text/less" href="/style/less/o-blog.less"/>
+    <link rel="stylesheet" type="text/css" href="/style/ediary.css"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="generator" content="o-blog"/>
-    <script src="/style/js/less-1.3.0.min.js" type="text/javascript"></script>
     <script src="/style/js/jquery-1.7.1.min.js" type="text/javascript"></script>
-    <script src="/style/bootstrap/js/bootstrap-modal.js" type="text/javascript"></script>
-    <script src="/style/bootstrap/js/bootstrap-transition.js" type="text/javascript"></script>
-    <script src="/style/bootstrap/js/bootstrap-dropdown.js" type="text/javascript"></script>
-    <script src="/style/bootstrap/js/bootstrap-collapse.js" type="text/javascript"></script>
-    <script src="/style/js/prettify.js" type="text/javascript"></script>
-    <script src="/style/js/o-blog.linenumber.js" type="text/javascript"></script>
     <script src="/style/js/o-blog-fix.js" type="text/javascript"></script>
   </head>
   <body>
     <div class="navbar navbar-fixed-top" id="header">
       <div class="navbar-inner">
-	    <div class="container">
-	      <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </a>
-          <a class="brand" href="/" style="line-height:100%;">看看俺 – KanKanAn.com</a>
-	      <div class="nav-collapse collapse">
-            <ul class="org-ul">
-              <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
-                
-                <li><a href="/index.html"><i class="icon-folder-close icon-white"></i> 技术</a></li>
-                <li><a href="/category/life/0.html"><i class="icon-folder-close icon-white"></i> 生活</a></li>
-            </ul>
-	      </div>
-	    </div>
+        <a class="brand" href="/" style="line-height:100%;">看看俺 – KanKanAn.com</a>
+        <ul class="navbar-links">
+          <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
+          
+          <li><a href="/index.html"><i class="icon-folder-close icon-white"></i> 技术</a></li>
+          <li><a href="/category/life/0.html"><i class="icon-folder-close icon-white"></i> 生活</a></li>
+        </ul>
       </div>
     </div>
 
@@ -45,12 +29,6 @@
       <div class="article">
         <header class="article-header">
           <h1>system(3) 与 SIGCHLD 信号</h1>
-      	<div class="qr-code">
-      	  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="" alt="" id="qr-code" />
-      	  <script>
-      	    document.getElementById("qr-code").src = "http://chart.apis.google.com/chart?chs=90x90&cht=qr&chld=|0&chl=" + encodeURIComponent(document.location.href);
-      	  </script>
-      	</div>
         </header>
       
         <div class="article-content">
@@ -60,15 +38,15 @@ system(3) 常用于执行 shell 命令
 
 <div class="org-src-container">
 
-<pre class="src src-c"><span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;stdlib.h&gt;</span>
-<span style="color: #8959a8;">#include</span> <span style="color: #3e999f;">&lt;stdio.h&gt;</span>
+<pre class="src src-c"><span style="color: #cc99cc;">#include</span> <span style="color: #66cccc;">&lt;stdlib.h&gt;</span>
+<span style="color: #cc99cc;">#include</span> <span style="color: #66cccc;">&lt;stdio.h&gt;</span>
 
 
-<span style="color: #4271ae;">int</span> <span style="color: #f5871f;">main</span>(<span style="color: #4271ae;">int</span> <span style="color: #eab700;">argc</span>, <span style="color: #4271ae;">char</span> *<span style="color: #eab700;">argv</span>[])
+<span style="color: #6699cc;">int</span> <span style="color: #f99157;">main</span>(<span style="color: #6699cc;">int</span> <span style="color: #ffcc66;">argc</span>, <span style="color: #6699cc;">char</span> *<span style="color: #ffcc66;">argv</span>[])
 {
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #4271ae;">int</span> <span style="color: #eab700;">ret</span> = system(<span style="color: #3e999f;">"ls -la"</span>);
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   printf(<span style="color: #3e999f;">"ret: %d\n"</span>, ret);
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #718c00;">return</span> ret;
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #6699cc;">int</span> <span style="color: #ffcc66;">ret</span> = system(<span style="color: #66cccc;">"ls -la"</span>);
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   printf(<span style="color: #66cccc;">"ret: %d\n"</span>, ret);
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #99cc99;">return</span> ret;
 }
 </pre>
 </div>
@@ -204,17 +182,17 @@ system(3) 调用 waitpid(3) 时，子进程已经被系统自动回收，消失�
 <div class="outline-text-3" id="text-1-1">
 <div class="org-src-container">
 
-<pre class="src src-c"><span style="color: #4271ae;">int</span> <span style="color: #f5871f;">system2</span>(<span style="color: #718c00;">const</span> <span style="color: #4271ae;">char</span>* <span style="color: #eab700;">command</span>, <span style="color: #4271ae;">char</span>* <span style="color: #eab700;">output</span>, <span style="color: #4271ae;">size_t</span> <span style="color: #eab700;">output_size</span>)
+<pre class="src src-c"><span style="color: #6699cc;">int</span> <span style="color: #f99157;">system2</span>(<span style="color: #99cc99;">const</span> <span style="color: #6699cc;">char</span>* <span style="color: #ffcc66;">command</span>, <span style="color: #6699cc;">char</span>* <span style="color: #ffcc66;">output</span>, <span style="color: #6699cc;">size_t</span> <span style="color: #ffcc66;">output_size</span>)
 {
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #4271ae;">FILE</span>* <span style="color: #eab700;">p</span> = popen(command, <span style="color: #3e999f;">"r"</span>);
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #718c00;">if</span> (p) {
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #8e908c; background-color: #ffffff;"> </span>   memset(output, <span style="color: #3e999f;">'\0'</span>, output_size);
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #8e908c; background-color: #ffffff;"> </span>   fread(output, output_size - 1, 1, p);
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #8e908c; background-color: #ffffff;"> </span>   pclose(p);
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #718c00;">return</span> 0;
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   }
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #6699cc;">FILE</span>* <span style="color: #ffcc66;">p</span> = popen(command, <span style="color: #66cccc;">"r"</span>);
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #99cc99;">if</span> (p) {
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   memset(output, <span style="color: #66cccc;">'\0'</span>, output_size);
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   fread(output, output_size - 1, 1, p);
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   pclose(p);
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #99cc99;">return</span> 0;
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   }
 
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #718c00;">return</span> -1;
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #99cc99;">return</span> -1;
 }
 </pre>
 </div>
@@ -225,11 +203,11 @@ system(3) 调用 waitpid(3) 时，子进程已经被系统自动回收，消失�
 
 <div class="org-src-container">
 
-<pre class="src src-C"><span style="color: #4271ae;">char</span> <span style="color: #eab700;">output</span>[255];
-<span style="color: #718c00;">if</span> (0 == system2(<span style="color: #3e999f;">"mkdir /test; echo ret=$?"</span>, output, <span style="color: #718c00;">sizeof</span>(output)) &amp;&amp; strstr(o<span style="text-decoration: underline;">utput, </span><span style="color: #3e999f; text-decoration: underline;">"ret=0"</span><span style="text-decoration: underline;">)) {</span>
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   printf(<span style="color: #3e999f;">"mkdir /test successed"</span>);
-} <span style="color: #718c00;">else</span> {
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   printf(<span style="color: #3e999f;">"mkdir /test failed"</span>);
+<pre class="src src-C"><span style="color: #6699cc;">char</span> <span style="color: #ffcc66;">output</span>[255];
+<span style="color: #99cc99;">if</span> (0 == system2(<span style="color: #66cccc;">"mkdir /test; echo ret=$?"</span>, output, <span style="color: #99cc99;">sizeof</span>(output)) &amp;&amp; strstr(o<span style="text-decoration: underline;">utput, </span><span style="color: #66cccc; text-decoration: underline;">"ret=0"</span><span style="text-decoration: underline;">)) {</span>
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   printf(<span style="color: #66cccc;">"mkdir /test successed"</span>);
+} <span style="color: #99cc99;">else</span> {
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   printf(<span style="color: #66cccc;">"mkdir /test failed"</span>);
 }
 </pre>
 </div>
@@ -254,10 +232,10 @@ signal(3) 无法阻塞一个信号，只支持忽略（SIG_IGN）和恢复缺省
 
 <div class="org-src-container">
 
-<pre class="src src-c"><span style="color: #4271ae;">sigset_t</span> <span style="color: #eab700;">set</span>;
+<pre class="src src-c"><span style="color: #6699cc;">sigset_t</span> <span style="color: #ffcc66;">set</span>;
 sigemptyset(&amp;set);
 sigaddset(&amp;set, SIGCHLD);
-pthread_sigmask(SIG_BLOCK, &amp;set, <span style="color: #4271ae;">NULL</span>);
+pthread_sigmask(SIG_BLOCK, &amp;set, <span style="color: #6699cc;">NULL</span>);
 </pre>
 </div>
 
@@ -324,24 +302,24 @@ The method described here has two steps:
 <div class="outline-text-3" id="text-2-2">
 <div class="org-src-container">
 
-<pre class="src src-C"><span style="color: #8e908c; font-style: italic;">// </span><span style="color: #8e908c; font-style: italic;">&#23553;&#35013; system(3) &#65292;&#19968;&#26041;&#38754;&#36991;&#20813;&#20013;&#26029;&#31995;&#32479;&#35843;&#29992;&#65292;&#21478;&#19968;&#26041;&#38754;&#36991;&#20813;&#20986;&#29616;&#20725;&#23608;&#23385;&#36827;&#31243;.</span>
-<span style="color: #8e908c; font-style: italic;">// </span><span style="color: #8e908c; font-style: italic;">&#35831;&#35760;&#24471;&#20840;&#23616;&#22581;&#22622; SIGCHLD &#20449;&#21495;.</span>
-<span style="color: #4271ae;">int</span> <span style="color: #f5871f;">system2</span>(<span style="color: #718c00;">const</span> <span style="color: #4271ae;">char</span>* <span style="color: #eab700;">command</span>)
+<pre class="src src-C"><span style="color: #999999; font-style: italic;">// </span><span style="color: #999999; font-style: italic;">&#23553;&#35013; system(3) &#65292;&#19968;&#26041;&#38754;&#36991;&#20813;&#20013;&#26029;&#31995;&#32479;&#35843;&#29992;&#65292;&#21478;&#19968;&#26041;&#38754;&#36991;&#20813;&#20986;&#29616;&#20725;&#23608;&#23385;&#36827;&#31243;.</span>
+<span style="color: #999999; font-style: italic;">// </span><span style="color: #999999; font-style: italic;">&#35831;&#35760;&#24471;&#20840;&#23616;&#22581;&#22622; SIGCHLD &#20449;&#21495;.</span>
+<span style="color: #6699cc;">int</span> <span style="color: #f99157;">system2</span>(<span style="color: #99cc99;">const</span> <span style="color: #6699cc;">char</span>* <span style="color: #ffcc66;">command</span>)
 {
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #8e908c; font-style: italic;">// </span><span style="color: #8e908c; font-style: italic;">&#35843;&#29992; system(3) &#21069;&#21462;&#28040;&#23545; SIGCHLD &#30340;&#38459;&#22622;</span>
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #4271ae;">sigset_t</span> <span style="color: #eab700;">set</span>;
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   sigemptyset(&amp;set);
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   sigaddset(&amp;set, SIGCHLD);
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   pthread_sigmask(SIG_UNBLOCK, &amp;set, <span style="color: #4271ae;">NULL</span>);
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; font-style: italic;">// </span><span style="color: #999999; font-style: italic;">&#35843;&#29992; system(3) &#21069;&#21462;&#28040;&#23545; SIGCHLD &#30340;&#38459;&#22622;</span>
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #6699cc;">sigset_t</span> <span style="color: #ffcc66;">set</span>;
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   sigemptyset(&amp;set);
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   sigaddset(&amp;set, SIGCHLD);
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   pthread_sigmask(SIG_UNBLOCK, &amp;set, <span style="color: #6699cc;">NULL</span>);
 
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #4271ae;">int</span> <span style="color: #eab700;">code</span> = system(command);
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #6699cc;">int</span> <span style="color: #ffcc66;">code</span> = system(command);
 
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #8e908c; font-style: italic;">// </span><span style="color: #8e908c; font-style: italic;">&#35843;&#29992; system(3) &#21518;&#24674;&#22797;&#23545; SIGCHLD &#30340;&#38459;&#22622;</span>
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   sigemptyset(&amp;set);
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   sigaddset(&amp;set, SIGCHLD);
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   pthread_sigmask(SIG_BLOCK, &amp;set, <span style="color: #4271ae;">NULL</span>);
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; font-style: italic;">// </span><span style="color: #999999; font-style: italic;">&#35843;&#29992; system(3) &#21518;&#24674;&#22797;&#23545; SIGCHLD &#30340;&#38459;&#22622;</span>
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   sigemptyset(&amp;set);
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   sigaddset(&amp;set, SIGCHLD);
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   pthread_sigmask(SIG_BLOCK, &amp;set, <span style="color: #6699cc;">NULL</span>);
 
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   <span style="color: #718c00;">return</span> code;
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #99cc99;">return</span> code;
 }
 </pre>
 </div>
@@ -409,11 +387,11 @@ $ node -e 'console.log((0x0000000000001004).toString(2))'
         </div>
         <br />
         <footer class="article-footer">
-          <a class="tag" href="/tag/linux/0.html"><i class="icon-tag icon-white"></i> linux</a>
-          <a class="tag" href="/tag/c/0.html"><i class="icon-tag icon-white"></i> c</a>
           <span class="muted">
             <i class="icon-time icon-white"></i> <time datetime="2016-07-28T11:44:00+0800">2016年7月28日 11时</time>
           </span>
+          <a class="tag" href="/tag/linux/0.html"><i class="icon-tag icon-white"></i> linux</a>
+          <a class="tag" href="/tag/c/0.html"><i class="icon-tag icon-white"></i> c</a>
         </footer>
       </div>
 

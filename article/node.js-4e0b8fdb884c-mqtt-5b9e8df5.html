@@ -4,38 +4,22 @@
     <meta charset="utf-8"/>
     <title>node.js下进行mqtt实践 | 看看俺 – KanKanAn.com</title>
     <link rel="shortcut icon" href="/static/favicon.ico" />
-    <link rel="stylesheet" type="text/less" href="/style/less/o-blog.less"/>
+    <link rel="stylesheet" type="text/css" href="/style/ediary.css"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="generator" content="o-blog"/>
-    <script src="/style/js/less-1.3.0.min.js" type="text/javascript"></script>
     <script src="/style/js/jquery-1.7.1.min.js" type="text/javascript"></script>
-    <script src="/style/bootstrap/js/bootstrap-modal.js" type="text/javascript"></script>
-    <script src="/style/bootstrap/js/bootstrap-transition.js" type="text/javascript"></script>
-    <script src="/style/bootstrap/js/bootstrap-dropdown.js" type="text/javascript"></script>
-    <script src="/style/bootstrap/js/bootstrap-collapse.js" type="text/javascript"></script>
-    <script src="/style/js/prettify.js" type="text/javascript"></script>
-    <script src="/style/js/o-blog.linenumber.js" type="text/javascript"></script>
     <script src="/style/js/o-blog-fix.js" type="text/javascript"></script>
   </head>
   <body>
     <div class="navbar navbar-fixed-top" id="header">
       <div class="navbar-inner">
-	    <div class="container">
-	      <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </a>
-          <a class="brand" href="/" style="line-height:100%;">看看俺 – KanKanAn.com</a>
-	      <div class="nav-collapse collapse">
-            <ul class="org-ul">
-              <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
-                
-                <li><a href="/index.html"><i class="icon-folder-close icon-white"></i> 技术</a></li>
-                <li><a href="/category/life/0.html"><i class="icon-folder-close icon-white"></i> 生活</a></li>
-            </ul>
-	      </div>
-	    </div>
+        <a class="brand" href="/" style="line-height:100%;">看看俺 – KanKanAn.com</a>
+        <ul class="navbar-links">
+          <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
+          
+          <li><a href="/index.html"><i class="icon-folder-close icon-white"></i> 技术</a></li>
+          <li><a href="/category/life/0.html"><i class="icon-folder-close icon-white"></i> 生活</a></li>
+        </ul>
       </div>
     </div>
 
@@ -45,12 +29,6 @@
       <div class="article">
         <header class="article-header">
           <h1>node.js下进行mqtt实践</h1>
-      	<div class="qr-code">
-      	  <img style="min-width:90px; min-height:90px; max-width:90px; max-height:90px;" src="" alt="" id="qr-code" />
-      	  <script>
-      	    document.getElementById("qr-code").src = "http://chart.apis.google.com/chart?chs=90x90&cht=qr&chld=|0&chl=" + encodeURIComponent(document.location.href);
-      	  </script>
-      	</div>
         </header>
       
         <div class="article-content">
@@ -99,27 +77,27 @@
 </p>
 <div class="org-src-container">
 
-<pre class="src src-js"><span style="color: #718c00;">var</span> <span style="color: #eab700;">mosca</span> = require(<span style="color: #3e999f;">'mosca'</span>);
+<pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">mosca</span> = require(<span style="color: #66cccc;">'mosca'</span>);
 
-<span style="color: #718c00;">var</span> <span style="color: #eab700;">settings</span> = {
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   port: 1883
+<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">settings</span> = {
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   port: 1883
 };
 
-<span style="color: #718c00;">var</span> <span style="color: #eab700;">server</span> = <span style="color: #718c00;">new</span> <span style="color: #4271ae;">mosca.Server</span>(settings);
-server.on(<span style="color: #3e999f;">'ready'</span>, <span style="color: #718c00;">function</span> () {
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   console.log(<span style="color: #3e999f;">'mosca server running'</span>);
-}).on(<span style="color: #3e999f;">'clientConnected'</span>, <span style="color: #718c00;">function</span> (<span style="color: #eab700;">client</span>) {
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   console.log(<span style="color: #3e999f;">'client('</span> + client.id + <span style="color: #3e999f;">') connected'</span>);
-}).on(<span style="color: #3e999f;">'published'</span>, <span style="color: #718c00;">function</span> (<span style="color: #eab700;">packet</span>, <span style="color: #eab700;">client</span>) {
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   console.log(<span style="color: #3e999f;">'client('</span> + (client ? client.id : <span style="color: #3e999f;">'internal'</span>) + <span style="color: #3e999f;">') published top</span><span style="color: #3e999f; text-decoration: underline;">ic('</span><span style="text-decoration: underline;"> + packet.topic + </span><span style="color: #3e999f; text-decoration: underline;">'): '</span><span style="text-decoration: underline;"> + packet.payload);</span>
-}).on(<span style="color: #3e999f;">'subscribed'</span>, <span style="color: #718c00;">function</span> (<span style="color: #eab700;">topic</span>, <span style="color: #eab700;">client</span>) {
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   console.log(<span style="color: #3e999f;">'client('</span> + client.id + <span style="color: #3e999f;">') subscribed topic('</span> + topic + <span style="color: #3e999f;">')'</span>);
-}).on(<span style="color: #3e999f;">'unsubscribed'</span>, <span style="color: #718c00;">function</span> (<span style="color: #eab700;">topic</span>, <span style="color: #eab700;">client</span>) {
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   console.log(<span style="color: #3e999f;">'client('</span> + client.id + <span style="color: #3e999f;">') unsubscribed topic('</span> + topic + <span style="color: #3e999f;">')'</span>);
-}).on(<span style="color: #3e999f;">'clientDisconnecting'</span>, <span style="color: #718c00;">function</span> (<span style="color: #eab700;">client</span>) {
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   console.log(<span style="color: #3e999f;">'client('</span> + client.id + <span style="color: #3e999f;">') disconnecting'</span>);
-}).on(<span style="color: #3e999f;">'clientDisconnected'</span>, <span style="color: #718c00;">function</span> (<span style="color: #eab700;">client</span>) {
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   console.log(<span style="color: #3e999f;">'client('</span> + client.id + <span style="color: #3e999f;">') disconnected'</span>);
+<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">server</span> = <span style="color: #99cc99;">new</span> <span style="color: #6699cc;">mosca.Server</span>(settings);
+server.on(<span style="color: #66cccc;">'ready'</span>, <span style="color: #99cc99;">function</span> () {
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   console.log(<span style="color: #66cccc;">'mosca server running'</span>);
+}).on(<span style="color: #66cccc;">'clientConnected'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">client</span>) {
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') connected'</span>);
+}).on(<span style="color: #66cccc;">'published'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">packet</span>, <span style="color: #ffcc66;">client</span>) {
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + (client ? client.id : <span style="color: #66cccc;">'internal'</span>) + <span style="color: #66cccc;">') published top</span><span style="color: #66cccc; text-decoration: underline;">ic('</span><span style="text-decoration: underline;"> + packet.topic + </span><span style="color: #66cccc; text-decoration: underline;">'): '</span><span style="text-decoration: underline;"> + packet.payload);</span>
+}).on(<span style="color: #66cccc;">'subscribed'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">topic</span>, <span style="color: #ffcc66;">client</span>) {
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') subscribed topic('</span> + topic + <span style="color: #66cccc;">')'</span>);
+}).on(<span style="color: #66cccc;">'unsubscribed'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">topic</span>, <span style="color: #ffcc66;">client</span>) {
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') unsubscribed topic('</span> + topic + <span style="color: #66cccc;">')'</span>);
+}).on(<span style="color: #66cccc;">'clientDisconnecting'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">client</span>) {
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') disconnecting'</span>);
+}).on(<span style="color: #66cccc;">'clientDisconnected'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">client</span>) {
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   console.log(<span style="color: #66cccc;">'client('</span> + client.id + <span style="color: #66cccc;">') disconnected'</span>);
 });
 </pre>
 </div>
@@ -129,16 +107,16 @@ server.on(<span style="color: #3e999f;">'ready'</span>, <span style="color: #718
 </p>
 <div class="org-src-container">
 
-<pre class="src src-js"><span style="color: #718c00;">var</span> <span style="color: #eab700;">mqtt</span> = require(<span style="color: #3e999f;">'mqtt'</span>);
+<pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">mqtt</span> = require(<span style="color: #66cccc;">'mqtt'</span>);
 
 
-<span style="color: #718c00;">var</span> <span style="color: #eab700;">client</span> = mqtt.connect(<span style="color: #3e999f;">'mqtt://127.0.0.1:1883'</span>);
-client.on(<span style="color: #3e999f;">'connect'</span>, <span style="color: #718c00;">function</span> () {
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   client.subscribe(<span style="color: #3e999f;">'presence'</span>);
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   client.publish(<span style="color: #3e999f;">'presence'</span>, <span style="color: #3e999f;">'a message from myself'</span>);
-}).on(<span style="color: #3e999f;">'message'</span>, <span style="color: #718c00;">function</span> (<span style="color: #eab700;">topic</span>, <span style="color: #eab700;">message</span>) {
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   console.log(topic + <span style="color: #3e999f;">': '</span> + message.toString());
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   client.end();
+<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">client</span> = mqtt.connect(<span style="color: #66cccc;">'mqtt://127.0.0.1:1883'</span>);
+client.on(<span style="color: #66cccc;">'connect'</span>, <span style="color: #99cc99;">function</span> () {
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   client.subscribe(<span style="color: #66cccc;">'presence'</span>);
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   client.publish(<span style="color: #66cccc;">'presence'</span>, <span style="color: #66cccc;">'a message from myself'</span>);
+}).on(<span style="color: #66cccc;">'message'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">topic</span>, <span style="color: #ffcc66;">message</span>) {
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   console.log(topic + <span style="color: #66cccc;">': '</span> + message.toString());
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   client.end();
 });
 </pre>
 </div>
@@ -188,14 +166,14 @@ $
 </p>
 <div class="org-src-container">
 
-<pre class="src src-js"><span style="color: #718c00;">var</span> <span style="color: #eab700;">mqtt</span> = require(<span style="color: #3e999f;">'mqtt'</span>);
+<pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">mqtt</span> = require(<span style="color: #66cccc;">'mqtt'</span>);
 
-<span style="color: #718c00;">var</span> <span style="color: #eab700;">client</span> = mqtt.connect(<span style="color: #3e999f;">'mqtt://127.0.0.1:1883'</span>);
-client.on(<span style="color: #3e999f;">'connect'</span>, <span style="color: #718c00;">function</span> () {
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   client.publish(<span style="color: #3e999f;">'sub'</span>, <span style="color: #3e999f;">'message from pub'</span>);
-}).on(<span style="color: #3e999f;">'message'</span>, <span style="color: #718c00;">function</span> (<span style="color: #eab700;">topic</span>, <span style="color: #eab700;">message</span>) {
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   console.log(topic + <span style="color: #3e999f;">': '</span> + message.toString());
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   client.end();
+<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">client</span> = mqtt.connect(<span style="color: #66cccc;">'mqtt://127.0.0.1:1883'</span>);
+client.on(<span style="color: #66cccc;">'connect'</span>, <span style="color: #99cc99;">function</span> () {
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   client.publish(<span style="color: #66cccc;">'sub'</span>, <span style="color: #66cccc;">'message from pub'</span>);
+}).on(<span style="color: #66cccc;">'message'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">topic</span>, <span style="color: #ffcc66;">message</span>) {
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   console.log(topic + <span style="color: #66cccc;">': '</span> + message.toString());
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   client.end();
 });
 </pre>
 </div>
@@ -205,14 +183,14 @@ client.on(<span style="color: #3e999f;">'connect'</span>, <span style="color: #7
 </p>
 <div class="org-src-container">
 
-<pre class="src src-js"><span style="color: #718c00;">var</span> <span style="color: #eab700;">mqtt</span> = require(<span style="color: #3e999f;">'mqtt'</span>);
+<pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">mqtt</span> = require(<span style="color: #66cccc;">'mqtt'</span>);
 
-<span style="color: #718c00;">var</span> <span style="color: #eab700;">client</span> = mqtt.connect(<span style="color: #3e999f;">'mqtt://127.0.0.1:1883'</span>);
-client.on(<span style="color: #3e999f;">'connect'</span>, <span style="color: #718c00;">function</span> () {
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   client.publish(<span style="color: #3e999f;">'sub'</span>, <span style="color: #3e999f;">'message from pub'</span>);
-}).on(<span style="color: #3e999f;">'message'</span>, <span style="color: #718c00;">function</span> (<span style="color: #eab700;">topic</span>, <span style="color: #eab700;">message</span>) {
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   console.log(topic + <span style="color: #3e999f;">': '</span> + message.toString());
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   client.end();
+<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">client</span> = mqtt.connect(<span style="color: #66cccc;">'mqtt://127.0.0.1:1883'</span>);
+client.on(<span style="color: #66cccc;">'connect'</span>, <span style="color: #99cc99;">function</span> () {
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   client.publish(<span style="color: #66cccc;">'sub'</span>, <span style="color: #66cccc;">'message from pub'</span>);
+}).on(<span style="color: #66cccc;">'message'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">topic</span>, <span style="color: #ffcc66;">message</span>) {
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   console.log(topic + <span style="color: #66cccc;">': '</span> + message.toString());
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   client.end();
 });
 </pre>
 </div>
@@ -291,14 +269,14 @@ $ node client_pub.js
 </p>
 <div class="org-src-container">
 
-<pre class="src src-js"><span style="color: #718c00;">var</span> <span style="color: #eab700;">mqtt</span> = require(<span style="color: #3e999f;">'mqtt'</span>);
+<pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">mqtt</span> = require(<span style="color: #66cccc;">'mqtt'</span>);
 
-<span style="color: #718c00;">var</span> <span style="color: #eab700;">client</span> = mqtt.connect(<span style="color: #3e999f;">'mqtt://127.0.0.1:1883'</span>, {clientId: <span style="color: #3e999f;">'sub'</span>, clean: <span style="color: #4271ae;">fals</span><span style="color: #4271ae; text-decoration: underline;">e</span><span style="text-decoration: underline;">});</span>
-client.on(<span style="color: #3e999f;">'connect'</span>, <span style="color: #718c00;">function</span> () {
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   client.subscribe(<span style="color: #3e999f;">'sub'</span>);
-}).on(<span style="color: #3e999f;">'message'</span>, <span style="color: #718c00;">function</span> (<span style="color: #eab700;">topic</span>, <span style="color: #eab700;">message</span>) {
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   console.log(topic + <span style="color: #3e999f;">': '</span> + message.toString());
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   client.end();
+<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">client</span> = mqtt.connect(<span style="color: #66cccc;">'mqtt://127.0.0.1:1883'</span>, {clientId: <span style="color: #66cccc;">'sub'</span>, clean: <span style="color: #6699cc;">fals</span><span style="color: #6699cc; text-decoration: underline;">e</span><span style="text-decoration: underline;">});</span>
+client.on(<span style="color: #66cccc;">'connect'</span>, <span style="color: #99cc99;">function</span> () {
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   client.subscribe(<span style="color: #66cccc;">'sub'</span>);
+}).on(<span style="color: #66cccc;">'message'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">topic</span>, <span style="color: #ffcc66;">message</span>) {
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   console.log(topic + <span style="color: #66cccc;">': '</span> + message.toString());
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   client.end();
 });
 </pre>
 </div>
@@ -308,14 +286,14 @@ client.on(<span style="color: #3e999f;">'connect'</span>, <span style="color: #7
 </p>
 <div class="org-src-container">
 
-<pre class="src src-js"><span style="color: #718c00;">var</span> <span style="color: #eab700;">mqtt</span> = require(<span style="color: #3e999f;">'mqtt'</span>);
+<pre class="src src-js"><span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">mqtt</span> = require(<span style="color: #66cccc;">'mqtt'</span>);
 
-<span style="color: #718c00;">var</span> <span style="color: #eab700;">client</span> = mqtt.connect(<span style="color: #3e999f;">'mqtt://127.0.0.1:1883'</span>, {clientId: <span style="color: #3e999f;">'pub'</span>});
-client.on(<span style="color: #3e999f;">'connect'</span>, <span style="color: #718c00;">function</span> () {
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   client.publish(<span style="color: #3e999f;">'sub'</span>, <span style="color: #3e999f;">'message from pub'</span>, {qos: 1, retain: <span style="color: #4271ae;">true</span>});
-}).on(<span style="color: #3e999f;">'message'</span>, <span style="color: #718c00;">function</span> (<span style="color: #eab700;">topic</span>, <span style="color: #eab700;">message</span>) {
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   console.log(topic + <span style="color: #3e999f;">': '</span> + message.toString());
-<span style="color: #8e908c; background-color: #ffffff;"> </span>   client.end();
+<span style="color: #99cc99;">var</span> <span style="color: #ffcc66;">client</span> = mqtt.connect(<span style="color: #66cccc;">'mqtt://127.0.0.1:1883'</span>, {clientId: <span style="color: #66cccc;">'pub'</span>});
+client.on(<span style="color: #66cccc;">'connect'</span>, <span style="color: #99cc99;">function</span> () {
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   client.publish(<span style="color: #66cccc;">'sub'</span>, <span style="color: #66cccc;">'message from pub'</span>, {qos: 1, retain: <span style="color: #6699cc;">true</span>});
+}).on(<span style="color: #66cccc;">'message'</span>, <span style="color: #99cc99;">function</span> (<span style="color: #ffcc66;">topic</span>, <span style="color: #ffcc66;">message</span>) {
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   console.log(topic + <span style="color: #66cccc;">': '</span> + message.toString());
+<span style="color: #999999; background-color: #2d2d2d;"> </span>   client.end();
 });
 </pre>
 </div>
@@ -389,12 +367,12 @@ $
         </div>
         <br />
         <footer class="article-footer">
-          <a class="tag" href="/tag/network/0.html"><i class="icon-tag icon-white"></i> network</a>
-          <a class="tag" href="/tag/iot/0.html"><i class="icon-tag icon-white"></i> IoT</a>
-          <a class="tag" href="/tag/node/0.html"><i class="icon-tag icon-white"></i> node</a>
           <span class="muted">
             <i class="icon-time icon-white"></i> <time datetime="2016-02-21T13:13:00+0800">2016年2月21日 13时</time>
           </span>
+          <a class="tag" href="/tag/network/0.html"><i class="icon-tag icon-white"></i> network</a>
+          <a class="tag" href="/tag/iot/0.html"><i class="icon-tag icon-white"></i> IoT</a>
+          <a class="tag" href="/tag/node/0.html"><i class="icon-tag icon-white"></i> node</a>
         </footer>
       </div>
 
