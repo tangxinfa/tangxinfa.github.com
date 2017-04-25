@@ -16318,3 +16318,80 @@ Every change you make must be backward compatible with the rest of the system
    #+end_src
 
    应该会响应本地机器上 http://localhost:8001 的内容了。
+
+* DONE 从PC端过渡到移动端网页设计                                       :web:
+  CLOSED: [2017-04-25 Tue 20:34]
+
+** PC端网页设计
+
+   2013年的时候，有做过资讯展示类的网站，我们会把网页内容宽度定为 =980px= 左右并居中：
+
+   #+begin_src css
+     #main {
+         width: 980px;
+         margin: 0 auto;
+     }
+   #+end_src
+
+   这里因为当时的主流的电脑屏幕分辨率为 =1024x768= ，而现在 =1920x1080= 甚至 =2K= 屏都很常见了，有的网站开始设置更大的内容宽度。
+
+   前面 CSS 中的 =px= 是 =pixels= 的简称，即 CSS 像素，是WEB编程使用的一种逻辑像素；另一种则是设备像素（device pixel），也称为物理像素或屏幕分辨率；在PC端，往往 CSS 像素和设备像素是 =1:1= 的关系。
+
+   但是，当我们用手机浏览器打开这些网站，会惊讶地发现网页布局和PC端浏览器下一致，只是由于手机屏幕尺寸太小，文字需要手工放大才能看清。
+
+   其实手机浏览器只是做了一个简单处理：
+
+   #+begin_quote
+   假定网页是 =980px= 然后按一定比率缩放到手机屏幕宽度
+   #+end_quote
+
+   这样手机浏览器可以展示绝大多数针对PC设计的网站。
+
+** 移动端网页设计
+
+   前面所述的手机浏览器对PC端网页做的处理，用 =viewport= 来表示，默认值类似下面这样：
+
+   #+begin_src html
+     <meta name="viewport" content="width=980, initial-scale=1" />
+   #+end_src
+
+   手机浏览器默认的字体大小为 =16px= ，看起来会很小。
+
+   可以为网页指定适用于手机端展示的 =viewport= ：
+
+   #+begin_src html
+     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+   #+end_src
+
+   我手上的 ”魅蓝 NOTE 5“ 屏幕为 =5.5= 英寸、分辨率 =1920x1080= ，系统自带浏览器获得的设备像素比率为 =3= ，竖屏时 CSS 像素表示的屏幕宽度（ =screen.width= ）为 =360px= （即 =1080/3=360= ），默认的字体大小（ =16px= ）视觉上看起来正好。
+
+   可以采用以下方式适配手机屏幕
+
+   - 指定适用于手机端的 =viewport=
+
+     #+begin_src html
+       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+     #+end_src
+
+   - 使用媒体查询适配常见尺寸的手机
+
+     如下只改变默认的字体大小，其它地方都使用 =rem= 单位以实现自适应，同时根据屏幕尺寸调整页面布局。
+
+     #+begin_src css
+       @media screen and (max-width:760px){
+          html { font-size: 66.5%; }
+          #sidebar { float: left; width: 8rem; }
+       }
+       @media screen and (max-width:360px){
+          html { font-size: 50%; }
+          #sidebar { float: none; width: 100%; }
+       }
+     #+end_src   
+
+** 参考
+
+   [[http://www.cnblogs.com/2050/p/3877280.html][移动前端开发之viewport的深入理解 - 无双 - 博客园]]
+
+   [[http://isux.tencent.com/mobile-development-essential-knowledge.html][移动终端开发必备知识 - 前端技术 - 腾讯ISUX]]
+
+   [[http://shizisongsong.iteye.com/blog/2115278][响应式Web设计：Media Queries和Viewport的困惑 - - ITeye技术网站]]
