@@ -2529,33 +2529,33 @@ class RedisShard {
 * DONE 编译安装redis                                                  :redis:
   CLOSED: [2014-02-17 Mon 16:40]
   
-  - 下载
+** 下载
     
-    到 [[http://redis.io/download]] 下载最新稳定版本。
+   到 [[http://redis.io/download]] 下载最新稳定版本。
 
-  - 安装
+*** 安装
   
-    解压后参照 README 进行安装：
+   解压后参照 README 进行安装：
 
-    #+begin_src sh
-      make
-      make install
-    #+end_src
+   #+begin_src sh
+     make
+     make install
+   #+end_src
 
-    默认安装到/usr/local。
+   默认安装到/usr/local。
 
-    指定位置安装： 
+   指定位置安装： 
 
-    #+begin_src sh
-      make PREFIX=/usr/local/redis install
-    #+end_src
+   #+begin_src sh
+     make PREFIX=/usr/local/redis install
+   #+end_src
 
-  - 安装后
+   安装的程序：
     
-    + /usr/local/bin/redis-cli :: redis客户端程序 
-    + /usr/local/bin/redis-server :: redis服务器程序
+   + /usr/local/bin/redis-cli :: redis客户端程序 
+   + /usr/local/bin/redis-server :: redis服务器程序
 
-  - 配置
+*** 手工配置
 
     将源码包附带的配置文件 =redis.conf= 拷贝到安装位置:
 
@@ -2575,20 +2575,35 @@ class RedisShard {
       bind 127.0.0.1
     #+end_example
 
-  - 启动
+    - 启动
+
+      #+begin_src sh
+        /usr/local/redis/bin/redis-server /usr/local/redis/etc/redis.conf
+      #+end_src
+
+    - 停止
+
+      使用redis客户端中执行shutdown命令
+
+      #+begin_src sh
+        redis-cli
+        shutdown
+      #+end_src
+
+*** 自动配置
 
     #+begin_src sh
-      /usr/local/redis/bin/redis-server /usr/local/redis/etc/redis.conf
+      cd utils
+      ./install_server.sh
     #+end_src
 
-  - 停止
+    redis 安装在非标准路径时，安装脚本可能找不到 redis 可执行程序路径，需要填写：
+    
+    #+begin_example
+      Please select the redis executable path [] /usr/local/redis/bin/redis-server
+    #+end_example
 
-    使用redis客户端中执行shutdown命令
-
-    #+begin_src sh
-      redis-cli
-      shutdown
-    #+end_src
+    该安装脚本会生成平台相关的 redis 服务启动脚本，启动 redis 服务，同时设置为开机启动。
 
 * TODO 当心烦意乱接下来不知道要做什么的时候                            :心理:
 
@@ -11655,7 +11670,7 @@ class RedisShard {
      SHA1 Fingerprint=XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX
    #+end_example
 
-   .offlineimaprc 使用证书指纹
+   .offlineimaprc 使用证书指纹（SHA1 Fingerprint= 后的串剔除冒号再转为小写 ）
    #+begin_example
      ssl = yes
      #sslcacertfile = /home/xxxxxxxx/imap.xxxxxx.com.pem
@@ -12628,11 +12643,11 @@ class RedisShard {
 
 ** 创建特性分支
 
-   主干分支（master）确保不做任何提交，与上游分支（upstream）保持同步，所有开发工作都在特性分支上进行。
-
    #+begin_src sh
      git checkout -b my-feature-branch -t origin/master
    #+end_src
+
+   主干分支（master）确保不做任何提交，与上游分支（upstream）保持同步，所有开发工作都在特性分支上进行。
 
 ** 在特性分支上进行开发
 
@@ -12643,6 +12658,22 @@ class RedisShard {
    #+begin_src sh
      git checkout my-feature-branch1
      git merge my-feature-branch2
+   #+end_src
+
+** 合并特性分支的提交记录，便于上游开发人员做 Code Review
+
+   如特性分支上做了 3 次提交，将这 3 次提交合并为 1 次提交
+
+   #+begin_src sh
+     git rebase -i HEAD~3
+   #+end_src
+
+   按 s 键将后 2 次提交合并进第 1 次提交。
+
+   合并完后强制提交到特性分支
+
+   #+begin_src sh
+     git push origin my-feature-branch1
    #+end_src
 
 ** 从特性分支创建 Pull requests 提交到上游分支
@@ -12684,6 +12715,10 @@ class RedisShard {
     - [[http://stackoverflow.com/questions/9646167/clean-up-a-fork-and-restart-it-from-the-upstream][git - Clean up a fork and restart it from the upstream - Stack Overflow]]
     
 ** 特性分支已经完成使命可以删掉
+
+   #+begin_src sh
+     git push origin :my-feature-branch1
+   #+end_src
 
 ** 参考
 
@@ -16397,3 +16432,128 @@ Every change you make must be backward compatible with the rest of the system
    [[http://shizisongsong.iteye.com/blog/2115278][响应式Web设计：Media Queries和Viewport的困惑 - - ITeye技术网站]]
 
    [[https://www.mydevice.io/][mydevice.io : web devices capabilities]]
+
+* TODO 使用 glide 进行 GO 项目包管理                                     :go:
+
+  =glide= 将包安装在 =vendor= 目录下，由于通过非全路径引入的包不会在 =vendor= 目录下进行查找，所以也就引申出下面几条 glide 最佳实践。
+
+** glide 最佳实践
+
+*** 在标准位置进行项目开发
+
+    也就是将开发中的项目代码放到 =$GOPATH/src/<project>= ，可以直接使用 =go get= 拉取项目代码：
+
+**** 使用 https（帐号密码认证）
+
+     =go get= 进行 =git clone= 时允许输入帐号密码（默认不充许）
+     #+begin_src sh
+       export GIT_TERMINAL_PROMPT=1
+     #+end_src
+
+**** 使用 git（SSH key 认证）
+
+     =go get= 进行 =git clone= 时优先进行 =SSH key= 认证 （默认 =https= ），这样通过上传 =SSH key= 可以免密码
+     #+begin_src sh
+       git config --global url."git@gitlab.example.com:".insteadOf "https://gitlab.example.com"
+     #+end_src
+
+**** 拉取代码并切到 dev 分支
+     #+begin_src sh
+        go get gitlab.example.com/myapp
+       cd $GOPATH/src/gitlab.example.com/myapp
+       git checkout dev
+     #+end_src
+
+*** 使用全路径引入子包
+
+    也就是说相对路径引入子包
+    #+begin_src go
+      import "./submodule"
+    #+end_src
+
+    要改为全路径引入子包
+    #+begin_src go
+      import "gitlab.example.com/myapp/submodule"
+    #+end_src
+
+    这样子包中引入的包才会在 =vendor= 目录下进行查找。
+
+** 包的定义
+
+   - 包可以有多个 go 源文件，它们的 package 指定同一包名
+
+   - 包的所有源文件放到一个目录下，一个目录就是一个包
+
+** import 的包是如何解析包所在位置的
+
+*** 相对路径引入的包
+
+*** 绝对路径引入的包
+
+    路径以 "/" 开头，直接报错
+
+*** 非相对路径引入的包
+
+- 尝试在 =$GOROOT= 的 =vendor= 目录下找
+
+- 尝试在 =$GOPATH= 的 =vendor= 目录下找
+
+- 尝试在 =$GOROOT= 的 =src= 目录下找
+
+- 尝试在 =$GOPATH= 的 =src= 目录下找
+
+- 内置包
+
+- 相对路径包
+
+- 绝对路径包
+
+** go get 是如何解析包所在位置的
+
+** vendor 包管理
+   
+** glide 简介
+
+* DONE glide get 出错（Failed to checkout packages: Cannot detect VCS）问题排查 :go:
+  CLOSED: [2017-07-21 Fri 20:30]
+
+  突然间使用 =glide get= 开始出错，错误信息为
+
+  #+BEGIN_QUOTE
+  Failed to checkout packages: Cannot detect VCS
+  #+END_QUOTE
+
+  研究了一下 glide 的源代码，定位到 =vcs_remote_lookup.go= 中 =detectVcsFromRemote= 函数，
+  当我们使用 =glide get golang.org/x/net= 时，会下载 "https://golang.org/x/net" 页面，并从中解析出代码所在的确切位置，
+  如果 =golang.org= 被墙或网络不稳定就会报这个错，可以使用 =curl= 进行验证。
+
+  正常情况下：
+  #+begin_example
+    $ curl https://golang.org/x/net
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="go-import" content="golang.org/x/net git https://go.googlesource.com/net">
+    <meta name="go-source" content="golang.org/x/net https://github.com/golang/net/ https://github.com/golang/net/tree/master{/dir} https://github.com/golang/net/blob/master{/dir}/{file}#L{line}">
+    <meta http-equiv="refresh" content="0; url=https://godoc.org/golang.org/x/net">
+    </head>
+    <body>
+    Nothing to see here; <a href=" ">move along</a >.
+    </body>
+    </html>  
+  #+end_example
+
+  网络不稳定时：
+  #+begin_example
+    $ curl https://golang.org/x/net
+    curl: (7) Failed to connect to golang.org port 443: Connection timed out
+  #+end_example
+
+  对于这种问题只能是等待网站恢复正常访问，紧急情况下，可以修改 =glide.yaml= ，
+  在相应 package 下手工指定 =repo= 为具体的代码仓库地址，如：
+  #+begin_example
+    - package: golang.org/x/net
+      repo: https://go.googlesource.com/net
+      vcs: git
+  #+end_example

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+    <channel>
+        <title>go - 看看俺 – KanKanAn.com</title>
+        <link>http://blog.kankanan.com/tag/go.xml</link>
+        <description>记我所思，忆我所为。</description>
+        <lastBuildDate>Sat, 22 Jul 2017 06:18:10 GMT</lastBuildDate>
+        <docs>http://blogs.law.harvard.edu/tech/rss</docs>
+        <generator>Feed for Node.js</generator>
+        <image>
+            <title>go - 看看俺 – KanKanAn.com</title>
+            <url>http://blog.kankanan.com/static/favicon.ico</url>
+            <link>http://blog.kankanan.com/tag/go.xml</link>
+        </image>
+        <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
+        <category>技术</category>
+        <item>
+            <title><![CDATA[glide get 出错（Failed to checkout packages: Cannot detect VCS）问题排查]]></title>
+            <link>/article/glide-get-51fa9519ff08-failed-to-checkout-packages-cannot-detect-vcs-ff0995ee9898639267e5.html</link>
+            <guid>/article/glide-get-51fa9519ff08-failed-to-checkout-packages-cannot-detect-vcs-ff0995ee9898639267e5.html</guid>
+            <pubDate>Fri, 21 Jul 2017 12:30:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+突然间使用 <code>glide get</code> 开始出错，错误信息为
+</p>
+
+<blockquote>
+<p>
+Failed to checkout packages: Cannot detect VCS
+</p>
+</blockquote>
+
+<p>
+研究了一下 glide 的源代码，定位到 <code>vcs_remote_lookup.go</code> 中 <code>detectVcsFromRemote</code> 函数，
+当我们使用 <code>glide get golang.org/x/net</code> 时，会下载 "<a href="https://golang.org/x/net">https://golang.org/x/net</a>" 页面，并从中解析出代码所在的确切位置，
+如果 <code>golang.org</code> 被墙或网络不稳定就会报这个错，可以使用 <code>curl</code> 进行验证。
+</p>
+
+<p>
+正常情况下：
+</p>
+<pre class="example">
+$ curl https://golang.org/x/net
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+&lt;meta http-equiv="Content-Type" content="text/html; charset=utf-8"/&gt;
+&lt;meta name="go-import" content="golang.org/x/net git https://go.googlesource.com/net"&gt;
+&lt;meta name="go-source" content="golang.org/x/net https://github.com/golang/net/ https://github.com/golang/net/tree/master{/dir} https://github.com/golang/net/blob/master{/dir}/{file}#L{line}"&gt;
+&lt;meta http-equiv="refresh" content="0; url=https://godoc.org/golang.org/x/net"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+Nothing to see here; &lt;a href=" "&gt;move along&lt;/a &gt;.
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+
+<p>
+网络不稳定时：
+</p>
+<pre class="example">
+$ curl https://golang.org/x/net
+curl: (7) Failed to connect to golang.org port 443: Connection timed out
+</pre>
+
+<p>
+对于这种问题只能是等待网站恢复正常访问，紧急情况下，可以修改 <code>glide.yaml</code> ，
+在相应 package 下手工指定 <code>repo</code> 为具体的代码仓库地址，如：
+</p>
+<pre class="example">
+- package: golang.org/x/net
+  repo: https://go.googlesource.com/net
+  vcs: git
+</pre>
+]]></content:encoded>
+        </item>
+    </channel>
+</rss>
