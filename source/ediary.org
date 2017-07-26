@@ -16459,7 +16459,7 @@ Every change you make must be backward compatible with the rest of the system
 
 **** 拉取代码并切到 dev 分支
      #+begin_src sh
-        go get gitlab.example.com/myapp
+       go get gitlab.example.com/myapp
        cd $GOPATH/src/gitlab.example.com/myapp
        git checkout dev
      #+end_src
@@ -16557,3 +16557,55 @@ Every change you make must be backward compatible with the rest of the system
       repo: https://go.googlesource.com/net
       vcs: git
   #+end_example
+* DONE gitlab 针对 go 项目做持续集成                         :go:gitlab
+  CLOSED: [2017-07-26 Wed 19:05]
+
+  =gitlab= 内置支持持续集成（CI），但是 =go= 有一点比较特殊，依赖 =$GOPATH= ，特别是使用了 =glide= 来管理包依赖后， =vendor= 目录必须在 =$GOPATH= 下，这就要求 =gitlab= 拉取项目源代码的位置符合 =$GOPATH= 的目录结构。
+
+  但是 =gitlab= 拉取代码后的目录结构类似 =/home/gitlab-runner/builds/6913a759/0/myproject= ，必须将 =myproject= 置于 =src= 目录下才符合 =$GOPATH= 约定。
+  
+  《[[https://misfra.me/2016/12/26/gitlab-ci-go/][GitLab CI with Go]]》给出的方案是将拉取的代码移到 =$GOPATH= 下的正确位置上，再进行 =glide= 操作以及跑编译和测试，这篇文章提供了示例配置文件 =.gitlab-ci.yml= ，但有以下几个问题需要解决：
+
+  - =mv= 操作默认是不会移动隐藏目录（如： =.git= ）到目标位置的，这会导致后面的任务拉取代码失败
+
+    可以开启 =bash= 的选项 =dotglob= 让 =*= 匹配隐藏文件
+
+  - 文件移动到目标位置后，没有清理机制，会影响下一任务
+
+    将 =gitlab= 的 =GIT_STRATEGY= 变量配置为 =fetch= ，它会在拉取代码后执行 =git clean= 将未知的文件删除，如果我们将移动后的代码放在原来的位置下就可以做到自动清除没有负作用了，如下所示：
+
+  =.gitlab-ci.yml=
+  #+begin_src yaml
+    variables:
+      REPO_NAME: gitlab.example.com/myproject
+      GIT_STRATEGY: fetch
+
+    before_script:
+      - go version
+      - echo $CI_BUILD_REF
+      - echo $CI_PROJECT_DIR
+
+    build:
+      stage: build
+      script:
+        - mkdir -p ${CI_PROJECT_DIR}.src.tmp/$REPO_NAME
+        - shopt -s dotglob
+        - mv $CI_PROJECT_DIR/* ${CI_PROJECT_DIR}.src.tmp/$REPO_NAME/
+        - mv ${CI_PROJECT_DIR}.src.tmp ${CI_PROJECT_DIR}/src
+        - export GOPATH=$CI_PROJECT_DIR
+        - cd $GOPATH/src/$REPO_NAME
+        - make
+
+    test:
+      stage: test
+      script:
+        - mkdir -p ${CI_PROJECT_DIR}.src.tmp/$REPO_NAME
+        - shopt -s dotglob
+        - mv $CI_PROJECT_DIR/* ${CI_PROJECT_DIR}.src.tmp/$REPO_NAME/
+        - mv ${CI_PROJECT_DIR}.src.tmp ${CI_PROJECT_DIR}/src
+        - export GOPATH=$CI_PROJECT_DIR
+        - cd $GOPATH/src/$REPO_NAME
+        - make proto
+        - go test -v
+
+  #+end_src
