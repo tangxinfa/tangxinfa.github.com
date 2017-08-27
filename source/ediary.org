@@ -3220,7 +3220,7 @@ class RedisShard {
 
    - =./uc_server/data/tmp/angel.php=
 
-     #+begin_src web
+     #+begin_example
        <?php
        error_reporting(7);
        @set_magic_quotes_runtime(0);
@@ -5365,7 +5365,7 @@ class RedisShard {
        }
        
        ?>
-     #+end_src
+     #+end_example
 
      上面的脚本被恶意用户完成对系统的远程控制。
 
@@ -12724,6 +12724,9 @@ class RedisShard {
 
    - [[https://github.com/nodejs/node/blob/master/CONTRIBUTING.md][Contributing to Node.js]]
 
+
+   - [[http://www.cnblogs.com/yaks/p/5666400.html][A successful Git branching model]]
+
 * DONE 诊断 node.js 应用 CPU 占用过高的问题                      :node:linux:
   CLOSED: [2016-05-12 Thu 17:25]
 
@@ -16667,3 +16670,84 @@ can be defined by the purpose the data is going to be used for.
   #+end_quote
 
   我们应该意识到数据库中的数据和客户端需要的“数据”是不同的，数据库中的数据就像你放在冰箱里的食材，而用户想要的是丰盛的大餐，而后台服务需要根据客户的要求利用数据库中的食材做出一道道大餐。
+
+* DONE koa2 默认的处理                                                 :node:
+  CLOSED: [2017-08-27 Sun 18:05]
+
+  koa2 简单易用，代码量少且易读，代码实现中有大量“经验法则”，了解这些才能用好它。
+
+** 默认的响应处理
+
+   - =req.statusCode= 默认值为 404
+
+   - 为 =response.body= 赋值时
+     如果赋 null 值，且将 =response.status= 置为 =204= ；
+     如果之前没有通过为 =response.status= 赋值的方式设置状态码，则将 =response.status= 置为 =200= ；
+     如果之前没有设置 =content-type= 头，则根据值的内容推算出 =content-type= （默认为 =json= ），
+     如：内容是 =string= 类型，以 =<= 开头则认为是 =html= 否则是 =text= 。
+
+   - 响应码为 204、205、304 时强制 =response.body= 为空
+
+** 默认的异常处理
+
+   koa2 在中间件的最外层会捕获异常，将它转化为合适的 HTTP 错误响应：
+
+   - 向 =app= 发送 =error= 事件，而 =app= 的处理则是输出日志到控制台
+ 
+   - 如果 HTTP 响应头已经发送，则不走下面的流程，不做任何处理
+ 
+   - 清空 HTTP 响应头
+ 
+   - 设置响应头为 =err.headers=
+ 
+   - =err.code= 为 =ENOENT= 时设置 =err.status= 为 =404=
+ 
+   - =err.status= 为无效的 HTTP 状态码时修复为 =500=
+ 
+   - =err.status= 做为 HTTP 状态码
+ 
+   - =err.expose= 为真时使用 =err.message= 做为 HTTP 响应体，否则使用 =err.status= 对应的文本描述做为 HTTP 响应体
+
+** 自定义异常处理
+
+- 自定义日志输出
+
+  如：使用 =bunyan= 来输出日志
+
+  #+begin_src js
+    app.on('error', function(err, ctx) {
+        logger.error({
+            stack: err.stack,
+            ctx: ctx
+        }, "service error");
+    });
+  #+end_src
+
+- 自定义异常响应
+
+  如：总是响应 =json= ，格式为 ={ message: "错误描述" }=
+
+  #+begin_src js
+    app.use(async (ctx, next) => {
+        try {
+            await next();
+        } catch ( err ) {
+            ctx.app.emit('error', err, ctx);
+            ctx.status = err.status || 500;
+            ctx.body = {
+                message: err.expose ? err.message : ctx.message
+            };
+            return;
+        }
+
+        if (ctx.status == 404) {
+            if (!ctx.body || !ctx.body.message) {
+                // explicitly set status, avoid revert to 200 when assign body.
+                ctx.status = 404;
+                ctx.body = {
+                    message: ctx.message
+                };
+            }
+        }
+    })
+  #+end_src
