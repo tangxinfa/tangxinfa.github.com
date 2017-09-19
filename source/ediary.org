@@ -16680,13 +16680,20 @@ can be defined by the purpose the data is going to be used for.
 
    - =req.statusCode= 默认值为 404
 
+
    - 为 =response.body= 赋值时
-     如果赋 null 值，且将 =response.status= 置为 =204= ；
+
+     如果赋 null 值，将 =response.status= 置为 =204= ；
+
      如果之前没有通过为 =response.status= 赋值的方式设置状态码，则将 =response.status= 置为 =200= ；
+
      如果之前没有设置 =content-type= 头，则根据值的内容推算出 =content-type= （默认为 =json= ），
+
      如：内容是 =string= 类型，以 =<= 开头则认为是 =html= 否则是 =text= 。
 
+
    - 响应码为 204、205、304 时强制 =response.body= 为空
+
 
 ** 默认的异常处理
 
@@ -16751,3 +16758,208 @@ can be defined by the purpose the data is going to be used for.
         }
     })
   #+end_src
+
+* DONE Archlinux 下 i3 桌面启动                                   :archlinux:
+  CLOSED: [2017-08-30 Wed 14:11]
+
+** 不通过 gdm 启动
+
+   - 设置 archlinux 为文本模式启动
+
+     #+begin_src sh
+       sudo systemctl set-default multi-user.target
+     #+end_src
+
+  
+   - 配置 ~/.xinitrc 启动 i3
+
+     #+begin_src sh
+       [ -f /etc/xprofile ] && source /etc/xprofile
+       [ -f ~/.xprofile ] && source ~/.xprofile
+       exec dbus-launch i3
+     #+end_src
+
+
+   经过以上设置，首先通过文本模式启动 Archlinux，在 tty1 输入用户名及密码后，进入 i3 桌面。
+
+** 通过 gdm 启动
+
+   - 设置 archlinux 为图形模式启动
+
+     #+begin_src sh
+       systemctl enable gdm
+       sudo systemctl set-default graphical.target
+     #+end_src
+
+  
+   - 注释 ~/.xinitrc 启动 i3
+
+     #+begin_src sh
+       [ -f /etc/xprofile ] && source /etc/xprofile
+       [ -f ~/.xprofile ] && source ~/.xprofile
+       #exec dbus-launch i3
+     #+end_src
+
+
+   经过以上设置，首先通过图形模式启动 Archlinux，第一次需在 gdm 登录界面选择桌面为 i3，输入用户名及密码后进入 i3 桌面。
+
+* DONE Nginx 自动生成并缓存缩略图                                     :nginx:
+  CLOSED: [2017-08-30 Wed 14:35]
+
+** 配置示例
+
+   #+begin_src conf
+     # 访问原始图片
+     location /image {
+         root /data;
+     }
+
+     # 访问缩略图片
+     location ~* ^/thumbnail/(.*)$ {
+         alias /data/thumbnail;
+
+         if (!-f $request_filename) {
+             proxy_pass http://127.0.0.1/_thumbnail/$1;
+             break;
+         }
+
+         proxy_set_header     Host $http_host;
+         proxy_store          /data/thumbnail/$1;
+         proxy_store_access   user:rw  group:r  all:r;
+         proxy_temp_path      /tmp/image;
+     }
+
+     # 生成缩略图
+     location /_thumbnail {
+         alias /data/image/;
+         # 指定要缩放的宽、高，"-" 表示等比例缩放
+         image_filter resize 400 "-";
+         image_filter_jpeg_quality 75;
+         # 设置能处理的最大原始图片文件，默认 1MB 太小了
+         image_filter_buffer 20M;
+         # 拒绝外部直接访问
+         allow 127.0.0.0/8;
+         deny all;
+     }
+   #+end_src
+
+   - =/data/image/= :: 原始图片存放目录
+
+   - =/data/thumbnail= :: 缩略图存放目录
+
+        需确保 nginx worker 进程有写入权限
+        #+begin_src sh
+          chown nginx:nginx /data/thumbnail
+        #+end_src
+
+   -  =/tmp/image=  :: 生成缩略图时的临时目录
+
+
+   访问原始图片： =http://127.0.0.1/image/test.jpeg=
+   
+   访问缩略图片： =http://127.0.0.1/thumbnail/test.jpeg=
+
+** 参考
+
+   - [[http://nginx.org/en/docs/http/ngx_http_image_filter_module.html#image_filter][Module ngx_http_image_filter_module]]
+
+    
+   - [[https://gist.github.com/phpdude/1451684][Nginx image filter + caching of results]]
+
+* DONE 基于 Kafka 的消息推送系统设计                                  :kafka:
+  CLOSED: [2017-09-19 Tue 15:02]
+
+** 适用于消息推送系统的 Kafka 特性
+
+   - 高可用性
+
+     Kafka 能够保证不丢消息。
+
+
+   - 高性能
+
+     QPS 轻松上万。
+
+
+   - 可扩展
+
+     可搭建包含上千结点的集群。
+
+
+** 不适用于消息推送系统的 Kafka 特性
+
+   - 有限的 Partition 数量
+
+     Partition 是 Kafka 并发的基本单位，创建上万的 Partition 会影响可用性，见
+     《[[https://www.confluent.io/blog/how-to-choose-the-number-of-topicspartitions-in-a-kafka-cluster/][How to choose the number of topics/partitions in a Kafka cluster? - Confluent]]》，
+     消息推送系统往往用户量巨大（百万＋），意味着不能通过每用户一 Partition 将 Kafka 做为消息的主要存储层。
+
+
+   - 队列中的数据可能积压
+
+     Kafka 主要用于离线数据处理，数据没有太强的时效要求。
+     推送的消息往往有时效性，过期就失去意义了，消息队列堵塞后，
+     系统需要将队列中的数据消费掉，才好继续提供服务。
+
+
+   - 处理结果难以反馈给调用者
+
+     如果一条消息通过消息队列传输到另一个模块进行处理，就很难将处理结果同步地传回调用方。
+     使用消息队列就意味着为了知道处理结果，调用方要异步地接收结果通知，也就意味着要唯一地标识请求消息以便与通知进行配对。
+     需要反馈的情形更适合使用 RPC 调用，可以考虑在 Kafka 之上封装 RPC 调用。
+
+
+   - Kafka 主要用于内部系统间通信
+
+     消费者和生产者一般要求是固定且7x24小时在线，通常为后台服务程序。
+     而消息推送系统的客户端一般是在线不稳定，接入点不固定，需要支持离线消息。
+     内部的稳定性与外部的不稳定性会带来冲突，这两者的交接处需要进行复杂的处理。
+
+
+   - 消息的追踪与流控会成为问题
+
+     消息可能滞留在某个 Kafka 、MySQL、内存中，因此会很难实现用户级、业务级、系统级的流控，
+     业务服务器或客户端如果投递了过量的消息，会影响整个系统。
+
+
+** 如何基于 Kafka 构建消息推送系统
+
+   - 分而治之
+
+     将海量的用户空间静态垂直划分到单个消息处理结点可掌控的粒度。
+
+     比如将 =uid % 100= 分布到 100 个消息处理结点结点上，如果总共有 1000 万在线用户的话，每个消息处理结点只负责 10 万在线用户，完全可以将大部分状态放置在内存中，避免远程访问数据服务。
+
+     消息处理结点间尽量不共享状态，各自存储属于自已的消息数据，通过往各自的 Kafka 投递消息进行交互。
+
+   
+   - 做为消息存储设施的一部分
+     
+     Kafka 是一种可靠的数据存储设施，可以认为它是只能进行顺序读取的存储设施。
+
+     用户的上线、下线没有规律可言，也就是说有着天然的随机性。
+
+     随机的读写还是通过 MySQL，可将 Kafka 用于顺序存储的场景，如：
+   　在线用户的消息发送与投递、离线消息或需要确认的消息的入库。
+
+
+   - 谨慎地处理时序问题
+
+     一个消息通过 MQ 发往 MySQL 进行存储，然后往用户发送该消息，收到用户发回的确认消息后，
+     通过 MQ 往 MySQL 要求删除该消息，此时无法保证该消息已经写入 MySQL。
+
+     这正是分布式系统所要面对的时序问题。
+
+     对异步消息进行并行处理必然会带来无序，需要将同一用户的所有消息都调度到一个协程（或线程）进行顺序处理。
+
+
+   - 做为系统级消息总线
+
+     消息处理结点与其它系统模块（如：离线消息模块）交互也通过 Kafka 来进行。
+
+
+   - 消息队列需要好的监控及运维
+
+     队列堵塞会导致消息处理不及时，消息可能已经无效，需要进行处理。
+     而使用消息队列意味着不允许失败，必须在承诺的期限内给出可预期的结果，
+     也就是说无法为特定用户提供定制化的投递超时设置。
