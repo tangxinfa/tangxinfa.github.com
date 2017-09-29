@@ -17106,76 +17106,79 @@ can be defined by the purpose the data is going to be used for.
     - protobuf_json.cpp
 
       #+begin_src cpp
-        #include "pb2json/byReflection/pb2json.h"
-        #include <google/protobuf/compiler/importer.h>
-        #include <google/protobuf/dynamic_message.h>
-        #include <iostream>
-        #include <string>
-        #include <cassert>
-        using std::string;
+                #include "pb2json/byReflection/pb2json.h"
+                #include <google/protobuf/compiler/importer.h>
+                #include <google/protobuf/dynamic_message.h>
+                #include <iostream>
+                #include <string>
+                #include <cassert>
+                using std::string;
 
-        class ErrorCollector: public google::protobuf::compiler::MultiFileErrorCollector {
-        public:
-          ErrorCollector()
-            :warnings_(0), errors_(0)
-          {}
-          virtual ~ErrorCollector() {}
-          virtual void AddError(const string& filename, int line, int column,
-                                const string& message) {
-            ++errors_;
-            std::cerr << filename << ":" << line << ":" << column << ": " << message << std::endl;
-          }
+                class ErrorCollector: public google::protobuf::compiler::MultiFileErrorCollector {
+                public:
+                  ErrorCollector()
+                    :warnings_(0), errors_(0)
+                  {}
+                  virtual ~ErrorCollector() {}
+                  virtual void AddError(const string& filename, int line, int column,
+                                        const string& message) {
+                    ++errors_;
+                    std::cerr << filename << ":" << line << ":" << column << ": " << message << std::endl;
+                  }
 
-          virtual void AddWarning(const string& filename, int line, int column,
-                                  const string& message) {
-            ++warnings_;
-            std::cerr << filename << ":" << line << ":" << column << ": " << message << std::endl;
-          }
+                  virtual void AddWarning(const string& filename, int line, int column,
+                                          const string& message) {
+                    ++warnings_;
+                    std::cerr << filename << ":" << line << ":" << column << ": " << message << std::endl;
+                  }
 
-          uint errors() const { return errors_; }
-          uint warnings() const { return warnings_; }
+                  uint errors() const { return errors_; }
+                  uint warnings() const { return warnings_; }
 
-        private:
-          uint errors_;
-          uint warnings_;
-        };
+                private:
+                  uint errors_;
+                  uint warnings_;
+                };
 
 
-        int main(int argc, char *argv[]) {
-          // parse proto file.
-          google::protobuf::compiler::DiskSourceTree sourceTree;
-          sourceTree.MapPath("", ".");
-          ErrorCollector collector;
-          google::protobuf::compiler::Importer importer(&sourceTree, &collector);
-          const char* proto_file = "example.proto";
-          const google::protobuf::FileDescriptor* fileDescriptor = importer.Import(proto_file);
-          if (fileDescriptor == NULL) {
-            std::cerr << "proto file " << proto_file << " import failed" << std::endl;
-            return EXIT_FAILURE;
-          }
+                int main(int argc, char *argv[]) {
+                  // parse proto file with protobuf compiler module,
+                  // also can generate self-described protobuf message with protoc,
+                  // then we can get file descriptor without protobuf compiler,
+                  // see https://developers.google.com/protocol-buffers/docs/techniques#self-description
+                  google::protobuf::compiler::DiskSourceTree sourceTree;
+                  sourceTree.MapPath("", ".");
+                  ErrorCollector collector;
+                  google::protobuf::compiler::Importer importer(&sourceTree, &collector);
+                  const char* proto_file = "example.proto";
+                  const google::protobuf::FileDescriptor* fileDescriptor = importer.Import(proto_file);
+                  if (fileDescriptor == NULL) {
+                    std::cerr << "proto file " << proto_file << " import failed" << std::endl;
+                    return EXIT_FAILURE;
+                  }
 
-          const google::protobuf::Descriptor* descriptor = fileDescriptor->FindMessageTypeByName("Hello");
-          assert(descriptor);
+                  const google::protobuf::Descriptor* descriptor = fileDescriptor->FindMessageTypeByName("Hello");
+                  assert(descriptor);
 
-          google::protobuf::DynamicMessageFactory factory;
-          const google::protobuf::Message* prototype = factory.GetPrototype(descriptor);
-          assert(prototype);
-          google::protobuf::Message* message = prototype->New();
-          assert(message);
+                  google::protobuf::DynamicMessageFactory factory;
+                  const google::protobuf::Message* prototype = factory.GetPrototype(descriptor);
+                  assert(prototype);
+                  google::protobuf::Message* message = prototype->New();
+                  assert(message);
 
-          string source = "{\"name\":\"world\",\"times\":100}";
-          bool ok = Pb2Json::Json2Message(nlohmann::json::parse(source), *message);
-          assert(ok);
+                  string source = "{\"name\":\"world\",\"times\":100}";
+                  bool ok = Pb2Json::Json2Message(nlohmann::json::parse(source), *message);
+                  assert(ok);
 
-          nlohmann::json destinationJson;
-          Pb2Json::Message2Json(*message, destinationJson);
-          string destination = destinationJson.dump();
+                  nlohmann::json destinationJson;
+                  Pb2Json::Message2Json(*message, destinationJson);
+                  string destination = destinationJson.dump();
 
-          std::cout << "source: " << source << "\tdestination: " << destination << std::endl;
-          assert(source == destination);
+                  std::cout << "source: " << source << "\tdestination: " << destination << std::endl;
+                  assert(source == destination);
 
-          return EXIT_SUCCESS;
-        }
+                  return EXIT_SUCCESS;
+                }
       #+end_src
 
       - 编译
@@ -17191,6 +17194,7 @@ can be defined by the purpose the data is going to be used for.
           source: {"name":"world","times":100}    destination: {"name":"world","times":100}
         #+end_example
 
+
     相关参考
 
     - [[http://blog.csdn.net/haust_wang/article/details/49994883][c++使用Protobuf Message转Json字符串（Json库使用Json cpp） - - CSDN博客]]
@@ -17198,6 +17202,8 @@ can be defined by the purpose the data is going to be used for.
     - [[http://blog.csdn.net/haust_wang/article/details/50135967][Protobuf与Json互转 - - CSDN博客]]
 
     - [[https://stackoverflow.com/questions/7007876/c-protobuf-to-from-json-conversion][C++ Protobuf to/from JSON conversion - Stack Overflow]]
+
+    - [[https://stackoverflow.com/questions/11996557/how-to-dynamically-build-a-new-protobuf-from-a-set-of-already-defined-descriptor][c++ - How to dynamically build a new protobuf from a set of already defined descriptors? - Stack Overflow]]
 
     - [[https://www.ibm.com/developerworks/cn/linux/l-cn-gpb/#minor4.2][Google Protocol Buffer 的使用和原理]]
 
