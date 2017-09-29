@@ -16963,3 +16963,242 @@ can be defined by the purpose the data is going to be used for.
      队列堵塞会导致消息处理不及时，消息可能已经无效，需要进行处理。
      而使用消息队列意味着不允许失败，必须在承诺的期限内给出可预期的结果，
      也就是说无法为特定用户提供定制化的投递超时设置。
+
+* DONE Protobuf 与 Json 数据格式转换                          :protobuf:json:
+  CLOSED: [2017-09-29 Fri 11:57]
+
+** Protobuf 和 Json 存在显著的差异
+
+   |----------+--------+------------------------------+------------+------------------------------------------|
+   | 数据格式 | 编码   | 自描述                       | 字段顺序性 | 基本数据类型                             |
+   |----------+--------+------------------------------+------------+------------------------------------------|
+   | Protobuf | 二进制 | 否                           | 是         | 丰富                                     |
+   |          |        |                              |            |                                          |
+   |          |        | 编码后的数据不包括字段名称， |            | double                                   |
+   |          |        | 字段以 proto 文件 tag 值标识 |            | float                                    |
+   |          |        |                              |            | int32                                    |
+   |          |        |                              |            | int64                                    |
+   |          |        |                              |            | uint32                                   |
+   |          |        |                              |            | uint64                                   |
+   |          |        |                              |            | sint32                                   |
+   |          |        |                              |            | sint64                                   |
+   |          |        |                              |            | fixed32                                  |
+   |          |        |                              |            | fixed64                                  |
+   |          |        |                              |            | sfixed32                                 |
+   |          |        |                              |            | sfixed64                                 |
+   |          |        |                              |            | bool                                     |
+   |          |        |                              |            | string                                   |
+   |          |        |                              |            | bytes                                    |
+   |----------+--------+------------------------------+------------+------------------------------------------|
+   | Json     | 文本   | 是                           | 否         | 较少                                     |
+   |          |        |                              |            |                                          |
+   |          |        |                              |            | string                                   |
+   |          |        |                              |            | number                                   |
+   |          |        |                              |            | bool                                     |
+   |          |        |                              |            | null                                     |
+   |          |        |                              |            |                                          |
+   |          |        |                              |            | number 整型取值范围[-(2**53-1), 2**53-1] |
+   |          |        |                              |            | 因此不能精确转换为 int64 或 uint64 类型  |
+   |----------+--------+------------------------------+------------+------------------------------------------|
+
+   参考
+
+   [[https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number][Number - JavaScript | MDN]]
+
+   [[https://developers.google.com/protocol-buffers/docs/proto3#scalar][Language Guide (proto3)  |  Protocol Buffers  |  Google Developers]]
+
+** Protobuf 与 Json 的静态转换
+
+   使用 protoc 生成 proto 文件的编解码代码，再手工进行 Protobuf 与 Json 格式转换是很容易的，
+   但是这需要在 proto 文件更新时重新生成代码，并重新编译、部署程序。
+
+** Protobuf 与 Json 的动态转换
+
+   如果程序能够解析 proto 文件，并根据 proto 定义完成 Protobuf 与 Json 的转换会很有用处。
+
+*** example.proto
+
+    以下为接下来要使用的 =example.proto= 文件内容
+
+    #+begin_src protobuf
+      syntax = "proto3";
+
+      package example;
+
+      message Hello {
+        string name = 1;
+        int32 times = 2;
+      }
+    #+end_src
+
+*** Node.js
+
+    在查找 Node.js 下 Protobuf 使用相关资料的过程中，发现 Node.js 可以直接载入 proto 文件，
+    然后直接获取 Protobuf 编解码对象进行 Protobuf 的编解码，如下所示：
+
+    #+begin_src js
+      var ProtoBuf = require("protobufjs");
+      var dgram = require('dgram');
+      var server = dgram.createSocket('udp4');
+
+      var builder = ProtoBuf.loadProtoFile("./cover.helloworld.proto"),
+          Cover = builder.build("cover"),
+          HelloCoverReq = Cover.helloworld.helloCoverReq;
+          HelloCoverRsp = Cover.helloworld.helloCoverRsp;
+    #+end_src
+    引用自 [[http://imweb.io/topic/570130a306f2400432c1396c][在NodeJS中玩转Protocol Buffer - 腾讯Web前端 IMWeb 团队社区 | blog | 团队博客]]
+
+    这就是动态语言的优势，而且 Javascript 原生支持 Json，用来演示再合适不过。
+
+    以下为完整的 Protobuf 与 Json 动态互转示例代码：
+
+    #+begin_src js
+      "use strict";
+
+      const ProtoBuf = require("protobufjs");
+      const util = require('util');
+      const assert = require('assert');
+
+      ProtoBuf.load("./example.proto").then((root) => {
+          const Hello = root.lookup('example.Hello');
+          const source = {
+              name: "world",
+              times: 100
+          };
+          const hello = Hello.create(source);
+          const buffer = Hello.encode(hello).finish();
+          const destination = Hello.decode(buffer);
+          assert(JSON.stringify(source) == JSON.stringify(destination));
+
+          console.log({
+              source: JSON.stringify(source),
+              destination: JSON.stringify(destination)
+          });
+      });
+    #+end_src
+
+    运行结果
+    #+begin_example
+      $ node /home/tangxinfa/Examples/learn_node/protobuf_json.js
+      { source: '{"name":"world","times":100}',
+        destination: '{"name":"world","times":100}' }
+    #+end_example
+
+*** C++
+
+    C++ 是静态类型的语言，肯定不如 Node.js 那么方便，主要用到 Protobuf 的反射（Reflection）机制，具体实现见：
+
+    - [[https://github.com/HaustWang/pb2json][HaustWang/pb2json: protobuf message与json互转，使用C++11特性]]
+
+    - https://github.com/shafreeck/pb2json
+
+    - [[https://github.com/shramov/json2pb][shramov/json2pb: Python/C++ implementation of JSON to/from Protobuf convertor]]
+
+
+    [[https://github.com/HaustWang/pb2json][HaustWang/pb2json]] 实现了静态和动态 Protobuf 与 Json 互转，这里以它写一个完整的示例
+
+    - 拉取 [[https://github.com/HaustWang/pb2json][HaustWang/pb2json]] 代码
+
+      #+begin_src sh
+        git clone https://github.com/HaustWang/pb2json.git
+      #+end_src
+    
+    - protobuf_json.cpp
+
+      #+begin_src cpp
+        #include "pb2json/byReflection/pb2json.h"
+        #include <google/protobuf/compiler/importer.h>
+        #include <google/protobuf/dynamic_message.h>
+        #include <iostream>
+        #include <string>
+        #include <cassert>
+        using std::string;
+
+        class ErrorCollector: public google::protobuf::compiler::MultiFileErrorCollector {
+        public:
+          ErrorCollector()
+            :warnings_(0), errors_(0)
+          {}
+          virtual ~ErrorCollector() {}
+          virtual void AddError(const string& filename, int line, int column,
+                                const string& message) {
+            ++errors_;
+            std::cerr << filename << ":" << line << ":" << column << ": " << message << std::endl;
+          }
+
+          virtual void AddWarning(const string& filename, int line, int column,
+                                  const string& message) {
+            ++warnings_;
+            std::cerr << filename << ":" << line << ":" << column << ": " << message << std::endl;
+          }
+
+          uint errors() const { return errors_; }
+          uint warnings() const { return warnings_; }
+
+        private:
+          uint errors_;
+          uint warnings_;
+        };
+
+
+        int main(int argc, char *argv[]) {
+          // parse proto file.
+          google::protobuf::compiler::DiskSourceTree sourceTree;
+          sourceTree.MapPath("", ".");
+          ErrorCollector collector;
+          google::protobuf::compiler::Importer importer(&sourceTree, &collector);
+          const char* proto_file = "example.proto";
+          const google::protobuf::FileDescriptor* fileDescriptor = importer.Import(proto_file);
+          if (fileDescriptor == NULL) {
+            std::cerr << "proto file " << proto_file << " import failed" << std::endl;
+            return EXIT_FAILURE;
+          }
+
+          const google::protobuf::Descriptor* descriptor = fileDescriptor->FindMessageTypeByName("Hello");
+          assert(descriptor);
+
+          google::protobuf::DynamicMessageFactory factory;
+          const google::protobuf::Message* prototype = factory.GetPrototype(descriptor);
+          assert(prototype);
+          google::protobuf::Message* message = prototype->New();
+          assert(message);
+
+          string source = "{\"name\":\"world\",\"times\":100}";
+          bool ok = Pb2Json::Json2Message(nlohmann::json::parse(source), *message);
+          assert(ok);
+
+          nlohmann::json destinationJson;
+          Pb2Json::Message2Json(*message, destinationJson);
+          string destination = destinationJson.dump();
+
+          std::cout << "source: " << source << "\tdestination: " << destination << std::endl;
+          assert(source == destination);
+
+          return EXIT_SUCCESS;
+        }
+      #+end_src
+
+      - 编译
+
+        #+begin_src sh
+          g++ -O2 protobuf_json.cpp ./pb2json/byReflection/pb2json.cpp -lm -o protobuf_json -lprotobuf
+        #+end_src
+
+      - 运行
+
+        #+begin_example
+          $ ./protobuf_json
+          source: {"name":"world","times":100}    destination: {"name":"world","times":100}
+        #+end_example
+
+    相关参考
+
+    - [[http://blog.csdn.net/haust_wang/article/details/49994883][c++使用Protobuf Message转Json字符串（Json库使用Json cpp） - - CSDN博客]]
+
+    - [[http://blog.csdn.net/haust_wang/article/details/50135967][Protobuf与Json互转 - - CSDN博客]]
+
+    - [[https://stackoverflow.com/questions/7007876/c-protobuf-to-from-json-conversion][C++ Protobuf to/from JSON conversion - Stack Overflow]]
+
+    - [[https://www.ibm.com/developerworks/cn/linux/l-cn-gpb/#minor4.2][Google Protocol Buffer 的使用和原理]]
+
+    - [[https://developers.google.com/protocol-buffers/docs/reference/cpp/][C++ API  |  Protocol Buffers  |  Google Developers]]
