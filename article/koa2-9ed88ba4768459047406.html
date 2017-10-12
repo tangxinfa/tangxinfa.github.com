@@ -120,11 +120,11 @@ koa2 在中间件的最外层会捕获异常，将它转化为合适的 HTTP 错
 
 <div class="org-src-container">
 
-<pre class="src src-js">app.on(<span style="color: #66cccc;">'error'</span>, <span style="color: #99cc99;">function</span>(<span style="color: #ffcc66;">err</span>, <span style="color: #ffcc66;">ctx</span>) {
-<span style="color: #999999; background-color: #2d2d2d;"> </span>   logger.error({
-<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   stack: err.stack,
-<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   ctx: ctx
-<span style="color: #999999; background-color: #2d2d2d;"> </span>   }, <span style="color: #66cccc;">"service error"</span>);
+<pre class="src src-js">app.on(<span style="color: #8abeb7;">'error'</span>, <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">err</span>, <span style="color: #f0c674;">ctx</span>) {
+<span style="color: #969896; background-color: #1d1f21;"> </span>   logger.error({
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   stack: err.stack,
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   ctx: ctx
+<span style="color: #969896; background-color: #1d1f21;"> </span>   }, <span style="color: #8abeb7;">"service error"</span>);
 });
 </pre>
 </div>
@@ -139,26 +139,26 @@ koa2 在中间件的最外层会捕获异常，将它转化为合适的 HTTP 错
 <div class="org-src-container">
 
 <pre class="src src-js">app.use(async (ctx, next) =&gt; {
-<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #99cc99;">try</span> {
-<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   await next();
-<span style="color: #999999; background-color: #2d2d2d;"> </span>   } <span style="color: #99cc99;">catch</span> ( err ) {
-<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   ctx.app.emit(<span style="color: #66cccc;">'error'</span>, err, ctx);
-<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   ctx.status = err.status || 500;
-<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   ctx.body = {
-<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   message: err.expose ? err.message : ctx.message
-<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   };
-<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #99cc99;">return</span>;
-<span style="color: #999999; background-color: #2d2d2d;"> </span>   }
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #b5bd68;">try</span> {
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   await next();
+<span style="color: #969896; background-color: #1d1f21;"> </span>   } <span style="color: #b5bd68;">catch</span> ( err ) {
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   ctx.app.emit(<span style="color: #8abeb7;">'error'</span>, err, ctx);
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   ctx.status = err.status || 500;
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   ctx.body = {
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   message: err.expose ? err.message : ctx.message
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   };
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #b5bd68;">return</span>;
+<span style="color: #969896; background-color: #1d1f21;"> </span>   }
 
-<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #99cc99;">if</span> (ctx.status == 404) {
-<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #99cc99;">if</span> (!ctx.body || !ctx.body.message) {
-<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; font-style: italic;">// </span><span style="color: #999999; font-style: italic;">explicitly set status, avoid revert to 200 when assign body.</span>
-<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   ctx.status = 404;
-<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   ctx.body = {
-<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   message: ctx.message
-<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   };
-<span style="color: #999999; background-color: #2d2d2d;"> </span>   <span style="color: #999999; background-color: #2d2d2d;"> </span>   }
-<span style="color: #999999; background-color: #2d2d2d;"> </span>   }
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #b5bd68;">if</span> (ctx.status == 404) {
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #b5bd68;">if</span> (!ctx.body || !ctx.body.message) {
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">explicitly set status, avoid revert to 200 when assign body.</span>
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   ctx.status = 404;
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   ctx.body = {
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   message: ctx.message
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   };
+<span style="color: #969896; background-color: #1d1f21;"> </span>   <span style="color: #969896; background-color: #1d1f21;"> </span>   }
+<span style="color: #969896; background-color: #1d1f21;"> </span>   }
 })
 </pre>
 </div>

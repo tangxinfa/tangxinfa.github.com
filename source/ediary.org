@@ -17208,3 +17208,63 @@ can be defined by the purpose the data is going to be used for.
     - [[https://www.ibm.com/developerworks/cn/linux/l-cn-gpb/#minor4.2][Google Protocol Buffer 的使用和原理]]
 
     - [[https://developers.google.com/protocol-buffers/docs/reference/cpp/][C++ API  |  Protocol Buffers  |  Google Developers]]
+
+* TODO 完美的 c++ 项目代码定义跳转                                :emacs:cpp:
+
+** 编译数据库
+
+*** 安装
+
+    使用 =Bazel And Compile Commands= 脚本可以很方便地为 Bazel 构建项目生成 compile_commands.json 
+
+    #+begin_src sh
+      git clone https://github.com/vincent-picaud/Bazel_and_CompileCommands.git
+    #+end_src
+
+*** 生成
+
+    #+begin_src sh
+      ../Bazel_and_CompileCommands/setup_compile_commands.sh
+      ../Bazel_and_CompileCommands/create_compile_commands.sh //...
+    #+end_src
+
+** rtags
+
+*** 启动后台服务
+
+    #+begin_src sh
+      nohup rdm &
+    #+end_src
+
+*** 提交项目信息到后台服务
+
+    由于 bazel 会将代码通过软链接放到一个沙箱中进行编译，导致生成的编译数据库中代码目录与实际编辑的路径不一致，
+    使用 rtags 查找定义时会报 "/xxx/xxx.cpp not indexed" 错误，可以通过提交项目信息时指定 =--project-root= 进行修正。
+
+    #+begin_src sh
+      rc -J . --project-root $PWD
+    #+end_src
+
+* DONE Envoy 的 json_transcoder_filter 介绍        :envoy:grpc:protobuf:json:
+  CLOSED: [2017-10-12 Thu 19:56]
+
+  json_transcoder_filter 实现 HTTP/1.1+JSON 与 HTTP/2+GRPC 的互转。
+
+  使用第三方库 [[https://github.com/grpc-ecosystem/grpc-httpjson-transcoding][grpc-httpjson-transcoding]] 完成 json 与 grpc 的协议转换，
+  转换规则由 [[https://github.com/googleapis/googleapis/blob/master/google/api/http.proto][http.proto]] 定义。
+
+  [[https://github.com/googleapis/googleapis/blob/master/google/api/http.proto][http.proto]] 通过注解（Annotations）为 GRPC 接口添加 RESTful HTTP 接口映射。
+
+  =json_transcoder_filter= 对 stream 有一定支持，由于它是基于 HTTP/1.1，本质上是请求-响应模型，
+  只支持 GRPC 的 =Server streaming= 和 =Client streaming= ，不支持 =Bidirectional streaming= ，
+  它将 GRPC 消息流映射为消息数组（Json array）。
+
+** 示例项目
+
+   根据 grpc-bridge 创建的示例项目
+
+   - [[https://github.com/tangxinfa/grpc_json_transcoder_example][tangxinfa/grpc_json_transcoder_example: Envoy grpc_json_transcoder filter example]]
+
+** 参考
+
+  - [[https://cloud.google.com/endpoints/docs/grpc/transcoding][Transcoding HTTP/JSON to gRPC  |  Cloud Endpoints with gRPC  |  Google Cloud Platform]]

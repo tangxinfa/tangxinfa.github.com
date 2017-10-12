@@ -36,15 +36,15 @@ system(3) 常用于执行 shell 命令
 
 <div class="org-src-container">
 
-<pre class="src src-c"><span style="color: #cc99cc;">#include</span> <span style="color: #66cccc;">&lt;stdlib.h&gt;</span>
-<span style="color: #cc99cc;">#include</span> <span style="color: #66cccc;">&lt;stdio.h&gt;</span>
+<pre class="src src-c"><span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;stdlib.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;stdio.h&gt;</span>
 
 
-<span style="color: #6699cc;">int</span> <span style="color: #f99157;">main</span>(<span style="color: #6699cc;">int</span> <span style="color: #ffcc66;">argc</span>, <span style="color: #6699cc;">char</span> *<span style="color: #ffcc66;">argv</span>[])
+<span style="color: #81a2be;">int</span> <span style="color: #de935f;">main</span>(<span style="color: #81a2be;">int</span> <span style="color: #f0c674;">argc</span>, <span style="color: #81a2be;">char</span> *<span style="color: #f0c674;">argv</span>[])
 {
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #6699cc;">int</span> <span style="color: #ffcc66;">ret</span> = system(<span style="color: #66cccc;">"ls -la"</span>);
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> printf(<span style="color: #66cccc;">"ret: %d\n"</span>, ret);
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #99cc99;">return</span> ret;
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">ret</span> = system(<span style="color: #8abeb7;">"ls -la"</span>);
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> printf(<span style="color: #8abeb7;">"ret: %d\n"</span>, ret);
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #b5bd68;">return</span> ret;
 }
 </pre>
 </div>
@@ -180,17 +180,17 @@ system(3) 调用 waitpid(3) 时，子进程已经被系统自动回收，消失�
 <div class="outline-text-3" id="text-1-1">
 <div class="org-src-container">
 
-<pre class="src src-c"><span style="color: #6699cc;">int</span> <span style="color: #f99157;">system2</span>(<span style="color: #99cc99;">const</span> <span style="color: #6699cc;">char</span>* <span style="color: #ffcc66;">command</span>, <span style="color: #6699cc;">char</span>* <span style="color: #ffcc66;">output</span>, <span style="color: #6699cc;">size_t</span> <span style="color: #ffcc66;">output_size</span>)
+<pre class="src src-c"><span style="color: #81a2be;">int</span> <span style="color: #de935f;">system2</span>(<span style="color: #b5bd68;">const</span> <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">command</span>, <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">output</span>, <span style="color: #81a2be;">size_t</span> <span style="color: #f0c674;">output_size</span>)
 {
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #6699cc;">FILE</span>* <span style="color: #ffcc66;">p</span> = popen(command, <span style="color: #66cccc;">"r"</span>);
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #99cc99;">if</span> (p) {
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> memset(output, <span style="color: #66cccc;">'\0'</span>, output_size);
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> fread(output, output_size - 1, 1, p);
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> pclose(p);
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #99cc99;">return</span> 0;
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> }
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #81a2be;">FILE</span>* <span style="color: #f0c674;">p</span> = popen(command, <span style="color: #8abeb7;">"r"</span>);
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #b5bd68;">if</span> (p) {
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> memset(output, <span style="color: #8abeb7;">'\0'</span>, output_size);
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> fread(output, output_size - 1, 1, p);
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> pclose(p);
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #b5bd68;">return</span> 0;
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> }
 
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #99cc99;">return</span> -1;
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #b5bd68;">return</span> -1;
 }
 </pre>
 </div>
@@ -201,11 +201,11 @@ system(3) 调用 waitpid(3) 时，子进程已经被系统自动回收，消失�
 
 <div class="org-src-container">
 
-<pre class="src src-C"><span style="color: #6699cc;">char</span> <span style="color: #ffcc66;">output</span>[255];
-<span style="color: #99cc99;">if</span> (0 == system2(<span style="color: #66cccc;">"mkdir /test; echo ret=$?"</span>, output, <span style="color: #99cc99;">sizeof</span>(output)) &amp;&amp; strstr(o<span style="text-decoration: underline;">utput, </span><span style="color: #66cccc; text-decoration: underline;">"ret=0"</span><span style="text-decoration: underline;">)) {</span>
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> printf(<span style="color: #66cccc;">"mkdir /test successed"</span>);
-} <span style="color: #99cc99;">else</span> {
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> printf(<span style="color: #66cccc;">"mkdir /test failed"</span>);
+<pre class="src src-C"><span style="color: #81a2be;">char</span> <span style="color: #f0c674;">output</span>[255];
+<span style="color: #b5bd68;">if</span> (0 == system2(<span style="color: #8abeb7;">"mkdir /test; echo ret=$?"</span>, output, <span style="color: #b5bd68;">sizeof</span>(output)) &amp;&amp; strstr(o<span style="text-decoration: underline;">utput, </span><span style="color: #8abeb7; text-decoration: underline;">"ret=0"</span><span style="text-decoration: underline;">)) {</span>
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> printf(<span style="color: #8abeb7;">"mkdir /test successed"</span>);
+} <span style="color: #b5bd68;">else</span> {
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> printf(<span style="color: #8abeb7;">"mkdir /test failed"</span>);
 }
 </pre>
 </div>
@@ -230,10 +230,10 @@ signal(3) 无法阻塞一个信号，只支持忽略（SIG_IGN）和恢复缺省
 
 <div class="org-src-container">
 
-<pre class="src src-c"><span style="color: #6699cc;">sigset_t</span> <span style="color: #ffcc66;">set</span>;
+<pre class="src src-c"><span style="color: #81a2be;">sigset_t</span> <span style="color: #f0c674;">set</span>;
 sigemptyset(&amp;set);
 sigaddset(&amp;set, SIGCHLD);
-pthread_sigmask(SIG_BLOCK, &amp;set, <span style="color: #6699cc;">NULL</span>);
+pthread_sigmask(SIG_BLOCK, &amp;set, <span style="color: #81a2be;">NULL</span>);
 </pre>
 </div>
 
@@ -300,24 +300,24 @@ The method described here has two steps:
 <div class="outline-text-3" id="text-2-2">
 <div class="org-src-container">
 
-<pre class="src src-C"><span style="color: #999999; font-style: italic;">// </span><span style="color: #999999; font-style: italic;">&#23553;&#35013; system(3) &#65292;&#19968;&#26041;&#38754;&#36991;&#20813;&#20013;&#26029;&#31995;&#32479;&#35843;&#29992;&#65292;&#21478;&#19968;&#26041;&#38754;&#36991;&#20813;&#20986;&#29616;&#20725;&#23608;&#23385;&#36827;&#31243;.</span>
-<span style="color: #999999; font-style: italic;">// </span><span style="color: #999999; font-style: italic;">&#35831;&#35760;&#24471;&#20840;&#23616;&#22581;&#22622; SIGCHLD &#20449;&#21495;.</span>
-<span style="color: #6699cc;">int</span> <span style="color: #f99157;">system2</span>(<span style="color: #99cc99;">const</span> <span style="color: #6699cc;">char</span>* <span style="color: #ffcc66;">command</span>)
+<pre class="src src-C"><span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">&#23553;&#35013; system(3) &#65292;&#19968;&#26041;&#38754;&#36991;&#20813;&#20013;&#26029;&#31995;&#32479;&#35843;&#29992;&#65292;&#21478;&#19968;&#26041;&#38754;&#36991;&#20813;&#20986;&#29616;&#20725;&#23608;&#23385;&#36827;&#31243;.</span>
+<span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">&#35831;&#35760;&#24471;&#20840;&#23616;&#22581;&#22622; SIGCHLD &#20449;&#21495;.</span>
+<span style="color: #81a2be;">int</span> <span style="color: #de935f;">system2</span>(<span style="color: #b5bd68;">const</span> <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">command</span>)
 {
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; font-style: italic;">// </span><span style="color: #999999; font-style: italic;">&#35843;&#29992; system(3) &#21069;&#21462;&#28040;&#23545; SIGCHLD &#30340;&#38459;&#22622;</span>
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #6699cc;">sigset_t</span> <span style="color: #ffcc66;">set</span>;
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> sigemptyset(&amp;set);
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> sigaddset(&amp;set, SIGCHLD);
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> pthread_sigmask(SIG_UNBLOCK, &amp;set, <span style="color: #6699cc;">NULL</span>);
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">&#35843;&#29992; system(3) &#21069;&#21462;&#28040;&#23545; SIGCHLD &#30340;&#38459;&#22622;</span>
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #81a2be;">sigset_t</span> <span style="color: #f0c674;">set</span>;
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> sigemptyset(&amp;set);
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> sigaddset(&amp;set, SIGCHLD);
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> pthread_sigmask(SIG_UNBLOCK, &amp;set, <span style="color: #81a2be;">NULL</span>);
 
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #6699cc;">int</span> <span style="color: #ffcc66;">code</span> = system(command);
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">code</span> = system(command);
 
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; font-style: italic;">// </span><span style="color: #999999; font-style: italic;">&#35843;&#29992; system(3) &#21518;&#24674;&#22797;&#23545; SIGCHLD &#30340;&#38459;&#22622;</span>
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> sigemptyset(&amp;set);
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> sigaddset(&amp;set, SIGCHLD);
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> pthread_sigmask(SIG_BLOCK, &amp;set, <span style="color: #6699cc;">NULL</span>);
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">&#35843;&#29992; system(3) &#21518;&#24674;&#22797;&#23545; SIGCHLD &#30340;&#38459;&#22622;</span>
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> sigemptyset(&amp;set);
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> sigaddset(&amp;set, SIGCHLD);
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> pthread_sigmask(SIG_BLOCK, &amp;set, <span style="color: #81a2be;">NULL</span>);
 
-<span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #999999; background-color: #2d2d2d;"> </span> <span style="color: #99cc99;">return</span> code;
+<span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #969896; background-color: #1d1f21;"> </span> <span style="color: #b5bd68;">return</span> code;
 }
 </pre>
 </div>
