@@ -4,7 +4,7 @@
         <title>node - 看看俺 – KanKanAn.com</title>
         <link>http://blog.kankanan.com/tag/node.xml</link>
         <description>记我所思，忆我所为。</description>
-        <lastBuildDate>Thu, 26 Oct 2017 09:31:39 GMT</lastBuildDate>
+        <lastBuildDate>Tue, 31 Oct 2017 12:55:06 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <generator>Feed for Node.js</generator>
         <image>
@@ -4121,36 +4121,33 @@ socket.on(<span style="color: #8abeb7;">"timeout"</span>, <span style="color: #b
 <span class="linenr"> 7: </span>
 <span class="linenr"> 8: </span># Install python
 <span class="linenr"> 9: </span>RUN \
-<span class="linenr">10: </span>    apt-get update &amp;&amp; apt-get -y -qq install python wget
+<span class="linenr">10: </span>    apt-get update &amp;&amp; apt-get -y -qq install python wget xz-utils
 <span class="linenr">11: </span>
 <span class="linenr">12: </span># Install node
 <span class="linenr">13: </span>RUN \
-<span class="linenr">14: </span>    wget http://npm.taobao.org/mirrors/node/v0.12.9/node-v0.12.9-linux-x64.tar.gz &amp;&amp;\
-<span class="linenr">15: </span>    tar xzf node-v0.12.9-linux-x64.tar.gz -C /usr/local
+<span class="linenr">14: </span>    wget http://npm.taobao.org/mirrors/node/v8.8.1/node-v8.8.1-linux-x64.tar.xz &amp;&amp;\
+<span class="linenr">15: </span>    tar xJvf node-v8.8.1-linux-x64.tar.xz --no-same-owner --exclude CHANGELOG.md --exclude LICENSE --exclude README.md --strip-components 1 -C /usr
 <span class="linenr">16: </span>
 <span class="linenr">17: </span>WORKDIR /usr/local/upload-fiddle/
 <span class="linenr">18: </span>
 <span class="linenr">19: </span># Install node modules
 <span class="linenr">20: </span>ADD package.json ./
-<span class="linenr">21: </span>ADD *.bashrc ./
-<span class="linenr">22: </span>RUN \
-<span class="linenr">23: </span>    ln -s /usr/local/node-v0.12.9-linux-x64 ./node
-<span class="linenr">24: </span>RUN \
-<span id="coderef-npm-taobao" class="coderef-off"><span class="linenr">25: </span>    ["/bin/bash", "-c", "source .bashrc; npm install --registry=https://registry.npm.taobao.org"]</span>
-<span class="linenr">26: </span>
-<span class="linenr">27: </span># Add project files
-<span class="linenr">28: </span>COPY src ./src
-<span class="linenr">29: </span>COPY config ./config
-<span class="linenr">30: </span>ADD *.sh ./
+<span class="linenr">21: </span>ADD process.json ./
+<span class="linenr">22: </span>ADD .bashrc ./
+<span class="linenr">23: </span>RUN \
+<span id="coderef-npm-config" class="coderef-off"><span class="linenr">24: </span>    ["/bin/bash", "-c", "npm config set registry=https://registry.npm.taobao.org; npm config set script-shell=/bin/bash"]</span>
+<span class="linenr">25: </span>RUN \
+<span class="linenr">26: </span>    ["/bin/bash", "-c", "source .bashrc; npm install -g pm2@2.x json; npm install"]
+<span class="linenr">27: </span>
+<span class="linenr">28: </span># Add project files
+<span class="linenr">29: </span>COPY src ./src
+<span class="linenr">30: </span>COPY config ./config
 <span class="linenr">31: </span>ADD public/*.html ./public/
-<span class="linenr">32: </span>
-<span class="linenr">33: </span># Create directory for upload files.
-<span class="linenr">34: </span>RUN \
-<span class="linenr">35: </span>    mkdir public/files &amp;&amp;\
-<span class="linenr">36: </span>    chmod a+w public/files
-<span class="linenr">37: </span>
-<span class="linenr">38: </span># Start service.
-<span id="coderef-read" class="coderef-off"><span class="linenr">39: </span>CMD ["/bin/bash", "-c", "./start.sh &amp;&amp; read"]</span>
+<span class="linenr">32: </span>RUN mkdir /usr/local/upload-fiddle/public/files &amp;&amp;\
+<span class="linenr">33: </span>    chmod a+w /usr/local/upload-fiddle/public/files
+<span class="linenr">34: </span>
+<span class="linenr">35: </span># Start service.
+<span id="coderef-npm-logs" class="coderef-off"><span class="linenr">36: </span>CMD ["/bin/bash", "-c", "npm run pm2 -- ping &amp;&amp; npm start &amp;&amp; npm run logs"]</span>
 </pre>
 
 <dl class="org-dl">
@@ -4160,10 +4157,10 @@ socket.on(<span style="color: #8abeb7;">"timeout"</span>, <span style="color: #b
 <dt> 配置行 <a href="#coderef-163-ubuntu"class="coderef" onmouseover="CodeHighlightOn(this, 'coderef-163-ubuntu');" onmouseout="CodeHighlightOff(this, 'coderef-163-ubuntu');">6</a> </dt><dd>使用163的ubuntu源，提高速度
 </dd>
 
-<dt> 配置行 <a href="#coderef-npm-taobao"class="coderef" onmouseover="CodeHighlightOn(this, 'coderef-npm-taobao');" onmouseout="CodeHighlightOff(this, 'coderef-npm-taobao');">25</a> </dt><dd>使用taobao的npm源，提高速度
+<dt> 配置行 <a href="#coderef-npm-config"class="coderef" onmouseover="CodeHighlightOn(this, 'coderef-npm-config');" onmouseout="CodeHighlightOff(this, 'coderef-npm-config');">24</a> </dt><dd>使用taobao的npm源，提高速度；ubuntu docker 镜像默认的 /bin/sh 指向 dash，为 npm scripts 指定 shell 为 bash
 </dd>
 
-<dt> 配置行 <a href="#coderef-read"class="coderef" onmouseover="CodeHighlightOn(this, 'coderef-read');" onmouseout="CodeHighlightOff(this, 'coderef-read');">39</a> </dt><dd>调用read命令避免命令退出导致容器停止
+<dt> 配置行 <a href="#coderef-npm-logs"class="coderef" onmouseover="CodeHighlightOn(this, 'coderef-npm-logs');" onmouseout="CodeHighlightOff(this, 'coderef-npm-logs');">36</a> </dt><dd>输出应用日志到控制台，避免命令退出导致容器停止
 </dd>
 </dl>
 </div>
@@ -4196,12 +4193,23 @@ socket.on(<span style="color: #8abeb7;">"timeout"</span>, <span style="color: #b
 </div>
 
 <div id="outline-container-sec-4" class="outline-2">
-<h2 id="sec-4">打开 <code>docker</code> 容器终端查看运行日志</h2>
+<h2 id="sec-4">查看容器运行日志</h2>
 <div class="outline-text-2" id="text-4">
 <div class="org-src-container">
 
+<pre class="src src-sh">sudo docker logs upload-fiddle -f
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5">打开 <code>docker</code> 容器终端查看进程运行状态</h2>
+<div class="outline-text-2" id="text-5">
+<div class="org-src-container">
+
 <pre class="src src-sh">sudo docker exec -ti upload-fiddle /bin/bash
-tail -f run.log
+npm run pm2 -- list
 </pre>
 </div>
 
