@@ -17387,5 +17387,126 @@ can be defined by the purpose the data is going to be used for.
      #+end_quote
 
      是 Nginx 的一个插件，支持各种接入方式，是搭建消息推送系统的一种很好的选择。
-     通过回调（HTTP/1.1 Restful）与业务系统集成在一起。
-     如果能够选择重头再来，我一开始就尝试使用它来搭建消息推送系统。
+     通过回调（HTTP/1.1 Restful）与业务系统集成在一起，使得业务系统不需要关心客户端接入细节。
+
+* TODO 设备在线 Redis 建模                                            :redis:
+
+** 规整化
+
+*** 连接信息定义
+
+    |----------+-----------------------------+------------+------------|
+    | 数据结构 | 键定义                      | 字段名     | 字段值     |
+    |----------+-----------------------------+------------+------------|
+    | HASH     | "connection:"<ConnectionID> | "UserID"   | <UserID>   |
+    |          |                             | "DeviceID" | <DeviceID> |
+    |          |                             | "Other1"   | <Other1>   |
+    |          |                             | "Other2"   | <Other2>   |
+    |----------+-----------------------------+------------+------------|
+
+*** UserID 到连接的索引定义
+
+    |----------+-------------------------------+----------------+-------------|
+    | 数据结构 | 键定义                        | 字段名         | 字段值      |
+    |----------+-------------------------------+----------------+-------------|
+    | HASH     | "user:"<UserID>":connections" | <ConnectionID> | <Timestamp> |
+    |----------+-------------------------------+----------------+-------------|
+
+
+    键已经有过期时间设置，加 <Timestamp> 主要是避免其中某个连接删除失败导致总是投递到脏连接，
+    替代方案是：服务投递消息发现找不到 AM 或 AM 找不到连接时，服务代发一个下线请求。
+    
+*** DeviceID 到连接的索引定义
+
+    |----------+----------------------------------+----------------|
+    | 数据结构 | 键定义                           | 值定义         |
+    |----------+----------------------------------+----------------|
+    | String   | "device:"<DeviceID>":connection" | <ConnectionID> |
+    |----------+----------------------------------+----------------|
+
+*** 上线
+
+    - 写连接信息 :: =hmset connection:<ConnectionID> ...=
+
+
+    - 设置连接信息过期时间 :: =expire connection:<ConnectionID> ...=
+
+
+    - 创建 UserID 到连接的索引 :: =hset user:<UserID>:connections <ConnectionID> <Timestamp>=
+
+
+    - 设置 UserID 到连接的索引的过期时间 :: =expire user:<UserID>:connections <Expire>=
+
+
+    - 创建 DeviceID 到连接的索引 :: =setex device:<DeviceID>:connection <ConnectionID> <Expire>=
+
+
+*** 下线
+
+    - 删除连接信息 :: =del connection:<ConnectionID>=
+
+
+    - 删除 UserID 到连接的索引 :: =hdel user:<UserID>:connections <ConnectionID>=
+
+
+    - 删除 DeviceID 到连接的索引 :: =del device:<DeviceID>:connection=
+
+
+*** 保活
+
+    - 保活连接信息 :: =expire connection:<ConnectionID> <Expire>=
+
+
+    - 更新 UserID 到连接的索引的过期时间 :: =expire user:<UserID>:connections <Expire>=
+
+
+    - 更新 UserID 到连接的索引的时间戳 :: =hset user:<UserID>:connections <ConnectionID> <Timestamp>=
+
+
+    - 更新 DeviceID 到连接的索引的过期时间 :: =expire device:<DeviceID>:connection <Expire>=
+
+
+*** 定位
+
+    - 查找 UserID 或 DeviceID 对应的所有 ConnectionID :: =hgetall user:<UserID>:connections= 或 =get device:<DeviceID>:connection=
+
+
+    - 对于 =<Timestamp>= 过期的连接要删除索引（*N） :: =hdel user:<UserID>:connections <ConnectionID>=
+
+
+    - 查找所有连接（*N） :: =hgetall connection:<ConnectionID>=
+
+* TODO 设备在线服务器开发                                            :server:
+
+** 操作
+
+   - 按 ConnectionID 索引连接信息
+
+
+   - 按 DeviceID 索引 ConnectionID
+    
+    
+   - 按 UserID 索引 ConnectionID
+
+
+   - 按 DeviceID 查询连接信息
+
+
+   - 按 UserID 查询连接信息
+
+** 特性需求
+
+   - 高可用
+
+
+   - 强一致性
+
+     接入点连接状态、在线服务中的连接状态存在分布式系统的一致性问题。
+
+     如果是采用最终一致性模型，为了应对终端上线信息丢失，要通过心跳方式上报终端在线信息，
+   　而终端数量巨大，为了减少心跳数就得延长心跳间隔，费力不讨好。
+
+
+   - 高性能
+
+     接入点故障客户端会重连，有可能会有大量的设备同时上线，服务需要支撑较高的 QPS（10w+）
