@@ -17213,26 +17213,66 @@ can be defined by the purpose the data is going to be used for.
 
     - [[https://developers.google.com/protocol-buffers/docs/reference/cpp/][C++ API  |  Protocol Buffers  |  Google Developers]]
 
-* TODO 完美的 c++ 项目代码定义跳转                                :emacs:cpp:
+* DONE 完美的 c++ 项目代码定义跳转                                :emacs:cpp:
+  CLOSED: [2017-11-15 Wed 15:26]
 
 ** 编译数据库
 
-*** 安装
+*** bazel
 
-    使用 =Bazel And Compile Commands= 脚本可以很方便地为 Bazel 构建项目生成 compile_commands.json 
+- 安装
 
-    #+begin_src sh
-      git clone https://github.com/vincent-picaud/Bazel_and_CompileCommands.git
-    #+end_src
+  使用 =Bazel And Compile Commands= 脚本可以很方便地为 Bazel 构建项目生成 compile_commands.json 
 
-*** 生成
+  #+begin_src sh
+    git clone https://github.com/vincent-picaud/Bazel_and_CompileCommands.git
+  #+end_src
 
-    #+begin_src sh
-      ../Bazel_and_CompileCommands/setup_compile_commands.sh
-      ../Bazel_and_CompileCommands/create_compile_commands.sh //...
-    #+end_src
+- 生成
 
-** rtags
+  #+begin_src sh
+    ../Bazel_and_CompileCommands/setup_compile_commands.sh
+    ../Bazel_and_CompileCommands/create_compile_commands.sh //...
+  #+end_src
+
+*** make
+
+    [[https://github.com/rizsotto/Bear][Bear]] 是一个生成生成编译数据库的工具，其工作原理是监视编译工具（如：make）调用的编译命令，
+    是一种很通用的实现。
+
+- 安装
+
+  #+begin_src sh
+    yaourt -S bear
+  #+end_src
+
+- 生成
+
+  #+begin_src sh
+    bear make
+  #+end_src
+  
+*** cmake
+
+- 安装
+
+  #+begin_src sh
+    yaourt -S cmake
+  #+end_src
+
+- 生成
+
+  #+begin_src sh
+    cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON .
+  #+end_src
+
+** [[https://github.com/Andersbakken/rtags][rtags]]
+
+   #+begin_quote
+   RTags is a client/server application that indexes C/C++ code and keeps a persistent file-based database of references, declarations, definitions, symbolnames etc. 
+   #+end_quote
+
+   由于 [[https://github.com/Andersbakken/rtags][rtags]] 是基于 clang，根据编译器提供的信息可以实现精确的查找定义、引用及调用等。
 
 *** 启动后台服务
 
@@ -17248,6 +17288,49 @@ can be defined by the purpose the data is going to be used for.
     #+begin_src sh
       rc -J . --project-root $PWD
     #+end_src
+
+*** 配置 emacs
+
+    请参考 [[https://github.com/Andersbakken/rtags#elisp]]
+    
+    以下是我的配置
+    #+begin_src emacs-lisp
+      ;;;; rtags
+      (defun run-rtags ()
+        "startup rtags serve for project under current directory"
+        (interactive)
+        (rtags-start-process-unless-running)
+        ;; compile_commands.json generate by https://github.com/vincent-picaud/Bazel_and_CompileCommands
+        ;; will refer source code from bazel's sandbox, must use "--project-root" to fix it.
+        (let ((project-root default-directory))
+          (while (and project-root (not (file-exists-p (concat project-root "compile_commands.json"))))
+            (setq project-root (file-name-directory (directory-file-name project-root))))
+          (if (not project-root)
+              (error "RTags: compile_commands.json not found"))
+          (message "RTags: %s found" (concat project-root "compile_commands.json"))
+          (shell-command (format "rc -J %s --project-root %s" project-root project-root))))
+      (setq rtags-completions-enabled t)
+      (eval-after-load 'company
+        '(add-to-list
+          'company-backends 'company-rtags))
+      (setq rtags-autostart-diagnostics t)
+      (rtags-enable-standard-keybindings)
+      (require 'helm-rtags)
+      (require 'flycheck-rtags)
+      (define-key c-mode-map (kbd "C-c C-j") 'rtags-find-symbol-at-point)
+      (define-key c++-mode-map (kbd "C-c C-j") 'rtags-find-symbol-at-point)
+      (define-key c-mode-map (kbd "C-c C-b") 'rtags-location-stack-back)
+      (define-key c++-mode-map (kbd "C-c C-b") 'rtags-location-stack-back)
+      (define-key c-mode-map (kbd "C-c C-r") 'rtags-find-references-at-point)
+      (define-key c++-mode-map (kbd "C-c C-r") 'rtags-find-references-at-point)
+    #+end_src
+
+    需要安装这些 emacs 包： =rtags= =helm-rtags= =company-rtags= =flycheck-rtags= ，
+    通过 =M-x run-rtags= 启动 =rdm= 。
+
+** 参考
+
+   - [[https://sarcasm.github.io/notes/dev/compilation-database.html#cmake][Compilation database — Sarcasm notebook]]
 
 * DONE Envoy 的 json_transcoder_filter 介绍        :envoy:grpc:protobuf:json:
   CLOSED: [2017-10-12 Thu 19:56]

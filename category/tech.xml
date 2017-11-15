@@ -4,7 +4,7 @@
         <title>技术 - 看看俺 – KanKanAn.com</title>
         <link>http://blog.kankanan.com/category/tech.xml</link>
         <description>记我所思，忆我所为。</description>
-        <lastBuildDate>Wed, 15 Nov 2017 03:18:56 GMT</lastBuildDate>
+        <lastBuildDate>Wed, 15 Nov 2017 08:01:28 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <generator>Feed for Node.js</generator>
         <image>
@@ -14,6 +14,204 @@
         </image>
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <category>技术</category>
+        <item>
+            <title><![CDATA[完美的 c++ 项目代码定义跳转]]></title>
+            <link>/article/5b8c7f8e7684-c-987976ee4ee378015b9a4e498df38f6c.html</link>
+            <guid>/article/5b8c7f8e7684-c-987976ee4ee378015b9a4e498df38f6c.html</guid>
+            <pubDate>Wed, 15 Nov 2017 07:26:00 GMT</pubDate>
+            <content:encoded><![CDATA[
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">编译数据库</h2>
+<div class="outline-text-2" id="text-1">
+</div><div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1">bazel</h3>
+<div class="outline-text-3" id="text-1-1">
+<ul class="org-ul">
+<li>安装
+
+<p>
+使用 <code>Bazel And Compile Commands</code> 脚本可以很方便地为 Bazel 构建项目生成 compile_commands.json 
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">git clone https://github.com/vincent-picaud/Bazel_and_CompileCommands.git
+</pre>
+</div>
+</li>
+
+<li>生成
+
+<div class="org-src-container">
+
+<pre class="src src-sh">../Bazel_and_CompileCommands/setup_compile_commands.sh
+../Bazel_and_CompileCommands/create_compile_commands.sh //...
+</pre>
+</div>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-1-2" class="outline-3">
+<h3 id="sec-1-2">make</h3>
+<div class="outline-text-3" id="text-1-2">
+<p>
+<a href="https://github.com/rizsotto/Bear">Bear</a> 是一个生成生成编译数据库的工具，其工作原理是监视编译工具（如：make）调用的编译命令，
+是一种很通用的实现。
+</p>
+
+<ul class="org-ul">
+<li>安装
+
+<div class="org-src-container">
+
+<pre class="src src-sh">yaourt -S bear
+</pre>
+</div>
+</li>
+
+<li>生成
+
+<div class="org-src-container">
+
+<pre class="src src-sh">bear make
+</pre>
+</div>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-1-3" class="outline-3">
+<h3 id="sec-1-3">cmake</h3>
+<div class="outline-text-3" id="text-1-3">
+<ul class="org-ul">
+<li>安装
+
+<div class="org-src-container">
+
+<pre class="src src-sh">yaourt -S cmake
+</pre>
+</div>
+</li>
+
+<li>生成
+
+<div class="org-src-container">
+
+<pre class="src src-sh">cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON .
+</pre>
+</div>
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><a href="https://github.com/Andersbakken/rtags">rtags</a></h2>
+<div class="outline-text-2" id="text-2">
+<blockquote>
+<p>
+RTags is a client/server application that indexes C/C++ code and keeps a persistent file-based database of references, declarations, definitions, symbolnames etc. 
+</p>
+</blockquote>
+
+<p>
+由于 <a href="https://github.com/Andersbakken/rtags">rtags</a> 是基于 clang，根据编译器提供的信息可以实现精确的查找定义、引用及调用等。
+</p>
+</div>
+
+<div id="outline-container-sec-2-1" class="outline-3">
+<h3 id="sec-2-1">启动后台服务</h3>
+<div class="outline-text-3" id="text-2-1">
+<div class="org-src-container">
+
+<pre class="src src-sh">nohup rdm &amp;
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2-2" class="outline-3">
+<h3 id="sec-2-2">提交项目信息到后台服务</h3>
+<div class="outline-text-3" id="text-2-2">
+<p>
+由于 bazel 会将代码通过软链接放到一个沙箱中进行编译，导致生成的编译数据库中代码目录与实际编辑的路径不一致，
+使用 rtags 查找定义时会报 "/xxx/xxx.cpp not indexed" 错误，可以通过提交项目信息时指定 <code>--project-root</code> 进行修正。
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">rc -J . --project-root $<span style="color: #f0c674;">PWD</span>
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2-3" class="outline-3">
+<h3 id="sec-2-3">配置 emacs</h3>
+<div class="outline-text-3" id="text-2-3">
+<p>
+请参考 <a href="https://github.com/Andersbakken/rtags#elisp">https://github.com/Andersbakken/rtags#elisp</a>
+</p>
+
+<p>
+以下是我的配置
+</p>
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp"><span style="color: #969896; font-style: italic;">;;;; </span><span style="color: #969896; font-style: italic;">rtags</span>
+(<span style="color: #b5bd68;">defun</span> <span style="color: #de935f;">run-rtags</span> ()
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b294bb;">"startup rtags serve for project under current directory"</span>
+<span style="color: #969896; background-color: #222427;"> </span> (<span style="color: #b5bd68;">interactive</span>)
+<span style="color: #969896; background-color: #222427;"> </span> (rtags-start-process-unless-running)
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; font-style: italic;">;; </span><span style="color: #969896; font-style: italic;">compile_commands.json generate by https://github.com/vincent-picaud/Bazel_a</span><span style="color: #de935f; background-color: #373b41; font-style: italic;">nd_CompileCommands</span>
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; font-style: italic;">;; </span><span style="color: #969896; font-style: italic;">will refer source code from bazel's sandbox, must use "--project-root" to f</span><span style="color: #de935f; background-color: #373b41; font-style: italic;">ix it.</span>
+<span style="color: #969896; background-color: #222427;"> </span> (<span style="color: #b5bd68;">let</span> ((project-root default-directory))
+<span style="color: #969896; background-color: #222427;"> </span>   (<span style="color: #b5bd68;">while</span> (<span style="color: #b5bd68;">and</span> project-root (not (file-exists-p (concat project-root <span style="color: #8abeb7;">"compile_c</span><span style="color: #de935f; background-color: #373b41;">ommands.json"</span><span style="color: #de935f; background-color: #373b41;">))))</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span> (<span style="color: #b5bd68;">setq</span> project-root (file-name-directory (directory-file-name project-root)<span style="color: #de935f; background-color: #373b41;">)))</span>
+<span style="color: #969896; background-color: #222427;"> </span>   (<span style="color: #b5bd68;">if</span> (not project-root)
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   (<span style="color: #cc6666; font-weight: bold;">error</span> <span style="color: #8abeb7;">"RTags: compile_commands.json not found"</span>))
+<span style="color: #969896; background-color: #222427;"> </span>   (message <span style="color: #8abeb7;">"RTags: %s found"</span> (concat project-root <span style="color: #8abeb7;">"compile_commands.json"</span>))
+<span style="color: #969896; background-color: #222427;"> </span>   (shell-command (format <span style="color: #8abeb7;">"rc -J %s --project-root %s"</span> project-root project-roo<span style="color: #de935f; background-color: #373b41;">t))))</span>
+(<span style="color: #b5bd68;">setq</span> rtags-completions-enabled t)
+(eval-after-load 'company
+<span style="color: #969896; background-color: #222427;"> </span> '(add-to-list
+<span style="color: #969896; background-color: #222427;"> </span>   'company-backends 'company-rtags))
+(<span style="color: #b5bd68;">setq</span> rtags-autostart-diagnostics t)
+(rtags-enable-standard-keybindings)
+(<span style="color: #b5bd68;">require</span> '<span style="color: #81a2be;">helm-rtags</span>)
+(<span style="color: #b5bd68;">require</span> '<span style="color: #81a2be;">flycheck-rtags</span>)
+(define-key c-mode-map (kbd <span style="color: #8abeb7;">"C-c C-j"</span>) 'rtags-find-symbol-at-point)
+(define-key c++-mode-map (kbd <span style="color: #8abeb7;">"C-c C-j"</span>) 'rtags-find-symbol-at-point)
+(define-key c-mode-map (kbd <span style="color: #8abeb7;">"C-c C-b"</span>) 'rtags-location-stack-back)
+(define-key c++-mode-map (kbd <span style="color: #8abeb7;">"C-c C-b"</span>) 'rtags-location-stack-back)
+(define-key c-mode-map (kbd <span style="color: #8abeb7;">"C-c C-r"</span>) 'rtags-find-references-at-point)
+(define-key c++-mode-map (kbd <span style="color: #8abeb7;">"C-c C-r"</span>) 'rtags-find-references-at-point)
+</pre>
+</div>
+
+<p>
+需要安装这些 emacs 包： <code>rtags</code> <code>helm-rtags</code> <code>company-rtags</code> <code>flycheck-rtags</code> ，
+通过 <code>M-x run-rtags</code> 启动 <code>rdm</code> 。
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">参考</h2>
+<div class="outline-text-2" id="text-3">
+<ul class="org-ul">
+<li><a href="https://sarcasm.github.io/notes/dev/compilation-database.html#cmake">Compilation database — Sarcasm notebook</a>
+</li>
+</ul>
+</div>
+</div>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[linux 下调试剥去调试信息的程序崩溃]]></title>
             <link>/article/linux-4e0b8c038bd5526553bb8c038bd54fe1606f76847a0b5e8f5d296e83.html</link>
