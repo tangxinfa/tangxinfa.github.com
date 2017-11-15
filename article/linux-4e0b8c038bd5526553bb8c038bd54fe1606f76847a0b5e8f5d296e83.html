@@ -76,40 +76,144 @@
 <h2 id="sec-4">程序崩溃后如何获取调用栈对应的代码行</h2>
 <div class="outline-text-2" id="text-4">
 <ul class="org-ul">
-<li>记得保留未剥去调试信息的程序
-</li>
-</ul>
+<li>示例程序
 
+<p>
+<code>app.c</code>
+</p>
+<div class="org-src-container">
 
-<ul class="org-ul">
-<li>使用 <code>gdb</code> 获取崩溃调用栈
+<pre class="src src-c"><span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;unistd.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;stdio.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;stdlib.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;pthread.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;errno.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;stdint.h&gt;</span>
+
+<span style="color: #81a2be;">void</span> <span style="color: #de935f;">bug</span>(<span style="color: #81a2be;">int</span> <span style="color: #f0c674;">id</span>) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">illegal pointer, si_code = 128 (send by kernel) </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="color: #969896; background-color: #222427;"> </span> printf(<span style="color: #8abeb7;">"[%d] This is bug\n"</span>, id);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #81a2be;">int</span> *<span style="color: #f0c674;">p</span> = (<span style="color: #81a2be;">int</span> *)-1;
+<span style="color: #969896; background-color: #222427;"> </span> printf(<span style="color: #8abeb7;">"%d\n"</span>, *p);
+}
+
+<span style="color: #81a2be;">int</span> <span style="color: #de935f;">func_b</span>(<span style="color: #81a2be;">int</span> <span style="color: #f0c674;">id</span>)
+{
+<span style="color: #969896; background-color: #222427;"> </span> printf(<span style="color: #8abeb7;">"[%d] This is func_b\n"</span>, id);
+<span style="color: #969896; background-color: #222427;"> </span> sleep(rand()%5);
+<span style="color: #969896; background-color: #222427;"> </span> bug(id);
+}
+
+<span style="color: #81a2be;">int</span> <span style="color: #de935f;">func_a</span>(<span style="color: #81a2be;">int</span> <span style="color: #f0c674;">id</span>)
+{
+<span style="color: #969896; background-color: #222427;"> </span> printf(<span style="color: #8abeb7;">"[%d] This is func_a\n"</span>, id);
+<span style="color: #969896; background-color: #222427;"> </span> sleep(rand()%5);
+<span style="color: #969896; background-color: #222427;"> </span> func_b(id);
+}
+
+<span style="color: #81a2be;">void</span>* <span style="color: #de935f;">func</span>(<span style="color: #81a2be;">void</span>* <span style="color: #f0c674;">param</span>) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">id</span> = (<span style="color: #81a2be;">int</span>)param;
+<span style="color: #969896; background-color: #222427;"> </span> sleep(1);
+<span style="color: #969896; background-color: #222427;"> </span> func_a(id);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> <span style="color: #81a2be;">NULL</span>;
+}
+
+<span style="color: #81a2be;">int</span> <span style="color: #de935f;">main</span>(<span style="color: #81a2be;">int</span> <span style="color: #f0c674;">argc</span>, <span style="color: #81a2be;">char</span> *<span style="color: #f0c674;">argv</span>[])
+{
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">i</span>;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">for</span>(i = 0; i &lt; 10; ++i) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #81a2be;">pthread_t</span> <span style="color: #f0c674;">pid</span>;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (0 != pthread_create(&amp;pid, <span style="color: #81a2be;">NULL</span>, func, (<span style="color: #81a2be;">void</span>*)i)) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> fprintf(stderr, <span style="color: #8abeb7;">"create thread %d failed (%d).\n"</span>, errno);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> exit(1);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> }
+<span style="color: #969896; background-color: #222427;"> </span> }
+
+<span style="color: #969896; background-color: #222427;"> </span> sleep(100);
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> 0;
+}
+</pre>
+</div>
+
+<p>
+编译
+</p>
 
 <div class="org-src-container">
 
-<pre class="src src-sh">gdb -q --nh --nx --batch -ex bt --core=./app.core
+<pre class="src src-sh">gcc -g -O2 app.c -lm -lpthread -o app
 </pre>
 </div>
+</li>
+
+<li>记得保留未剥去调试信息的程序
+
+<div class="org-src-container">
+
+<pre class="src src-sh">cp app app_debug
+strip app
+</pre>
+</div>
+</li>
+
+<li>运行程序崩溃产生 core 文件
+
+<pre class="example">
+$ ./app
+[1] This is func_a
+[0] This is func_a
+[7] This is func_a
+[2] This is func_a
+[5] This is func_a
+[3] This is func_a
+[8] This is func_a
+[9] This is func_a
+[6] This is func_a
+[4] This is func_a
+[2] This is func_b
+[3] This is func_b
+[0] This is func_b
+[0] This is bug
+[4] This is func_b
+[8] This is func_b
+Segmentation fault (core dumped)
+</pre>
+
+<p>
+以 <code>Archlinux</code> 为例
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">coredumpctl -r -1 -o app.core dump app
+</pre>
+</div>
+</li>
+
+<li>使用 <code>gdb</code> 获取崩溃调用栈
 
 <p>
 会获得类似以下输出
 </p>
 <pre class="example">
-[New LWP 19997]
-[New LWP 20000]
-[New LWP 19999]
-[New LWP 19998]
-[New LWP 20001]
-[New LWP 19995]
-[New LWP 19996]
-[New LWP 20003]
-[New LWP 20002]
-[New LWP 19993]
-[New LWP 19994]
-Core was generated by `./app'.
+$ gdb -q --nh --nx --batch -ex bt --core=./app.core  
+[New LWP 17045]
+[New LWP 17053]
+[New LWP 17052]
+[New LWP 17051]
+[New LWP 17048]
+[New LWP 17050]
+[New LWP 17047]
+[New LWP 17049]
+[New LWP 17046]
+[New LWP 17044]
+[New LWP 17054]
+Core was generated by `./app.
 Program terminated with signal SIGSEGV, Segmentation fault.
-#0  0x0000560a4c6f9c34 in ?? ()
-[Current thread is 1 (LWP 19997)]
-#0  0x0000560a4c6f9c34 in ?? ()
+#0  0x000056355d1fd9a4 in ?? ()
+[Current thread is 1 (LWP 17045)]
+#0  0x000056355d1fd9a4 in ?? ()
 #1  0x0000000000000000 in ?? ()
 </pre>
 </li>
@@ -117,9 +221,18 @@ Program terminated with signal SIGSEGV, Segmentation fault.
 <li>使用 <code>eu-addr2line</code> 获取地址对应的代码行
 
 <pre class="example">
-$ eu-addr2line -e ./app_debug --core ./app.core  0x0000560a4c6f9c34
+$ eu-addr2line -e ./app_debug --core ./app.core 0x000056355d1fd9a4
 /home/tangxinfa/Examples/c/app.c:17
 </pre>
+
+<p>
+正对应产生崩溃的代码行：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-c">printf(<span style="color: #8abeb7;">"%d\n"</span>, *p);
+</pre>
+</div>
 </li>
 </ul>
 </div>
