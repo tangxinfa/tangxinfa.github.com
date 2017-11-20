@@ -12684,6 +12684,22 @@ class RedisShard {
 
    在个人 github 项目主页上切到特性分支 =my-feature-branch= ，点击 =New pull request=
 
+   大型的开源项目一般比较注意版权问题，可以需要在提交的注释尾部添加：
+   
+   #+begin_example
+      Signed-off-by: username <username@gmail.com>
+   #+end_example
+
+   可以在 git commit 时加 =-s= 选项，以便自动添加。
+
+   如果已经创建 =Pull request= 别人 Review 时说少了 =Signed-off-by= ，则可以先回滚到第一个提交：
+   #+begin_src sh
+     git reset --soft 提交ID
+   #+end_src
+
+   通过 =git commit --amend= 命令修改提交注释以加上 =Signed-off-by= ，然后重做后继提交，
+   最后强制推送（ =git push -f= ）到远程分支。
+
 ** 上游分支接受了 Pull requests
 
 
@@ -17218,6 +17234,9 @@ can be defined by the purpose the data is going to be used for.
 
 ** 编译数据库
 
+编译数据库（ =compile_commands.json= ）里面记录了每一个源代码文件对应的编译命令，
+根据不同的构建工具可以使用相应的生成工具来生成。
+
 *** bazel
 
 - 安装
@@ -17356,7 +17375,7 @@ can be defined by the purpose the data is going to be used for.
 
   - [[https://cloud.google.com/endpoints/docs/grpc/transcoding][Transcoding HTTP/JSON to gRPC  |  Cloud Endpoints with gRPC  |  Google Cloud Platform]]
 
-* DONE 在浏览器中访问 gRPC 消息推送服务的一些思索                  :grpc:web:
+* DONE 在浏览器中访问 gRPC 消息推送服务的一些思索                  :grpc:web:websocket:
   CLOSED: [2017-10-26 Thu 17:13]
 
   gRPC 数据编码采用 Protobuf、底层传输协议使用了 HTTP/2，支持双向流（ =Bidirectional streaming= ）接口，用来开发消息推送服务的再完美不过。
@@ -17765,3 +17784,70 @@ can be defined by the purpose the data is going to be used for.
   - [[http://blog.cuicc.com/blog/2012/09/17/core-dump-and-backtrace/][Core dump与backtrace｜YYGCui's blog]]
 
   - [[https://fedoraproject.org/wiki/StackTraces#Obtaining_a_stack_trace_from_a_core_dump][StackTraces - FedoraProject]]
+
+* DONE 使用 Envoy 做为 socket.io 的前端代理                 :envoy:websocket:
+  CLOSED: [2017-11-20 Mon 14:39]
+
+** 示例 socket.io 项目
+   
+   将 [[file:../static/envoy-socket.io-example][envoy-socket.io-example]] 放到 =$GOPATH/src= 目录下
+
+   - 编译
+     
+     #+begin_src sh
+       cd $GOPATH/src/envoy-socket.io-example
+       glide install
+       go build
+     #+end_src
+
+   - 运行
+     
+     #+begin_src sh
+       ./envoy-socket.io-example -logtostderr
+     #+end_src
+
+   - 用浏览器打开 =http://localhost:8001=
+
+     正常情况下，会收到 =welcome= 消息，表示 =socket.io= 连接成功，可以在下方的编辑框输入内容，服务器会 echo 回来。
+
+** 修复 Envoy 的 Websocket 相关 Bug
+
+   当前的 Envoy 版本为
+   #+begin_example
+     commit 3e43c2225c8882918b36b4b7c7bb55c6af2db929
+     Author: Greg Greenway <ggreenway@users.noreply.github.com>
+     Date:   Wed Nov 15 14:48:38 2017 -0800
+
+     Fix v2 TcpProxy config (#2065)
+
+     Signed-off-by: Greg Greenway <ggreenway@apple.com>
+   #+end_example
+
+   存在两个问题导致 Websocket 不可用：
+
+   - Connection 请求头包含多个值时未能正确处理，导致未正确判断出 Websocket 请求
+
+     Firefox 发起的 Websocket 请求 Connection 头的值为： =keep-alive, Upgrade= 。
+
+     
+   - Envoy 向 Upstream 发起的 Websocket 请求多了一个 =transfer-encoding: chunked= 请求头
+
+     由于请求体是空的，所以是一个无效的 HTTP 请求。
+
+   
+   已提交 Merge Request [[https://github.com/envoyproxy/envoy/pull/2070][#2070]] ，相信会很快修复。
+
+** 将 Envoy 做为 socket.io 服务前端代理
+
+   - 启动 Envoy
+
+     使用是的修复 BUG 后的 Envoy。
+   
+     #+begin_src sh
+       ~/Opensource/envoy/bazel-bin/source/exe/envoy-static --log-level trace --config-path ./envoy.json
+     #+end_src
+
+
+   - 用浏览器打开 =http://localhost:9001=
+
+     正常情况下，会收到 =welcome= 消息，表示 socket.io 连接成功，可以在下方的编辑框输入内容，服务器会 echo 回来。
