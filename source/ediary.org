@@ -9050,6 +9050,21 @@ class RedisShard {
   - 行 [[(curl_response_code)]] :: 状态响应码变量必须是 =long= 类型
 
        否则会由于内存越界导致程序崩溃。
+
+
+  强烈建议 =gcc= 编译时添加 =-Wall= 选项， =libcurl= 为 =gcc= 提供了类型检查，能够在编译期检查一些类型不匹配的错误，如下编译输出：
+
+  #+begin_example
+    install.c: In function 'install':
+    /usr/include/curl/typecheck-gcc.h:120:36: error: call to '_curl_easy_getinfo_err_long' declared with attribute warning: curl_easy_getinfo expects a pointer to long for this info [-Werror]
+             _curl_easy_getinfo_err_long();                                        \
+                                        ^
+    install.c:58:19: note: in expansion of macro 'curl_easy_getinfo'
+                 res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+                       ^
+    cc1: all warnings being treated as errors
+  #+end_example
+
 * DONE redis高可用性基础：Master-Slave                                :redis:
   CLOSED: [2015-12-25 Fri 21:19]
 
@@ -17700,12 +17715,23 @@ can be defined by the purpose the data is going to be used for.
     gcc -g -O2 app.c -lm -lpthread -o app
   #+end_src
 
-- 记得保留未剥去调试信息的程序
+- 记得保留调试信息
 
+  一种简单的方法是保留未剥去调试信息前的可执行程序
   #+begin_src sh
     cp app app_debug
     strip app
   #+end_src
+
+  或者保留调试信息到调试符号文件
+  #+begin_src sh
+    objcopy --only-keep-debug app app.debug
+    strip app
+    objcopy --add-gnu-debuglink=app.debug app
+  #+end_src
+  这种方法在调试时需要将调试符号 =app.debug= 文件放到当前目录下，
+  或者在 =gdb= 中通过 =set debug-file-directory /tmp/debug= 指定其它目录（如 =/tmp/debug= ）。
+  详情请参考 [[https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html][Debugging with GDB: Separate Debug Files]] 。
 
 - 运行程序崩溃产生 core 文件
 

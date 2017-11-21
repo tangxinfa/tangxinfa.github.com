@@ -4,7 +4,7 @@
         <title>技术 - 看看俺 – KanKanAn.com</title>
         <link>http://blog.kankanan.com/category/tech.xml</link>
         <description>记我所思，忆我所为。</description>
-        <lastBuildDate>Mon, 20 Nov 2017 08:11:34 GMT</lastBuildDate>
+        <lastBuildDate>Tue, 21 Nov 2017 09:14:32 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <generator>Feed for Node.js</generator>
         <image>
@@ -457,14 +457,33 @@ RTags is a client/server application that indexes C/C++ code and keeps a persist
 </div>
 </li>
 
-<li>记得保留未剥去调试信息的程序
+<li>记得保留调试信息
 
+<p>
+一种简单的方法是保留未剥去调试信息前的可执行程序
+</p>
 <div class="org-src-container">
 
 <pre class="src src-sh">cp app app_debug
 strip app
 </pre>
 </div>
+
+<p>
+或者保留调试信息到调试符号文件
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">objcopy --only-keep-debug app app.debug
+strip app
+objcopy --add-gnu-debuglink=app.debug app
+</pre>
+</div>
+<p>
+这种方法在调试时需要将调试符号 <code>app.debug</code> 文件放到当前目录下，
+或者在 <code>gdb</code> 中通过 <code>set debug-file-directory /tmp/debug</code> 指定其它目录（如 <code>/tmp/debug</code> ）。
+详情请参考 <a href="https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html">Debugging with GDB: Separate Debug Files</a> 。
+</p>
 </li>
 
 <li>运行程序崩溃产生 core 文件
@@ -13204,9 +13223,26 @@ pm2-logrotate 现阶段小问题还是比较多的（详见项目的 <a href="ht
 <dt> 行 <a href="#coderef-curl_response_code"class="coderef" onmouseover="CodeHighlightOn(this, 'coderef-curl_response_code');" onmouseout="CodeHighlightOff(this, 'coderef-curl_response_code');">44</a> </dt><dd>状态响应码变量必须是 <code>long</code> 类型
 
 <p>
-否则会由于内存越界导致程序崩溃。</p>
+否则会由于内存越界导致程序崩溃。
+</p>
 </dd>
 </dl>
+
+
+<p>
+强烈建议 <code>gcc</code> 编译时添加 <code>-Wall</code> 选项， <code>libcurl</code> 为 <code>gcc</code> 提供了类型检查，能够在编译期检查一些类型不匹配的错误，如下编译输出：
+</p>
+
+<pre class="example">
+install.c: In function 'install':
+/usr/include/curl/typecheck-gcc.h:120:36: error: call to '_curl_easy_getinfo_err_long' declared with attribute warning: curl_easy_getinfo expects a pointer to long for this info [-Werror]
+         _curl_easy_getinfo_err_long();                                        \
+                                    ^
+install.c:58:19: note: in expansion of macro 'curl_easy_getinfo'
+             res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &amp;response_code);
+                   ^
+cc1: all warnings being treated as errors
+</pre>
 ]]></content:encoded>
         </item>
         <item>

@@ -4,7 +4,7 @@
         <title>c - 看看俺 – KanKanAn.com</title>
         <link>http://blog.kankanan.com/tag/c.xml</link>
         <description>记我所思，忆我所为。</description>
-        <lastBuildDate>Mon, 20 Nov 2017 08:11:34 GMT</lastBuildDate>
+        <lastBuildDate>Tue, 21 Nov 2017 09:14:32 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <generator>Feed for Node.js</generator>
         <image>
@@ -637,9 +637,26 @@ n += pos;
 <dt> 行 <a href="#coderef-curl_response_code"class="coderef" onmouseover="CodeHighlightOn(this, 'coderef-curl_response_code');" onmouseout="CodeHighlightOff(this, 'coderef-curl_response_code');">44</a> </dt><dd>状态响应码变量必须是 <code>long</code> 类型
 
 <p>
-否则会由于内存越界导致程序崩溃。</p>
+否则会由于内存越界导致程序崩溃。
+</p>
 </dd>
 </dl>
+
+
+<p>
+强烈建议 <code>gcc</code> 编译时添加 <code>-Wall</code> 选项， <code>libcurl</code> 为 <code>gcc</code> 提供了类型检查，能够在编译期检查一些类型不匹配的错误，如下编译输出：
+</p>
+
+<pre class="example">
+install.c: In function 'install':
+/usr/include/curl/typecheck-gcc.h:120:36: error: call to '_curl_easy_getinfo_err_long' declared with attribute warning: curl_easy_getinfo expects a pointer to long for this info [-Werror]
+         _curl_easy_getinfo_err_long();                                        \
+                                    ^
+install.c:58:19: note: in expansion of macro 'curl_easy_getinfo'
+             res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &amp;response_code);
+                   ^
+cc1: all warnings being treated as errors
+</pre>
 ]]></content:encoded>
         </item>
         <item>

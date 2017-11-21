@@ -4,7 +4,7 @@
         <title>linux - 看看俺 – KanKanAn.com</title>
         <link>http://blog.kankanan.com/tag/linux.xml</link>
         <description>记我所思，忆我所为。</description>
-        <lastBuildDate>Mon, 20 Nov 2017 08:11:34 GMT</lastBuildDate>
+        <lastBuildDate>Tue, 21 Nov 2017 09:14:32 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <generator>Feed for Node.js</generator>
         <image>
@@ -136,14 +136,33 @@
 </div>
 </li>
 
-<li>记得保留未剥去调试信息的程序
+<li>记得保留调试信息
 
+<p>
+一种简单的方法是保留未剥去调试信息前的可执行程序
+</p>
 <div class="org-src-container">
 
 <pre class="src src-sh">cp app app_debug
 strip app
 </pre>
 </div>
+
+<p>
+或者保留调试信息到调试符号文件
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">objcopy --only-keep-debug app app.debug
+strip app
+objcopy --add-gnu-debuglink=app.debug app
+</pre>
+</div>
+<p>
+这种方法在调试时需要将调试符号 <code>app.debug</code> 文件放到当前目录下，
+或者在 <code>gdb</code> 中通过 <code>set debug-file-directory /tmp/debug</code> 指定其它目录（如 <code>/tmp/debug</code> ）。
+详情请参考 <a href="https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html">Debugging with GDB: Separate Debug Files</a> 。
+</p>
 </li>
 
 <li>运行程序崩溃产生 core 文件
