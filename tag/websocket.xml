@@ -4,7 +4,7 @@
         <title>websocket - 看看俺 – KanKanAn.com</title>
         <link>http://blog.kankanan.com/tag/websocket.xml</link>
         <description>记我所思，忆我所为。</description>
-        <lastBuildDate>Tue, 21 Nov 2017 09:14:32 GMT</lastBuildDate>
+        <lastBuildDate>Fri, 24 Nov 2017 13:44:34 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <generator>Feed for Node.js</generator>
         <image>
@@ -40,7 +40,7 @@ go build
 
 <div class="org-src-container">
 
-<pre class="src src-sh">./envoy-socket.io-example -logtostderr
+<pre class="src src-sh">./envoy-socket.io-example -addr 127.0.0.1:8001 -logtostderr
 </pre>
 </div>
 </li>
@@ -49,6 +49,7 @@ go build
 
 <p>
 正常情况下，会收到 <code>welcome</code> 消息，表示 <code>socket.io</code> 连接成功，可以在下方的编辑框输入内容，服务器会 echo 回来。
+这是客户端直接 socket.io 服务，接下来将展示使用 Envoy 做为前端代理来访问后端的 socket.io 服务。
 </p>
 </li>
 </ul>
@@ -59,7 +60,7 @@ go build
 <h2 id="sec-2">修复 Envoy 的 Websocket 相关 Bug</h2>
 <div class="outline-text-2" id="text-2">
 <p>
-当前的 Envoy 版本为
+之前的 Envoy 版本为
 </p>
 <pre class="example">
 commit 3e43c2225c8882918b36b4b7c7bb55c6af2db929
@@ -96,7 +97,7 @@ Firefox 发起的 Websocket 请求 Connection 头的值为： <code>keep-alive, 
 
 
 <p>
-已提交 Merge Request <a href="https://github.com/envoyproxy/envoy/pull/2070">#2070</a> ，相信会很快修复。
+我提交了 Merge Request <a href="https://github.com/envoyproxy/envoy/pull/2070">#2070</a> ，已合到 <code>master</code> 分支，该问题已修复。
 </p>
 </div>
 </div>
@@ -124,7 +125,100 @@ Firefox 发起的 Websocket 请求 Connection 头的值为： <code>keep-alive, 
 <li>用浏览器打开 <code>http://localhost:9001</code>
 
 <p>
-正常情况下，会收到 <code>welcome</code> 消息，表示 socket.io 连接成功，可以在下方的编辑框输入内容，服务器会 echo 回来。</p>
+正常情况下，会收到 <code>welcome</code> 消息，表示 socket.io 连接成功，可以在下方的编辑框输入内容，服务器会 echo 回来。
+</p>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4">将 Envoy 做为 socket.io 服务集群前端代理</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+在后台服务为集群的情况下，Envoy 会通过负载均衡将请求调度到所有服务结点，
+对于无状态服务，不管 Envoy 使用什么样的负载均衡策略都可以正常工作，
+但是对于有状态的服务，则要求将一个用户的请求总是调度到同一个服务结点。
+</p>
+
+<p>
+socket.io 的 <code>transports</code> 选项默认值为 <code>['polling', 'websocket']</code> ，
+也就是说首先发一个 HTTP 轮询请求，根据响应决定是否升级到使用 <code>websocket</code> ，
+这样在 Websocket 可用的情况下，会有两次 HTTP 交互，需确保两次 HTTP 交互
+调度到同一个服务结点，socket.io 连接才能建立成功。
+</p>
+
+<p>
+Envoy 本身支持多种负载均衡策略，适合这里的场景是 <code>Ring hash</code> 。
+</p>
+
+<blockquote>
+<p>
+Ring hash
+</p>
+
+<p>
+The ring/modulo hash load balancer implements consistent hashing to upstream hosts. The algorithm is based on mapping all hosts onto a circle such that the addition or removal of a host from the host set changes only affect 1/N requests. This technique is also commonly known as “ketama” hashing. The consistent hashing load balancer is only effective when protocol routing is used that specifies a value to hash on. Currently the only implemented mechanism is to hash via HTTP header values in the HTTP router filter. 
+</p>
+</blockquote>
+
+<p>
+遗憾的是 Envoy 的 Websocket 实现过于简陋，当检测到 <code>Websocket</code> 升级请求时，
+它以 <code>TcpProxy</code> 的方式连接上游服务器，检测到非 <code>Websocket</code> 升级请求时，
+会正常地做为 HTTP 请求进行处理。由于 <code>TcpProxy</code> 只支持随机 Hash 算法选择上游服务结点，
+会导致默认情况下 socket.io 连接无法建立。
+</p>
+
+<p>
+通过指定 socket.io 的 <code>transports</code> 选项值为 <code>['websocket', 'polling']</code> ，
+也就是首先尝试建立 <code>websocket</code> 连接，失败时再降级为 <code>polling</code> ，能够解决这个问题。
+</p>
+
+<p>
+Envoy 的 <code>Ring hash</code> 是根据配置的请求头来计算 Hash 值的，一般 Web 前端都是通过
+自定义请求头或者 Cookie 中的特定字段来标识一个用户。由于 Cookie 可能会在交互过程中发生变化，
+因此不适合用于计算 Hash 值，而 Websocket 升级请求又不支持自定义请求头，因此这两种常用的方式失效了。
+另一个合理的选择是通过 <code>Referer</code> 请求头来计算 Hash，这是客户端网页的地址，不会在交互过程中变化，
+只要想办法将用户的标识（如 ID）附在 URL 上，如：<a href="http://www.example.com/chat?uid=1234">http://www.example.com/chat?uid=1234</a> ，
+就可以保证用户请求能够均衡地分布到所有服务结点上，同一用户的请求也会调度到同一个服务结点。
+</p>
+
+<p>
+如下所示。
+</p>
+
+<ul class="org-ul">
+<li>启动服务集群
+
+<div class="org-src-container">
+
+<pre class="src src-sh">./envoy-socket.io-example -127.0.0.1:8002 -logtostderr &amp;
+./envoy-socket.io-example -127.0.0.1:8003 -logtostderr &amp;
+./envoy-socket.io-example -127.0.0.1:8004 -logtostderr &amp;
+</pre>
+</div>
+</li>
+
+<li>启动 Envoy
+
+<p>
+使用是的修复 BUG 后的 Envoy。
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">~/Opensource/envoy/bazel-bin/source/exe/envoy-static --log-level trace --config-<span style="color: #de935f; background-color: #373b41;">path ./envoy2.json</span>
+</pre>
+</div>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>用浏览器打开多个 <code>http://localhost:9002/index2.html</code> 页面
+
+<p>
+正常情况下，每个页面都会收到 <code>welcome</code> 消息，表示 socket.io 连接成功，可以在下方的编辑框输入内容，服务器会 echo 回来。</p>
 </li>
 </ul>
 </div>

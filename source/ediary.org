@@ -17828,16 +17828,17 @@ can be defined by the purpose the data is going to be used for.
    - 运行
      
      #+begin_src sh
-       ./envoy-socket.io-example -logtostderr
+       ./envoy-socket.io-example -addr 127.0.0.1:8001 -logtostderr
      #+end_src
 
    - 用浏览器打开 =http://localhost:8001=
 
      正常情况下，会收到 =welcome= 消息，表示 =socket.io= 连接成功，可以在下方的编辑框输入内容，服务器会 echo 回来。
+     这是客户端直接 socket.io 服务，接下来将展示使用 Envoy 做为前端代理来访问后端的 socket.io 服务。
 
 ** 修复 Envoy 的 Websocket 相关 Bug
 
-   当前的 Envoy 版本为
+   之前的 Envoy 版本为
    #+begin_example
      commit 3e43c2225c8882918b36b4b7c7bb55c6af2db929
      Author: Greg Greenway <ggreenway@users.noreply.github.com>
@@ -17860,7 +17861,7 @@ can be defined by the purpose the data is going to be used for.
      由于请求体是空的，所以是一个无效的 HTTP 请求。
 
    
-   已提交 Merge Request [[https://github.com/envoyproxy/envoy/pull/2070][#2070]] ，相信会很快修复。
+   我提交了 Merge Request [[https://github.com/envoyproxy/envoy/pull/2070][#2070]] ，已合到 =master= 分支，该问题已修复。
 
 ** 将 Envoy 做为 socket.io 服务前端代理
 
@@ -17876,3 +17877,60 @@ can be defined by the purpose the data is going to be used for.
    - 用浏览器打开 =http://localhost:9001=
 
      正常情况下，会收到 =welcome= 消息，表示 socket.io 连接成功，可以在下方的编辑框输入内容，服务器会 echo 回来。
+
+** 将 Envoy 做为 socket.io 服务集群前端代理
+
+   在后台服务为集群的情况下，Envoy 会通过负载均衡将请求调度到所有服务结点，
+   对于无状态服务，不管 Envoy 使用什么样的负载均衡策略都可以正常工作，
+   但是对于有状态的服务，则要求将一个用户的请求总是调度到同一个服务结点。
+
+   socket.io 的 =transports= 选项默认值为 =['polling', 'websocket']= ，
+   也就是说首先发一个 HTTP 轮询请求，根据响应决定是否升级到使用 =websocket= ，
+   这样在 Websocket 可用的情况下，会有两次 HTTP 交互，需确保两次 HTTP 交互
+   调度到同一个服务结点，socket.io 连接才能建立成功。
+
+   Envoy 本身支持多种负载均衡策略，适合这里的场景是 =Ring hash= 。
+
+   #+begin_quote
+   Ring hash
+
+   The ring/modulo hash load balancer implements consistent hashing to upstream hosts. The algorithm is based on mapping all hosts onto a circle such that the addition or removal of a host from the host set changes only affect 1/N requests. This technique is also commonly known as “ketama” hashing. The consistent hashing load balancer is only effective when protocol routing is used that specifies a value to hash on. Currently the only implemented mechanism is to hash via HTTP header values in the HTTP router filter. 
+   #+end_quote
+
+   遗憾的是 Envoy 的 Websocket 实现过于简陋，当检测到 =Websocket= 升级请求时，
+   它以 =TcpProxy= 的方式连接上游服务器，检测到非 =Websocket= 升级请求时，
+   会正常地做为 HTTP 请求进行处理。由于 =TcpProxy= 只支持随机 Hash 算法选择上游服务结点，
+   会导致默认情况下 socket.io 连接无法建立。
+
+   通过指定 socket.io 的 =transports= 选项值为 =['websocket', 'polling']= ，
+   也就是首先尝试建立 =websocket= 连接，失败时再降级为 =polling= ，能够解决这个问题。
+
+   Envoy 的 =Ring hash= 是根据配置的请求头来计算 Hash 值的，一般 Web 前端都是通过
+   自定义请求头或者 Cookie 中的特定字段来标识一个用户。由于 Cookie 可能会在交互过程中发生变化，
+   因此不适合用于计算 Hash 值，而 Websocket 升级请求又不支持自定义请求头，因此这两种常用的方式失效了。
+   另一个合理的选择是通过 =Referer= 请求头来计算 Hash，这是客户端网页的地址，不会在交互过程中变化，
+   只要想办法将用户的标识（如 ID）附在 URL 上，如：http://www.example.com/chat?uid=1234 ，
+   就可以保证用户请求能够均衡地分布到所有服务结点上，同一用户的请求也会调度到同一个服务结点。
+
+   如下所示。
+
+   - 启动服务集群
+     
+     #+begin_src sh
+       ./envoy-socket.io-example -127.0.0.1:8002 -logtostderr &
+       ./envoy-socket.io-example -127.0.0.1:8003 -logtostderr &
+       ./envoy-socket.io-example -127.0.0.1:8004 -logtostderr &
+     #+end_src
+
+   - 启动 Envoy
+
+     使用是的修复 BUG 后的 Envoy。
+   
+     #+begin_src sh
+       ~/Opensource/envoy/bazel-bin/source/exe/envoy-static --log-level trace --config-path ./envoy2.json
+     #+end_src
+
+
+   - 用浏览器打开多个 =http://localhost:9002/index2.html= 页面
+
+     正常情况下，每个页面都会收到 =welcome= 消息，表示 socket.io 连接成功，可以在下方的编辑框输入内容，服务器会 echo 回来。
