@@ -17247,10 +17247,23 @@ can be defined by the purpose the data is going to be used for.
 * DONE 完美的 c++ 项目代码定义跳转                                :emacs:cpp:
   CLOSED: [2017-11-15 Wed 15:26]
 
+阅读代码时如果能够很方便地跳转到函数、类型定义处，会极大地提高效率。使用 grep 或
+ctags 或 gtags 的问题在于给出的结果不够严谨，可能会给出很多候选，容易打断思路，
+另一方面 c++ 本身语法非常复杂，继承、重载等会让选择正确的跳转处变得更加困难，
+ctags 或 gtags 之类的静态代码分析工具对 c++ 的支持也相当有限。
+
+clang 编译器较之 gcc 在进行代码分析方面提供了良好的支持，编译器给出的结果往往是
+最正确和最丰富的。
+
+本文描述了使用如何将 emacs 打造成阅读 c++ 代码的利器。
+
 ** 编译数据库
 
 编译数据库（ =compile_commands.json= ）里面记录了每一个源代码文件对应的编译命令，
-根据不同的构建工具可以使用相应的生成工具来生成。
+有了编译数据库就可以从 clang 编译器获取最详尽的代码分析数据，让代码跳转、自动完
+成更加精确。
+
+不同的构建工具可以使用相应的工具来生成编译数据库（ =compile_commands.json= ）。
 
 *** bazel
 
@@ -17272,7 +17285,7 @@ can be defined by the purpose the data is going to be used for.
 *** make
 
     [[https://github.com/rizsotto/Bear][Bear]] 是一个生成生成编译数据库的工具，其工作原理是监视编译工具（如：make）调用的编译命令，
-    是一种很通用的实现。
+    是一种很通用的方案。
 
 - 安装
 
@@ -17306,7 +17319,8 @@ can be defined by the purpose the data is going to be used for.
    RTags is a client/server application that indexes C/C++ code and keeps a persistent file-based database of references, declarations, definitions, symbolnames etc. 
    #+end_quote
 
-   由于 [[https://github.com/Andersbakken/rtags][rtags]] 是基于 clang，根据编译器提供的信息可以实现精确的查找定义、引用及调用等。
+   [[https://github.com/Andersbakken/rtags][rtags]] 是基于 clang，根据编译器提供的信息可以实现精确的查找定义、引用及调用、
+   列出派生类等。
 
 *** 启动后台服务
 
@@ -17323,26 +17337,74 @@ can be defined by the purpose the data is going to be used for.
       rc -J . --project-root $PWD
     #+end_src
 
-*** 配置 emacs
+*** 在 emacs 中整合以上工具
 
     请参考 [[https://github.com/Andersbakken/rtags#elisp]]
     
-    以下是我的配置
+    以下是我的配置，首先需要安装这些 emacs 包： =rtags= =helm-rtags=
+    =company-rtags= =flycheck-rtags=
     #+begin_src emacs-lisp
       ;;;; rtags
-      (defun run-rtags ()
-        "startup rtags serve for project under current directory"
-        (interactive)
-        (rtags-start-process-unless-running)
+      (defun my-rtags-load-compile-commands-command ()
+        "rtags load compile_commands.json command"
         ;; compile_commands.json generate by https://github.com/vincent-picaud/Bazel_and_CompileCommands
         ;; will refer source code from bazel's sandbox, must use "--project-root" to fix it.
-        (let ((project-root default-directory))
+        (let ((project-root default-directory)
+              (tmp-project-root ""))
           (while (and project-root (not (file-exists-p (concat project-root "compile_commands.json"))))
-            (setq project-root (file-name-directory (directory-file-name project-root))))
-          (if (not project-root)
-              (error "RTags: compile_commands.json not found"))
-          (message "RTags: %s found" (concat project-root "compile_commands.json"))
-          (shell-command (format "rc -J %s --project-root %s" project-root project-root))))
+            (setq tmp-project-root (file-name-directory (directory-file-name project-root)))
+            (message "tmp-project-root: %s, project-root: %s" tmp-project-root project-root)
+            (if (equal tmp-project-root project-root)
+                (setq project-root nil)
+              (setq project-root tmp-project-root)))
+          (unless project-root
+            (message "RTags: compile_commands.json not exists")
+            (setq project-root default-directory))
+          (message "RTags: %s" (concat project-root "compile_commands.json"))
+          (format "rc -J %s --project-root %s" project-root project-root)))
+
+      (defun my-rtags-run ()
+        "rtags startup with generated compile_commands.json"
+        (interactive)
+        (rtags-start-process-unless-running)
+        (shell-command (my-rtags-load-compile-commands-command)))
+
+      (defun my-rtags-build ()
+        "rtags startup use compile_commands.json generate from build tool"
+        (interactive)
+        (cond ((file-exists-p "BUILD") (my-rtags-bazel))
+              ((file-exists-p "CMakeFiles") (my-rtags-cmake))
+              ((file-exists-p "Makefile") (my-rtags-make))
+              (t (error "No build tool detected"))))
+
+      (defun my-rtags-bazel ()
+        "rtags startup use compile_commands.json generate from bazel"
+        (interactive)
+        (let ((tool_dir "~/Opensource/Bazel_and_CompileCommands")
+              (command ""))
+          (setq command (format "%s/setup_compile_commands.sh; %s/create_compile_commands.sh //..." tool_dir tool_dir))
+          (setq command (read-string "Build bazel compile_commands.json: " command nil nil))
+          (unless command
+            (error "Build compile_commands.json for bazel failed"))
+          (rtags-start-process-unless-running)
+          (async-shell-command (concat command " && " (my-rtags-load-compile-commands-command)))))
+
+      (defun my-rtags-make ()
+        "build compile_commands.json for make"
+        (interactive)
+        (let ((command (read-string "Build make compile_commands.json: " "bear make" nil nil)))
+          (unless command
+            (error "Build compile_commands.json for make failed"))
+          (rtags-start-process-unless-running)
+          (async-shell-command (concat command " && " (my-rtags-load-compile-commands-command)))))
+
+      (defun my-rtags-cmake ()
+        "build compile_commands.json for cmake"
+        (interactive)
+        (let ((command (read-string "Build cmake compile_commands.json: " "cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ." nil nil)))
+          (rtags-start-process-unless-running)
+          (async-shell-command (concat command " && " (my-rtags-load-compile-commands-command)))))
+
       (setq rtags-completions-enabled t)
       (eval-after-load 'company
         '(add-to-list
@@ -17359,8 +17421,12 @@ can be defined by the purpose the data is going to be used for.
       (define-key c++-mode-map (kbd "C-c C-r") 'rtags-find-references-at-point)
     #+end_src
 
-    需要安装这些 emacs 包： =rtags= =helm-rtags= =company-rtags= =flycheck-rtags= ，
-    通过 =M-x run-rtags= 启动 =rdm= 。
+    第一次需在项目根目录执行 =M-x my-rtags-build= ，它会先生成编译数据库
+    （ =compile_commands.json= ）再启动 rtags 后台服务。以后可直接运行 rtags 后
+    台服务 =M-x my-rtags-run= 。
+
+    现在随便打开项目中的 c++ 源代码，将光标放到变量名上，然后按 =C-c C-j= 跳转到
+    定义处，更多用法请参考 rtags 文档。
 
 ** 参考
 
@@ -17861,7 +17927,7 @@ can be defined by the purpose the data is going to be used for.
      由于请求体是空的，所以是一个无效的 HTTP 请求。
 
    
-   我提交了 Merge Request [[https://github.com/envoyproxy/envoy/pull/2070][#2070]] ，已合到 =master= 分支，该问题已修复。
+   我提交了 Pull Request [[https://github.com/envoyproxy/envoy/pull/2070][#2070]] ，已合到 =master= 分支，该问题已修复。
 
 ** 将 Envoy 做为 socket.io 服务前端代理
 
@@ -17910,9 +17976,14 @@ can be defined by the purpose the data is going to be used for.
    通过指定 socket.io 的 =transports= 选项值为 =['websocket', 'polling']= ，
    也就是首先尝试建立 =websocket= 连接，失败时再降级为 =polling= ，能够解决这个问题。
 
-   Envoy 的 =Ring hash= 是根据配置的请求头来计算 Hash 值的，一般 Web 前端都是通过
-   自定义请求头或者 Cookie 中的特定字段来标识一个用户。由于 Cookie 可能会在交互过程中发生变化，
-   因此不适合用于计算 Hash 值，而 Websocket 升级请求又不支持自定义请求头，因此这两种常用的方式失效了。
+   Envoy 的 =Ring hash= 是根据配置的请求头来计算 Hash 值的，刚刚有一个按特定 Cookie 计算 Hash 值的
+   Pull Request [[https://github.com/envoyproxy/envoy/pull/1766][Implement cookie hashing for v2 API #1766]] 已经合并到 master 分支，官方文档方面还没有更新，
+   本文暂不采用。
+
+   一般 Web 前端都是通过自定义请求头或者 Cookie 中的特定字段来标识一个用户，由于 Cookie
+   可能会在交互过程中发生变化，因此不适合用于计算 Hash 值，而 Websocket 升级请求又不支持自定义请求头，
+   因此这两种常用的方式失效了。
+
    另一个合理的选择是通过 =Referer= 请求头来计算 Hash，这是客户端网页的地址，不会在交互过程中变化，
    只要想办法将用户的标识（如 ID）附在 URL 上，如：http://www.example.com/chat?uid=1234 ，
    就可以保证用户请求能够均衡地分布到所有服务结点上，同一用户的请求也会调度到同一个服务结点。
@@ -17939,3 +18010,24 @@ can be defined by the purpose the data is going to be used for.
    - 用浏览器打开多个 =http://localhost:9002/index2.html= 页面
 
      正常情况下，每个页面都会收到 =welcome= 消息，表示 socket.io 连接成功，可以在下方的编辑框输入内容，服务器会 echo 回来。
+
+* TODO linux 下调试剥去调试信息的程序崩溃：使用 Map 文件              :linux:
+
+  本文为前一篇文章《[[http://blog.kankanan.com/article/linux-4e0b8c038bd5526553bb8c038bd54fe1606f76847a0b5e8f5d296e83.html][linux 下调试剥去调试信息的程序崩溃]]》的续篇。
+
+  之前调研过使用 Map 文件，试验失败，看了一下 Map 文件的内容，其中记载了函数的地
+  址，但没有详细的代码行地址，理论上是实现不了从崩溃地址获取源代码行地址的目标的，
+  所以采用了比较重的方案（依赖 core 文件及未 strip 的可执行文件），后来一直在查
+  资料，通过阅读《[[http://www.cchsu.com/arthur/prg_bg5/map_debug.htm][使用 MAP file 除錯的技巧]]》一文，发现是之前姿势不对。
+
+  #+begin_quote
+  MAP file 是 linker 将 object files 编译成 binary (EXE, DLL, ...) 时所产生的对
+  应表，亦即系统的 linker loader 如何载入这个 binary image 的报表。有了这个 map
+  文件，再加上 compiler 产生的 assembly source code，就成为找程序崩溃的最佳利器。
+  #+end_quote
+  引用自 [[http://www.cchsu.com/arthur/prg_bg5/map_debug.htm][使用 MAP file 除錯的技巧]]。
+
+  
+** 参考
+
+   - [[http://www.cchsu.com/arthur/prg_bg5/map_debug.htm][使用 MAP file 除錯的技巧]]

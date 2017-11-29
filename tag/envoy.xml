@@ -4,7 +4,7 @@
         <title>envoy - 看看俺 – KanKanAn.com</title>
         <link>http://blog.kankanan.com/tag/envoy.xml</link>
         <description>记我所思，忆我所为。</description>
-        <lastBuildDate>Fri, 24 Nov 2017 14:05:32 GMT</lastBuildDate>
+        <lastBuildDate>Wed, 29 Nov 2017 16:40:58 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <generator>Feed for Node.js</generator>
         <image>
@@ -97,7 +97,7 @@ Firefox 发起的 Websocket 请求 Connection 头的值为： <code>keep-alive, 
 
 
 <p>
-我提交了 Merge Request <a href="https://github.com/envoyproxy/envoy/pull/2070">#2070</a> ，已合到 <code>master</code> 分支，该问题已修复。
+我提交了 Pull Request <a href="https://github.com/envoyproxy/envoy/pull/2070">#2070</a> ，已合到 <code>master</code> 分支，该问题已修复。
 </p>
 </div>
 </div>
@@ -184,9 +184,18 @@ The ring/modulo hash load balancer implements consistent hashing to upstream hos
 </p>
 
 <p>
-Envoy 的 <code>Ring hash</code> 是根据配置的请求头来计算 Hash 值的，一般 Web 前端都是通过
-自定义请求头或者 Cookie 中的特定字段来标识一个用户。由于 Cookie 可能会在交互过程中发生变化，
-因此不适合用于计算 Hash 值，而 Websocket 升级请求又不支持自定义请求头，因此这两种常用的方式失效了。
+Envoy 的 <code>Ring hash</code> 是根据配置的请求头来计算 Hash 值的，刚刚有一个按特定 Cookie 计算 Hash 值的
+Pull Request <a href="https://github.com/envoyproxy/envoy/pull/1766">Implement cookie hashing for v2 API #1766</a> 已经合并到 master 分支，官方文档方面还没有更新，
+本文暂不采用。
+</p>
+
+<p>
+一般 Web 前端都是通过自定义请求头或者 Cookie 中的特定字段来标识一个用户，由于 Cookie
+可能会在交互过程中发生变化，因此不适合用于计算 Hash 值，而 Websocket 升级请求又不支持自定义请求头，
+因此这两种常用的方式失效了。
+</p>
+
+<p>
 另一个合理的选择是通过 <code>Referer</code> 请求头来计算 Hash，这是客户端网页的地址，不会在交互过程中变化，
 只要想办法将用户的标识（如 ID）附在 URL 上，如：<a href="http://www.example.com/chat?uid=1234">http://www.example.com/chat?uid=1234</a> ，
 就可以保证用户请求能够均衡地分布到所有服务结点上，同一用户的请求也会调度到同一个服务结点。
