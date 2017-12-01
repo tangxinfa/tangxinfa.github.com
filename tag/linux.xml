@@ -4,7 +4,7 @@
         <title>linux - 看看俺 – KanKanAn.com</title>
         <link>http://blog.kankanan.com/tag/linux.xml</link>
         <description>记我所思，忆我所为。</description>
-        <lastBuildDate>Thu, 30 Nov 2017 13:02:46 GMT</lastBuildDate>
+        <lastBuildDate>Fri, 01 Dec 2017 10:05:32 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <generator>Feed for Node.js</generator>
         <image>
@@ -172,6 +172,20 @@ objcopy --add-gnu-debuglink=app.debug app
 这种方法在调试时需要将调试符号 <code>app.debug</code> 文件放到当前目录下，
 或者在 <code>gdb</code> 中通过 <code>set debug-file-directory /tmp/debug</code> 指定其它目录（如 <code>/tmp/debug</code> ）。
 详情请参考 <a href="https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html">Debugging with GDB: Separate Debug Files</a> 。
+</p>
+
+<p>
+并不是所有工具都和 <code>gdb</code> 一样支持分离的调试符号文件，如 <code>str2line</code> 就不支持，
+可以将调试符号文件和 strip 后的可执行程序重新合并成带调试符号的程序
+=app_debug=：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">eu-unstrip ./app ./app_debug
+</pre>
+</div>
+<p>
+参考 <a href="https://stackoverflow.com/questions/2509301/how-to-reverse-the-objcopys-strip-with-only-keep-debug/38645662#38645662">binutils - How to reverse the objcopy's strip with only-keep-debug? - Stack Overflow</a>
 </p>
 </li>
 
@@ -804,6 +818,83 @@ ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0 [vsyscall]
 <li><a href="https://stackoverflow.com/questions/18706496/can-one-use-libsegfault-so-to-get-backtraces-for-sigabrt">stack trace - Can one use libSegFault.so to get backtraces for SIGABRT? - Stack Overflow</a>
 </li>
 </ul>
+</div>
+</div>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Archlinux 下 i3 桌面启动]]></title>
+            <link>/article/archlinux-4e0b-i3-684c9762542f52a8.html</link>
+            <guid>/article/archlinux-4e0b-i3-684c9762542f52a8.html</guid>
+            <pubDate>Wed, 30 Aug 2017 06:11:00 GMT</pubDate>
+            <content:encoded><![CDATA[
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">不通过 gdm 启动</h2>
+<div class="outline-text-2" id="text-1">
+<ul class="org-ul">
+<li>设置 archlinux 为文本模式启动
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo systemctl set-default multi-user.target
+</pre>
+</div>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>配置 ~/.xinitrc 启动 i3
+
+<div class="org-src-container">
+
+<pre class="src src-sh">[ -f /etc/xprofile ] &amp;&amp; <span style="color: #b294bb;">source</span> /etc/xprofile
+[ -f ~/.xprofile ] &amp;&amp; <span style="color: #b294bb;">source</span> ~/.xprofile
+<span style="color: #b5bd68;">exec</span> dbus-launch i3
+</pre>
+</div>
+</li>
+</ul>
+
+
+<p>
+经过以上设置，首先通过文本模式启动 Archlinux，在 tty1 输入用户名及密码后，进入 i3 桌面。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">通过 gdm 启动</h2>
+<div class="outline-text-2" id="text-2">
+<ul class="org-ul">
+<li>设置 archlinux 为图形模式启动
+
+<div class="org-src-container">
+
+<pre class="src src-sh">systemctl enable gdm
+sudo systemctl set-default graphical.target
+</pre>
+</div>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>注释 ~/.xinitrc 启动 i3
+
+<div class="org-src-container">
+
+<pre class="src src-sh">[ -f /etc/xprofile ] &amp;&amp; <span style="color: #b294bb;">source</span> /etc/xprofile
+[ -f ~/.xprofile ] &amp;&amp; <span style="color: #b294bb;">source</span> ~/.xprofile
+<span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">exec dbus-launch i3</span>
+</pre>
+</div>
+</li>
+</ul>
+
+
+<p>
+经过以上设置，首先通过图形模式启动 Archlinux，第一次需在 gdm 登录界面选择桌面为 i3，输入用户名及密码后进入 i3 桌面。</p>
 </div>
 </div>
 ]]></content:encoded>
@@ -2931,6 +3022,117 @@ nslookup: can't resolve 'www.baidu.com': Name or service not known
 ]]></content:encoded>
         </item>
         <item>
+            <title><![CDATA[Archlinux 的 collectd 支持监控 redis]]></title>
+            <link>/article/archlinux-7684-collectd-652f630176d163a7-redis.html</link>
+            <guid>/article/archlinux-7684-collectd-652f630176d163a7-redis.html</guid>
+            <pubDate>Thu, 31 Mar 2016 09:44:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+Archlinux 下使用 <code>pacman</code> 安装的 <code>collectd</code> 没有 redis 插件。
+</p>
+
+<p>
+查看 collectd 的 <a href="https://projects.archlinux.org/svntogit/community.git/tree/trunk/PKGBUILD?h=packages/collectd">PKGBUILD</a> 文件，并未明令禁止 redis 插件，从源代码编译安装的话，只要系统装了 <code>hiredis</code> ，redis 插件应该就会自动启用。
+</p>
+
+<p>
+所以我们需要从源代码编译安装 <code>collectd</code> 软件包。
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">安装 ABS</h2>
+<div class="outline-text-2" id="text-1">
+<blockquote>
+<p>
+What is the Arch Build System?
+</p>
+
+<p>
+The Arch Build System is a ports-like system for building and packaging software from source code. While pacman is the specialized Arch tool for binary package management (including packages built with the ABS), ABS is a collection of tools for compiling source into installable .pkg.tar.xz packages.    
+</p>
+</blockquote>
+<p>
+引用自 <a href="https://wiki.archlinux.org/index.php/Arch_Build_System">Arch Build System - ArchWiki</a>
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">yaourt -S abs
+sudo abs
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">编译安装 collectd</h2>
+<div class="outline-text-2" id="text-2">
+<div class="org-src-container">
+
+<pre class="src src-sh"><span class="linenr">1: </span>yaourt -S hiredis
+<span class="linenr">2: </span>cp -R /var/abs/community/collectd ~/
+<span class="linenr">3: </span><span style="color: #b294bb;">cd</span> ~/collectd
+<span id="coderef-archlinux_makepkg" class="coderef-off"><span class="linenr">4: </span>makepkg</span>
+<span class="linenr">5: </span>yaourt -U ./collectd-5.5.1-2-x86_64.pkg.tar.xz
+</pre>
+</div>
+
+<dl class="org-dl">
+<dt> 行 <a href="#coderef-archlinux_makepkg"class="coderef" onmouseover="CodeHighlightOn(this, 'coderef-archlinux_makepkg');" onmouseout="CodeHighlightOff(this, 'coderef-archlinux_makepkg');">4</a>  </dt><dd>如果报 <code>Missing dependencies</code> 错误则按提示使用 pacman 装上缺失的依赖项
+</dd>
+</dl>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">使用以前的 collectd 配置</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+重新安装 collectd 后，以前的配置保存在 <code>/etc/collectd.conf.pacsave</code> ，恢复一下
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo mv /etc/collectd.conf.pacsave /etc/collectd.conf
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4">启用 collectd 插件</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+修改 collectd 配置文件 <code>/etc/collectd.conf</code> 
+</p>
+<pre class="example">
+LoadPlugin redis
+
+&lt;Plugin redis&gt;
+  &lt;Node "db"&gt;
+     Host "127.0.0.1"
+     Port "6379"
+     Timeout 2000
+  &lt;/Node&gt;
+&lt;/Plugin&gt;
+</pre>
+
+<p>
+重启 collectd 服务，现在可以在界面上看到 redis 的监控项了。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5">参考</h2>
+<div class="outline-text-2" id="text-5">
+<ul class="org-ul">
+<li><a href="http://arch.acgtyrant.com/2013/12/26/soul/">Arch Linux 的靈魂：PKGBUILD、AUR 和 ABS | Tyrant's Arch Linux</a>
+</li>
+</ul>
+</div>
+</div>
+]]></content:encoded>
+        </item>
+        <item>
             <title><![CDATA[使用 collectd 进行服务监控]]></title>
             <link>/article/4f7f7528-collectd-8fdb884c670d52a176d163a7.html</link>
             <guid>/article/4f7f7528-collectd-8fdb884c670d52a176d163a7.html</guid>
@@ -3226,6 +3428,44 @@ LoadPlugin network
 ]]></content:encoded>
         </item>
         <item>
+            <title><![CDATA[Archlinux 下编译 MaidSafe]]></title>
+            <link>/article/archlinux-4e0b7f168bd1-maidsafe.html</link>
+            <guid>/article/archlinux-4e0b7f168bd1-maidsafe.html</guid>
+            <pubDate>Wed, 30 Mar 2016 08:26:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+按照文档 <a href="https://github.com/maidsafe-archive/MaidSafe/wiki/Build-Instructions-for-Linux">Build Instructions for Linux · maidsafe-archive/MaidSafe Wiki</a> 的指示进行。
+</p>
+
+<p>
+安装 icu-staticlibs 时，由于与已安装的 icu 软件包存在文件冲突，正常安装是装不了的，加上 <code>--force</code> 选项即可
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">yaourt --force -S icu-staticlibs
+</pre>
+</div>
+
+<p>
+编译 master 分枝会出错，切到 next 分枝再编译即可
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">git submodule foreach <span style="color: #8abeb7;">"git checkout next; git pull"</span>
+git checkout next; git pull
+</pre>
+</div>
+
+<p>
+参考
+</p>
+
+<ul class="org-ul">
+<li><a href="https://github.com/maidsafe-archive/MaidSafe/issues/234">make: <b>*</b> {ExperCommon} Error 2 · Issue #234 · maidsafe-archive/MaidSafe</a>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
+        <item>
             <title><![CDATA[修复 offlineimap 无法收邮件的问题]]></title>
             <link>/article/4fee590d-offlineimap-65e06cd5653690ae4ef6768495ee9898.html</link>
             <guid>/article/4fee590d-offlineimap-65e06cd5653690ae4ef6768495ee9898.html</guid>
@@ -3456,6 +3696,508 @@ $ offlineimap
 
 <p>
 使用 ssl 折腾失败，还是邮件服务器配置问题，除非 offlineimap 支持对服务器不进行安全验证，否则服务器端才能解决。</p>
+</div>
+</div>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Thinkpad T540p 安装 Archlinux]]></title>
+            <link>/article/thinkpad-t540p-5b8988c5-archlinux.html</link>
+            <guid>/article/thinkpad-t540p-5b8988c5-archlinux.html</guid>
+            <pubDate>Thu, 17 Mar 2016 10:09:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+如果你是重新安装 Archlinux 则建议在安装前记录一下现有系统的软件列表，方便装完新系统后继续安装需要的软件
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">pacman -Qqe | grep -vx <span style="color: #8abeb7;">"$(</span><span style="color: #b294bb;">pacman</span><span style="color: #8abeb7;"> -Qqm)"</span> &gt; Packages
+pacman -Qqm &gt; Packages.aur
+</pre>
+</div>
+
+<p>
+参考
+</p>
+
+<ul class="org-ul">
+<li><a href="https://wiki.archlinux.org/index.php/migrate_installation_to_new_hardware">Migrate installation to new hardware - ArchWiki</a>
+</li>
+</ul>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">下载 ISO</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+从 <a href="https://www.archlinux.org">Archlinux 官网</a> 下载最新的安装包 <a href="https://www.archlinux.org/download/">archlinux-2016.03.01-dual.iso</a>
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">创建安装盘</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+通过 dd 将 ISO 写入 U 盘创建安装盘。
+</p>
+
+<p>
+参考
+</p>
+
+<ul class="org-ul">
+<li><a href="https://wiki.archlinux.org/index.php/USB_flash_installation_media_(%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87)#GNU.2FLinux">USB flash installation media (简体中文) - ArchWiki</a>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">BIOS 启用 UEFI</h2>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4">开始安装</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+按照 <a href="https://wiki.archlinux.org/index.php/Beginners'_guide">Beginners' guide - ArchWiki</a> 一步步安装到 <a href="https://wiki.archlinux.org/index.php/Beginners'_guide#Initramfs">Initramfs</a> ，分区分案选 <a href="https://wiki.archlinux.org/index.php/Beginners'_guide#UEFI.2FGPT_examples">UEFI/GPT</a>。
+</p>
+
+<p>
+<a href="https://wiki.archlinux.org/index.php/Beginners'_guide#Install_a_boot_loader">Install a boot loader</a> 这一步改成 <a href="#sec-5">使用 UEFI 做为启动管理器</a> 。
+</p>
+
+
+<p>
+针对固态硬盘的优化建议
+</p>
+
+<ul class="org-ul">
+<li>格式化 ext4 分区时添加选项 4K 对齐
+
+<div class="org-src-container">
+
+<pre class="src src-sh">mkfs.ext4 -b 4096 /dev/sdXX
+</pre>
+</div>
+</li>
+
+<li>挂载 ext4 分区时添加选项 discard,noatime
+
+<div class="org-src-container">
+
+<pre class="src src-sh">mount -t ext4 /dev/sdXX /mnt -o discard,noatime
+</pre>
+</div>
+
+<p>
+noatime 读取文件的时候不修改读取的时间，减少对 ssd 的写入次数
+discard 启动 trim
+</p>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5">使用 UEFI 做为启动管理器</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+由于主板直接支持 UEFI 启动，使用 efibootmgr 来创建 Boot Loader 不但更简单，而且系统启动更快。
+</p>
+
+<p>
+参考
+</p>
+
+<ul class="org-ul">
+<li><a href="https://wiki.archlinux.org/index.php/EFISTUB#Using_UEFI_directly_.28efibootmgr.29">EFISTUB - Using UEFI directly (efibootmgr) - ArchWiki</a>
+</li>
+
+<li><a href="http://superuser.com/questions/912417/i-wanted-to-install-arch-linux-on-a-uefi-gpt-system-and-had-questions-about-the/912435#912435">I wanted to install arch linux on a UEFI/GPT system and had questions about the process - Super User</a>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-6" class="outline-2">
+<h2 id="sec-6">开通 sudo 权限组</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+运行 visudo，修改如下
+</p>
+
+<pre class="example">
+## Uncomment to allow members of group wheel to execute any command
+%wheel ALL=(ALL) ALL
+</pre>
+
+<dl class="org-dl">
+<dt> wheel </dt><dd>为 sudo 权限组   
+</dd>
+</dl>
+</div>
+</div>
+
+<div id="outline-container-sec-7" class="outline-2">
+<h2 id="sec-7">创建个人帐号</h2>
+<div class="outline-text-2" id="text-7">
+<p>
+加入 sudo 权限组
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">useradd tangxinfa -m -G wheel -p password
+</pre>
+</div>
+
+<dl class="org-dl">
+<dt> tangxinfa </dt><dd>为个人帐号名称，请自行修改
+</dd>
+
+<dt> password </dt><dd>为个人帐号密码，请自行修改
+</dd>
+
+<dt> wheel </dt><dd>为 sudo 权限组
+</dd>
+</dl>
+
+
+<p>
+接下来的操作可以切到个人帐号了。
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">su - tangxinfa
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-8" class="outline-2">
+<h2 id="sec-8">安装 gnome 桌面</h2>
+<div class="outline-text-2" id="text-8">
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo pacman -S gnome gnome-extra gdm
+sudo systemctl enable gdm
+sudo systemctl -f enable graphical.target
+sudo systemctl enable NetworkManager
+</pre>
+</div>
+
+<p>
+参考
+</p>
+
+<ul class="org-ul">
+<li><a href="https://wiki.archlinux.org/index.php/GNOME_(%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87)">GNOME (简体中文) - ArchWiki</a>
+</li>
+
+<li><a href="https://wiki.archlinux.org/index.php/GDM_(%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87)">GDM (简体中文) - ArchWiki</a>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-9" class="outline-2">
+<h2 id="sec-9">安装 fcitx 输入法</h2>
+<div class="outline-text-2" id="text-9">
+<p>
+参考
+</p>
+
+<ul class="org-ul">
+<li><a href="http://blog.kankanan.com/article/archlinux-4e0b5b8988c5-fcitx-8f9351656cd5.html">Archlinux下安装fcitx输入法 | 看看俺 – KanKanAn.com</a>
+</li>
+
+<li><a href="https://wiki.archlinux.org/index.php/Fcitx">Fcitx - ArchWiki</a>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-10" class="outline-2">
+<h2 id="sec-10">安装 yaourt</h2>
+<div class="outline-text-2" id="text-10">
+<dl class="org-dl">
+<dt> yaourt </dt><dd>Yet AnOther User Repository Tool
+</dd>
+</dl>
+
+
+<p>
+封装了 pacman，支持安装用户软件仓库里的软件包。
+</p>
+
+<p>
+<code>/etc/pacman.conf</code> 添加配置
+</p>
+<pre class="example">
+[archlinuxfr]
+SigLevel = Optional TrustAll
+Server = http://repo.archlinux.fr/$arch
+</pre>
+
+<p>
+安装 yaourt
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">pacman -S yaourt
+</pre>
+</div>
+
+<p>
+参考
+</p>
+
+<ul class="org-ul">
+<li><a href="http://bashell.nodemedia.cn/archives/install-yaourt.html">Yaourt的安装及使用 | 贝壳博客</a>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-11" class="outline-2">
+<h2 id="sec-11">触摸板</h2>
+<div class="outline-text-2" id="text-11">
+<div class="org-src-container">
+
+<pre class="src src-sh">yaourt -S xf86-input-synaptics
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>触摸板调优
+
+<p>
+<a href="http://blog.kankanan.com/article/thinkpad-t540p-4fee590d-linux-4e0b89e66478677f63094e0b65f6514968074f4d7f6e79fb52a895ee9898.html">Thinkpad T540p修复linux下触摸板按下时光标位置移动问题 | 看看俺 – KanKanAn.com</a>
+</p>
+
+<p>
+为避免打字时误触，在 ~/.xprofile 中添加以下内容：
+</p>
+<pre class="example">
+syndaemon -d -i 2 -t
+</pre>
+</li>
+
+<li>触摸板失灵
+
+<p>
+移动光标位置却是滚动效果（就像是单指操作变成双指操作了），移动光标时位置卡顿。
+</p>
+
+<p>
+安装 evtest
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">yaourt -S evtest
+</pre>
+</div>
+
+<p>
+获取触摸板事件号
+</p>
+<pre class="example">
+$ cat /proc/bus/input/devices | grep Synaptics -A 10 | grep event
+H: Handlers=event15 mouse1
+</pre>
+
+<p>
+检测触摸板事件
+</p>
+<pre class="example">
+$ sudo evtest /dev/input/event15
+</pre>
+
+<p>
+发现触摸板失灵时，也有触模板压下事件产生，估计是硬件不灵敏了，应该可以通过调整相关参数忽略掉 <code>man</code> <code>synaptics</code> 。
+</p>
+
+<p>
+使用蓝牙音箱时，触模板必失灵，需要重启系统触模板才能恢复，暂未找到解决方案。
+</p>
+</li>
+</ul>
+
+<p>
+参考
+</p>
+
+<ul class="org-ul">
+<li><a href="https://wiki.archlinux.org/index.php/Touchpad_Synaptics">Touchpad Synaptics - ArchWiki</a>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-12" class="outline-2">
+<h2 id="sec-12">指纹识别</h2>
+<div class="outline-text-2" id="text-12">
+<p>
+安装指纹识别模块
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">yaourt -S fprintd libfprint-git
+</pre>
+</div>
+
+<p>
+录入指纹
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">fprintd-enroll
+</pre>
+</div>
+
+<p>
+测试指纹
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">fprintd-verify
+</pre>
+</div>
+
+<p>
+多测试几次，如果效果不好则重新录入。
+</p>
+
+<p>
+锁定桌面，试试使用指纹解锁。
+</p>
+
+
+<p>
+参考
+</p>
+
+<ul class="org-ul">
+<li><a href="https://github.com/ars3niy/fprint_vfs5011/issues/9">Verify result always returning "verify-no-match" · Issue #9 · ars3niy/fprint_vfs5011</a>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-13" class="outline-2">
+<h2 id="sec-13">定制 gnome3</h2>
+<div class="outline-text-2" id="text-13">
+<p>
+安装扩展
+</p>
+
+<ul class="org-ul">
+<li>程序托盘图标回到屏幕右上角
+
+<p>
+<a href="https://extensions.gnome.org/extension/495/topicons/">TopIcons</a>
+</p>
+</li>
+
+<li>窗口标题栏融入活动栏
+
+<p>
+<a href="https://extensions.gnome.org/extension/723/pixel-saver/">Pixel Saver</a>
+</p>
+</li>
+</ul>
+
+<p>
+调试扩展
+</p>
+
+<ul class="org-ul">
+<li>启动 Looking Glass
+
+<p>
+按快捷键 <code>Alt</code> + <code>F2</code> 输入 <code>lg</code>
+</p>
+</li>
+
+<li>切到 Extensions 页
+
+<p>
+找到出问题的插件，点击 Show Errors，一般是系统少安装了某些包，使用 pacman 安装即可
+</p>
+</li>
+
+<li>重新载入桌面
+
+<p>
+按快捷键 <code>Alt</code> + <code>F2</code> 输入 <code>r</code>
+</p>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-14" class="outline-2">
+<h2 id="sec-14">避免启动后总是静音</h2>
+<div class="outline-text-2" id="text-14">
+<p>
+安装 alsa-utils，保存音量设置。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-15" class="outline-2">
+<h2 id="sec-15">显卡驱动</h2>
+<div class="outline-text-2" id="text-15">
+<p>
+机器是双显卡，一块 Intel 的集显加上 Nvida 的独显。
+默认的开源显卡驱动也够用，使用 Nvida 的独显效果更好。
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">pacman -S nvidia
+</pre>
+</div>
+<p>
+参考 <a href="http://blog.csdn.net/zhyh1986/article/details/39892611">ArchLinux边用边记 - 竹叶青的专栏 - 博客频道 - CSDN.NET</a>
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-16" class="outline-2">
+<h2 id="sec-16">蓝牙耳机</h2>
+<div class="outline-text-2" id="text-16">
+<p>
+安装相关软件包
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">yaourt -S pulseaudio-bluetooth bluez-firmware bluez-utils
+</pre>
+</div>
+
+<p>
+启动蓝牙服务
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo systemctl enable bluetooth
+sudo systemctl start bluetooth
+</pre>
+</div>
+
+<p>
+参考
+</p>
+<ul class="org-ul">
+<li><a href="https://wiki.archlinux.org/index.php/Bluetooth_headset_(%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87)">Bluetooth headset (简体中文) - ArchWiki</a>
+</li>
+</ul>
 </div>
 </div>
 ]]></content:encoded>
@@ -3784,6 +4526,68 @@ ntpd 如果时间偏差过大（默认 1000 秒钟），ntpd 会输出错误到�
 ]]></content:encoded>
         </item>
         <item>
+            <title><![CDATA[Archlinux 下搭建 Rust 开发环境]]></title>
+            <link>/article/archlinux-4e0b642d5efa-rust-5f0053d173af5883.html</link>
+            <guid>/article/archlinux-4e0b642d5efa-rust-5f0053d173af5883.html</guid>
+            <pubDate>Mon, 29 Feb 2016 12:03:00 GMT</pubDate>
+            <content:encoded><![CDATA[<ul class="org-ul">
+<li>Emacs 里安装 rust-mode
+
+<p>
+M-x el-get-install rust-mode
+</p>
+</li>
+
+<li>Archlinux 安装 rust 相关包
+
+<p>
+yaourt -S rust cargo
+</p>
+
+<p>
+安装的版本
+</p>
+
+<pre class="example">
+$ rustc --version
+rustc 1.6.0
+$ cargo --version
+cargo 0.8.0 (28a0cbb 2016-01-17)
+</pre>
+</li>
+
+<li>Hello world!
+
+<p>
+<code>hello_world.rs</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-rust"><span style="color: #b5bd68;">fn</span> <span style="color: #de935f;">main</span>() {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b294bb;">println!</span>(<span style="color: #8abeb7;">"Hello, world!"</span>);
+}
+</pre>
+</div>
+
+<p>
+编译运行
+</p>
+<pre class="example">
+$ rustc hello_world.rs 
+$ ./hello_world 
+Hello, world!
+</pre>
+</li>
+
+<li>更多配置
+
+<p>
+可以参考文章《<a href="http://bassam.co/emacs/2015/08/24/rust-with-emacs/">Configuring Emacs for Rust</a>》进行更高级的配置，对于我这种 Rust 还没入门的人来说，前面的配置已经足够，还是一步一个脚印吧。</p>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
+        <item>
             <title><![CDATA[CentOS 6.4 生产环境上安装 pm2]]></title>
             <link>/article/centos-6.4-751f4ea773af58834e0a5b8988c5-pm2.html</link>
             <guid>/article/centos-6.4-751f4ea773af58834e0a5b8988c5-pm2.html</guid>
@@ -4040,6 +4844,244 @@ make install
 
 <p>
 <a href="https://wiki.mikejung.biz/Gcc_CentOS">Gcc CentOS - How to compile gcc-4.8.2 on CentOS 6.6</a></p>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Archlinux下解决上网慢问题]]></title>
+            <link>/article/archlinux-4e0b89e351b34e0a7f51616295ee9898.html</link>
+            <guid>/article/archlinux-4e0b89e351b34e0a7f51616295ee9898.html</guid>
+            <pubDate>Wed, 30 Dec 2015 02:17:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+发现  <code>Firefox</code> 的状态栏长时间显示 <code>Looking up www.xxxx.com ...</code> ，应该是我的电脑的 <code>DNS</code> 配置出问题了。
+</p>
+
+<p>
+<code>/etc/resolv.conf</code> 内容如下：
+</p>
+
+<pre class="example">
+# Generated by resolvconf
+search lan
+nameserver 8.8.8.8
+nameserver 192.168.111.1
+</pre>
+
+<p>
+<code>/etc/resolvconf.conf</code> 内容如下：
+</p>
+
+<pre class="example">
+resolv_conf=/etc/resolv.conf
+name_servers=8.8.8.8
+</pre>
+
+<p>
+我配置的是使用静态DNS <code>8.8.8.8</code> ，但是 <code>/etc/resolv.conf</code> 文件内容多出了两项，怀疑是 <code>search lan</code> 引起。
+</p>
+
+<p>
+很多的网络管理工具都会去改动 <code>/etc/resolv.conf</code> 文件，如 <code>pdnsd</code> <code>dnsmasq</code> <code>NetworkManager</code> 。
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">禁止 <code>NetworkManager</code> 改动 <code>/etc/resolv.conf</code></h2>
+<div class="outline-text-2" id="text-1">
+<ul class="org-ul">
+<li>修改 <code>/etc/NetworkManager/NetworkManager.conf</code> 配置
+
+<p>
+<code>dns=none</code>
+</p>
+</li>
+
+<li>重新载入 <code>systemd</code> 配置
+
+<p>
+<code>sudo systemctl daemon-reload</code>
+</p>
+</li>
+
+<li>重启 <code>NetworkManager</code>
+
+<p>
+<code>sudo systemctl restart NetworkManager</code>
+</p>
+</li>
+
+<li>重新生成 <code>/etc/resolv.conf</code>
+
+<p>
+<code>sudo resolvconf -u</code>
+</p>
+
+<pre class="example">
+# Generated by resolvconf
+nameserver 8.8.8.8
+</pre>
+
+<p>
+现在可以正常上网了。
+</p>
+
+<p>
+但是静态DNS <code>8.8.8.8</code> 不太稳定，最好换成优先使用DHCP分配的本地DNS。
+</p>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">使用DHCP分配的本地DNS</h2>
+<div class="outline-text-2" id="text-2">
+<ul class="org-ul">
+<li>撤销之前对 <code>/etc/NetworkManager/NetworkManager.conf</code> 的修改
+
+<p>
+<code>dns=default</code>
+</p>
+</li>
+
+<li>去掉 <code>/etc/resolvconf.conf</code> 配置的静态DNS
+
+<pre class="example">
+resolv_conf=/etc/resolv.conf
+#name_servers=8.8.8.8
+</pre>
+</li>
+
+<li>重新载入 <code>systemd</code> 配置
+
+<p>
+<code>sudo systemctl daemon-reload</code>
+</p>
+</li>
+
+<li>重启 <code>NetworkManager</code>
+
+<p>
+<code>sudo systemctl restart NetworkManager</code>
+</p>
+</li>
+
+<li>重新生成 <code>/etc/resolv.conf</code>
+
+<p>
+<code>sudo resolvconf -u</code>
+</p>
+
+<pre class="example">
+# Generated by resolvconf
+nameserver 192.168.111.1
+</pre>
+
+<p>
+过一会儿 <code>/etc/resolv.conf</code> 内容自动被更新
+</p>
+
+<pre class="example">
+# Generated by resolvconf
+search lan
+nameserver 192.168.111.1
+</pre>
+
+<p>
+<code>search lan</code> 又出现了， <code>NetworkManager</code> 貌似是通过 <code>dhclient</code> 对 <code>/etc/resolv.conf</code> 进行修改的，
+具体指令参见 <code>/sbin/dhclient-script</code> 。
+</p>
+
+<p>
+上网又很流畅了，看来之前上网慢是由 <code>8.8.8.8</code> DNS服务器抽风引起，与 <code>search lan</code> 配置无关。
+</p>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">参考</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+<a href="https://wiki.archlinux.org/index.php/Resolv.conf#Preserve_DNS_settings">resolv.conf - ArchWiki</a></p>
+</div>
+</div>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Archlinux下安装运行docker]]></title>
+            <link>/article/archlinux-4e0b5b8988c58fd0884c-docker.html</link>
+            <guid>/article/archlinux-4e0b5b8988c58fd0884c-docker.html</guid>
+            <pubDate>Wed, 09 Dec 2015 15:07:00 GMT</pubDate>
+            <content:encoded><![CDATA[<ul class="org-ul">
+<li>安装 <code>docker</code>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">yaourt -S docker
+</pre>
+</div>
+</li>
+
+<li>配置 <code>docker</code>
+
+<p>
+由于 <code>docker</code> 的官方仓库被墙，需要从 <code>dockerpool.com</code> 上下载，修改 <code>docker</code> 配置以免 <code>pull</code> 时出现 tls 相关错误。
+</p>
+
+<p>
+修改 <code>/usr/lib/systemd/system/docker.service</code> 文件，将
+</p>
+
+<pre class="example">
+ExecStart=/usr/bin/docker daemon -H fd:// --exec-opt native.cgroupdriver=cgroupfs
+</pre>
+
+<p>
+改为
+</p>
+
+<pre class="example">
+ExecStart=/usr/bin/docker daemon --insecure-registry dl.dockerpool.com:5000 -H fd:// --exec-opt native.cgroupdriver=cgroupfs
+</pre>
+
+<p>
+生效配置：
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo systemctl daemon-reload
+</pre>
+</div>
+</li>
+
+<li>启动 <code>docker</code> 服务
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo systemctl restart docker
+</pre>
+</div>
+</li>
+
+<li>下载 <code>ubuntu14.04</code> 镜像
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo docker pull <span style="color: #8abeb7;">'dl.dockerpool.com:5000/ubuntu:14.04'</span>
+</pre>
+</div>
+</li>
+
+<li>试运行容器
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo docker run -t -i <span style="color: #8abeb7;">'dl.dockerpool.com:5000/ubuntu:14.04'</span> /bin/bash
+</pre>
+</div>
 </li>
 </ul>
 ]]></content:encoded>
@@ -5281,6 +6323,307 @@ dmsetup remove cachedev
 ]]></content:encoded>
         </item>
         <item>
+            <title><![CDATA[在Archlinux上使用FlashCache]]></title>
+            <link>/article/5728-archlinux-4e0a4f7f7528-flashcache.html</link>
+            <guid>/article/5728-archlinux-4e0a4f7f7528-flashcache.html</guid>
+            <pubDate>Thu, 23 Apr 2015 12:16:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+<a href="https://github.com/facebook/flashcache/">Flashcache</a> 是 <a href="https://www.facebook.com">Facebook</a> 的一个开源项目，通过将固态硬盘（SSD）做为机械硬盘（HDD）的缓存层，提升磁盘I/O性能。
+</p>
+
+<p>
+<a href="https://github.com/facebook/flashcache/">Flashcache</a> 位于磁盘驱动层与文件系统层之间，是一个 <code>linux</code> 内核模块。
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">编译安装</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+由于Archlinux总是使用最新的linux内核，最好从最新的 <a href="https://github.com/facebook/flashcache/">Flashcache</a> 源代码进行编译安装。
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">git clone https://github.com/facebook/flashcache.git
+<span style="color: #b294bb;">cd</span> flashcache
+make
+sudo make install
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">挂载模块</h2>
+<div class="outline-text-2" id="text-2">
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo insmod /lib/modules/<span style="color: #b294bb;">`uname -r`</span>/extra/flashcache/flashcache.ko
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>修复挂载错误
+
+<blockquote>
+<p>
+insmod: ERROR: could not insert module /lib/modules/3.19.3-3-ARCH/extra/flashcache/flashcache.ko: Unknown symbol in module
+</p>
+</blockquote>
+
+<p>
+通过 <code>dmesg | grep flashcache</code> 可以看到以下错误信息：
+</p>
+
+<blockquote>
+<p>
+[ 2130.514615] flashcache: Unknown symbol dm_put_device (err 0)<br  />
+       [ 2130.514654] flashcache: Unknown symbol dm_io_client_create (err 0)<br  />
+       [ 2130.514693] flashcache: Unknown symbol dm_kcopyd_client_create (err 0)<br  />
+       [ 2130.514738] flashcache: Unknown symbol dm_unregister_target (err 0)<br  />
+       [ 2130.514774] flashcache: Unknown symbol dm_io_client_destroy (err 0)<br  />
+       [ 2130.514798] flashcache: Unknown symbol dm_kcopyd_copy (err 0)<br  />
+       [ 2130.514821] flashcache: Unknown symbol dm_register_target (err 0)<br  />
+       [ 2130.514846] flashcache: Unknown symbol dm_kcopyd_client_destroy (err 0)<br  />
+       [ 2130.514870] flashcache: Unknown symbol dm_table_get_mode (err 0)<br  />
+       [ 2130.514895] flashcache: Unknown symbol dm_io (err 0)<br  />
+       [ 2130.514915] flashcache: Unknown symbol dm_get_device (err 0)
+</p>
+</blockquote>
+
+<p>
+先挂载 <code>dm-mod</code> 模块再挂载 <code>flashcache</code> 模块即可：
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo modprobe dm-mod
+sudo insmod /lib/modules/<span style="color: #b294bb;">`uname -r`</span>/extra/flashcache/flashcache.ko
+</pre>
+</div>
+
+<p>
+参考：<a href="https://bbs.archlinux.org/viewtopic.php?id=30478">No entry for device-mapper found</a>
+</p>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">模拟实验</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+参考：<a href="http://my.oschina.net/renguijiayi/blog/303747">flashcache的实现与用法</a>
+</p>
+
+<ul class="org-ul">
+<li>创建SSD模拟设备
+
+<p>
+使用内存文件模拟块设备（1G）
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">dd <span style="color: #f0c674;">if</span>=/dev/zero <span style="color: #f0c674;">of</span>=/dev/shm/ssd.img <span style="color: #f0c674;">bs</span>=1024k <span style="color: #f0c674;">count</span>=1024
+sudo losetup /dev/loop1 /dev/shm/ssd.img
+</pre>
+</div>
+</li>
+
+<li>创建HDD模拟设备
+
+<p>
+使用普通磁盘文件模拟块设备（5G）
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo dd <span style="color: #f0c674;">if</span>=/dev/zero <span style="color: #f0c674;">of</span>=/hdd.img <span style="color: #f0c674;">bs</span>=1024k <span style="color: #f0c674;">count</span>=5120
+sudo losetup /dev/loop2 /hdd.img
+</pre>
+</div>
+</li>
+
+<li>创建Flashcache混合设备
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo flashcache_create -p around cachedev /dev/loop1 /dev/loop2
+sudo mkfs.ext4 /dev/mapper/cachedev
+</pre>
+</div>
+</li>
+
+<li>挂载Flashcache混合设备
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo mkdir /data
+sudo mount /dev/mapper/cachedev /data
+</pre>
+</div>
+</li>
+</ul>
+
+<p>
+/data目录下的数据读写就已经在使用Flashcache了。
+</p>
+
+<ul class="org-ul">
+<li>创建用来测试的数据文件（1G）
+
+<div class="org-src-container">
+
+<pre class="src src-sh">dd <span style="color: #f0c674;">if</span>=/dev/urandom <span style="color: #f0c674;">of</span>=/dev/shm/test.dat <span style="color: #f0c674;">bs</span>=1024k <span style="color: #f0c674;">count</span>=1024
+</pre>
+</div>
+</li>
+
+<li>测算使用HDD写耗时
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo sh -c <span style="color: #8abeb7;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /dev/shm/test.dat /'</span>
+</pre>
+</div>
+
+<p>
+输出：
+</p>
+
+<pre class="example">
+real    0m4.751s
+user    0m0.000s
+sys 0m0.600s
+</pre>
+</li>
+
+<li>测算使用HDD读耗时
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo sh -c <span style="color: #8abeb7;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /test.dat /dev/shm/</span>
+</pre>
+</div>
+
+<p>
+输出：
+</p>
+
+<pre class="example">
+real    0m10.580s
+user    0m0.010s
+sys 0m0.727s
+</pre>
+</li>
+
+<li>测算使用Flashcache写耗时
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo sh -c <span style="color: #8abeb7;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /dev/shm/test.dat /data/'</span>
+</pre>
+</div>
+
+<p>
+输出：
+</p>
+
+<pre class="example">
+real    0m7.363s
+user    0m0.000s
+sys 0m0.760s
+</pre>
+</li>
+
+<li>测算使用Flashcache读耗时
+
+<p>
+第一轮测试（缓存预热）
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo sh -c <span style="color: #8abeb7;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /data/test.dat /dev/shm/'</span>
+</pre>
+</div>
+
+<p>
+输出：
+</p>
+
+<pre class="example">
+real    0m9.557s
+user    0m0.013s
+sys 0m1.157s
+</pre>
+
+<p>
+第二轮测试（缓存生效）
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo sh -c <span style="color: #8abeb7;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /data/test.dat /dev/shm/'</span>
+</pre>
+</div>
+
+<p>
+输出：
+</p>
+
+<pre class="example">
+real    0m3.107s
+user    0m0.000s
+sys 0m0.850s
+</pre>
+</li>
+
+<li>清除测试数据
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo rm /test.dat /dev/shm/test.dat /data/test.dat
+</pre>
+</div>
+</li>
+
+<li>结果分析
+
+<ul class="org-ul">
+<li>Flashcache读性能： <b>提升70%</b>
+</li>
+
+<li>Flashcache写性能： <b>降低55%</b>
+</li>
+</ul>
+<p>
+因为使用了 <code>Write-Around</code> 方式，所以提升了读性能，降低了写性能。
+</p>
+</li>
+
+<li>清除模拟环境
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo umount /data
+sudo dmsetup remove cachedev
+sudo losetup -d /dev/loop1
+sudo rm /dev/shm/ssd.img
+sudo losetup -d /dev/loop2
+sudo rm /hdd.img
+sudo rmdir /data
+</pre>
+</div>
+</li>
+</ul>
+</div>
+</div>
+]]></content:encoded>
+        </item>
+        <item>
             <title><![CDATA[linux下通过HTTP同步系统时间]]></title>
             <link>/article/linux-4e0b901a8fc7-http-540c6b657cfb7edf65f695f4.html</link>
             <guid>/article/linux-4e0b901a8fc7-http-540c6b657cfb7edf65f695f4.html</guid>
@@ -5293,6 +6636,63 @@ dmsetup remove cachedev
 
 <pre class="src src-sh">sudo date --rfc-2822 -s <span style="color: #8abeb7;">"`curl -s -i -X HEAD --header "Connection: close" http:/</span><span style="color: #de935f; background-color: #373b41;">/www.baidu.com | grep -E '^Date: ' | awk -F ': ' '{print $2}'`"</span>
 </pre>
+</div>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Archlinux安装文本语音合成（TTS）]]></title>
+            <link>/article/archlinux-5b8988c56587672c8bed97f354086210ff08-tts-ff09.html</link>
+            <guid>/article/archlinux-5b8988c56587672c8bed97f354086210ff08-tts-ff09.html</guid>
+            <pubDate>Wed, 15 Apr 2015 12:21:00 GMT</pubDate>
+            <content:encoded><![CDATA[
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">安装 <code>festival</code></h2>
+<div class="outline-text-2" id="text-1">
+<div class="org-src-container">
+
+<pre class="src src-sh">yaourt -S festival festival-english festival-us
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">测试运行</h2>
+<div class="outline-text-2" id="text-2">
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"This is an example. Arch is the best."</span> | festival --tts
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>修复错误 <code>Linux: can't open /dev/dsp</code>
+</li>
+</ul>
+
+<p>
+参考 <a href="https://wiki.archlinux.org/index.php/Festival#Can.27t_open_.2Fdev.2Fdsp">这里</a> 将以下内容添加到 <code>~/.festivalrc</code>
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-lisp">(Parameter.set 'Audio_Method 'Audio_Command)
+(Parameter.set 'Audio_Command <span style="color: #8abeb7;">"aplay -q -c 1 -t raw -f s16 -r $SR $FILE"</span>)
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">参考</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+<a href="https://wiki.archlinux.org/index.php/Festival">https://wiki.archlinux.org/index.php/Festival</a>
+</p>
+
+<p>
+<a href="https://linuxtoy.org/archives/festival_on_ubuntu.html">https://linuxtoy.org/archives/festival_on_ubuntu.html</a></p>
+</div>
 </div>
 ]]></content:encoded>
         </item>
@@ -5489,6 +6889,49 @@ add mod1 = Alt_L Meta_L
 
 <p>
 linux用户必备，ctrl和alt键已经放置到最优位置，而且后面的跳线开关支持常用的键位交换，即使是linux文本模式下也可用。</p>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Archlinux网络接口上出现两个IP]]></title>
+            <link>/article/archlinux-7f517edc63a553e34e0a51fa73b04e244e2a-ip.html</link>
+            <guid>/article/archlinux-7f517edc63a553e34e0a51fa73b04e244e2a-ip.html</guid>
+            <pubDate>Wed, 12 Mar 2014 03:32:00 GMT</pubDate>
+            <content:encoded><![CDATA[<ul class="org-ul">
+<li>发现两个IP
+
+<p>
+我的电脑是直接连到公司的墙上的网口上网的，在测试路由器的时候，我把路由器的WAN口接墙上的网口，然后电脑连到路由器的LAN口上，上网正常。查看分配到的IP为192.168.111.2，路由器的IP为192.168.111.1， 想到我一直用 <code>192.168.90.73</code> 这个IP，有些配置也依赖这个IP，所以还想分到这个IP，所以把路由器的DHCP做了设置，路由器IP改为192.168.90.74，分配的IP范围为192.168.90.71-192.168.90.73，再次重连电脑分配的IP为192.168.90.71，然后发现上不了网了，浏览器上输入路由器的IP（192.168.90.74）竟然打开了我机器（192.168.90.71）上建的WEB服务，其他人连这个网络却可以通过192.168.90.74这个IP正常打开路由器界面，最终通过“ip address show”这个命令发现我的网口上有两个IP（192.168.90.71、192.168.90.74）， <code>ipconfig</code> 和其它GUI工具只能看到第一个IP。
+</p>
+</li>
+
+<li>第二个IP是怎么来的？
+
+<p>
+抓包分析了一下DHCP网络包，只给分配了192.168.90.71这个IP，看来192.168.90.74这个IP是我机器上配置的，于是搜索/etc、/var下的文件，最后在/var/log/journal/*/system.journal中找到了日志：
+</p>
+
+<pre class="example">
+NetworkManager[375]: &lt;debug&gt; [1394509845.924245] [nm-system.c:280] sync_addresses(): (eno1): adding address '192.168.90.74/24'
+</pre>
+
+<p>
+然后在NetworkManager的配置文件 <code>/etc/NetworkManager/system-connections/Profile 1</code> 中找到了相关配置：
+</p>
+
+<pre class="example">
+[ipv4]
+method=auto
+address1=192.168.90.74/24,192.168.90.2
+</pre>
+
+<p>
+删除掉 <code>address1</code> 后，再重连网络，就只有一个IP了。
+</p>
+
+<p>
+这应该是 <code>NetworkManager</code> 的一个 <a href="https://bugs.archlinux.org/task/41395">BUG</a> ，当手动设置IP后切回DHCP自动获取IP方式时不清除手动设置的时会出现。</p>
 </li>
 </ul>
 ]]></content:encoded>
@@ -6148,6 +7591,59 @@ proxychains 的安装配置请参考：<a href="https://sites.google.com/a/pickd
 ]]></content:encoded>
         </item>
         <item>
+            <title><![CDATA[Archlinux下解决更新grub后无法进入gnome3桌面的问题]]></title>
+            <link>/article/archlinux-4e0b89e351b366f465b0-grub-540e65e06cd58fdb5165-gnome3-684c9762768495ee9898.html</link>
+            <guid>/article/archlinux-4e0b89e351b366f465b0-grub-540e65e06cd58fdb5165-gnome3-684c9762768495ee9898.html</guid>
+            <pubDate>Wed, 26 Jun 2013 02:07:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+在启动界面上会看到以下错误日志：
+</p>
+<pre class="example">
+kernel: [    8.398186] [drm:radeon_init] *ERROR* No UMS support in radeon module!
+</pre>
+
+<p>
+这个是由于grub配置文件中指定了内核参数 <code>nomodeset</code> 导致，linux的默认配置是为了运行服务器，以减少启动过程中出错的可能性，使用gnome3桌面时，需去掉内核参数 <code>nomodeset</code> ，以下为<a href="https://wiki.archlinux.org/index.php/ATI#Disable_KMS">原文</a>：
+</p>
+
+<pre class="example">
+Note: Adding nomodeset to the kernel boot line might prevent GNOME 3's gnome-shell or KDE's desktop effects from running.
+</pre>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Archlinux下安装cups打印系统]]></title>
+            <link>/article/archlinux-4e0b5b8988c5-cups-625353707cfb7edf.html</link>
+            <guid>/article/archlinux-4e0b5b8988c5-cups-625353707cfb7edf.html</guid>
+            <pubDate>Wed, 27 Mar 2013 13:56:00 GMT</pubDate>
+            <content:encoded><![CDATA[<dl class="org-dl">
+<dt> 安装 </dt><dd></dd>
+</dl>
+<div class="org-src-container">
+
+<pre class="src src-sh">yaourt -S cups-pdf
+</pre>
+</div>
+
+<dl class="org-dl">
+<dt> 启动 </dt><dd></dd>
+</dl>
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo systemctl start cups
+</pre>
+</div>
+
+<dl class="org-dl">
+<dt> 配置 </dt><dd>    参考：<a href="https://wiki.archlinux.org/index.php/Cups#PDF_virtual_printer">https://wiki.archlinux.org/index.php/Cups#PDF_virtual_printer</a>
+
+<p>
+登录的用户名要为root，否则后面还是无法添加打印机，web界面没有退出登录的选项，可以试试重启cups服务浏览器清除缓存的数据。</p>
+</dd>
+</dl>
+]]></content:encoded>
+        </item>
+        <item>
             <title><![CDATA[linux下跨进程传递文件描述符]]></title>
             <link>/article/linux-4e0b8de88fdb7a0b4f20901265874ef663cf8ff07b26.html</link>
             <guid>/article/linux-4e0b8de88fdb7a0b4f20901265874ef663cf8ff07b26.html</guid>
@@ -6177,6 +7673,140 @@ proxychains 的安装配置请参考：<a href="https://sites.google.com/a/pickd
 <p>
 《The Linux Programming Interface》61.13.3 Passing File Descriptors
 </p>
+</div>
+</div>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Archlinux下安装fcitx输入法]]></title>
+            <link>/article/archlinux-4e0b5b8988c5-fcitx-8f9351656cd5.html</link>
+            <guid>/article/archlinux-4e0b5b8988c5-fcitx-8f9351656cd5.html</guid>
+            <pubDate>Sat, 15 Dec 2012 13:56:00 GMT</pubDate>
+            <content:encoded><![CDATA[
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">安装</h2>
+<div class="outline-text-2" id="text-1">
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo yaourt -S fcitx-im
+ln -s /etc/xdg/autostart/fcitx-autostart.desktop  ~/.config/autostart/
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">配置</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+在配置文件~/.xprofile中添加以下内容：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #b294bb;">export</span> <span style="color: #f0c674;">GTK_IM_MODULE</span>=fcitx
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">QT_IM_MODULE</span>=fcitx
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">XMODIFIERS</span>=<span style="color: #8abeb7;">"@im=fcitx"</span>
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">LC_CTYPE</span>=<span style="color: #8abeb7;">"zh_CN.UTF-8"</span>
+</pre>
+</div>
+
+<p>
+因为用的是gnome3桌面，需要禁用ibus：
+</p>
+<pre class="example">
+gsettings set org.gnome.settings-daemon.plugins.keyboard active false
+</pre>
+<p>
+还需要在键盘快捷键设置界面中将输入源切换的快捷键清除。
+</p>
+
+<p>
+打开 fcitx-configtool 在 Input Method 中添加 Keyboard - English(US) 和 WubiPinyin，
+现在可以 Ctrl + Space 切换输入法，进行中英文输入了。
+</p>
+
+<p>
+可以取消 fcitx 绑定的全局快捷键，如 emacs 要用 Ctrl+Alt+P，
+fcitx-configtool GUI 工具不能将全局快捷键置空，
+可以直接修改配置文件 ~/.config/fcitx/config 删除快捷键。
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #969896; font-style: italic;"># </span><span style="color: #969896; font-style: italic;">Switch Embeded Preedit</span>
+<span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">SwitchPreedit=CTRL_ALT_P</span>
+</pre>
+</div>
+<p>
+改成
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #969896; font-style: italic;"># </span><span style="color: #969896; font-style: italic;">Switch Embeded Preedit</span>
+<span style="color: #f0c674;">SwitchPreedit</span>=
+</pre>
+</div>
+<p>
+这是因为 fcitx 的配置如果为默认值，则直接注释掉，重启 fcitx 生效配置。
+</p>
+</div>
+</div>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[解决Archlinux下ati显卡3D硬件加速失效的问题]]></title>
+            <link>/article/89e351b3-archlinux-4e0b-ati-663e5361-3d-786c4ef652a0901f59316548768495ee9898.html</link>
+            <guid>/article/89e351b3-archlinux-4e0b-ati-663e5361-3d-786c4ef652a0901f59316548768495ee9898.html</guid>
+            <pubDate>Wed, 05 Sep 2012 15:52:00 GMT</pubDate>
+            <content:encoded><![CDATA[
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">问题描述</h2>
+<div class="outline-text-2" id="text-1">
+<ul class="org-ul">
+<li>症状
+
+<p>
+进入gnome3桌面环境后很卡，不动还好，一动gnome-shell进程cpu占用就直奔100%。
+</p>
+</li>
+
+<li>dmesg异常日志
+<pre class="example">
+radeon_cp: Failed to load firmware "radeon/R520_cp.bin"
+radeon 0000:01:00.0: failed initializing CP (-2).
+radeon 0000:01:00.0: Disabling GPU acceleration
+</pre>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">解决办法</h2>
+<div class="outline-text-2" id="text-2">
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo ln -s /usr/lib/firmware /lib/
+sudo reboot
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">经验总结</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+出现问题时网上不一定能找到你要的答案，像这个问题，网上的论坛里有无数个建议，一个一个试下去其实很浪费时间，
+试几次之后还没能解决就应该尝试主动分析解决，像这里稍微留意到括号里的-2，就能发现其实它是个错误码，
+perror一下就知道意思是“找不到文件或目录”，联想到最近几次升级archlinux在把/lib里的东西往/usr/lib下移，
+其中就包括firemware，这样手工在旧的firmware位置建一个软链接就解决了这个问题。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4">备注</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+这个问题应该是由于之前glibc升级时未全部完成引起的，archlinux现在把/lib改为/usr/lib的软链接了，可以手工进行设置为软链接这一步骤来修复。</p>
 </div>
 </div>
 ]]></content:encoded>

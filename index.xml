@@ -4,7 +4,7 @@
         <title>看看俺 – KanKanAn.com</title>
         <link>http://blog.kankanan.com</link>
         <description>记我所思，忆我所为。</description>
-        <lastBuildDate>Thu, 30 Nov 2017 13:02:46 GMT</lastBuildDate>
+        <lastBuildDate>Fri, 01 Dec 2017 10:05:33 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <generator>Feed for Node.js</generator>
         <image>
@@ -238,7 +238,8 @@ Pull Request <a href="https://github.com/envoyproxy/envoy/pull/1766">Implement c
 <li>用浏览器打开多个 <code>http://localhost:9002/index2.html</code> 页面
 
 <p>
-正常情况下，每个页面都会收到 <code>welcome</code> 消息，表示 socket.io 连接成功，可以在下方的编辑框输入内容，服务器会 echo 回来。</p>
+正常情况下，每个页面都会收到 <code>welcome</code> 消息，表示 socket.io 连接成功，可以在下方的编辑框输入内容，服务器会 echo 回来。
+</p>
 </li>
 </ul>
 </div>
@@ -450,7 +451,7 @@ RTags is a client/server application that indexes C/C++ code and keeps a persist
 <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b294bb;">"rtags startup use compile_commands.json generate from build tool"</span>
 <span style="color: #969896; background-color: #222427;"> </span> (<span style="color: #b5bd68;">interactive</span>)
 <span style="color: #969896; background-color: #222427;"> </span> (<span style="color: #b5bd68;">cond</span> ((file-exists-p <span style="color: #8abeb7;">"BUILD"</span>) (my-rtags-bazel))
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   ((file-exists-p <span style="color: #8abeb7;">"CMakeFiles"</span>) (my-rtags-cmake))
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   ((file-exists-p <span style="color: #8abeb7;">"CMakeLists.txt"</span>) (my-rtags-cmake))
 <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   ((file-exists-p <span style="color: #8abeb7;">"Makefile"</span>) (my-rtags-make))
 <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   (t (<span style="color: #cc6666; font-weight: bold;">error</span> <span style="color: #8abeb7;">"No build tool detected"</span>))))
 
@@ -490,12 +491,12 @@ RTags is a client/server application that indexes C/C++ code and keeps a persist
 (rtags-enable-standard-keybindings)
 (<span style="color: #b5bd68;">require</span> '<span style="color: #81a2be;">helm-rtags</span>)
 (<span style="color: #b5bd68;">require</span> '<span style="color: #81a2be;">flycheck-rtags</span>)
-(define-key c-mode-map (kbd <span style="color: #8abeb7;">"C-c C-j"</span>) 'rtags-find-symbol-at-point)
-(define-key c++-mode-map (kbd <span style="color: #8abeb7;">"C-c C-j"</span>) 'rtags-find-symbol-at-point)
+(define-key c-mode-map (kbd <span style="color: #8abeb7;">"C-c C-j"</span>) 'rtags-find-symbol)
+(define-key c++-mode-map (kbd <span style="color: #8abeb7;">"C-c C-j"</span>) 'rtags-find-symbol)
 (define-key c-mode-map (kbd <span style="color: #8abeb7;">"C-c C-b"</span>) 'rtags-location-stack-back)
 (define-key c++-mode-map (kbd <span style="color: #8abeb7;">"C-c C-b"</span>) 'rtags-location-stack-back)
-(define-key c-mode-map (kbd <span style="color: #8abeb7;">"C-c C-r"</span>) 'rtags-find-references-at-point)
-(define-key c++-mode-map (kbd <span style="color: #8abeb7;">"C-c C-r"</span>) 'rtags-find-references-at-point)
+(define-key c-mode-map (kbd <span style="color: #8abeb7;">"C-c C-r"</span>) 'rtags-find-references)
+(define-key c++-mode-map (kbd <span style="color: #8abeb7;">"C-c C-r"</span>) 'rtags-find-references)
 </pre>
 </div>
 
@@ -682,6 +683,20 @@ objcopy --add-gnu-debuglink=app.debug app
 这种方法在调试时需要将调试符号 <code>app.debug</code> 文件放到当前目录下，
 或者在 <code>gdb</code> 中通过 <code>set debug-file-directory /tmp/debug</code> 指定其它目录（如 <code>/tmp/debug</code> ）。
 详情请参考 <a href="https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html">Debugging with GDB: Separate Debug Files</a> 。
+</p>
+
+<p>
+并不是所有工具都和 <code>gdb</code> 一样支持分离的调试符号文件，如 <code>str2line</code> 就不支持，
+可以将调试符号文件和 strip 后的可执行程序重新合并成带调试符号的程序
+=app_debug=：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">eu-unstrip ./app ./app_debug
+</pre>
+</div>
+<p>
+参考 <a href="https://stackoverflow.com/questions/2509301/how-to-reverse-the-objcopys-strip-with-only-keep-debug/38645662#38645662">binutils - How to reverse the objcopy's strip with only-keep-debug? - Stack Overflow</a>
 </p>
 </li>
 
