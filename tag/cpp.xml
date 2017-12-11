@@ -4,7 +4,7 @@
         <title>cpp - 看看俺 – KanKanAn.com</title>
         <link>http://blog.kankanan.com/tag/cpp.xml</link>
         <description>记我所思，忆我所为。</description>
-        <lastBuildDate>Fri, 01 Dec 2017 10:05:32 GMT</lastBuildDate>
+        <lastBuildDate>Mon, 11 Dec 2017 09:53:30 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <generator>Feed for Node.js</generator>
         <image>
@@ -619,6 +619,154 @@ g++ -g coroutine.cpp -lboost_context -o coroutine -std=c++0x
 </div>
 </div>
 </div>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[log4cxx使用心得]]></title>
+            <link>/article/log4cxx-4f7f75285fc35f97.html</link>
+            <guid>/article/log4cxx-4f7f75285fc35f97.html</guid>
+            <pubDate>Tue, 17 Jun 2008 02:01:00 GMT</pubDate>
+            <content:encoded><![CDATA[<ul class="org-ul">
+<li>简介
+
+<p>
+apache出品必属精品。正宗c++日志库，与log4j一脉相承。
+</p>
+
+<p>
+<a href="http://logging.apache.org/log4cxx/index.html">http://logging.apache.org/log4cxx/index.html</a>
+</p>
+</li>
+
+<li>下载、编译、安装
+
+<p>
+打算安装到${HOME}/libs目录下：
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #b294bb;">cd</span> ~/libs
+wget http://mirror.bjtu.edu.cn/apache//apr/apr-1.4.4.tar.bz2
+tar xjvf apr-1.4.4.tar.bz2
+<span style="color: #b294bb;">cd</span> apr-1.4.4
+./configure --prefix=${<span style="color: #f0c674;">HOME</span>}/libs &amp;&amp; make &amp;&amp; make install
+<span style="color: #b294bb;">cd</span> ..
+wget http://mirror.bjtu.edu.cn/apache//apr/apr-util-1.3.11.tar.bz2
+tar xjvf apr-util-1.3.11.tar.bz2
+<span style="color: #b294bb;">cd</span> apr-util-1.3.11
+./configure --prefix=${<span style="color: #f0c674;">HOME</span>}/libs --with-apr=${<span style="color: #f0c674;">HOME</span>}/libs &amp;&amp; make &amp;&amp; make instal<span style="color: #de935f; background-color: #373b41;">l</span>
+<span style="color: #b294bb;">cd</span> ..
+wget http://apache.etoak.com//logging/log4cxx/0.10.0/apache-log4cxx-0.10.0.tar.g<span style="color: #de935f; background-color: #373b41;">z</span>
+tar xzvf apache-log4cxx-0.10.0.tar.gz
+<span style="color: #b294bb;">cd</span> apache-log4cxx-0.10.0
+./configure --with-charset=utf-8 --prefix=${<span style="color: #f0c674;">HOME</span>}/libs --with-apr=${<span style="color: #f0c674;">HOME</span>}/libs -<span style="color: #de935f; background-color: #373b41;">-with-apr-util=${</span><span style="color: #de935f; background-color: #373b41;">HOME</span><span style="color: #de935f; background-color: #373b41;">}/libs &amp;&amp; make &amp;&amp; make install</span>
+</pre>
+</div>
+</li>
+
+<li>使用例子
+
+<p>
+<code>hello.cpp</code> ：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-cpp"><span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">"log4cxx/logger.h"</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">"log4cxx/propertyconfigurator.h"</span>
+
+<span style="color: #b5bd68;">static</span> <span style="color: #81a2be;">log4cxx</span>::<span style="color: #81a2be;">LoggerPtr</span> <span style="color: #de935f;">logger</span>(<span style="color: #81a2be;">log4cxx</span>::<span style="color: #81a2be;">Logger</span>::getLogger(<span style="color: #8abeb7;">"hello"</span>));
+
+<span style="color: #81a2be;">int</span> <span style="color: #de935f;">main</span>(<span style="color: #81a2be;">int</span> <span style="color: #f0c674;">argc</span>, <span style="color: #81a2be;">char</span> *<span style="color: #f0c674;">argv</span>[])
+{
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #81a2be;">log4cxx</span>::<span style="color: #81a2be;">PropertyConfigurator</span>::configure(<span style="color: #8abeb7;">"./log4cxx_hello.properties"</span>);
+<span style="color: #969896; background-color: #222427;"> </span> LOG4CXX_INFO(logger, <span style="color: #8abeb7;">"&#20320;&#22909;&#65292;log4cxx!"</span>);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> 0;
+}
+</pre>
+</div>
+
+<p>
+<code>log4cxx_hello.properties</code> ：
+</p>
+<pre class="example">
+log4j.rootLogger=debug, R
+
+log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+
+# Pattern to output the caller's file name and line number.
+log4j.appender.stdout.layout.ConversionPattern=%5p [%t] (%F:%L) - %m%n
+
+log4j.appender.R=org.apache.log4j.RollingFileAppender
+log4j.appender.R.File=./hello.log
+
+log4j.appender.R.MaxFileSize=100KB
+# Keep one backup file
+log4j.appender.R.MaxBackupIndex=10
+
+log4j.appender.R.layout=org.apache.log4j.PatternLayout
+log4j.appender.R.layout.ConversionPattern=%5p %c [%t] (%F:%L) - %m%n
+</pre>
+
+<p>
+编译：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">g++ -o hello hello.cpp -I${<span style="color: #f0c674;">HOME</span>}/libs/include ${<span style="color: #f0c674;">HOME</span>}/libs/lib/liblog4cxx.a ${<span style="color: #f0c674;">HO</span><span style="color: #de935f; background-color: #373b41;">ME</span><span style="color: #de935f; background-color: #373b41;">}/libs/lib/libaprutil-1.a ${</span><span style="color: #de935f; background-color: #373b41;">HOME</span><span style="color: #de935f; background-color: #373b41;">}/libs/lib/libapr-1.a  -lexpat -lpthread</span>
+</pre>
+</div>
+</li>
+
+<li>注意事项
+
+<p>
+由于一个日志文件写满后会重命名所有已有的日志文件，配置过大MaxBackupIndex的会有性能问题，因此log4cxx编译时限制了它的大小（大概十多个）以避免配置的MaxBackupIndex过大，如果要设置更大一点的MaxFileSize来保存更多日志，需要在编译前进行修改。
+</p>
+
+<p>
+参考：<a href="http://objectmix.com/apache/684503-urgent-log4cxx-large-window-sizes-not-allowed.html">http://objectmix.com/apache/684503-urgent-log4cxx-large-window-sizes-not-allowed.html</a>
+</p>
+</li>
+
+<li>使用技巧
+<ul class="org-ul">
+<li>决定配置文件的格式（xml，property）。以使用相应的配置器（Configurator）装入配置文件。
+
+<p>
+xml虽较property格式繁锁，支持的配置面更全，而property格式的配置文件使用更简单，容易在网上找到现成的配置文件。
+</p>
+</li>
+
+<li>logger命名
+
+<p>
+logger名称反映了软件模块，如果有代表软件模块的类，则在类中包含以该类类名命名的logger对象，该模块功能相关代码通过该logger进行日志记录。
+另外可将logger对象作为全局变量，方便使用，特别是当软件模块较松散，并无对应的封装类时。
+</p>
+</li>
+
+<li>在代码中适当地放置日志代码。引用适当的日志对象，对日志进行适当分级。
+</li>
+
+<li>余下的工作就是修改配置文件，对日志进行控制了。
+</li>
+</ul>
+</li>
+</ul>
+
+<p>
+　　使用配置文件的好处就是可以方便地配置日志而不需要修改源代码，可以在配置文件中方便配置日志过滤、格式、日志目的地。
+</p>
+
+<ul class="org-ul">
+<li>体验
+</li>
+</ul>
+
+<p>
+　之前产品中用到的是log4cplus，但是常常有写日志崩溃的情况出现，使用log4cxx正是用于解决该崩溃。</p>
 ]]></content:encoded>
         </item>
     </channel>

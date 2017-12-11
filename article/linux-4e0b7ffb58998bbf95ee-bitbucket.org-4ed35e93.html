@@ -237,7 +237,63 @@ $ proxychains curl https://www.baidu.com
 </pre>
 
 <p>
-proxychains 的安装配置请参考：<a href="https://sites.google.com/a/pickdreams.org/snail-library/Home/yong-tsocks-heproxychains-dai-lilinux-xia-suo-you-ruan-jian">用tsocks和proxychains代理Linux下所有软件 - 蜗牛图书馆</a></p>
+proxychains 的安装配置请参考：<a href="https://sites.google.com/a/pickdreams.org/snail-library/Home/yong-tsocks-heproxychains-dai-lilinux-xia-suo-you-ruan-jian">用tsocks和proxychains代理Linux下所有软件 - 蜗牛图书馆</a>
+</p>
+</div>
+
+<div id="outline-container-sec-3-3-1" class="outline-4">
+<h4 id="sec-3-3-1">将 socks 代理转换为 http 代理</h4>
+<div class="outline-text-4" id="text-3-3-1">
+<p>
+go get 不支持 proxychains（应该是 go 是静态链接的原因），可以使用 <code>privoxy</code>
+将 socks 代理转换为 http 代理。
+</p>
+
+<p>
+安装 <code>privoxy</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">yaourt -S privoxy
+</pre>
+</div>
+
+<p>
+修改 <code>privoxy</code> 配置文件 <code>/etc/privoxy/config</code> ，添加以下配置行
+</p>
+<pre class="example">
+forward-socks5  / 127.0.0.1:7070 .
+# local network do not use proxy
+forward         192.168.*.*/     .
+forward            10.*.*.*/     .
+forward           127.*.*.*/     .
+</pre>
+
+<p>
+启用 <code>privoxy</code> 服务
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo systemctl enable privoxy
+sudo systemctl start privoxy
+</pre>
+</div>
+
+<p>
+通过 http 代理使用 <code>go get</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #b294bb;">export</span> <span style="color: #f0c674;">http_proxy</span>=http://127.0.0.1:8118
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">https_proxy</span>=http://127.0.0.1:8118
+go get golang.org/x/net
+</pre>
+</div>
+
+<p>
+参考：<a href="http://blog.btthly.com/go-get-socks-proxy-settings.html">go get socks proxy设置 | 爱吃猫粮的鱼</a>
+</p>
+</div>
 </div>
 </div>
 </div>
@@ -249,8 +305,6 @@ proxychains 的安装配置请参考：<a href="https://sites.google.com/a/pickd
             <i class="icon-time icon-white"></i> <time datetime="2013-06-28T13:57:00+0800">2013年6月28日 13时</time>
           </span>
           <a class="tag" href="/tag/linux/0.html"><i class="icon-tag icon-white"></i> linux</a>
-          <a class="tag" href="/tag/hg/0.html"><i class="icon-tag icon-white"></i> hg</a>
-          <a class="tag" href="/tag/bitbucket/0.html"><i class="icon-tag icon-white"></i> bitbucket</a>
         </footer>
       </div>
 

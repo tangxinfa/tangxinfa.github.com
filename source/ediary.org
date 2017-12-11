@@ -19,7 +19,7 @@
     git clone https://github.com/tangxinfa/tangxinfa.github.com.git
   #+end_src
 
-* DONE Archlinux下安装fcitx输入法                           :linux:fcitx:
+* DONE Archlinux下安装fcitx输入法                           :linux:
   CLOSED: [2012-12-15 六 21:56]
 
 ** 安装
@@ -1074,7 +1074,7 @@ class RedisShard {
     - http://bbs.phpchina.com/viewthread.php?tid=13861
     - http://hi.baidu.com/ak456/blog/item/c318502394aa20569922ed7b.html
 
-* DONE log4cxx使用心得                                              :log4cxx:
+* DONE log4cxx使用心得                                              :cpp:logging:
   CLOSED: <2008-06-17 Tue 10:01>
 
   - 简介
@@ -1527,7 +1527,7 @@ class RedisShard {
    
    - [[http://nodejs.org/docs/latest/api/all.html][Node.js官方API手册]]
 
-* DONE log4php初步使用                                              :log4php:
+* DONE log4php初步使用                                              :php:logging:
   CLOSED: [2013-05-06 一 18:32]
   
 ** 简介
@@ -1816,7 +1816,7 @@ class RedisShard {
     Note: Adding nomodeset to the kernel boot line might prevent GNOME 3's gnome-shell or KDE's desktop effects from running.
   #+end_example
 
-* DONE linux下翻墙访问bitbucket.org仓库                  :linux:hg:bitbucket:
+* DONE linux下翻墙访问bitbucket.org仓库                  :linux:
   CLOSED: [2013-06-28 Fri 13:57]
   
   今天往 bitbucket.org push 时才发现 bitbucket 被 GFW 了。我的仓库为 Mercurial hg，hg 项目根目录下的 =.hg/hgrc= 配置文件中可指定 http_proxy，试了一下不支持 socks 代理（我的浏览器用它来翻墙），最终使用 tsocks 或 proxychains 实现翻墙访问 bitbucket.org 仓库。
@@ -1959,6 +1959,40 @@ class RedisShard {
 
     proxychains 的安装配置请参考：[[https://sites.google.com/a/pickdreams.org/snail-library/Home/yong-tsocks-heproxychains-dai-lilinux-xia-suo-you-ruan-jian][用tsocks和proxychains代理Linux下所有软件 - 蜗牛图书馆]]
 
+**** 将 socks 代理转换为 http 代理
+
+     go get 不支持 proxychains（应该是 go 是静态链接的原因），可以使用 =privoxy=
+     将 socks 代理转换为 http 代理。
+
+     安装 =privoxy=
+     #+begin_src sh
+       yaourt -S privoxy
+     #+end_src
+     
+     修改 =privoxy= 配置文件 =/etc/privoxy/config= ，添加以下配置行
+     #+begin_example
+       forward-socks5  / 127.0.0.1:7070 .
+       # local network do not use proxy
+       forward         192.168.*.*/     .
+       forward            10.*.*.*/     .
+       forward           127.*.*.*/     .
+     #+end_example
+
+     启用 =privoxy= 服务
+     #+begin_src sh
+       sudo systemctl enable privoxy
+       sudo systemctl start privoxy
+     #+end_src
+
+     通过 http 代理使用 =go get=
+     #+begin_src sh
+       export http_proxy=http://127.0.0.1:8118
+       export https_proxy=http://127.0.0.1:8118
+       go get golang.org/x/net
+     #+end_src
+
+     参考：[[http://blog.btthly.com/go-get-socks-proxy-settings.html][go get socks proxy设置 | 爱吃猫粮的鱼]]
+    
 * TODO 《架构风格与基于网络的软件架构设计》读书笔记            :REST:reading:
   
   #+begin_quote
@@ -5819,7 +5853,7 @@ class RedisShard {
 
   - mysql_query进行update返回true表示记录更新成功吗？
     
-* DONE 在linux使用nfs挂载其它linux机器上的文件夹                  :linux:nfs:
+* DONE 在linux使用nfs挂载其它linux机器上的文件夹                  :linux:filesystem:
   CLOSED: [2014-09-23 Tue 16:52]
 
   下面的IP地址以及工作目录需按实际情况进行修改。
@@ -17456,7 +17490,7 @@ clang 编译器较之 gcc 在进行代码分析方面提供了良好的支持，
 
   - [[https://cloud.google.com/endpoints/docs/grpc/transcoding][Transcoding HTTP/JSON to gRPC  |  Cloud Endpoints with gRPC  |  Google Cloud Platform]]
 
-* DONE 在浏览器中访问 gRPC 消息推送服务的一些思索                  :grpc:web:websocket:
+* DONE 在浏览器中访问 gRPC 消息推送服务的一些思索                  :envoy:grpc:web:websocket:
   CLOSED: [2017-10-26 Thu 17:13]
 
   gRPC 数据编码采用 Protobuf、底层传输协议使用了 HTTP/2，支持双向流（ =Bidirectional streaming= ）接口，用来开发消息推送服务的再完美不过。
@@ -17811,8 +17845,9 @@ clang 编译器较之 gcc 在进行代码分析方面提供了良好的支持，
   
   并不是所有工具都和 =gdb= 一样支持分离的调试符号文件，如 =str2line= 就不支持，
   可以将调试符号文件和 strip 后的可执行程序重新合并成带调试符号的程序
-  =app_debug=：
+  =app_debug= ：
   #+begin_src sh
+    cp ./app.debug ./app_debug
     eu-unstrip ./app ./app_debug
   #+end_src
   参考 [[https://stackoverflow.com/questions/2509301/how-to-reverse-the-objcopys-strip-with-only-keep-debug/38645662#38645662][binutils - How to reverse the objcopy's strip with only-keep-debug? - Stack Overflow]]
