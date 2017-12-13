@@ -4,7 +4,7 @@
         <title>技术 - 看看俺 – KanKanAn.com</title>
         <link>http://blog.kankanan.com/category/tech.xml</link>
         <description>记我所思，忆我所为。</description>
-        <lastBuildDate>Mon, 11 Dec 2017 09:53:30 GMT</lastBuildDate>
+        <lastBuildDate>Wed, 13 Dec 2017 10:19:32 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <generator>Feed for Node.js</generator>
         <image>
@@ -14,6 +14,46 @@
         </image>
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <category>技术</category>
+        <item>
+            <title><![CDATA[CentOS 下 Go gRPC 编译环境搭建]]></title>
+            <link>/article/centos-4e0b-go-grpc-7f168bd173af5883642d5efa.html</link>
+            <guid>/article/centos-4e0b-go-grpc-7f168bd173af5883642d5efa.html</guid>
+            <pubDate>Tue, 12 Dec 2017 11:28:00 GMT</pubDate>
+            <content:encoded><![CDATA[<ul class="org-ul">
+<li>安装 <code>protobuf</code>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">git clone https://github.com/google/protobuf.git
+<span style="color: #b294bb;">cd</span> protobuf
+git checkout v3.4.1 -b v3.4.1
+./autogen.sh
+./configure
+make
+make install
+</pre>
+</div>
+</li>
+
+<li>安装 <code>protobuf go 插件</code>
+
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #b294bb;">export</span> <span style="color: #f0c674;">GOPATH</span>=/usr/local/lib/golang
+go get -u github.com/golang/protobuf/{proto,protoc-gen-go}
+cp $<span style="color: #f0c674;">GOPATH</span>/bin/protoc-gen-go /usr/local/bin/
+</pre>
+</div>
+</li>
+
+<li>参考
+
+<p>
+<a href="http://www.jianshu.com/p/e2435b834d68">golang开发环境搭建-安装go 和 grpc - 简书</a></p>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[使用 Envoy 做为 socket.io 的前端代理]]></title>
             <link>/article/4f7f7528-envoy-505a4e3a-socket.io-7684524d7aef4ee37406.html</link>
@@ -236,8 +276,7 @@ Pull Request <a href="https://github.com/envoyproxy/envoy/pull/1766">Implement c
 <li>用浏览器打开多个 <code>http://localhost:9002/index2.html</code> 页面
 
 <p>
-正常情况下，每个页面都会收到 <code>welcome</code> 消息，表示 socket.io 连接成功，可以在下方的编辑框输入内容，服务器会 echo 回来。
-</p>
+正常情况下，每个页面都会收到 <code>welcome</code> 消息，表示 socket.io 连接成功，可以在下方的编辑框输入内容，服务器会 echo 回来。</p>
 </li>
 </ul>
 </div>
@@ -2774,47 +2813,144 @@ ORM 需要理解关系模型，会对数据库设计本身带来了阻力，这�
 <li>文件移动到目标位置后，没有清理机制，会影响下一任务
 
 <p>
-将 <code>gitlab</code> 的 <code>GIT_STRATEGY</code> 变量配置为 <code>fetch</code> ，它会在拉取代码后执行 <code>git clean</code> 将未知的文件删除，如果我们将移动后的代码放在原来的位置下就可以做到自动清除没有负作用了，如下所示：
+将 <code>gitlab</code> 的 <code>GIT_STRATEGY</code> 变量配置为 <code>fetch</code> ，它会在拉取代码后执行 <code>git
+    clean</code> 将未知的文件删除，如果我们将移动后的代码放在原来的位置下就可以做到自
+动清除没有负作用了。
 </p>
+</li>
+
+<li>缓存 <code>vendor</code> 目录
+
+<p>
+<code>glide update</code> 会更新 Go 项目依赖，比较耗时，构建有 <code>build</code> <code>test</code> <code>deploy</code>
+等多个阶段，缓存 <code>vendor</code> 目录能够会快很多。这些阶段会依次执行，同阶段的多个
+任务是并行的，可以将 <code>build</code> 阶段的工作目录状态保留到其它阶段，可以用
+<code>cache</code> 来实现，也可以将除了 <code>build</code> 阶段以外的其它阶段的 <code>GIT_STRATEGY</code> 置
+为 <code>none</code> 来实现。
+</p>
+</li>
+
+<li>创建 docker 镜像
+
+<p>
+安装完 <code>gitlab-runner</code> 后要将 <code>gitlab-runner</code> 用户加入到 <code>docker</code> 用户组，这
+样才可调用 <code>docker</code> 工具。
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">usermod gitlab-runner -a -G docker
+</pre>
+</div>
+
+<p>
+不要在 <code>.gitlab-ci.yml</code> 中直接写死 docker 帐号和密码，而是引用环境变量，在
+<code>~gitlab-runner/.bashrc</code> 中设置环境变量
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #b294bb;">export</span> <span style="color: #f0c674;">DOCKER_REGISTRY</span>=gitlab.xxxxxx.com
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">DOCKER_USER</span>=xxx@xxxxxx.com
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">DOCKER_PASSWORD</span>=xxxxxxxx
+</pre>
+</div>
+
+<p>
+docker 镜像按照简单的约定：
+</p>
+
+<ul class="org-ul">
+<li>git 打 tag 时打一个镜像，做为发布镜像
+
+<p>
+之前一直想实现仅当 <code>master</code> 分支打 <code>tag</code> 时才创建镜像，但是实现起来会很麻
+烦，因为 git 的 tag 只是 commit 的引用，与具体的 branch 无关，tags 和
+branchs 是平级的概念。
+</p>
+
+<p>
+相关讨论 <a href="https://gitlab.com/gitlab-org/gitlab-ce/issues/27818">Update `.gitlab-ci.yml` to support conjunction logic for build conditions (#27818)</a>
+</p>
+</li>
+
+<li><code>dev</code> 开头的分支进行代码提交时打一个镜像，做为测试镜像
+</li>
+</ul>
 </li>
 </ul>
 
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">示例配置：</h2>
+<div class="outline-text-2" id="text-1">
 <p>
 <code>.gitlab-ci.yml</code>
 </p>
 <div class="org-src-container">
 
 <pre class="src src-yaml"><span style="color: #f0c674;">variables</span>:
-  <span style="color: #f0c674;">REPO_NAME</span>: gitlab.example.com/myproject
-  <span style="color: #f0c674;">GIT_STRATEGY</span>: fetch
+  <span style="color: #f0c674;">REPO_NAME</span>: gitlab.example.com/mygroup/myproject
+  <span style="color: #f0c674;">BIN_NAME</span>: mygroup.myproject
 
 <span style="color: #f0c674;">before_script</span>:
   - go version
+  - protoc --version
   - echo $CI_BUILD_REF
   - echo $CI_PROJECT_DIR
+  - if [ ! -d <span style="color: #8abeb7;">"${CI_PROJECT_DIR}/src/$REPO_NAME"</span> ];
+    then
+      mkdir -p ${CI_PROJECT_DIR}.src.tmp/$REPO_NAME;
+      shopt -s dotglob;
+      mv $CI_PROJECT_DIR/* ${CI_PROJECT_DIR}.src.tmp/$REPO_NAME/;
+      mv ${CI_PROJECT_DIR}.src.tmp ${CI_PROJECT_DIR}/src;
+      echo <span style="color: #8abeb7;">"${CI_PROJECT_DIR}/src/$REPO_NAME created"</span>;
+    fi
+  - export GOPATH=$CI_PROJECT_DIR
+  - cd $GOPATH/src/$REPO_NAME
 
 <span style="color: #f0c674;">build</span>:
   <span style="color: #f0c674;">stage</span>: build
+  <span style="color: #f0c674;">variables</span>:
+    <span style="color: #f0c674;">GIT_STRATEGY</span>: fetch
   <span style="color: #f0c674;">script</span>:
-    - mkdir -p ${CI_PROJECT_DIR}.src.tmp/$REPO_NAME
-    - shopt -s dotglob
-    - mv $CI_PROJECT_DIR/* ${CI_PROJECT_DIR}.src.tmp/$REPO_NAME/
-    - mv ${CI_PROJECT_DIR}.src.tmp ${CI_PROJECT_DIR}/src
-    - export GOPATH=$CI_PROJECT_DIR
-    - cd $GOPATH/src/$REPO_NAME
     - make
 
 <span style="color: #f0c674;">test</span>:
   <span style="color: #f0c674;">stage</span>: test
+  <span style="color: #f0c674;">variables</span>:
+    <span style="color: #f0c674;">GIT_STRATEGY</span>: none
   <span style="color: #f0c674;">script</span>:
-    - mkdir -p ${CI_PROJECT_DIR}.src.tmp/$REPO_NAME
-    - shopt -s dotglob
-    - mv $CI_PROJECT_DIR/* ${CI_PROJECT_DIR}.src.tmp/$REPO_NAME/
-    - mv ${CI_PROJECT_DIR}.src.tmp ${CI_PROJECT_DIR}/src
-    - export GOPATH=$CI_PROJECT_DIR
-    - cd $GOPATH/src/$REPO_NAME
     - go test -v
+
+<span style="color: #969896; font-style: italic;"># </span><span style="color: #969896; font-style: italic;">Build docker image for development when any branch named begin with "dev"</span>
+<span style="color: #f0c674;">deploy-dev</span>:
+  <span style="color: #f0c674;">stage</span>: deploy
+  <span style="color: #f0c674;">variables</span>:
+    <span style="color: #f0c674;">GIT_STRATEGY</span>: none
+  <span style="color: #f0c674;">only</span>:
+    - /^dev.*/@mygroup/myproject
+  <span style="color: #f0c674;">except</span>:
+    - tags
+  <span style="color: #f0c674;">script</span>:
+    - VERSION=${CI_COMMIT_REF_NAME} make
+    - docker build ./ -t ${REPO_NAME}/${BIN_NAME}:${CI_COMMIT_REF_NAME}
+    - docker login ${DOCKER_REGISTRY} -u ${DOCKER_USER} -p ${DOCKER_PASSWORD}
+    - docker push ${REPO_NAME}/${BIN_NAME}:${CI_COMMIT_REF_NAME}
+
+<span style="color: #969896; font-style: italic;"># </span><span style="color: #969896; font-style: italic;">Build docker image for production when pushed a tag</span>
+<span style="color: #f0c674;">deploy</span>:
+  <span style="color: #f0c674;">stage</span>: deploy
+  <span style="color: #f0c674;">variables</span>:
+    <span style="color: #f0c674;">GIT_STRATEGY</span>: none
+  <span style="color: #f0c674;">only</span>:
+    - tags@mygroup/myproject
+  <span style="color: #f0c674;">script</span>:
+    - VERSION=${CI_COMMIT_REF_NAME} make
+    - docker build ./ -t ${REPO_NAME}/${BIN_NAME}:${CI_COMMIT_REF_NAME}
+    - docker login ${DOCKER_REGISTRY} -u ${DOCKER_USER} -p ${DOCKER_PASSWORD}
+    - docker push ${REPO_NAME}/${BIN_NAME}:${CI_COMMIT_REF_NAME}
 </pre>
+</div>
+</div>
 </div>
 ]]></content:encoded>
         </item>

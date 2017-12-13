@@ -16644,41 +16644,113 @@ Every change you make must be backward compatible with the rest of the system
 
   - 文件移动到目标位置后，没有清理机制，会影响下一任务
 
-    将 =gitlab= 的 =GIT_STRATEGY= 变量配置为 =fetch= ，它会在拉取代码后执行 =git clean= 将未知的文件删除，如果我们将移动后的代码放在原来的位置下就可以做到自动清除没有负作用了，如下所示：
+    将 =gitlab= 的 =GIT_STRATEGY= 变量配置为 =fetch= ，它会在拉取代码后执行 =git
+    clean= 将未知的文件删除，如果我们将移动后的代码放在原来的位置下就可以做到自
+    动清除没有负作用了。
 
-  =.gitlab-ci.yml=
-  #+begin_src yaml
-    variables:
-      REPO_NAME: gitlab.example.com/myproject
-      GIT_STRATEGY: fetch
+  - 缓存 =vendor= 目录
+    
+    =glide update= 会更新 Go 项目依赖，比较耗时，构建有 =build= =test= =deploy=
+    等多个阶段，缓存 =vendor= 目录能够会快很多。这些阶段会依次执行，同阶段的多个
+    任务是并行的，可以将 =build= 阶段的工作目录状态保留到其它阶段，可以用
+    =cache= 来实现，也可以将除了 =build= 阶段以外的其它阶段的 =GIT_STRATEGY= 置
+    为 =none= 来实现。
 
-    before_script:
-      - go version
-      - echo $CI_BUILD_REF
-      - echo $CI_PROJECT_DIR
+  - 创建 docker 镜像
 
-    build:
-      stage: build
-      script:
-        - mkdir -p ${CI_PROJECT_DIR}.src.tmp/$REPO_NAME
-        - shopt -s dotglob
-        - mv $CI_PROJECT_DIR/* ${CI_PROJECT_DIR}.src.tmp/$REPO_NAME/
-        - mv ${CI_PROJECT_DIR}.src.tmp ${CI_PROJECT_DIR}/src
-        - export GOPATH=$CI_PROJECT_DIR
-        - cd $GOPATH/src/$REPO_NAME
-        - make
+    安装完 =gitlab-runner= 后要将 =gitlab-runner= 用户加入到 =docker= 用户组，这
+    样才可调用 =docker= 工具。
+    
+    #+begin_src sh
+      usermod gitlab-runner -a -G docker
+    #+end_src
 
-    test:
-      stage: test
-      script:
-        - mkdir -p ${CI_PROJECT_DIR}.src.tmp/$REPO_NAME
-        - shopt -s dotglob
-        - mv $CI_PROJECT_DIR/* ${CI_PROJECT_DIR}.src.tmp/$REPO_NAME/
-        - mv ${CI_PROJECT_DIR}.src.tmp ${CI_PROJECT_DIR}/src
-        - export GOPATH=$CI_PROJECT_DIR
-        - cd $GOPATH/src/$REPO_NAME
-        - go test -v
-  #+end_src
+    不要在 =.gitlab-ci.yml= 中直接写死 docker 帐号和密码，而是引用环境变量，在
+    =~gitlab-runner/.bashrc= 中设置环境变量
+    #+begin_src sh
+      export DOCKER_REGISTRY=gitlab.xxxxxx.com
+      export DOCKER_USER=xxx@xxxxxx.com
+      export DOCKER_PASSWORD=xxxxxxxx
+    #+end_src
+
+    docker 镜像按照简单的约定：
+
+    - git 打 tag 时打一个镜像，做为发布镜像
+
+      之前一直想实现仅当 =master= 分支打 =tag= 时才创建镜像，但是实现起来会很麻
+      烦，因为 git 的 tag 只是 commit 的引用，与具体的 branch 无关，tags 和
+      branchs 是平级的概念。
+
+      相关讨论 [[https://gitlab.com/gitlab-org/gitlab-ce/issues/27818][Update `.gitlab-ci.yml` to support conjunction logic for build conditions (#27818)]]
+
+    - =dev= 开头的分支进行代码提交时打一个镜像，做为测试镜像
+
+** 示例配置：
+
+   =.gitlab-ci.yml=
+   #+begin_src yaml
+     variables:
+       REPO_NAME: gitlab.example.com/mygroup/myproject
+       BIN_NAME: mygroup.myproject
+
+     before_script:
+       - go version
+       - protoc --version
+       - echo $CI_BUILD_REF
+       - echo $CI_PROJECT_DIR
+       - if [ ! -d "${CI_PROJECT_DIR}/src/$REPO_NAME" ];
+         then
+           mkdir -p ${CI_PROJECT_DIR}.src.tmp/$REPO_NAME;
+           shopt -s dotglob;
+           mv $CI_PROJECT_DIR/* ${CI_PROJECT_DIR}.src.tmp/$REPO_NAME/;
+           mv ${CI_PROJECT_DIR}.src.tmp ${CI_PROJECT_DIR}/src;
+           echo "${CI_PROJECT_DIR}/src/$REPO_NAME created";
+         fi
+       - export GOPATH=$CI_PROJECT_DIR
+       - cd $GOPATH/src/$REPO_NAME
+
+     build:
+       stage: build
+       variables:
+         GIT_STRATEGY: fetch
+       script:
+         - make
+
+     test:
+       stage: test
+       variables:
+         GIT_STRATEGY: none
+       script:
+         - go test -v
+
+     # Build docker image for development when any branch named begin with "dev"
+     deploy-dev:
+       stage: deploy
+       variables:
+         GIT_STRATEGY: none
+       only:
+         - /^dev.*/@mygroup/myproject
+       except:
+         - tags
+       script:
+         - VERSION=${CI_COMMIT_REF_NAME} make
+         - docker build ./ -t ${REPO_NAME}/${BIN_NAME}:${CI_COMMIT_REF_NAME}
+         - docker login ${DOCKER_REGISTRY} -u ${DOCKER_USER} -p ${DOCKER_PASSWORD}
+         - docker push ${REPO_NAME}/${BIN_NAME}:${CI_COMMIT_REF_NAME}
+
+     # Build docker image for production when pushed a tag
+     deploy:
+       stage: deploy
+       variables:
+         GIT_STRATEGY: none
+       only:
+         - tags@mygroup/myproject
+       script:
+         - VERSION=${CI_COMMIT_REF_NAME} make
+         - docker build ./ -t ${REPO_NAME}/${BIN_NAME}:${CI_COMMIT_REF_NAME}
+         - docker login ${DOCKER_REGISTRY} -u ${DOCKER_USER} -p ${DOCKER_PASSWORD}
+         - docker push ${REPO_NAME}/${BIN_NAME}:${CI_COMMIT_REF_NAME}
+   #+end_src
 
 * DONE 数据库中的数据带来的诱惑                          :architecture:think:
   CLOSED: [2017-07-31 Mon 18:07]
@@ -18489,4 +18561,30 @@ clang 编译器较之 gcc 在进行代码分析方面提供了良好的支持，
    - 用浏览器打开多个 =http://localhost:9002/index2.html= 页面
 
      正常情况下，每个页面都会收到 =welcome= 消息，表示 socket.io 连接成功，可以在下方的编辑框输入内容，服务器会 echo 回来。
-  
+
+* DONE CentOS 下 Go gRPC 编译环境搭建                         :linux:go:grpc:
+  CLOSED: [2017-12-12 Tue 19:28]
+
+  - 安装 =protobuf=
+
+    #+begin_src sh
+      git clone https://github.com/google/protobuf.git
+      cd protobuf
+      git checkout v3.4.1 -b v3.4.1
+      ./autogen.sh
+      ./configure
+      make
+      make install
+    #+end_src
+
+  - 安装 =protobuf go 插件=
+
+    #+begin_src sh
+      export GOPATH=/usr/local/lib/golang
+      go get -u github.com/golang/protobuf/{proto,protoc-gen-go}
+      cp $GOPATH/bin/protoc-gen-go /usr/local/bin/
+    #+end_src
+
+  - 参考
+    
+    [[http://www.jianshu.com/p/e2435b834d68][golang开发环境搭建-安装go 和 grpc - 简书]]
