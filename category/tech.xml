@@ -4,7 +4,7 @@
         <title>技术 - 看看俺 – KanKanAn.com</title>
         <link>http://blog.kankanan.com/category/tech.xml</link>
         <description>记我所思，忆我所为。</description>
-        <lastBuildDate>Wed, 13 Dec 2017 10:19:32 GMT</lastBuildDate>
+        <lastBuildDate>Thu, 18 Jan 2018 12:17:39 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <generator>Feed for Node.js</generator>
         <image>
@@ -14,6 +14,236 @@
         </image>
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <category>技术</category>
+        <item>
+            <title><![CDATA[Scan 时进行 Rename 导致结果未定义]]></title>
+            <link>/article/scan-65f68fdb884c-rename-5bfc81f47ed3679c672a5b9a4e49.html</link>
+            <guid>/article/scan-65f68fdb884c-rename-5bfc81f47ed3679c672a5b9a4e49.html</guid>
+            <pubDate>Thu, 18 Jan 2018 12:16:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+我们有一个服务有这种场景：
+</p>
+
+<ul class="org-ul">
+<li>Web 服务提供查询接口返回一个很大的数据集给客户端
+</li>
+</ul>
+
+<p>
+这个数据集使用 <code>Sets</code> 结构进行保存，读取这个数据集使用 <code>sscan</code> 命令每次返回
+<code>100</code> 条记录，直到读完为止。
+</p>
+
+<ul class="org-ul">
+<li>后台计算脚本计算并更新数据集
+</li>
+</ul>
+
+<p>
+计算结果先放到一个临时 <code>key</code> 中，等到计算完再通过 <code>rename</code> 覆盖正式的 <code>key</code> 。
+</p>
+
+<p>
+最近，客户方反映获取的数据集偏小，正常应该是 20 多万条记录，结果只取到几万条记录。
+</p>
+
+<p>
+我们怀疑是 Scan 过程中如果数据集被 <code>rename</code> 覆盖，结果可能是未定义的，见以下测试程序：
+</p>
+
+<p>
+<code>redis_rename_when_scan.js</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-js"><span style="color: #8abeb7;">"use strict"</span>;
+
+<span style="color: #b5bd68;">const</span> <span style="color: #f0c674;">Redis</span> = require(<span style="color: #8abeb7;">'ioredis'</span>);
+<span style="color: #b5bd68;">const</span> <span style="color: #f0c674;">async</span> = require(<span style="color: #8abeb7;">'async'</span>);
+<span style="color: #b5bd68;">const</span> <span style="color: #f0c674;">_</span> = require(<span style="color: #8abeb7;">'lodash'</span>);
+<span style="color: #b5bd68;">const</span> <span style="color: #f0c674;">crypto</span> = require(<span style="color: #8abeb7;">'crypto'</span>);
+
+<span style="color: #b5bd68;">const</span> <span style="color: #f0c674;">key_</span> = <span style="color: #8abeb7;">"test:set_"</span>;
+<span style="color: #b5bd68;">const</span> <span style="color: #f0c674;">key</span> = <span style="color: #8abeb7;">"test:set"</span>;
+<span style="color: #b5bd68;">const</span> <span style="color: #f0c674;">min</span> = 0;
+<span style="color: #b5bd68;">const</span> <span style="color: #f0c674;">max</span> = 100000;
+<span style="color: #b5bd68;">const</span> <span style="color: #f0c674;">prefix_length</span> = 20;
+<span style="color: #b5bd68;">let</span> <span style="color: #f0c674;">scan_round</span> = 0;
+<span style="color: #b5bd68;">let</span> <span style="color: #f0c674;">write_round</span> = 0;
+
+<span style="color: #b5bd68;">function</span> <span style="color: #de935f;">add</span>(<span style="color: #f0c674;">client</span>, <span style="color: #f0c674;">value</span>, <span style="color: #f0c674;">callback</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (value &gt; max) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">return</span> callback(<span style="color: #81a2be;">null</span>);
+<span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   crypto.randomBytes(parseInt(prefix_length / 2, 10), <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">err</span>, <span style="color: #f0c674;">buffer</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">return</span> callback(err);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">Test full random dataset</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">let prefix = buffer.toString('hex');</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">Test fixed dataset</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">let prefix = _.pad('', prefix_length, '0');</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">Test partial random dataset</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #f0c674;">prefix</span> = _.pad(<span style="color: #8abeb7;">''</span>, prefix_length - 1, <span style="color: #8abeb7;">'0'</span>) + buffer.toString(<span style="color: #8abeb7;">'hex'</span>)[<span style="color: #de935f; background-color: #373b41;">0];</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">return</span> client.sadd(key_, prefix + value, <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">err</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">return</span> callback(err);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   value += 1;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">return</span> add(client, value, callback);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   });
+<span style="color: #969896; background-color: #222427;"> </span>   });
+}
+
+<span style="color: #b5bd68;">function</span> <span style="color: #de935f;">write</span>(<span style="color: #f0c674;">client</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (!client) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   client = <span style="color: #b5bd68;">new</span> <span style="color: #81a2be;">Redis</span>();
+<span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   client.del(key_, <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">err</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">throw</span> err;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   add(client, min, <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">err</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">throw</span> err;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   client.rename(key_, key, <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">err</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">throw</span> err;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   console.log(<span style="color: #8abeb7;">"write#"</span> + write_round + <span style="color: #8abeb7;">" DONE"</span>);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   ++write_round;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   write(client);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   });
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   });
+<span style="color: #969896; background-color: #222427;"> </span>   });
+}
+
+<span style="color: #b5bd68;">function</span> <span style="color: #de935f;">ready</span>(<span style="color: #f0c674;">client</span>, <span style="color: #f0c674;">callback</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (!client) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   client = <span style="color: #b5bd68;">new</span> <span style="color: #81a2be;">Redis</span>();
+<span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   client.exists(key, <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">err</span>, <span style="color: #f0c674;">exists</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   callback(err);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   } <span style="color: #b5bd68;">else</span> <span style="color: #b5bd68;">if</span> (exists) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   callback(<span style="color: #81a2be;">null</span>);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   } <span style="color: #b5bd68;">else</span> {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   setTimeout(<span style="color: #b5bd68;">function</span>() {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   ready(client, callback);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }, 100);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   });
+}
+
+<span style="color: #b5bd68;">function</span> <span style="color: #de935f;">init</span>(<span style="color: #f0c674;">callback</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #f0c674;">client</span> = <span style="color: #b5bd68;">new</span> <span style="color: #81a2be;">Redis</span>();
+<span style="color: #969896; background-color: #222427;"> </span>   client.del(key_, <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">err</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">throw</span> err;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   client.del(key, <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">err</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">throw</span> err;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   callback();
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   });
+<span style="color: #969896; background-color: #222427;"> </span>   });
+}
+
+<span style="color: #b5bd68;">function</span> <span style="color: #de935f;">scan</span>(<span style="color: #f0c674;">client</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (!client) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   client = <span style="color: #b5bd68;">new</span> <span style="color: #81a2be;">Redis</span>();
+<span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   ready(<span style="color: #81a2be;">null</span>, <span style="color: #b5bd68;">function</span>() {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #f0c674;">results</span> = [];
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">cursor</span> = 0;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   async.doWhilst(<span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">done</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   client.sscan(key, cursor, <span style="color: #8abeb7;">'COUNT'</span>, 100, <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">err</span>, <span style="color: #f0c674;">values</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">throw</span> err;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   cursor = +values[0];
+
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   values[1].forEach(<span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">value</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   results.push(value);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   });
+
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">console.log("scan#" + scan_round + " scan " + results.length </span><span style="color: #de935f; background-color: #373b41; font-style: italic;">+ " values");</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   setTimeout(done, 5);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   });
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }, <span style="color: #b5bd68;">function</span>() {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">return</span> cursor &gt; 0;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }, <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">err</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">throw</span> err;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #f0c674;">count_error</span> = <span style="color: #81a2be;">false</span>;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (results.length != (max - min + 1)) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (results.length &lt; (max - min + 1)) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   console.error(<span style="color: #8abeb7;">"scan#"</span> + scan_round + <span style="color: #8abeb7;">" Expected "</span> + (max - m<span style="color: #de935f; background-color: #373b41;">in + 1) + </span><span style="color: #de935f; background-color: #373b41;">" values, Got "</span><span style="color: #de935f; background-color: #373b41;"> + results.length);</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   count_error = <span style="color: #81a2be;">true</span>;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   } <span style="color: #b5bd68;">else</span> {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   console.warn(<span style="color: #8abeb7;">"scan#"</span> + scan_round + <span style="color: #8abeb7;">" Expected "</span> + (max - mi<span style="color: #de935f; background-color: #373b41;">n + 1) + </span><span style="color: #de935f; background-color: #373b41;">" values, Got "</span><span style="color: #de935f; background-color: #373b41;"> + results.length);</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (!count_error) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   results.sort((a, b) =&gt; parseInt(a.substring(prefix_length), 10) <span style="color: #de935f; background-color: #373b41;">- parseInt(b.substring(prefix_length), 10));</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #f0c674;">uniq_results</span> = _.sortedUniq(results);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (uniq_results.length != results.length) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   console.warn(<span style="color: #8abeb7;">"scan#"</span> + scan_round + <span style="color: #8abeb7;">" Expected 0 duplicated </span><span style="color: #de935f; background-color: #373b41;">values, Got "</span><span style="color: #de935f; background-color: #373b41;"> + (results.length - uniq_results.length));</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #f0c674;">result_error</span> = <span style="color: #81a2be;">false</span>;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">for</span> (<span style="color: #b5bd68;">let</span> <span style="color: #f0c674;">i</span> = 0; i &lt;= (max - min); ++i) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (parseInt(results[i].substring(prefix_length), 10) != (mi<span style="color: #de935f; background-color: #373b41;">n + i)) {</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">console.log("results: " + results.toString());</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   console.error(<span style="color: #8abeb7;">"scan#"</span> + scan_round + <span style="color: #8abeb7;">" value#"</span> + i + <span style="color: #8abeb7;">" E</span><span style="color: #de935f; background-color: #373b41;">xpected "</span><span style="color: #de935f; background-color: #373b41;"> + results[i].substring(0, prefix_length) + (min + i) + </span><span style="color: #de935f; background-color: #373b41;">", Got "</span><span style="color: #de935f; background-color: #373b41;"> + results[i]);</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   result_error = <span style="color: #81a2be;">true</span>;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">break</span>;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (!result_error) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   console.log(<span style="color: #8abeb7;">"scan#"</span> + scan_round + <span style="color: #8abeb7;">" OK"</span>);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   ++scan_round;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   scan(client);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   });
+<span style="color: #969896; background-color: #222427;"> </span>   });
+}
+
+init(<span style="color: #b5bd68;">function</span>() {
+<span style="color: #969896; background-color: #222427;"> </span>   write(<span style="color: #81a2be;">null</span>);
+<span style="color: #969896; background-color: #222427;"> </span>   scan(<span style="color: #81a2be;">null</span>);
+});
+</pre>
+</div>
+
+<p>
+测试表明，取决于数据集变化的幅度，变化越大的数据集，获取到的结果偏差越大。
+但是获取到的记录数终始相差不大， <code>10</code> 万条记录偏差 <code>+-200</code> 左右，前面遇到的数据
+记录数急剧减少可能是其它问题引起，如：计算出的记录数确实是有剧减。
+</p>
+
+<p>
+记录数偏差不大可能是因为 <code>Redis</code> 在存储 <code>Sets</code> 数据时是有排序的， <code>scan</code> 使用的
+<code>cursor</code> 类似 <code>offset</code> ，所以上一个数据集的 <code>cursor</code> 用于查询下一个数据集时偏差也
+不会太大。
+</p>
+
+<p>
+但是这始终是一个问题，一个稳健的系统不应该有未定义行为。一个可行的解决方案是不要
+使用 <code>rename</code> ，而是在正式的 <code>key</code> 中保存临时 <code>key</code> ，查询时先从正式的 <code>key</code> 取
+到真正保存数据的临时 <code>key</code> ，再从临时 <code>key</code> 中取数据，只要确保每次计算都使用不同
+的临时 <code>key</code> 就可以避免数据访问冲突导致的未定义行为。</p>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[CentOS 下 Go gRPC 编译环境搭建]]></title>
             <link>/article/centos-4e0b-go-grpc-7f168bd173af5883642d5efa.html</link>
@@ -12384,98 +12614,6 @@ $
 ]]></content:encoded>
         </item>
         <item>
-            <title><![CDATA[CentOS 6.4 上安装 ruby 1.9.3]]></title>
-            <link>/article/centos-6.4-4e0a5b8988c5-ruby-1.9.3.html</link>
-            <guid>/article/centos-6.4-4e0a5b8988c5-ruby-1.9.3.html</guid>
-            <pubDate>Fri, 22 Jan 2016 13:12:00 GMT</pubDate>
-            <content:encoded><![CDATA[<p>
-CentOS 6.4 上仓库中的 Ruby 版本为 1.8.7 太旧了，<a href="https://github.com/yaauie/redis-copy">redis-copy</a> 要求 Ruby 版本至少为 1.9.3。
-</p>
-
-<ul class="org-ul">
-<li>安装 rvm
-
-<div class="org-src-container">
-
-<pre class="src src-sh">curl -L get.rvm.io | bash -s stable
-</pre>
-</div>
-</li>
-
-<li>安装 Ruby 1.9.3
-
-<div class="org-src-container">
-
-<pre class="src src-sh">/usr/local/rvm/bin/rvm install 1.9.3
-</pre>
-</div>
-
-<ul class="org-ul">
-<li>启用 Ruby 1.9.3
-
-<div class="org-src-container">
-
-<pre class="src src-js">source /usr/local/rvm/scripts/rvm
-rvm use 1.9.3
-</pre>
-</div>
-</li>
-
-<li>安装 RubyGems
-
-<div class="org-src-container">
-
-<pre class="src src-sh">rvm rubygems current
-</pre>
-</div>
-</li>
-
-<li>RubyGems 官方源国内访问不稳定，换成淘宝的镜像
-
-<div class="org-src-container">
-
-<pre class="src src-sh">gem sources --remove https://rubygems.org/
-gem sources -a https://ruby.taobao.org/
-</pre>
-</div>
-</li>
-
-<li>安装 <a href="https://github.com/yaauie/redis-copy">redis-copy</a>
-
-<div class="org-src-container">
-
-<pre class="src src-sh">gem install redis-copy
-</pre>
-</div>
-
-<p>
-安装后程序路径为 /usr/local/rvm/gems/ruby-1.9.3-p551/bin/redis-copy
-</p>
-
-<p>
-启用 Ruby 1.9.3 后，redis-copy 可以直接运行。
-</p>
-</li>
-</ul>
-</li>
-
-<li>参考
-
-<p>
-<a href="https://www.digitalocean.com/community/tutorials/how-to-install-ruby-on-rails-on-centos-6-with-rvm">How To Install Ruby on Rails on CentOS 6 with RVM | DigitalOcean</a>
-</p>
-
-<p>
-<a href="https://ruby-china.org/topics/3705">手把手安装RVM以及为什么RVM is not a function » Topics » Ruby China</a>
-</p>
-
-<p>
-<a href="http://www.jb51.net/article/49079.htm">淘宝网提供的国内RubyGems镜像简介和使用方法_ruby专题_脚本之家</a></p>
-</li>
-</ul>
-]]></content:encoded>
-        </item>
-        <item>
             <title><![CDATA[CentOS 6.4 上编译安装 gcc 5.2.0]]></title>
             <link>/article/centos-6.4-4e0a7f168bd15b8988c5-gcc-5.2.0.html</link>
             <guid>/article/centos-6.4-4e0a7f168bd15b8988c5-gcc-5.2.0.html</guid>
@@ -12582,6 +12720,98 @@ make install
 
 <p>
 <a href="https://wiki.mikejung.biz/Gcc_CentOS">Gcc CentOS - How to compile gcc-4.8.2 on CentOS 6.6</a></p>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[CentOS 6.4 上安装 ruby 1.9.3]]></title>
+            <link>/article/centos-6.4-4e0a5b8988c5-ruby-1.9.3.html</link>
+            <guid>/article/centos-6.4-4e0a5b8988c5-ruby-1.9.3.html</guid>
+            <pubDate>Fri, 22 Jan 2016 13:12:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+CentOS 6.4 上仓库中的 Ruby 版本为 1.8.7 太旧了，<a href="https://github.com/yaauie/redis-copy">redis-copy</a> 要求 Ruby 版本至少为 1.9.3。
+</p>
+
+<ul class="org-ul">
+<li>安装 rvm
+
+<div class="org-src-container">
+
+<pre class="src src-sh">curl -L get.rvm.io | bash -s stable
+</pre>
+</div>
+</li>
+
+<li>安装 Ruby 1.9.3
+
+<div class="org-src-container">
+
+<pre class="src src-sh">/usr/local/rvm/bin/rvm install 1.9.3
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>启用 Ruby 1.9.3
+
+<div class="org-src-container">
+
+<pre class="src src-js">source /usr/local/rvm/scripts/rvm
+rvm use 1.9.3
+</pre>
+</div>
+</li>
+
+<li>安装 RubyGems
+
+<div class="org-src-container">
+
+<pre class="src src-sh">rvm rubygems current
+</pre>
+</div>
+</li>
+
+<li>RubyGems 官方源国内访问不稳定，换成淘宝的镜像
+
+<div class="org-src-container">
+
+<pre class="src src-sh">gem sources --remove https://rubygems.org/
+gem sources -a https://ruby.taobao.org/
+</pre>
+</div>
+</li>
+
+<li>安装 <a href="https://github.com/yaauie/redis-copy">redis-copy</a>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">gem install redis-copy
+</pre>
+</div>
+
+<p>
+安装后程序路径为 /usr/local/rvm/gems/ruby-1.9.3-p551/bin/redis-copy
+</p>
+
+<p>
+启用 Ruby 1.9.3 后，redis-copy 可以直接运行。
+</p>
+</li>
+</ul>
+</li>
+
+<li>参考
+
+<p>
+<a href="https://www.digitalocean.com/community/tutorials/how-to-install-ruby-on-rails-on-centos-6-with-rvm">How To Install Ruby on Rails on CentOS 6 with RVM | DigitalOcean</a>
+</p>
+
+<p>
+<a href="https://ruby-china.org/topics/3705">手把手安装RVM以及为什么RVM is not a function » Topics » Ruby China</a>
+</p>
+
+<p>
+<a href="http://www.jb51.net/article/49079.htm">淘宝网提供的国内RubyGems镜像简介和使用方法_ruby专题_脚本之家</a></p>
 </li>
 </ul>
 ]]></content:encoded>
@@ -18428,6 +18658,206 @@ setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (<span style="color: #81a2be;">char</s
 </div>
 </li>
 </ul>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">ssl 客户端示例代码</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+这个示例包括建立连接、读、写，以及超时设置、服务器证书验证。
+</p>
+<div class="org-src-container">
+
+<pre class="src src-c"><span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;arpa/inet.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;netinet/in.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;openssl/err.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;openssl/ssl.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;openssl/x509_vfy.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;openssl/x509v3.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;stdbool.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;stdint.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;string.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;strings.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;sys/socket.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;unistd.h&gt;</span>
+
+<span style="color: #b294bb;">#define</span> <span style="color: #f0c674;">SSL_CLIENT_CAFILE</span> <span style="color: #8abeb7;">"/etc/ssl/certs/ca-certificates.crt"</span>
+<span style="color: #b294bb;">#define</span> <span style="color: #f0c674;">SSL_CLIENT_CAPATH</span> <span style="color: #8abeb7;">"/etc/ssl/certs/"</span>
+
+<span style="color: #81a2be;">int</span> <span style="color: #de935f;">ssl_client_connect</span>(<span style="color: #81a2be;">uint32_t</span> <span style="color: #f0c674;">ip</span>, <span style="color: #81a2be;">uint16_t</span> <span style="color: #f0c674;">port</span>, <span style="color: #81a2be;">SSL</span>** <span style="color: #f0c674;">ssl</span>, <span style="color: #81a2be;">SSL_CTX</span>** <span style="color: #f0c674;">ctx</span>,
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span><span style="color: #81a2be;">uint32_t</span> <span style="color: #f0c674;">timeout</span>, <span style="color: #b5bd68;">const</span> <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">verify_host</span>) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">sock</span>;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">struct</span> <span style="color: #81a2be;">sockaddr_in</span> <span style="color: #f0c674;">dest</span>;
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> ((sock = socket(AF_INET, SOCK_STREAM, 0)) &lt; 0) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> fprintf(stderr, <span style="color: #8abeb7;">"create remote socket fd failed!"</span>);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> -1;
+<span style="color: #969896; background-color: #222427;"> </span> }
+
+<span style="color: #969896; background-color: #222427;"> </span> bzero(&amp;dest, <span style="color: #b5bd68;">sizeof</span>(dest));
+<span style="color: #969896; background-color: #222427;"> </span> dest.sin_family = AF_INET;
+<span style="color: #969896; background-color: #222427;"> </span> dest.sin_port = htons(port);
+<span style="color: #969896; background-color: #222427;"> </span> dest.sin_addr.s_addr = ip;
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #81a2be;">char</span> <span style="color: #f0c674;">ip_string</span>[INET_ADDRSTRLEN] = {<span style="color: #8abeb7;">'\0'</span>};
+<span style="color: #969896; background-color: #222427;"> </span> inet_ntop(AF_INET, &amp;dest.sin_addr, ip_string, <span style="color: #b5bd68;">sizeof</span>(ip_string));
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (connect(sock, (<span style="color: #b5bd68;">struct</span> <span style="color: #81a2be;">sockaddr</span>*)&amp;dest, <span style="color: #b5bd68;">sizeof</span>(dest)) != 0) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> fprintf(stderr, <span style="color: #8abeb7;">"connect to %s:%d failed: %s"</span>, ip_string, port,
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> strerror(errno));
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> close(sock);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> -1;
+<span style="color: #969896; background-color: #222427;"> </span> }
+
+<span style="color: #969896; background-color: #222427;"> </span> fprintf(stderr, <span style="color: #8abeb7;">"tcp connect to %s:%d success"</span>, ip_string, port);
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">&#35774;&#32622;send/recv&#30340;&#36229;&#26102;&#26102;&#38388; </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">struct</span> <span style="color: #81a2be;">timeval</span> <span style="color: #f0c674;">tv</span> = {<span style="color: #8abeb7;">'\0'</span>};
+<span style="color: #969896; background-color: #222427;"> </span> tv.tv_sec = timeout;
+<span style="color: #969896; background-color: #222427;"> </span> tv.tv_usec = 0;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">succ</span> = setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (<span style="color: #81a2be;">char</span>*)&amp;tv,
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">sizeof</span>(<span style="color: #b5bd68;">struct</span> <span style="color: #81a2be;">timeval</span>));
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (succ != 0) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> fprintf(stderr, <span style="color: #8abeb7;">"set send timeout failed: %s"</span>, strerror(errno));
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> close(sock);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> -1;
+<span style="color: #969896; background-color: #222427;"> </span> }
+<span style="color: #969896; background-color: #222427;"> </span> succ = setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (<span style="color: #81a2be;">char</span>*)&amp;tv,
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">sizeof</span>(<span style="color: #b5bd68;">struct</span> <span style="color: #81a2be;">timeval</span>));
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (succ != 0) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> fprintf(stderr, <span style="color: #8abeb7;">"set recv timeout failed: %s"</span>, strerror(errno));
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> close(sock);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> -1;
+<span style="color: #969896; background-color: #222427;"> </span> }
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">&#22522;&#20110; ctx &#20135;&#29983;&#19968;&#20010;&#26032;&#30340; SSL </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="color: #969896; background-color: #222427;"> </span> *ctx = SSL_CTX_new(SSLv23_client_method());
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (<span style="color: #81a2be;">NULL</span> == *ctx) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> fprintf(stderr, <span style="color: #8abeb7;">"new ssl ctx failed"</span>);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> ERR_print_errors_fp(stderr);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> close(sock);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> -1;
+<span style="color: #969896; background-color: #222427;"> </span> }
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">&#21551;&#29992;&#33258;&#21160;&#37325;&#26032;&#25569;&#25163;&#65292;&#31105;&#27490;SSL_read&#25110;SSL_write&#22240;SSL&#37325;&#26032;&#25569;&#25163;&#25552;&#21069;&#36820;&#22238;&#65292;&#23548;&#33268;&#26080;&#27861;&#21306;&#20998;&#26159;&#21542;&#20026;recv&#36229;&#26102;.</span>
+<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;"> </span><span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (<span style="color: #81a2be;">!</span>(SSL_CTX_set_mode(*ctx, SSL_MODE_AUTO_RETRY) &amp; SSL_MODE_AUTO_RETRY)) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> fprintf(stderr, <span style="color: #8abeb7;">"set ssl auto retry mode failed"</span>);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> ERR_print_errors_fp(stderr);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> close(sock);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> -1;
+<span style="color: #969896; background-color: #222427;"> </span> }
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">&#39564;&#35777;&#26381;&#21153;&#22120;&#39564;&#20070; </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (verify_host) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (<span style="color: #81a2be;">!</span>SSL_CTX_load_verify_locations(*ctx, SSL_CLIENT_CAFILE,
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span>SSL_CLIENT_CAPATH)) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> fprintf(
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> stderr,
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #8abeb7;">"failed to load certificate verify locations. CAfile(%s) CApath(%s)"</span>,
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> SSL_CLIENT_CAFILE, SSL_CLIENT_CAPATH);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> ERR_print_errors_fp(stderr);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> close(sock);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> -1;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> }
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">&#39564;&#35777;&#26381;&#21153;&#22120;&#20027;&#26426;&#21517;&#31216;&#65292;&#21442;&#32771;&#65306;https://wiki.openssl.org/index.php/Hostname_validation</span>
+<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;"> </span><span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;"> </span><span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #81a2be;">X509_VERIFY_PARAM</span>* <span style="color: #f0c674;">param</span> = SSL_CTX_get0_param(*ctx);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; font-style: italic;">/*</span>
+<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;"> </span><span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;"> </span><span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;"> X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS &#36873;&#39033;&#20250;&#23548;&#33268; Hostname mismatch</span>
+<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;"> </span><span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;"> </span><span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;"> &#38169;&#35823;&#65292;&#27880;&#25481;&#20808; X509_VERIFY_PARAM_set_hostflags(param,</span>
+<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;"> </span><span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;"> </span><span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;"> X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);</span>
+<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;"> </span><span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> X509_VERIFY_PARAM_set1_host(param, verify_host, 0);
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> SSL_CTX_set_verify(*ctx, SSL_VERIFY_PEER, <span style="color: #81a2be;">NULL</span>);
+<span style="color: #969896; background-color: #222427;"> </span> }
+
+<span style="color: #969896; background-color: #222427;"> </span> *ssl = SSL_new(*ctx);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (<span style="color: #81a2be;">NULL</span> == *ssl) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> fprintf(stderr, <span style="color: #8abeb7;">"new ssl failed"</span>);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> ERR_print_errors_fp(stderr);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> SSL_CTX_free(*ctx);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> *ctx = <span style="color: #81a2be;">NULL</span>;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> close(sock);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> -1;
+<span style="color: #969896; background-color: #222427;"> </span> }
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (1 != SSL_set_fd(*ssl, sock)) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> fprintf(stderr, <span style="color: #8abeb7;">"set ssl fd failed"</span>);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> ERR_print_errors_fp(stderr);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> SSL_free(*ssl);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> *ssl = <span style="color: #81a2be;">NULL</span>;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> SSL_CTX_free(*ctx);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> *ctx = <span style="color: #81a2be;">NULL</span>;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> close(sock);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> -1;
+<span style="color: #969896; background-color: #222427;"> </span> }
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">&#24314;&#31435; SSL &#36830;&#25509; </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">ret</span> = SSL_connect(*ssl);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (ret &lt;= 0) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #81a2be;">char</span> <span style="color: #f0c674;">error</span>[128] = {<span style="color: #8abeb7;">'\0'</span>};
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> ERR_error_string_n(ERR_get_error(), error, <span style="color: #b5bd68;">sizeof</span>(error));
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> fprintf(stderr, <span style="color: #8abeb7;">"ssl connect to %s:%d failed(%d) error(%s) errno(%d)"</span>,
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> ip_string, port, SSL_get_error(*ssl, ret), error, errno);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (verify_host) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #81a2be;">long</span> <span style="color: #f0c674;">verify_result</span> = SSL_get_verify_result(*ssl);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (verify_result != X509_V_OK) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> fprintf(stderr, <span style="color: #8abeb7;">"ssl certificate error(%s)"</span>,
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> X509_verify_cert_error_string(verify_result));
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> }
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> }
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> SSL_free(*ssl);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> *ssl = <span style="color: #81a2be;">NULL</span>;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> SSL_CTX_free(*ctx);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> *ctx = <span style="color: #81a2be;">NULL</span>;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> close(sock);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> -1;
+<span style="color: #969896; background-color: #222427;"> </span> }
+
+<span style="color: #969896; background-color: #222427;"> </span> fprintf(stderr, <span style="color: #8abeb7;">"ssl connect to %s:%d success"</span>, ip_string, port);
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> sock;
+}
+
+<span style="color: #81a2be;">int</span> <span style="color: #de935f;">ssl_client_read</span>(<span style="color: #81a2be;">SSL</span>* <span style="color: #f0c674;">ssl</span>, <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">data</span>, <span style="color: #81a2be;">uint32_t</span> <span style="color: #f0c674;">nbytes</span>, <span style="color: #81a2be;">uint32_t</span> <span style="color: #f0c674;">timeout</span>) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">readed</span>;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">remaining</span> = nbytes;
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">while</span> (remaining) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> readed = SSL_read(ssl, data + (nbytes - remaining), remaining);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (readed &lt;= 0) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> fprintf(stderr, <span style="color: #8abeb7;">"ssl read error(%d) readed(%d) errno(%d)"</span>,
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> SSL_get_error(ssl, readed), readed, errno);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> -1;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> }
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> remaining -= readed;
+<span style="color: #969896; background-color: #222427;"> </span> }
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> 0;
+}
+
+<span style="color: #81a2be;">int</span> <span style="color: #de935f;">ssl_client_write</span>(<span style="color: #81a2be;">SSL</span>* <span style="color: #f0c674;">ssl</span>, <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">data</span>, <span style="color: #81a2be;">uint32_t</span> <span style="color: #f0c674;">nbytes</span>, <span style="color: #81a2be;">uint32_t</span> <span style="color: #f0c674;">timeout</span>) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">writed</span>;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">remaining</span> = nbytes;
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">while</span> (remaining) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> writed = SSL_write(ssl, data + (nbytes - remaining), remaining);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (writed &lt;= 0) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> fprintf(stderr, <span style="color: #8abeb7;">"ssl write error(%d) writed(%d) errno(%d)"</span>,
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> SSL_get_error(ssl, writed), writed, errno);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> -1;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> }
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> remaining -= writed;
+<span style="color: #969896; background-color: #222427;"> </span> }
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> 0;
+}
+</pre>
+</div>
+</div>
+</div>
 ]]></content:encoded>
         </item>
         <item>

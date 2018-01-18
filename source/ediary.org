@@ -6186,6 +6186,198 @@ class RedisShard {
       }
     #+end_src
 
+** ssl 客户端示例代码
+   这个示例包括建立连接、读、写，以及超时设置、服务器证书验证。
+   #+begin_src c
+     #include <arpa/inet.h>
+     #include <netinet/in.h>
+     #include <openssl/err.h>
+     #include <openssl/ssl.h>
+     #include <openssl/x509_vfy.h>
+     #include <openssl/x509v3.h>
+     #include <stdbool.h>
+     #include <stdint.h>
+     #include <string.h>
+     #include <strings.h>
+     #include <sys/socket.h>
+     #include <unistd.h>
+
+     #define SSL_CLIENT_CAFILE "/etc/ssl/certs/ca-certificates.crt"
+     #define SSL_CLIENT_CAPATH "/etc/ssl/certs/"
+
+     int ssl_client_connect(uint32_t ip, uint16_t port, SSL** ssl, SSL_CTX** ctx,
+                            uint32_t timeout, const char* verify_host) {
+       int sock;
+       struct sockaddr_in dest;
+
+       if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+         fprintf(stderr, "create remote socket fd failed!");
+         return -1;
+       }
+
+       bzero(&dest, sizeof(dest));
+       dest.sin_family = AF_INET;
+       dest.sin_port = htons(port);
+       dest.sin_addr.s_addr = ip;
+
+       char ip_string[INET_ADDRSTRLEN] = {'\0'};
+       inet_ntop(AF_INET, &dest.sin_addr, ip_string, sizeof(ip_string));
+
+       if (connect(sock, (struct sockaddr*)&dest, sizeof(dest)) != 0) {
+         fprintf(stderr, "connect to %s:%d failed: %s", ip_string, port,
+                 strerror(errno));
+         close(sock);
+         return -1;
+       }
+
+       fprintf(stderr, "tcp connect to %s:%d success", ip_string, port);
+
+       /* 设置send/recv的超时时间 */
+       struct timeval tv = {'\0'};
+       tv.tv_sec = timeout;
+       tv.tv_usec = 0;
+       int succ = setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (char*)&tv,
+                             sizeof(struct timeval));
+       if (succ != 0) {
+         fprintf(stderr, "set send timeout failed: %s", strerror(errno));
+         close(sock);
+         return -1;
+       }
+       succ = setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (char*)&tv,
+                         sizeof(struct timeval));
+       if (succ != 0) {
+         fprintf(stderr, "set recv timeout failed: %s", strerror(errno));
+         close(sock);
+         return -1;
+       }
+
+       /* 基于 ctx 产生一个新的 SSL */
+       ,*ctx = SSL_CTX_new(SSLv23_client_method());
+       if (NULL == *ctx) {
+         fprintf(stderr, "new ssl ctx failed");
+         ERR_print_errors_fp(stderr);
+         close(sock);
+         return -1;
+       }
+
+       /* 启用自动重新握手，禁止SSL_read或SSL_write因SSL重新握手提前返回，导致无法区分是否为recv超时.
+        ,*/
+       if (!(SSL_CTX_set_mode(*ctx, SSL_MODE_AUTO_RETRY) & SSL_MODE_AUTO_RETRY)) {
+         fprintf(stderr, "set ssl auto retry mode failed");
+         ERR_print_errors_fp(stderr);
+         close(sock);
+         return -1;
+       }
+
+       /* 验证服务器验书 */
+       if (verify_host) {
+         if (!SSL_CTX_load_verify_locations(*ctx, SSL_CLIENT_CAFILE,
+                                            SSL_CLIENT_CAPATH)) {
+           fprintf(
+               stderr,
+               "failed to load certificate verify locations. CAfile(%s) CApath(%s)",
+               SSL_CLIENT_CAFILE, SSL_CLIENT_CAPATH);
+           ERR_print_errors_fp(stderr);
+           close(sock);
+           return -1;
+         }
+
+         /* 验证服务器主机名称，参考：https://wiki.openssl.org/index.php/Hostname_validation
+          ,*/
+         X509_VERIFY_PARAM* param = SSL_CTX_get0_param(*ctx);
+         /*
+           X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS 选项会导致 Hostname mismatch
+           错误，注掉先 X509_VERIFY_PARAM_set_hostflags(param,
+           X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
+         ,*/
+         X509_VERIFY_PARAM_set1_host(param, verify_host, 0);
+
+         SSL_CTX_set_verify(*ctx, SSL_VERIFY_PEER, NULL);
+       }
+
+       ,*ssl = SSL_new(*ctx);
+       if (NULL == *ssl) {
+         fprintf(stderr, "new ssl failed");
+         ERR_print_errors_fp(stderr);
+         SSL_CTX_free(*ctx);
+         ,*ctx = NULL;
+         close(sock);
+         return -1;
+       }
+
+       if (1 != SSL_set_fd(*ssl, sock)) {
+         fprintf(stderr, "set ssl fd failed");
+         ERR_print_errors_fp(stderr);
+         SSL_free(*ssl);
+         ,*ssl = NULL;
+         SSL_CTX_free(*ctx);
+         ,*ctx = NULL;
+         close(sock);
+         return -1;
+       }
+
+       /* 建立 SSL 连接 */
+       int ret = SSL_connect(*ssl);
+       if (ret <= 0) {
+         char error[128] = {'\0'};
+         ERR_error_string_n(ERR_get_error(), error, sizeof(error));
+         fprintf(stderr, "ssl connect to %s:%d failed(%d) error(%s) errno(%d)",
+                 ip_string, port, SSL_get_error(*ssl, ret), error, errno);
+         if (verify_host) {
+           long verify_result = SSL_get_verify_result(*ssl);
+           if (verify_result != X509_V_OK) {
+             fprintf(stderr, "ssl certificate error(%s)",
+                     X509_verify_cert_error_string(verify_result));
+           }
+         }
+         SSL_free(*ssl);
+         ,*ssl = NULL;
+         SSL_CTX_free(*ctx);
+         ,*ctx = NULL;
+         close(sock);
+         return -1;
+       }
+
+       fprintf(stderr, "ssl connect to %s:%d success", ip_string, port);
+
+       return sock;
+     }
+
+     int ssl_client_read(SSL* ssl, char* data, uint32_t nbytes, uint32_t timeout) {
+       int readed;
+       int remaining = nbytes;
+
+       while (remaining) {
+         readed = SSL_read(ssl, data + (nbytes - remaining), remaining);
+         if (readed <= 0) {
+           fprintf(stderr, "ssl read error(%d) readed(%d) errno(%d)",
+                   SSL_get_error(ssl, readed), readed, errno);
+           return -1;
+         }
+         remaining -= readed;
+       }
+
+       return 0;
+     }
+
+     int ssl_client_write(SSL* ssl, char* data, uint32_t nbytes, uint32_t timeout) {
+       int writed;
+       int remaining = nbytes;
+
+       while (remaining) {
+         writed = SSL_write(ssl, data + (nbytes - remaining), remaining);
+         if (writed <= 0) {
+           fprintf(stderr, "ssl write error(%d) writed(%d) errno(%d)",
+                   SSL_get_error(ssl, writed), writed, errno);
+           return -1;
+         }
+         remaining -= writed;
+       }
+
+       return 0;
+     }
+   #+end_src
+
 * DONE Archlinux安装文本语音合成（TTS）                       :linux:
   CLOSED: [2015-04-15 Wed 20:21]
 
@@ -18588,3 +18780,205 @@ clang 编译器较之 gcc 在进行代码分析方面提供了良好的支持，
   - 参考
     
     [[http://www.jianshu.com/p/e2435b834d68][golang开发环境搭建-安装go 和 grpc - 简书]]
+
+* DONE Scan 时进行 Rename 导致结果未定义                              :redis:
+  CLOSED: [2018-01-18 Thu 20:16]
+
+我们有一个服务有这种场景：
+
+- Web 服务提供查询接口返回一个很大的数据集给客户端
+
+这个数据集使用 =Sets= 结构进行保存，读取这个数据集使用 =sscan= 命令每次返回
+=100= 条记录，直到读完为止。
+
+- 后台计算脚本计算并更新数据集
+
+计算结果先放到一个临时 =key= 中，等到计算完再通过 =rename= 覆盖正式的 =key= 。
+
+最近，客户方反映获取的数据集偏小，正常应该是 20 多万条记录，结果只取到几万条记录。
+
+我们怀疑是 Scan 过程中如果数据集被 =rename= 覆盖，结果可能是未定义的，见以下测试程序：
+
+=redis_rename_when_scan.js=
+#+begin_src js
+  "use strict";
+
+  const Redis = require('ioredis');
+  const async = require('async');
+  const _ = require('lodash');
+  const crypto = require('crypto');
+
+  const key_ = "test:set_";
+  const key = "test:set";
+  const min = 0;
+  const max = 100000;
+  const prefix_length = 20;
+  let scan_round = 0;
+  let write_round = 0;
+
+  function add(client, value, callback) {
+      if (value > max) {
+          return callback(null);
+      }
+      crypto.randomBytes(parseInt(prefix_length / 2, 10), function(err, buffer) {
+          if (err) {
+              return callback(err);
+          }
+          // Test full random dataset
+          //let prefix = buffer.toString('hex');
+          // Test fixed dataset
+          //let prefix = _.pad('', prefix_length, '0');
+          // Test partial random dataset
+          let prefix = _.pad('', prefix_length - 1, '0') + buffer.toString('hex')[0];
+          return client.sadd(key_, prefix + value, function(err) {
+              if (err) {
+                  return callback(err);
+              }
+              value += 1;
+              return add(client, value, callback);
+          });
+      });
+  }
+
+  function write(client) {
+      if (!client) {
+          client = new Redis();
+      }
+      client.del(key_, function(err) {
+          if (err) {
+              throw err;
+          }
+
+          add(client, min, function(err) {
+              if (err) {
+                  throw err;
+              }
+
+              client.rename(key_, key, function(err) {
+                  if (err) {
+                      throw err;
+                  }
+                  console.log("write#" + write_round + " DONE");
+                  ++write_round;
+                  write(client);
+              });
+          });
+      });
+  }
+
+  function ready(client, callback) {
+      if (!client) {
+          client = new Redis();
+      }
+      client.exists(key, function(err, exists) {
+          if (err) {
+              callback(err);
+          } else if (exists) {
+              callback(null);
+          } else {
+              setTimeout(function() {
+                  ready(client, callback);
+              }, 100);
+          }
+      });
+  }
+
+  function init(callback) {
+      let client = new Redis();
+      client.del(key_, function(err) {
+          if (err) {
+              throw err;
+          }
+
+          client.del(key, function(err) {
+              if (err) {
+                  throw err;
+              }
+
+              callback();
+          });
+      });
+  }
+
+  function scan(client) {
+      if (!client) {
+          client = new Redis();
+      }
+      ready(null, function() {
+          let results = [];
+          var cursor = 0;
+          async.doWhilst(function(done) {
+              client.sscan(key, cursor, 'COUNT', 100, function(err, values) {
+                  if (err) {
+                      throw err;
+                  }
+
+                  cursor = +values[0];
+
+                  values[1].forEach(function(value) {
+                      results.push(value);
+                  });
+
+                  // console.log("scan#" + scan_round + " scan " + results.length + " values");
+                  setTimeout(done, 5);
+              });
+          }, function() {
+              return cursor > 0;
+          }, function(err) {
+              if (err) {
+                  throw err;
+              }
+
+              let count_error = false;
+              if (results.length != (max - min + 1)) {
+                  if (results.length < (max - min + 1)) {
+                      console.error("scan#" + scan_round + " Expected " + (max - min + 1) + " values, Got " + results.length);
+                      count_error = true;
+                  } else {
+                      console.warn("scan#" + scan_round + " Expected " + (max - min + 1) + " values, Got " + results.length);
+                  }
+              }
+              if (!count_error) {
+                  results.sort((a, b) => parseInt(a.substring(prefix_length), 10) - parseInt(b.substring(prefix_length), 10));
+                  let uniq_results = _.sortedUniq(results);
+                  if (uniq_results.length != results.length) {
+                      console.warn("scan#" + scan_round + " Expected 0 duplicated values, Got " + (results.length - uniq_results.length));
+                  }
+                  let result_error = false;
+                  for (let i = 0; i <= (max - min); ++i) {
+                      if (parseInt(results[i].substring(prefix_length), 10) != (min + i)) {
+                          //console.log("results: " + results.toString());
+                          console.error("scan#" + scan_round + " value#" + i + " Expected " + results[i].substring(0, prefix_length) + (min + i) + ", Got " + results[i]);
+                          result_error = true;
+                          break;
+                      }
+                  }
+                  if (!result_error) {
+                      console.log("scan#" + scan_round + " OK");
+                  }
+              }
+
+              ++scan_round;
+              scan(client);
+          });
+      });
+  }
+
+  init(function() {
+      write(null);
+      scan(null);
+  });
+#+end_src
+
+测试表明，取决于数据集变化的幅度，变化越大的数据集，获取到的结果偏差越大。
+但是获取到的记录数终始相差不大， =10= 万条记录偏差 =+-200= 左右，前面遇到的数据
+记录数急剧减少可能是其它问题引起，如：计算出的记录数确实是有剧减。
+
+记录数偏差不大可能是因为 =Redis= 在存储 =Sets= 数据时是有排序的， =scan= 使用的
+=cursor= 类似 =offset= ，所以上一个数据集的 =cursor= 用于查询下一个数据集时偏差也
+不会太大。
+
+但是这始终是一个问题，一个稳健的系统不应该有未定义行为。一个可行的解决方案是不要
+使用 =rename= ，而是在正式的 =key= 中保存临时 =key= ，查询时先从正式的 =key= 取
+到真正保存数据的临时 =key= ，再从临时 =key= 中取数据，只要确保每次计算都使用不同
+的临时 =key= 就可以避免数据访问冲突导致的未定义行为。

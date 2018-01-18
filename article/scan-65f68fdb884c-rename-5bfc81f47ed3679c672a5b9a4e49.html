@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+  <head>
+    <meta charset="utf-8"/>
+    <title>Scan 时进行 Rename 导致结果未定义 | 看看俺 – KanKanAn.com</title>
+    <link rel="shortcut icon" href="/static/favicon.ico" />
+    <link rel="stylesheet" type="text/css" href="/style/ediary.css"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="generator" content="o-blog"/>
+  </head>
+  <body>
+    <div class="navbar navbar-fixed-top" id="header">
+      <div class="navbar-inner">
+        <a class="brand" href="/" style="line-height:100%;">看看俺 – KanKanAn.com</a>
+        <ul class="navbar-links">
+          <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
+          
+          <li><a href="/index.html"><i class="icon-folder-close icon-white"></i> 技术</a></li>
+          <li><a href="/category/life/0.html"><i class="icon-folder-close icon-white"></i> 生活</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="container container-fluid" id="page">
+      <div class="push-header"></div>
+
+      <div class="article">
+        <header class="article-header">
+          <h1>Scan 时进行 Rename 导致结果未定义</h1>
+        </header>
+      
+        <div class="article-content">
+          <p>
+我们有一个服务有这种场景：
+</p>
+
+<ul class="org-ul">
+<li>Web 服务提供查询接口返回一个很大的数据集给客户端
+</li>
+</ul>
+
+<p>
+这个数据集使用 <code>Sets</code> 结构进行保存，读取这个数据集使用 <code>sscan</code> 命令每次返回
+<code>100</code> 条记录，直到读完为止。
+</p>
+
+<ul class="org-ul">
+<li>后台计算脚本计算并更新数据集
+</li>
+</ul>
+
+<p>
+计算结果先放到一个临时 <code>key</code> 中，等到计算完再通过 <code>rename</code> 覆盖正式的 <code>key</code> 。
+</p>
+
+<p>
+最近，客户方反映获取的数据集偏小，正常应该是 20 多万条记录，结果只取到几万条记录。
+</p>
+
+<p>
+我们怀疑是 Scan 过程中如果数据集被 <code>rename</code> 覆盖，结果可能是未定义的，见以下测试程序：
+</p>
+
+<p>
+<code>redis_rename_when_scan.js</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-js"><span style="color: #8abeb7;">"use strict"</span>;
+
+<span style="color: #b5bd68;">const</span> <span style="color: #f0c674;">Redis</span> = require(<span style="color: #8abeb7;">'ioredis'</span>);
+<span style="color: #b5bd68;">const</span> <span style="color: #f0c674;">async</span> = require(<span style="color: #8abeb7;">'async'</span>);
+<span style="color: #b5bd68;">const</span> <span style="color: #f0c674;">_</span> = require(<span style="color: #8abeb7;">'lodash'</span>);
+<span style="color: #b5bd68;">const</span> <span style="color: #f0c674;">crypto</span> = require(<span style="color: #8abeb7;">'crypto'</span>);
+
+<span style="color: #b5bd68;">const</span> <span style="color: #f0c674;">key_</span> = <span style="color: #8abeb7;">"test:set_"</span>;
+<span style="color: #b5bd68;">const</span> <span style="color: #f0c674;">key</span> = <span style="color: #8abeb7;">"test:set"</span>;
+<span style="color: #b5bd68;">const</span> <span style="color: #f0c674;">min</span> = 0;
+<span style="color: #b5bd68;">const</span> <span style="color: #f0c674;">max</span> = 100000;
+<span style="color: #b5bd68;">const</span> <span style="color: #f0c674;">prefix_length</span> = 20;
+<span style="color: #b5bd68;">let</span> <span style="color: #f0c674;">scan_round</span> = 0;
+<span style="color: #b5bd68;">let</span> <span style="color: #f0c674;">write_round</span> = 0;
+
+<span style="color: #b5bd68;">function</span> <span style="color: #de935f;">add</span>(<span style="color: #f0c674;">client</span>, <span style="color: #f0c674;">value</span>, <span style="color: #f0c674;">callback</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (value &gt; max) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">return</span> callback(<span style="color: #81a2be;">null</span>);
+<span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   crypto.randomBytes(parseInt(prefix_length / 2, 10), <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">err</span>, <span style="color: #f0c674;">buffer</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">return</span> callback(err);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">Test full random dataset</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">let prefix = buffer.toString('hex');</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">Test fixed dataset</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">let prefix = _.pad('', prefix_length, '0');</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">Test partial random dataset</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #f0c674;">prefix</span> = _.pad(<span style="color: #8abeb7;">''</span>, prefix_length - 1, <span style="color: #8abeb7;">'0'</span>) + buffer.toString(<span style="color: #8abeb7;">'hex'</span>)[<span style="color: #de935f; background-color: #373b41;">0];</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">return</span> client.sadd(key_, prefix + value, <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">err</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">return</span> callback(err);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   value += 1;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">return</span> add(client, value, callback);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   });
+<span style="color: #969896; background-color: #222427;"> </span>   });
+}
+
+<span style="color: #b5bd68;">function</span> <span style="color: #de935f;">write</span>(<span style="color: #f0c674;">client</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (!client) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   client = <span style="color: #b5bd68;">new</span> <span style="color: #81a2be;">Redis</span>();
+<span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   client.del(key_, <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">err</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">throw</span> err;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   add(client, min, <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">err</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">throw</span> err;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   client.rename(key_, key, <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">err</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">throw</span> err;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   console.log(<span style="color: #8abeb7;">"write#"</span> + write_round + <span style="color: #8abeb7;">" DONE"</span>);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   ++write_round;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   write(client);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   });
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   });
+<span style="color: #969896; background-color: #222427;"> </span>   });
+}
+
+<span style="color: #b5bd68;">function</span> <span style="color: #de935f;">ready</span>(<span style="color: #f0c674;">client</span>, <span style="color: #f0c674;">callback</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (!client) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   client = <span style="color: #b5bd68;">new</span> <span style="color: #81a2be;">Redis</span>();
+<span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   client.exists(key, <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">err</span>, <span style="color: #f0c674;">exists</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   callback(err);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   } <span style="color: #b5bd68;">else</span> <span style="color: #b5bd68;">if</span> (exists) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   callback(<span style="color: #81a2be;">null</span>);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   } <span style="color: #b5bd68;">else</span> {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   setTimeout(<span style="color: #b5bd68;">function</span>() {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   ready(client, callback);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }, 100);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   });
+}
+
+<span style="color: #b5bd68;">function</span> <span style="color: #de935f;">init</span>(<span style="color: #f0c674;">callback</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #f0c674;">client</span> = <span style="color: #b5bd68;">new</span> <span style="color: #81a2be;">Redis</span>();
+<span style="color: #969896; background-color: #222427;"> </span>   client.del(key_, <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">err</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">throw</span> err;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   client.del(key, <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">err</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">throw</span> err;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   callback();
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   });
+<span style="color: #969896; background-color: #222427;"> </span>   });
+}
+
+<span style="color: #b5bd68;">function</span> <span style="color: #de935f;">scan</span>(<span style="color: #f0c674;">client</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (!client) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   client = <span style="color: #b5bd68;">new</span> <span style="color: #81a2be;">Redis</span>();
+<span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   ready(<span style="color: #81a2be;">null</span>, <span style="color: #b5bd68;">function</span>() {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #f0c674;">results</span> = [];
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">cursor</span> = 0;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   async.doWhilst(<span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">done</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   client.sscan(key, cursor, <span style="color: #8abeb7;">'COUNT'</span>, 100, <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">err</span>, <span style="color: #f0c674;">values</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">throw</span> err;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   cursor = +values[0];
+
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   values[1].forEach(<span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">value</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   results.push(value);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   });
+
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">console.log("scan#" + scan_round + " scan " + results.length </span><span style="color: #de935f; background-color: #373b41; font-style: italic;">+ " values");</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   setTimeout(done, 5);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   });
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }, <span style="color: #b5bd68;">function</span>() {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">return</span> cursor &gt; 0;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }, <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">err</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">throw</span> err;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #f0c674;">count_error</span> = <span style="color: #81a2be;">false</span>;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (results.length != (max - min + 1)) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (results.length &lt; (max - min + 1)) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   console.error(<span style="color: #8abeb7;">"scan#"</span> + scan_round + <span style="color: #8abeb7;">" Expected "</span> + (max - m<span style="color: #de935f; background-color: #373b41;">in + 1) + </span><span style="color: #de935f; background-color: #373b41;">" values, Got "</span><span style="color: #de935f; background-color: #373b41;"> + results.length);</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   count_error = <span style="color: #81a2be;">true</span>;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   } <span style="color: #b5bd68;">else</span> {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   console.warn(<span style="color: #8abeb7;">"scan#"</span> + scan_round + <span style="color: #8abeb7;">" Expected "</span> + (max - mi<span style="color: #de935f; background-color: #373b41;">n + 1) + </span><span style="color: #de935f; background-color: #373b41;">" values, Got "</span><span style="color: #de935f; background-color: #373b41;"> + results.length);</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (!count_error) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   results.sort((a, b) =&gt; parseInt(a.substring(prefix_length), 10) <span style="color: #de935f; background-color: #373b41;">- parseInt(b.substring(prefix_length), 10));</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #f0c674;">uniq_results</span> = _.sortedUniq(results);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (uniq_results.length != results.length) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   console.warn(<span style="color: #8abeb7;">"scan#"</span> + scan_round + <span style="color: #8abeb7;">" Expected 0 duplicated </span><span style="color: #de935f; background-color: #373b41;">values, Got "</span><span style="color: #de935f; background-color: #373b41;"> + (results.length - uniq_results.length));</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #f0c674;">result_error</span> = <span style="color: #81a2be;">false</span>;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">for</span> (<span style="color: #b5bd68;">let</span> <span style="color: #f0c674;">i</span> = 0; i &lt;= (max - min); ++i) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (parseInt(results[i].substring(prefix_length), 10) != (mi<span style="color: #de935f; background-color: #373b41;">n + i)) {</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">console.log("results: " + results.toString());</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   console.error(<span style="color: #8abeb7;">"scan#"</span> + scan_round + <span style="color: #8abeb7;">" value#"</span> + i + <span style="color: #8abeb7;">" E</span><span style="color: #de935f; background-color: #373b41;">xpected "</span><span style="color: #de935f; background-color: #373b41;"> + results[i].substring(0, prefix_length) + (min + i) + </span><span style="color: #de935f; background-color: #373b41;">", Got "</span><span style="color: #de935f; background-color: #373b41;"> + results[i]);</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   result_error = <span style="color: #81a2be;">true</span>;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">break</span>;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (!result_error) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   console.log(<span style="color: #8abeb7;">"scan#"</span> + scan_round + <span style="color: #8abeb7;">" OK"</span>);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   ++scan_round;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   scan(client);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   });
+<span style="color: #969896; background-color: #222427;"> </span>   });
+}
+
+init(<span style="color: #b5bd68;">function</span>() {
+<span style="color: #969896; background-color: #222427;"> </span>   write(<span style="color: #81a2be;">null</span>);
+<span style="color: #969896; background-color: #222427;"> </span>   scan(<span style="color: #81a2be;">null</span>);
+});
+</pre>
+</div>
+
+<p>
+测试表明，取决于数据集变化的幅度，变化越大的数据集，获取到的结果偏差越大。
+但是获取到的记录数终始相差不大， <code>10</code> 万条记录偏差 <code>+-200</code> 左右，前面遇到的数据
+记录数急剧减少可能是其它问题引起，如：计算出的记录数确实是有剧减。
+</p>
+
+<p>
+记录数偏差不大可能是因为 <code>Redis</code> 在存储 <code>Sets</code> 数据时是有排序的， <code>scan</code> 使用的
+<code>cursor</code> 类似 <code>offset</code> ，所以上一个数据集的 <code>cursor</code> 用于查询下一个数据集时偏差也
+不会太大。
+</p>
+
+<p>
+但是这始终是一个问题，一个稳健的系统不应该有未定义行为。一个可行的解决方案是不要
+使用 <code>rename</code> ，而是在正式的 <code>key</code> 中保存临时 <code>key</code> ，查询时先从正式的 <code>key</code> 取
+到真正保存数据的临时 <code>key</code> ，再从临时 <code>key</code> 中取数据，只要确保每次计算都使用不同
+的临时 <code>key</code> 就可以避免数据访问冲突导致的未定义行为。</p>
+
+        </div>
+        <br />
+        <footer class="article-footer">
+          <span class="muted">
+            <i class="icon-time icon-white"></i> <time datetime="2018-01-18T20:16:00+0800">2018年1月18日 20时</time>
+          </span>
+          <a class="tag" href="/tag/redis/0.html"><i class="icon-tag icon-white"></i> redis</a>
+        </footer>
+      </div>
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+  /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+  var disqus_shortname = 'kankananblog';
+
+  /* * * DON'T EDIT BELOW THIS LINE * * */
+  (function() {
+  var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+  dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+      <div class="push-footer"></div>
+    </div>
+
+    <div id="footer">
+  	  <div class="copyright" style="text-align: center;">
+  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
+  	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
+  	  </div>
+    </div>
+  </body>
+</html>
