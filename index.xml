@@ -4,7 +4,7 @@
         <title>看看俺 – KanKanAn.com</title>
         <link>http://blog.kankanan.com</link>
         <description>记我所思，忆我所为。</description>
-        <lastBuildDate>Thu, 18 Jan 2018 12:17:39 GMT</lastBuildDate>
+        <lastBuildDate>Sun, 11 Feb 2018 10:19:58 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <generator>Feed for Node.js</generator>
         <image>
@@ -12,10 +12,161 @@
             <url>http://blog.kankanan.com/static/favicon.ico</url>
             <link>http://blog.kankanan.com</link>
         </image>
-        <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
+        <copyright>版权所有 © 2011-2018 看看俺 – KanKanAn.com</copyright>
         <category>ediary</category>
         <category>技术</category>
-        <category>生活</category>
+        <item>
+            <title><![CDATA[关于 REST 与 RPC 的一些思索]]></title>
+            <link>/article/51734e8e-rest-4e0e-rpc-76844e004e9b601d7d22.html</link>
+            <guid>/article/51734e8e-rest-4e0e-rpc-76844e004e9b601d7d22.html</guid>
+            <pubDate>Sun, 11 Feb 2018 09:52:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+在工作过程中不同程度地使用过 REST 和 RPC 来设计系统，对于使用过程中的优劣有一
+定的了解。 
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">RPC 的使用感受</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+面向过程，就像是使用 <code>C</code> 语言也可以面向对象一样，精心设计一下 RPC 接口也可以有面
+向对象一样的体验。RPC 与程序员的思维非常接近，函数与 RPC 接口进行了精确的映射，
+有很多的工具或库能够自动将函数暴露为可远程进行调用的 RPC 接口，能够立即上手进行
+开发。容易产生细粒度的接口，大量的业务逻辑以及决策由客户端实现。
+</p>
+
+<p>
+RPC 对传输、编解码进行了严格的定义，只要定义好接口，就可以藉由工具进行代码生成，
+使得开发人员只需要专注于业务逻辑开发。由于 RPC 没有对应用语义做任何定义，每个人
+设计的 RPC 接口差别会很大，需要客户端和服务器端紧密协作来完成开发。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">REST 的使用感受</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+面向对象（资源），需预先按资源进行建模，有一些东西天生就不是面向资源的，比如：搜
+索、登录，则需要自由发挥，容易出现牵强的资源抽象。开发的前期会有明显的设计阶段。
+容易产生粗粒度的接口，大量的业务逻辑以及决策由服务端实现。
+</p>
+
+<p>
+REST 没有对传输、编解码进行严格的定义，定义好资源后，需要手工进行编解码、HTTP
+框架代码开发。由于 REST 对应用语义做了大量的定义，每个人设计的接口都是相似的，
+基于被广泛认可的设计规约，客户端和服务器端不容易产生大的分歧。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">REST 是诗和远方</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+适用于开发 Internet 级别的应用。
+</p>
+
+<p>
+也就是说服务的使用者遍布世界各地，服务可能会以意想不到的方式被访问。服务提供者
+（Server 端）与服务的使用者（Client 端）是不同的组织，以松耦合（loose coupling）
+的方式互相协作。
+</p>
+
+<p>
+虽然存在大量被广泛接受的最佳实践，但并不存在官方的 REST 实现。不具体也就意味着开
+发者需要做很多的决定，比如需自行设计 URL、Content-Type、Encoding/Decoding 等。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4">RPC 是眼前的苟且</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+适用于开发 Intranet 级别的应用。
+</p>
+
+<p>
+定下协议，生成框架代码，分别开发完应用模块，联调通过，上线，收工。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5">为什么要使用 REST</h2>
+<div class="outline-text-2" id="text-5">
+<ul class="org-ul">
+<li>将控制权放在服务端
+</li>
+</ul>
+
+<p>
+业务流程是由服务器控制的，客户端不需要完整理解业务逻辑。
+</p>
+
+<ul class="org-ul">
+<li>通用的心理模型
+</li>
+</ul>
+
+<p>
+如 HTTP 方法隐含的 <code>冥等性</code> 意义，通过 URL、Resource 展示出的业务模型（Model）。
+</p>
+
+<ul class="org-ul">
+<li>重用基础设施
+</li>
+</ul>
+
+<p>
+如 Nginx Proxy、Cache
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-6" class="outline-2">
+<h2 id="sec-6">什么时候不需要使用 REST</h2>
+<div class="outline-text-2" id="text-6">
+<ul class="org-ul">
+<li>内部系统
+</li>
+</ul>
+
+<p>
+Server 和 Client 是由同一个组织、团队进行开发。使用 gRPC 之类的技术可以获得更高
+的开发效率。
+</p>
+
+<ul class="org-ul">
+<li>业务逻辑比较简单或者已经固化
+</li>
+</ul>
+
+<p>
+REST 带来的弹性、扩展性并非刚需。
+</p>
+
+<ul class="org-ul">
+<li>客户端与服务器之前的交互不是“请求－响应”模型
+</li>
+</ul>
+
+<p>
+服务器需要通知客户端
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-7" class="outline-2">
+<h2 id="sec-7">结语</h2>
+<div class="outline-text-2" id="text-7">
+<p>
+采用 REST 还是 RPC 对系统的根本复杂性影响较小，更多的是开发过程中会有不同的体验。</p>
+</div>
+</div>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[Scan 时进行 Rename 导致结果未定义]]></title>
             <link>/article/scan-65f68fdb884c-rename-5bfc81f47ed3679c672a5b9a4e49.html</link>
@@ -243,7 +394,8 @@ init(<span style="color: #b5bd68;">function</span>() {
 但是这始终是一个问题，一个稳健的系统不应该有未定义行为。一个可行的解决方案是不要
 使用 <code>rename</code> ，而是在正式的 <code>key</code> 中保存临时 <code>key</code> ，查询时先从正式的 <code>key</code> 取
 到真正保存数据的临时 <code>key</code> ，再从临时 <code>key</code> 中取数据，只要确保每次计算都使用不同
-的临时 <code>key</code> 就可以避免数据访问冲突导致的未定义行为。</p>
+的临时 <code>key</code> 就可以避免数据访问冲突导致的未定义行为。这样子改动后，Redis 中会保
+存多份临时数据，需要设置合理的过期的时间，避免占用大量内存。</p>
 ]]></content:encoded>
         </item>
         <item>
@@ -4828,8 +4980,8 @@ preferredSlaves 选项已经在 2.4.0 版实现，下面的代码在旧版本 io
 <span style="color: #969896; font-style: italic;">/**</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* A SentinelConnector.prototype.resolveSlave replacement, prefer local slave.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*</span>
-<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #b5bd68; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">client</span><span style="color: #969896; font-style: italic;"> redis client.</span>
-<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #b5bd68; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">callback</span><span style="color: #969896; font-style: italic;"> function (err, slave) called when done.</span>
+<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #6a5acd; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">client</span><span style="color: #969896; font-style: italic;"> redis client.</span>
+<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #6a5acd; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">callback</span><span style="color: #969896; font-style: italic;"> function (err, slave) called when done.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*                 slave with a extra boolean field "local_node" to indicate sla</span><span style="color: #de935f; background-color: #373b41; font-style: italic;">ve is in local network.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*/</span>
@@ -4882,9 +5034,9 @@ preferredSlaves 选项已经在 2.4.0 版实现，下面的代码在旧版本 io
 <span style="color: #969896; font-style: italic;">/**</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* Prefer connect to local slave.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*</span>
-<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #b5bd68; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">client</span><span style="color: #969896; font-style: italic;"> redis client.</span>
+<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #6a5acd; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">client</span><span style="color: #969896; font-style: italic;"> redis client.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*</span>
-<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #b5bd68; font-style: italic;">@return</span><span style="color: #969896; font-style: italic;"> is this change successful.</span>
+<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #6a5acd; font-style: italic;">@return</span><span style="color: #969896; font-style: italic;"> is this change successful.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*/</span>
 <span style="color: #b5bd68;">function</span> <span style="color: #de935f;">preferLocalSlave</span>(<span style="color: #f0c674;">client</span>) {
 <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (client.options.role === <span style="color: #8abeb7;">'slave'</span> &amp;&amp; client.connector.resolveSlave) {
@@ -4964,8 +5116,8 @@ preferredSlaves 选项已经在 2.4.0 版实现，下面的代码依赖之前的
 <pre class="src src-js"><span style="color: #969896; font-style: italic;">/**</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* A SentinelConnector.prototype.resolveMaster replacement, indicate the resolve</span><span style="color: #de935f; background-color: #373b41; font-style: italic;">d node is local node.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*</span>
-<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #b5bd68; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">client</span><span style="color: #969896; font-style: italic;"> redis client.</span>
-<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #b5bd68; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">callback</span><span style="color: #969896; font-style: italic;"> function (err, master) called when done.</span>
+<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #6a5acd; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">client</span><span style="color: #969896; font-style: italic;"> redis client.</span>
+<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #6a5acd; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">callback</span><span style="color: #969896; font-style: italic;"> function (err, master) called when done.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*                 master with a extra boolean field "local_node" to indicate ma</span><span style="color: #de935f; background-color: #373b41; font-style: italic;">ster is in local network.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*/</span>
@@ -5004,8 +5156,8 @@ preferredSlaves 选项已经在 2.4.0 版实现，下面的代码依赖之前的
 <span style="color: #969896; font-style: italic;">/**</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* A SentinelConnector.prototype.resolve replacement, prefer resolve to local no</span><span style="color: #de935f; background-color: #373b41; font-style: italic;">de.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*</span>
-<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #b5bd68; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">endpoint</span><span style="color: #969896; font-style: italic;"> sentinel endpoint to connect.</span>
-<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #b5bd68; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">callback</span><span style="color: #969896; font-style: italic;"> function (err, node) called when done.</span>
+<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #6a5acd; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">endpoint</span><span style="color: #969896; font-style: italic;"> sentinel endpoint to connect.</span>
+<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #6a5acd; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">callback</span><span style="color: #969896; font-style: italic;"> function (err, node) called when done.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*                 node with a extra boolean field "local_node" to indicate node</span><span style="color: #de935f; background-color: #373b41; font-style: italic;"> is in local network.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*/</span>
@@ -5062,9 +5214,9 @@ preferredSlaves 选项已经在 2.4.0 版实现，下面的代码依赖之前的
 <span style="color: #969896; font-style: italic;">/**</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* Prefer connect to local redis node, slave first.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*</span>
-<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #b5bd68; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">client</span><span style="color: #969896; font-style: italic;"> redis client.</span>
+<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #6a5acd; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">client</span><span style="color: #969896; font-style: italic;"> redis client.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*</span>
-<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #b5bd68; font-style: italic;">@return</span><span style="color: #969896; font-style: italic;"> is this change successful.</span>
+<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #6a5acd; font-style: italic;">@return</span><span style="color: #969896; font-style: italic;"> is this change successful.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*/</span>
 <span style="color: #b5bd68;">function</span> <span style="color: #de935f;">preferLocal</span>(<span style="color: #f0c674;">client</span>) {
 <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (client.options.role === <span style="color: #8abeb7;">'slave'</span> &amp;&amp; client.connector.resolveSlave) {
@@ -11519,9 +11671,9 @@ Hello, world!
 <div class="org-src-container">
 
 <pre class="src src-rust"><span style="color: #b5bd68;">fn</span> <span style="color: #de935f;">main</span>() {
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #b5bd68;">mut</span> x = <span style="color: #b294bb;">vec!</span>[<span style="color: #8abeb7;">"Hello"</span>, <span style="color: #8abeb7;">"world"</span>];
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #b5bd68;">mut</span> <span style="color: #f0c674;">x</span> = <span style="color: #b294bb;">vec!</span>[<span style="color: #8abeb7;">"Hello"</span>, <span style="color: #8abeb7;">"world"</span>];
 
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> y = &amp;x[0];
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #f0c674;">y</span> = &amp;x[0];
 
 <span style="color: #969896; background-color: #222427;"> </span>   x.push(<span style="color: #8abeb7;">"foo"</span>);
 }
@@ -11552,9 +11704,9 @@ error: cannot borrow `x` as mutable because it is also borrowed as immutable
 <div class="org-src-container">
 
 <pre class="src src-rust"><span style="color: #b5bd68;">fn</span> <span style="color: #de935f;">main</span>() {
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #b5bd68;">mut</span> x = <span style="color: #b294bb;">vec!</span>[<span style="color: #8abeb7;">"Hello"</span>, <span style="color: #8abeb7;">"world"</span>];
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #b5bd68;">mut</span> <span style="color: #f0c674;">x</span> = <span style="color: #b294bb;">vec!</span>[<span style="color: #8abeb7;">"Hello"</span>, <span style="color: #8abeb7;">"world"</span>];
 
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> y = x[0].clone();
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #f0c674;">y</span> = x[0].clone();
 
 <span style="color: #969896; background-color: #222427;"> </span>   x.push(<span style="color: #8abeb7;">"foo"</span>);
 }
@@ -11567,10 +11719,10 @@ error: cannot borrow `x` as mutable because it is also borrowed as immutable
 <div class="org-src-container">
 
 <pre class="src src-rust"><span style="color: #b5bd68;">fn</span> <span style="color: #de935f;">main</span>() {
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #b5bd68;">mut</span> x = <span style="color: #b294bb;">vec!</span>[<span style="color: #8abeb7;">"Hello"</span>, <span style="color: #8abeb7;">"world"</span>];
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #b5bd68;">mut</span> <span style="color: #f0c674;">x</span> = <span style="color: #b294bb;">vec!</span>[<span style="color: #8abeb7;">"Hello"</span>, <span style="color: #8abeb7;">"world"</span>];
 
 <span style="color: #969896; background-color: #222427;"> </span>   {
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> y = &amp;x[0];
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #f0c674;">y</span> = &amp;x[0];
 <span style="color: #969896; background-color: #222427;"> </span>   }
 
 <span style="color: #969896; background-color: #222427;"> </span>   x.push(<span style="color: #8abeb7;">"foo"</span>);

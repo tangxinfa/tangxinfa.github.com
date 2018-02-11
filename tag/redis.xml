@@ -4,7 +4,7 @@
         <title>redis - 看看俺 – KanKanAn.com</title>
         <link>http://blog.kankanan.com/tag/redis.xml</link>
         <description>记我所思，忆我所为。</description>
-        <lastBuildDate>Thu, 18 Jan 2018 12:17:38 GMT</lastBuildDate>
+        <lastBuildDate>Sun, 11 Feb 2018 10:19:58 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <generator>Feed for Node.js</generator>
         <image>
@@ -12,7 +12,7 @@
             <url>http://blog.kankanan.com/static/favicon.ico</url>
             <link>http://blog.kankanan.com/tag/redis.xml</link>
         </image>
-        <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
+        <copyright>版权所有 © 2011-2018 看看俺 – KanKanAn.com</copyright>
         <category>技术</category>
         <item>
             <title><![CDATA[Scan 时进行 Rename 导致结果未定义]]></title>
@@ -241,7 +241,8 @@ init(<span style="color: #b5bd68;">function</span>() {
 但是这始终是一个问题，一个稳健的系统不应该有未定义行为。一个可行的解决方案是不要
 使用 <code>rename</code> ，而是在正式的 <code>key</code> 中保存临时 <code>key</code> ，查询时先从正式的 <code>key</code> 取
 到真正保存数据的临时 <code>key</code> ，再从临时 <code>key</code> 中取数据，只要确保每次计算都使用不同
-的临时 <code>key</code> 就可以避免数据访问冲突导致的未定义行为。</p>
+的临时 <code>key</code> 就可以避免数据访问冲突导致的未定义行为。这样子改动后，Redis 中会保
+存多份临时数据，需要设置合理的过期的时间，避免占用大量内存。</p>
 ]]></content:encoded>
         </item>
         <item>
@@ -653,8 +654,8 @@ preferredSlaves 选项已经在 2.4.0 版实现，下面的代码在旧版本 io
 <span style="color: #969896; font-style: italic;">/**</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* A SentinelConnector.prototype.resolveSlave replacement, prefer local slave.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*</span>
-<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #b5bd68; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">client</span><span style="color: #969896; font-style: italic;"> redis client.</span>
-<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #b5bd68; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">callback</span><span style="color: #969896; font-style: italic;"> function (err, slave) called when done.</span>
+<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #6a5acd; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">client</span><span style="color: #969896; font-style: italic;"> redis client.</span>
+<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #6a5acd; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">callback</span><span style="color: #969896; font-style: italic;"> function (err, slave) called when done.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*                 slave with a extra boolean field "local_node" to indicate sla</span><span style="color: #de935f; background-color: #373b41; font-style: italic;">ve is in local network.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*/</span>
@@ -707,9 +708,9 @@ preferredSlaves 选项已经在 2.4.0 版实现，下面的代码在旧版本 io
 <span style="color: #969896; font-style: italic;">/**</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* Prefer connect to local slave.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*</span>
-<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #b5bd68; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">client</span><span style="color: #969896; font-style: italic;"> redis client.</span>
+<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #6a5acd; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">client</span><span style="color: #969896; font-style: italic;"> redis client.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*</span>
-<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #b5bd68; font-style: italic;">@return</span><span style="color: #969896; font-style: italic;"> is this change successful.</span>
+<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #6a5acd; font-style: italic;">@return</span><span style="color: #969896; font-style: italic;"> is this change successful.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*/</span>
 <span style="color: #b5bd68;">function</span> <span style="color: #de935f;">preferLocalSlave</span>(<span style="color: #f0c674;">client</span>) {
 <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (client.options.role === <span style="color: #8abeb7;">'slave'</span> &amp;&amp; client.connector.resolveSlave) {
@@ -789,8 +790,8 @@ preferredSlaves 选项已经在 2.4.0 版实现，下面的代码依赖之前的
 <pre class="src src-js"><span style="color: #969896; font-style: italic;">/**</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* A SentinelConnector.prototype.resolveMaster replacement, indicate the resolve</span><span style="color: #de935f; background-color: #373b41; font-style: italic;">d node is local node.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*</span>
-<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #b5bd68; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">client</span><span style="color: #969896; font-style: italic;"> redis client.</span>
-<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #b5bd68; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">callback</span><span style="color: #969896; font-style: italic;"> function (err, master) called when done.</span>
+<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #6a5acd; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">client</span><span style="color: #969896; font-style: italic;"> redis client.</span>
+<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #6a5acd; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">callback</span><span style="color: #969896; font-style: italic;"> function (err, master) called when done.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*                 master with a extra boolean field "local_node" to indicate ma</span><span style="color: #de935f; background-color: #373b41; font-style: italic;">ster is in local network.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*/</span>
@@ -829,8 +830,8 @@ preferredSlaves 选项已经在 2.4.0 版实现，下面的代码依赖之前的
 <span style="color: #969896; font-style: italic;">/**</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* A SentinelConnector.prototype.resolve replacement, prefer resolve to local no</span><span style="color: #de935f; background-color: #373b41; font-style: italic;">de.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*</span>
-<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #b5bd68; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">endpoint</span><span style="color: #969896; font-style: italic;"> sentinel endpoint to connect.</span>
-<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #b5bd68; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">callback</span><span style="color: #969896; font-style: italic;"> function (err, node) called when done.</span>
+<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #6a5acd; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">endpoint</span><span style="color: #969896; font-style: italic;"> sentinel endpoint to connect.</span>
+<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #6a5acd; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">callback</span><span style="color: #969896; font-style: italic;"> function (err, node) called when done.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*                 node with a extra boolean field "local_node" to indicate node</span><span style="color: #de935f; background-color: #373b41; font-style: italic;"> is in local network.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*/</span>
@@ -887,9 +888,9 @@ preferredSlaves 选项已经在 2.4.0 版实现，下面的代码依赖之前的
 <span style="color: #969896; font-style: italic;">/**</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* Prefer connect to local redis node, slave first.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*</span>
-<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #b5bd68; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">client</span><span style="color: #969896; font-style: italic;"> redis client.</span>
+<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #6a5acd; font-style: italic;">@param</span><span style="color: #969896; font-style: italic;"> </span><span style="color: #f0c674; font-style: italic;">client</span><span style="color: #969896; font-style: italic;"> redis client.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*</span>
-<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #b5bd68; font-style: italic;">@return</span><span style="color: #969896; font-style: italic;"> is this change successful.</span>
+<span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">* </span><span style="color: #6a5acd; font-style: italic;">@return</span><span style="color: #969896; font-style: italic;"> is this change successful.</span>
 <span style="color: #969896; background-color: #222427; font-style: italic;"> </span><span style="color: #969896; font-style: italic;">*/</span>
 <span style="color: #b5bd68;">function</span> <span style="color: #de935f;">preferLocal</span>(<span style="color: #f0c674;">client</span>) {
 <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (client.options.role === <span style="color: #8abeb7;">'slave'</span> &amp;&amp; client.connector.resolveSlave) {
