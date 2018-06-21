@@ -16,6 +16,7 @@
           <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
           
           <li><a href="/index.html"><i class="icon-folder-close icon-white"></i> 技术</a></li>
+          <li><a href="/category/life/0.html"><i class="icon-folder-close icon-white"></i> 生活</a></li>
         </ul>
       </div>
     </div>
@@ -30,45 +31,46 @@
       
         <div class="article-content">
           
-<div id="outline-container-sec-1" class="outline-2">
-<h2 id="sec-1">示例 socket.io 项目</h2>
-<div class="outline-text-2" id="text-1">
+<div id="outline-container-org95b6b3b" class="outline-2">
+<h2 id="org95b6b3b">示例 socket.io 项目</h2>
+<div class="outline-text-2" id="text-org95b6b3b">
 <ul class="org-ul">
-<li>编译
+<li><p>
+编译
+</p>
 
 <div class="org-src-container">
-
 <pre class="src src-sh">go get github.com/tangxinfa/envoy-socket.io-example
 <span style="color: #b294bb;">cd</span> $<span style="color: #f0c674;">GOPATH</span>/src/github.com/tangxinfa/envoy-socket.io-example
 glide install
 go build
 </pre>
-</div>
-</li>
+</div></li>
 
-<li>运行
+<li><p>
+运行
+</p>
 
 <div class="org-src-container">
-
 <pre class="src src-sh">./envoy-socket.io-example -addr 127.0.0.1:8001 -logtostderr
 </pre>
-</div>
-</li>
+</div></li>
 
-<li>用浏览器打开 <code>http://localhost:8001</code>
+<li><p>
+用浏览器打开 <code>http://localhost:8001</code>
+</p>
 
 <p>
 正常情况下，会收到 <code>welcome</code> 消息，表示 <code>socket.io</code> 连接成功，可以在下方的编辑框输入内容，服务器会 echo 回来。
 这是客户端直接 socket.io 服务，接下来将展示使用 Envoy 做为前端代理来访问后端的 socket.io 服务。
-</p>
-</li>
+</p></li>
 </ul>
 </div>
 </div>
 
-<div id="outline-container-sec-2" class="outline-2">
-<h2 id="sec-2">修复 Envoy 的 Websocket 相关 Bug</h2>
-<div class="outline-text-2" id="text-2">
+<div id="outline-container-org2923165" class="outline-2">
+<h2 id="org2923165">修复 Envoy 的 Websocket 相关 Bug</h2>
+<div class="outline-text-2" id="text-org2923165">
 <p>
 之前的 Envoy 版本为
 </p>
@@ -87,22 +89,24 @@ Signed-off-by: Greg Greenway &lt;ggreenway@apple.com&gt;
 </p>
 
 <ul class="org-ul">
-<li>Connection 请求头包含多个值时未能正确处理，导致未正确判断出 Websocket 请求
+<li><p>
+Connection 请求头包含多个值时未能正确处理，导致未正确判断出 Websocket 请求
+</p>
 
 <p>
 Firefox 发起的 Websocket 请求 Connection 头的值为： <code>keep-alive, Upgrade</code> 。
-</p>
-</li>
+</p></li>
 </ul>
 
 
 <ul class="org-ul">
-<li>Envoy 向 Upstream 发起的 Websocket 请求多了一个 <code>transfer-encoding: chunked</code> 请求头
+<li><p>
+Envoy 向 Upstream 发起的 Websocket 请求多了一个 <code>transfer-encoding: chunked</code> 请求头
+</p>
 
 <p>
 由于请求体是空的，所以是一个无效的 HTTP 请求。
-</p>
-</li>
+</p></li>
 </ul>
 
 
@@ -112,39 +116,40 @@ Firefox 发起的 Websocket 请求 Connection 头的值为： <code>keep-alive, 
 </div>
 </div>
 
-<div id="outline-container-sec-3" class="outline-2">
-<h2 id="sec-3">将 Envoy 做为 socket.io 服务前端代理</h2>
-<div class="outline-text-2" id="text-3">
+<div id="outline-container-org113e980" class="outline-2">
+<h2 id="org113e980">将 Envoy 做为 socket.io 服务前端代理</h2>
+<div class="outline-text-2" id="text-org113e980">
 <ul class="org-ul">
-<li>启动 Envoy
+<li><p>
+启动 Envoy
+</p>
 
 <p>
 使用是的修复 BUG 后的 Envoy。
 </p>
 
 <div class="org-src-container">
-
-<pre class="src src-sh">~/Opensource/envoy/bazel-bin/source/exe/envoy-static --log-level trace --config-<span style="color: #de935f; background-color: #373b41;">path ./envoy.json</span>
+<pre class="src src-sh">~/Opensource/envoy/bazel-bin/source/exe/envoy-static --log-level trace --config-<span style="text-decoration: underline;">path ./envoy.json</span>
 </pre>
-</div>
-</li>
+</div></li>
 </ul>
 
 
 <ul class="org-ul">
-<li>用浏览器打开 <code>http://localhost:9001</code>
+<li><p>
+用浏览器打开 <code>http://localhost:9001</code>
+</p>
 
 <p>
 正常情况下，会收到 <code>welcome</code> 消息，表示 socket.io 连接成功，可以在下方的编辑框输入内容，服务器会 echo 回来。
-</p>
-</li>
+</p></li>
 </ul>
 </div>
 </div>
 
-<div id="outline-container-sec-4" class="outline-2">
-<h2 id="sec-4">将 Envoy 做为 socket.io 服务集群前端代理</h2>
-<div class="outline-text-2" id="text-4">
+<div id="outline-container-org6493f58" class="outline-2">
+<h2 id="org6493f58">将 Envoy 做为 socket.io 服务集群前端代理</h2>
+<div class="outline-text-2" id="text-org6493f58">
 <p>
 在后台服务为集群的情况下，Envoy 会通过负载均衡将请求调度到所有服务结点，
 对于无状态服务，不管 Envoy 使用什么样的负载均衡策略都可以正常工作，
@@ -216,38 +221,39 @@ Pull Request <a href="https://github.com/envoyproxy/envoy/pull/1766">Implement c
 </p>
 
 <ul class="org-ul">
-<li>启动服务集群
+<li><p>
+启动服务集群
+</p>
 
 <div class="org-src-container">
-
 <pre class="src src-sh">./envoy-socket.io-example -127.0.0.1:8002 -logtostderr &amp;
 ./envoy-socket.io-example -127.0.0.1:8003 -logtostderr &amp;
 ./envoy-socket.io-example -127.0.0.1:8004 -logtostderr &amp;
 </pre>
-</div>
-</li>
+</div></li>
 
-<li>启动 Envoy
+<li><p>
+启动 Envoy
+</p>
 
 <p>
 使用是的修复 BUG 后的 Envoy。
 </p>
 
 <div class="org-src-container">
-
-<pre class="src src-sh">~/Opensource/envoy/bazel-bin/source/exe/envoy-static --log-level trace --config-<span style="color: #de935f; background-color: #373b41;">path ./envoy2.json</span>
+<pre class="src src-sh">~/Opensource/envoy/bazel-bin/source/exe/envoy-static --log-level trace --config-<span style="text-decoration: underline;">path ./envoy2.json</span>
 </pre>
-</div>
-</li>
+</div></li>
 </ul>
 
 
 <ul class="org-ul">
-<li>用浏览器打开多个 <code>http://localhost:9002/index2.html</code> 页面
+<li><p>
+用浏览器打开多个 <code>http://localhost:9002/index2.html</code> 页面
+</p>
 
 <p>
-正常情况下，每个页面都会收到 <code>welcome</code> 消息，表示 socket.io 连接成功，可以在下方的编辑框输入内容，服务器会 echo 回来。</p>
-</li>
+正常情况下，每个页面都会收到 <code>welcome</code> 消息，表示 socket.io 连接成功，可以在下方的编辑框输入内容，服务器会 echo 回来。</p></li>
 </ul>
 </div>
 </div>
@@ -282,7 +288,7 @@ Pull Request <a href="https://github.com/envoyproxy/envoy/pull/1766">Implement c
 
     <div id="footer">
   	  <div class="copyright" style="text-align: center;">
-  	    版权所有 © 2011-2018 看看俺 – KanKanAn.com
+  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
   	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
   	  </div>
     </div>

@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+    <channel>
+        <title>openwrt - </title>
+        <link>/tag/openwrt.xml</link>
+        <description></description>
+        <lastBuildDate>Fri, 20 Apr 2018 07:31:37 GMT</lastBuildDate>
+        <docs>http://blogs.law.harvard.edu/tech/rss</docs>
+        <generator>Feed for Node.js</generator>
+        <category>ediary</category>
+        <item>
+            <title><![CDATA[blobmsg_json 只支持一种整型]]></title>
+            <link>/article/blobmsg_json-53ea652f63014e0079cd6574578b.html</link>
+            <guid>/article/blobmsg_json-53ea652f63014e0079cd6574578b.html</guid>
+            <pubDate>Mon, 31 Oct 2016 12:23:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+在使用 ubus 时，发现 <code>blobmsg_policy</code> 中使用 <code>BLOBMSG_TYPE_INT64</code> 或 <code>BLOBMSG_TYPE_INT16</code> 类型后， <code>ubus list -v</code> 显示的参数类型为 <code>(unknown)</code> ， <code>blobmsg_parse</code> 解析请求相应字段为 <code>NULL</code> ，如下例所示
+</p>
+
+<p>
+<code>blobmsg_json_test.c</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-C"><span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;libubox/blobmsg_json.h&gt;</span>
+
+<span style="color: #b5bd68;">static</span> <span style="color: #b5bd68;">const</span> <span style="color: #b5bd68;">struct</span> <span style="color: #81a2be;">blobmsg_policy</span> <span style="color: #f0c674;">policy</span>[] = {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> [0] = { .name = <span style="color: #8abeb7;">"name"</span>, .type = BLOBMSG_TYPE_STRING },
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> [1] = { .name = <span style="color: #8abeb7;">"length"</span>, .type = BLOBMSG_TYPE_INT64 },
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> [2] = { .name = <span style="color: #8abeb7;">"width"</span>, .type = BLOBMSG_TYPE_INT16 },
+};
+
+<span style="color: #81a2be;">int</span> <span style="color: #de935f;">main</span>(<span style="color: #81a2be;">int</span> <span style="color: #f0c674;">argc</span>, <span style="color: #81a2be;">char</span> *<span style="color: #f0c674;">argv</span>[])
+{
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">const</span> <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">json</span> = <span style="color: #8abeb7;">"{\"name\":\"tree\", \"length\": 100000000, \"width\": 10</span><span style="color: #de935f; background-color: #373b41;">}"</span><span style="color: #de935f; background-color: #373b41;">;</span>
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">struct</span> <span style="color: #81a2be;">blob_buf</span> <span style="color: #f0c674;">buf</span> = {<span style="color: #8abeb7;">'\0'</span>};
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> blobmsg_buf_init(&amp;buf);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (<span style="color: #81a2be;">!</span> blobmsg_add_json_from_string(&amp;buf, json)) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> fprintf(stderr, <span style="color: #8abeb7;">"load json to blob buf failed\n"</span>);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> EXIT_FAILURE;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> }
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">struct</span> <span style="color: #81a2be;">blob_attr</span> *<span style="color: #f0c674;">attr</span>[ARRAY_SIZE(<span style="color: #81a2be;">policy</span>)];
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (0 != blobmsg_parse(policy, ARRAY_SIZE(policy), attr, blob_data(buf.head)<span style="color: #de935f; background-color: #373b41;">, blob_len(buf.head))) {</span>
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> fprintf(stderr, <span style="color: #8abeb7;">"parse failed\n"</span>);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> EXIT_FAILURE;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> }
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">i</span>;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">for</span>(i = 0; i &lt; ARRAY_SIZE(policy); ++i) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (<span style="color: #81a2be;">!</span> attr[i]) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> fprintf(stderr, <span style="color: #8abeb7;">"parse failed: %s\n"</span>, policy[i].name);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> }
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> }
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> EXIT_SUCCESS;
+}
+</pre>
+</div>
+
+<p>
+运行结果
+</p>
+<pre class="example">
+$ ./blobmsg_json_test
+parse failed: length
+parse failed: width
+</pre>
+
+<p>
+引用相关讨论 <a href="http://logs.nslu2-linux.org/livelogs/openwrt-devel/openwrt-devel.20151103.txt">http://logs.nslu2-linux.org/livelogs/openwrt-devel/openwrt-devel.20151103.txt</a>
+</p>
+<blockquote>
+<p>
+Nov 03 00:43:43 &lt;txomon&gt; So I think I found something strange in ubus, but I am not too sure. For some reason, declaring within a policy BLOBMSG_TYPE_INT16, won't be accepted, and blobmsg_get_u16 will return null
+</p>
+
+<p>
+Nov 03 00:44:04 &lt;txomon&gt; I mean, it is accepted but it will refuse to work
+</p>
+
+<p>
+Nov 03 00:44:17 &lt;txomon&gt; and in ubus -v list will appear as nil
+</p>
+
+<p>
+Nov 03 00:45:00 &lt;txomon&gt; it will appear as "(unknown)"
+</p>
+
+<p>
+Nov 03 00:47:17 &lt;txomon&gt; looking at the cli code, I understand why it appears as unknown, because int16 is not in there, but anyway, why doesn't it work for my client?
+</p>
+
+<p>
+Nov 03 00:48:17 &lt;txomon&gt; It might be because ubus cli is not prepared to send uint16?
+</p>
+
+<p>
+Nov 03 00:48:39 &lt;txomon&gt; (I always refer to BLOBMSG_TYPE_INT16)
+</p>
+
+<p>
+Nov 03 00:51:44 &lt;txomon&gt; well, I understand it isn't because json doesn't have such thing as int16&#x2026; and indeed libubox/blobmsg_json.c L72 is just prepared for u32, but anyway, that means you can't use any datatype that doesn't match those ones!
+</p>
+
+<p>
+Nov 03 00:52:03 &lt;txomon&gt; shouldn't ubus cli inspect the interface and then send the correct datatype through ubus?
+</p>
+
+<p>
+Nov 03 00:55:27 &lt;txomon&gt; I suppose it's the same for uhttpd-mod-ubus
+</p>
+
+<p>
+Nov 03 01:01:23 &lt;txomon&gt; I have checked and yeah&#x2026; so I will just use BLOBMSG_TYPE_INT32&#x2026;. why does ubus even support that then? :(
+</p>
+</blockquote>
+
+<p>
+这是因为 json 只有一种整型，json 转 blogmsg 会转成 BLOBMSG_TYPE_INT32，引用自 <code>blobmsg_json.c</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-C"><span style="color: #81a2be;">bool</span> <span style="color: #de935f;">blobmsg_add_json_element</span>(<span style="color: #b5bd68;">struct</span> <span style="color: #81a2be;">blob_buf</span> *<span style="color: #f0c674;">b</span>, <span style="color: #b5bd68;">const</span> <span style="color: #81a2be;">char</span> *<span style="color: #f0c674;">name</span>, <span style="color: #81a2be;">json_object</span> <span style="color: #de935f; background-color: #373b41;">*</span><span style="color: #de935f; background-color: #373b41;">obj</span><span style="color: #de935f; background-color: #373b41;">)</span>
+{
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #81a2be;">bool</span> <span style="color: #f0c674;">ret</span> = <span style="color: #81a2be;">true</span>;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #81a2be;">void</span> *<span style="color: #f0c674;">c</span>;
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (<span style="color: #81a2be;">!</span>obj)
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> <span style="color: #81a2be;">false</span>;
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">switch</span> (json_object_get_type(obj)) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">case</span> json_type_object:
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> c = blobmsg_open_table(b, name);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> ret = blobmsg_add_object(b, obj);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> blobmsg_close_table(b, c);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">break</span>;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">case</span> json_type_array:
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> c = blobmsg_open_array(b, name);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> ret = blobmsg_add_array(b, json_object_get_array(obj));
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> blobmsg_close_array(b, c);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">break</span>;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">case</span> json_type_string:
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> blobmsg_add_string(b, name, json_object_get_string(obj));
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">break</span>;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">case</span> json_type_boolean:
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> blobmsg_add_u8(b, name, json_object_get_boolean(obj));
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">break</span>;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">case</span> json_type_int:
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> blobmsg_add_u32(b, name, json_object_get_int(obj));
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">break</span>;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">default</span>:
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> <span style="color: #81a2be;">false</span>;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> }
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> ret;
+}
+</pre>
+</div>
+
+<p>
+而解析 blobmsg 时，因为与预定义类型 <code>blobmsg_policy</code> 不一致 <code>blob_id(attr) != policy[i].type</code> ，相应字段被丢弃，引用自 <code>blobmsg.c</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-C"><span style="color: #81a2be;">int</span> <span style="color: #de935f;">blobmsg_parse</span>(<span style="color: #b5bd68;">const</span> <span style="color: #b5bd68;">struct</span> <span style="color: #81a2be;">blobmsg_policy</span> *<span style="color: #f0c674;">policy</span>, <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">policy_len</span>,
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">struct</span> <span style="color: #81a2be;">blob_attr</span> **<span style="color: #f0c674;">tb</span>, <span style="color: #81a2be;">void</span> *<span style="color: #f0c674;">data</span>, <span style="color: #81a2be;">unsigned</span> <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">len</span>)
+{
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">struct</span> <span style="color: #81a2be;">blobmsg_hdr</span> *<span style="color: #f0c674;">hdr</span>;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">struct</span> <span style="color: #81a2be;">blob_attr</span> *<span style="color: #f0c674;">attr</span>;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #81a2be;">uint8_t</span> *<span style="color: #f0c674;">pslen</span>;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">i</span>;
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> memset(tb, 0, <span style="color: #81a2be;">policy_len</span> * <span style="color: #b5bd68;">sizeof</span>(*tb));
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> pslen = alloca(policy_len);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">for</span> (i = 0; i &lt; policy_len; i++) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (<span style="color: #81a2be;">!</span>policy[i].name)
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">continue</span>;
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> pslen[i] = strlen(policy[i].name);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> }
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #de935f;">__blob_for_each_attr</span>(<span style="color: #81a2be;">attr</span>, <span style="color: #81a2be;">data</span>, <span style="color: #81a2be;">len</span>) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> hdr = blob_data(attr);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">for</span> (i = 0; i &lt; policy_len; i++) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (<span style="color: #81a2be;">!</span>policy[i].name)
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">continue</span>;
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (policy[i].type != BLOBMSG_TYPE_UNSPEC &amp;&amp;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> blob_id(attr) != policy[i].type)
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">continue</span>;
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (blobmsg_namelen(hdr) != pslen[i])
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">continue</span>;
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (<span style="color: #81a2be;">!</span>blobmsg_check_attr(attr, <span style="color: #81a2be;">true</span>))
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> -1;
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (tb[i])
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">continue</span>;
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (strcmp(policy[i].name, (<span style="color: #81a2be;">char</span> *) hdr-&gt;name) != 0)
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">continue</span>;
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> tb[i] = attr;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> }
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> }
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> 0;
+}
+</pre>
+</div>
+
+<p>
+<code>ubus</code> 命令行工具以及 <code>uhttpd-mod-ubus</code> 以 json 做为请求格式，因此不支持 <code>BLOBMSG_TYPE_INT64</code> 和 <code>BLOBMSG_TYPE_INT16</code> 字段类型，数据类型定义 <code>blobmsg_policy</code> 需要做一下折衷：
+</p>
+
+<ul class="org-ul">
+<li><code>BLOBMSG_TYPE_INT16</code> 改用 <code>BLOBMSG_TYPE_INT32</code>
+</li>
+
+<li><code>BLOBMSG_TYPE_INT64</code> 改用 <code>BLOBMSG_TYPE_STRING</code>
+
+<p>
+封装一下方便使用
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-C"><span style="color: #b294bb;">/**</span>
+<span style="color: #969896; background-color: #222427;"> </span><span style="color: #b294bb;">* &#35299;&#26512;&#23383;&#31526;&#20018;&#24418;&#24335;&#20256;&#36882;&#30340; uint64_t &#28040;&#24687;&#23383;&#27573;&#20540;.</span>
+<span style="color: #969896; background-color: #222427;"> </span><span style="color: #b294bb;">* UBUS &#20256;&#36882; uint64_t &#31867;&#22411;&#23383;&#27573;&#23384;&#22312; BUG&#65292;&#38656;&#35201;&#20197;&#23383;&#31526;&#20018;&#24418;&#24335;&#20256;&#36882;.</span>
+<span style="color: #969896; background-color: #222427;"> </span><span style="color: #b294bb;">* &#29992;&#20110;&#26367;&#25442;</span><span style="color: #81a2be;">@ref</span><span style="color: #b294bb;"> blobmsg_get_u64.</span>
+<span style="color: #969896; background-color: #222427;"> </span><span style="color: #b294bb;">*</span>
+<span style="color: #969896; background-color: #222427;"> </span><span style="color: #b294bb;">* </span><span style="color: #81a2be;">@param</span><span style="color: #b294bb;"> attr &#28040;&#24687;&#23383;&#27573;.</span>
+<span style="color: #969896; background-color: #222427;"> </span><span style="color: #b294bb;">*</span>
+<span style="color: #969896; background-color: #222427;"> </span><span style="color: #b294bb;">* </span><span style="color: #81a2be;">@return</span><span style="color: #b294bb;"> &#28040;&#24687;&#23383;&#27573;&#20540;. </span><span style="color: #81a2be;">@ref</span><span style="color: #b294bb;"> blobmsg_get_string.</span>
+<span style="color: #969896; background-color: #222427;"> </span><span style="color: #b294bb;">*/</span>
+<span style="color: #b5bd68;">static</span> <span style="color: #b5bd68;">inline</span> <span style="color: #81a2be;">uint64_t</span>
+<span style="color: #de935f;">blobmsg_get_u64string</span>(<span style="color: #b5bd68;">struct</span> <span style="color: #81a2be;">blob_attr</span> *<span style="color: #f0c674;">attr</span>) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">str</span> = blobmsg_get_string(attr);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (str) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">end</span> = <span style="color: #81a2be;">NULL</span>;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #81a2be;">uint64_t</span> <span style="color: #f0c674;">value</span> = strtoull(str, &amp;end, 10);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (end &amp;&amp; end[0] == <span style="color: #8abeb7;">'\0'</span>) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> value;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> }
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> }
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> 0;
+}
+
+<span style="color: #b294bb;">/**</span>
+<span style="color: #969896; background-color: #222427;"> </span><span style="color: #b294bb;">* &#28155;&#21152;&#23383;&#31526;&#20018;&#24418;&#24335;&#20256;&#36882;&#30340; uint64_t &#28040;&#24687;&#23383;&#27573;.</span>
+<span style="color: #969896; background-color: #222427;"> </span><span style="color: #b294bb;">* UBUS &#20256;&#36882; uint64_t &#31867;&#22411;&#23383;&#27573;&#23384;&#22312; BUG&#65292;&#38656;&#35201;&#20197;&#23383;&#31526;&#20018;&#24418;&#24335;&#20256;&#36882;.</span>
+<span style="color: #969896; background-color: #222427;"> </span><span style="color: #b294bb;">* &#29992;&#20110;&#26367;&#25442;</span><span style="color: #81a2be;">@ref</span><span style="color: #b294bb;"> blobmsg_add_u64.</span>
+<span style="color: #969896; background-color: #222427;"> </span><span style="color: #b294bb;">*</span>
+<span style="color: #969896; background-color: #222427;"> </span><span style="color: #b294bb;">* </span><span style="color: #81a2be;">@param</span><span style="color: #b294bb;"> buf &#28040;&#24687;&#32531;&#20914;&#21306;.</span>
+<span style="color: #969896; background-color: #222427;"> </span><span style="color: #b294bb;">* </span><span style="color: #81a2be;">@param</span><span style="color: #b294bb;"> name &#28040;&#24687;&#23383;&#27573;&#21517;.</span>
+<span style="color: #969896; background-color: #222427;"> </span><span style="color: #b294bb;">* </span><span style="color: #81a2be;">@param</span><span style="color: #b294bb;"> val &#28040;&#24687;&#23383;&#27573;&#20540;.</span>
+<span style="color: #969896; background-color: #222427;"> </span><span style="color: #b294bb;">*</span>
+<span style="color: #969896; background-color: #222427;"> </span><span style="color: #b294bb;">* </span><span style="color: #81a2be;">@return</span><span style="color: #b294bb;"> &#26159;&#21542;&#25104;&#21151;. </span><span style="color: #81a2be;">@ref</span><span style="color: #b294bb;"> blobmsg_add_string.</span>
+<span style="color: #969896; background-color: #222427;"> </span><span style="color: #b294bb;">*/</span>
+<span style="color: #b5bd68;">static</span> <span style="color: #b5bd68;">inline</span> <span style="color: #81a2be;">int</span>
+<span style="color: #de935f;">blobmsg_add_u64string</span>(<span style="color: #b5bd68;">struct</span> <span style="color: #81a2be;">blob_buf</span> *<span style="color: #f0c674;">buf</span>, <span style="color: #b5bd68;">const</span> <span style="color: #81a2be;">char</span> *<span style="color: #f0c674;">name</span>, <span style="color: #81a2be;">uint64_t</span> <span style="color: #f0c674;">val</span>) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #81a2be;">char</span> <span style="color: #f0c674;">value</span>[20 + 1] = {<span style="color: #8abeb7;">'\0'</span>};
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> snprintf(value, <span style="color: #b5bd68;">sizeof</span>(value), <span style="color: #8abeb7;">"%"</span>PRIu64, val);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> blobmsg_add_string(buf, name, value);
+}
+</pre>
+</div>
+</li>
+</ul>
+
+
+<p>
+C 中 64 位整形的取值范围，见 <code>/usr/include/limits.h</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-C"><span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">Minimum and maximum values a `signed long int' can hold.  </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="color: #b294bb;">#  if</span> __WORDSIZE == 64
+<span style="color: #b294bb;">#   define</span> <span style="color: #f0c674;">LONG_MAX</span>     9223372036854775807L
+<span style="color: #b294bb;">#  else</span>
+<span style="color: #b294bb;">#   define</span> <span style="color: #f0c674;">LONG_MAX</span>     2147483647L
+<span style="color: #b294bb;">#  endif</span>
+<span style="color: #b294bb;">#  define</span> <span style="color: #f0c674;">LONG_MIN</span>  (-LONG_MAX - 1L)
+
+<span style="color: #969896; font-style: italic;">/* </span><span style="color: #969896; font-style: italic;">Maximum value an `unsigned long int' can hold.  (Minimum is 0.)  </span><span style="color: #969896; font-style: italic;">*/</span>
+<span style="color: #b294bb;">#  if</span> __WORDSIZE == 64
+<span style="color: #b294bb;">#   define</span> <span style="color: #f0c674;">ULONG_MAX</span>    18446744073709551615UL
+<span style="color: #b294bb;">#  else</span>
+<span style="color: #b294bb;">#   define</span> <span style="color: #f0c674;">ULONG_MAX</span>    4294967295UL
+<span style="color: #b294bb;">#  endif</span>
+</pre>
+</div>
+
+<p>
+JSON/JavaScript 中 64 位整形的取值范围，引用自 <a href="https://cdivilly.wordpress.com/2012/04/11/json-javascript-large-64-bit-integers/">JSON/JavaScript and large 64 bit integer values | The former blog of cdivilly</a>
+</p>
+<blockquote>
+<p>
+JavaScript represents all numbers internally as 64 bit floating point values (see the ECMAScript spec here). This means JavaScript runtimes are not able to handle integer values larger than 9007199254740992 (2^53).
+</p>
+
+<p>
+Note that all the positive and negative integers whose magnitude is no greater than 2^53 are representable in the Number type
+</p>
+</blockquote>
+
+<p>
+可见，json 转 blobmsg 不将整型转化为 <code>BLOBMSG_TYPE_INT64</code> 因为 json 不能精确表示 64 位整型。</p>
+]]></content:encoded>
+        </item>
+    </channel>
+</rss>

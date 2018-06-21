@@ -16,6 +16,7 @@
           <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
           
           <li><a href="/index.html"><i class="icon-folder-close icon-white"></i> 技术</a></li>
+          <li><a href="/category/life/0.html"><i class="icon-folder-close icon-white"></i> 生活</a></li>
         </ul>
       </div>
     </div>
@@ -37,57 +38,64 @@
 而 <code>Sentinel</code> 正是自动化这一过程的官方工具，详细文档请参考《<a href="http://redis.io/topics/sentinel">Redis Sentinel Documentation – Redis</a>》。
 </p>
 
-<div id="outline-container-sec-1" class="outline-2">
-<h2 id="sec-1"><code>Sentinel</code> 的功能</h2>
-<div class="outline-text-2" id="text-1">
+<div id="outline-container-org7b18be6" class="outline-2">
+<h2 id="org7b18be6"><code>Sentinel</code> 的功能</h2>
+<div class="outline-text-2" id="text-org7b18be6">
 <ul class="org-ul">
-<li>监控
+<li><p>
+监控
+</p>
 
 <p>
 <code>Sentinel</code> 不断地检测 <code>Master</code> 和 <code>Slave</code> 实例的运行状态。
-</p>
-</li>
+</p></li>
 
-<li>通知
+<li><p>
+通知
+</p>
 
 <p>
 <code>Sentinel</code> 通过API，能够通知系统管理员、其它程序：监控的Redis实例出问题了。
-</p>
-</li>
+</p></li>
 
-<li>自动故障切换
+<li><p>
+自动故障切换
+</p>
 
 <p>
 如果 <code>Master</code> 实例出问题了， <code>Sentinel</code> 通过将一个 <code>Slave</code> 实例提升为 <code>Master</code> 修复故障，其它 <code>Slave</code> 实例使用新的 <code>Master</code> 实例，同时通知给使用Redis服务的应用程序以便重新建立连接。
-</p>
-</li>
+</p></li>
 
-<li>配置提供者
+<li><p>
+配置提供者
+</p>
 
 <p>
 <code>Sentinel</code> 做为客户端服务发现的权威来源：客户端连接到 <code>Sentinel</code> 以获取当前 <code>Master</code> 的地址，故障切换后报告新的地址。
-</p>
-</li>
+</p></li>
 </ul>
 </div>
 </div>
 
-<div id="outline-container-sec-2" class="outline-2">
-<h2 id="sec-2"><code>Sentinel</code> 演示</h2>
-<div class="outline-text-2" id="text-2">
+<div id="outline-container-org9ae7033" class="outline-2">
+<h2 id="org9ae7033"><code>Sentinel</code> 演示</h2>
+<div class="outline-text-2" id="text-org9ae7033">
 <p>
 <code>Redis Sentinel</code> 推荐的配置为至少三个Sentinel部署在三台不同的机器上，只配一台自已本身就是单点没有意义，二台时可能出现“脑裂”。
 </p>
 
 <ul class="org-ul">
-<li>启动上一篇文章《 <a href="http://blog.kankanan.com/article/redis-9ad853ef7528602757fa7840ff1a-master-slave.html">redis高可用性基础：Master-Slave</a> 》配置好的 <code>Master</code> 及 <code>Slave</code> Redis实例
+<li><p>
+启动上一篇文章《 <a href="http://blog.kankanan.com/article/redis-9ad853ef7528602757fa7840ff1a-master-slave.html">redis高可用性基础：Master-Slave</a> 》配置好的 <code>Master</code> 及 <code>Slave</code> Redis实例
+</p>
 
 <p>
 <code>Master</code> 监听在 <code>6379</code> 端口， <code>Slave</code> 监听在 <code>6380</code> 端口。
-</p>
-</li>
+</p></li>
 
-<li>使用端口号 <code>5000</code> <code>5001</code> <code>5002</code> 创建三个 <code>Sentinel</code> 实例
+<li><p>
+使用端口号 <code>5000</code> <code>5001</code> <code>5002</code> 创建三个 <code>Sentinel</code> 实例
+</p>
 
 <p>
 <code>Sentinel</code> 实例 <code>a</code> 的配置文件 <code>redis-sentinel-a.conf</code>
@@ -131,10 +139,11 @@ sentinel parallel-syncs mymaster 1
 
 <p>
 可以发现当 <code>Sentinel</code> 实例启动时 <code>Sentinel</code> 的配置文件会自动进行更新，记录 <code>Slave</code> 及其它 <code>Sentinel</code> 的信息。
-</p>
-</li>
+</p></li>
 
-<li>从 <code>Sentinel</code> 获取当前 <code>Master</code> 的地址
+<li><p>
+从 <code>Sentinel</code> 获取当前 <code>Master</code> 的地址
+</p>
 
 <p>
 通过 <code>redis-cli</code> 连上任一 <code>Sentinel</code> <code>redis-cli -p 5000</code>
@@ -144,10 +153,11 @@ sentinel parallel-syncs mymaster 1
 127.0.0.1:5000&gt; sentinel get-master-addr-by-name mymaster
 1) "127.0.0.1"
 2) "6379"
-</pre>
-</li>
+</pre></li>
 
-<li>故障切换测试
+<li><p>
+故障切换测试
+</p>
 
 <p>
 让 <code>Master</code> 停止响应 <code>30</code> 秒 <code>redis-cli -p 6379 debug sleep 30</code>
@@ -185,24 +195,26 @@ sentinel parallel-syncs mymaster 1
 
 <p>
 三个 <code>Sentinel</code> 配置文件中的 <code>Master-Slave</code> 配置也被自动修正。
-</p>
-</li>
+</p></li>
 </ul>
 </div>
 </div>
 
-<div id="outline-container-sec-3" class="outline-2">
-<h2 id="sec-3">疑问</h2>
-<div class="outline-text-2" id="text-3">
+<div id="outline-container-org0f4c340" class="outline-2">
+<h2 id="org0f4c340">疑问</h2>
+<div class="outline-text-2" id="text-org0f4c340">
 <ul class="org-ul">
-<li><code>Redis</code> 实例的配置文件是被谁修改的？
+<li><p>
+<code>Redis</code> 实例的配置文件是被谁修改的？
+</p>
 
 <p>
 如果是 <code>Sentinel</code> 那么就意味着所有 <code>Redis</code> 实例的同一机器上必须配置有 <code>Sentinel</code> （《<a href="http://redis.io/topics/sentinel">Redis Sentinel Documentation – Redis</a>》未提及）。
-</p>
-</li>
+</p></li>
 
-<li>万一因为某种原因，原 <code>Master</code> 配置文件未改为 <code>Slave</code> ，会不会出现脑裂？
+<li><p>
+万一因为某种原因，原 <code>Master</code> 配置文件未改为 <code>Slave</code> ，会不会出现脑裂？
+</p>
 
 <p>
 感觉应该是会出现脑裂的，但是只要客户端应用总是使用 <code>Sentinel</code> 提供的 <code>Master</code> 地址，就不会有问题。
@@ -210,10 +222,11 @@ sentinel parallel-syncs mymaster 1
 
 <p>
 <code>node.js</code> 访问单个 <code>redis</code> 实例已经用得很溜了，下一篇文章会研究 <code>node.js</code> 访问 <code>redis sentinel</code> ，相信答案就会水落石出了。
-</p>
-</li>
+</p></li>
 
-<li><code>Redis Sentinel</code> 能保证不丢数据吗？
+<li><p>
+<code>Redis Sentinel</code> 能保证不丢数据吗？
+</p>
 
 <p>
 不能。由于 <code>Redis</code> 是异步复制，没有办法防止数据丢失，假设配置如下：
@@ -226,15 +239,14 @@ min-slaves-max-lag 10
 
 <p>
 假设出现了分裂（partition）， <code>Master</code> 要 <code>10</code> 秒钟后才发现 <code>Slave</code> 失联再禁止写入，当分裂消除（partition heals）， 旧 <code>Master</code> 做为 <code>Slave</code> 连上新的 <code>Master</code> ，这 <code>10</code> 秒钟内写入的数据不会合入（merge）新的 <code>Master</code> ，数据丢失了。
-</p>
-</li>
+</p></li>
 </ul>
 </div>
 </div>
 
-<div id="outline-container-sec-4" class="outline-2">
-<h2 id="sec-4">参考</h2>
-<div class="outline-text-2" id="text-4">
+<div id="outline-container-orgf86eff9" class="outline-2">
+<h2 id="orgf86eff9">参考</h2>
+<div class="outline-text-2" id="text-orgf86eff9">
 <p>
 <a href="http://redis.io/topics/sentinel">Redis Sentinel Documentation – Redis</a></p>
 </div>
@@ -269,7 +281,7 @@ min-slaves-max-lag 10
 
     <div id="footer">
   	  <div class="copyright" style="text-align: center;">
-  	    版权所有 © 2011-2018 看看俺 – KanKanAn.com
+  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
   	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
   	  </div>
     </div>

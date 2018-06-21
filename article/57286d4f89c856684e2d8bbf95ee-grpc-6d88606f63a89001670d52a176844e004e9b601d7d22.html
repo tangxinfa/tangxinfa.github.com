@@ -16,6 +16,7 @@
           <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
           
           <li><a href="/index.html"><i class="icon-folder-close icon-white"></i> 技术</a></li>
+          <li><a href="/category/life/0.html"><i class="icon-folder-close icon-white"></i> 生活</a></li>
         </ul>
       </div>
     </div>
@@ -50,9 +51,9 @@ HTTP/2 在 2015 年底开始被广泛支持（参考 <a href="https://zh.wikiped
 下面是方案调研时接触的一些相关开源项目，供参考。
 </p>
 
-<div id="outline-container-sec-1" class="outline-2">
-<h2 id="sec-1"><a href="https://github.com/grpc-ecosystem/grpc-gateway">grpc-gateway</a></h2>
-<div class="outline-text-2" id="text-1">
+<div id="outline-container-orga10f3bd" class="outline-2">
+<h2 id="orga10f3bd"><a href="https://github.com/grpc-ecosystem/grpc-gateway">grpc-gateway</a></h2>
+<div class="outline-text-2" id="text-orga10f3bd">
 <blockquote>
 <p>
 grpc-gateway is a plugin of protoc. It reads gRPC service definition, and generates a reverse-proxy server which translates a RESTful JSON API into gRPC. This server is generated according to custom options in your gRPC definition.
@@ -64,19 +65,20 @@ grpc-gateway 为 Grpc 服务生成 HTTP/1.1 JSON RESTful 反向代理服务，�
 </p>
 
 <ul class="org-ul">
-<li>存在的问题
+<li><p>
+存在的问题
+</p>
 
 <p>
 不支持双向流（Bidirectional streaming）
-</p>
-</li>
+</p></li>
 </ul>
 </div>
 </div>
 
-<div id="outline-container-sec-2" class="outline-2">
-<h2 id="sec-2"><a href="https://github.com/tmc/grpc-websocket-proxy">grpc-websocket-proxy</a></h2>
-<div class="outline-text-2" id="text-2">
+<div id="outline-container-orgf92ec11" class="outline-2">
+<h2 id="orgf92ec11"><a href="https://github.com/tmc/grpc-websocket-proxy">grpc-websocket-proxy</a></h2>
+<div class="outline-text-2" id="text-orgf92ec11">
 <blockquote>
 <p>
 A proxy to transparently upgrade grpc-gateway streaming endpoints to use websockets
@@ -109,9 +111,9 @@ WebSocket &lt;-&gt; HTTP/1.1 &lt;-&gt; gRPC
 </div>
 </div>
 
-<div id="outline-container-sec-3" class="outline-2">
-<h2 id="sec-3"><a href="https://socket.io/">socket.io</a></h2>
-<div class="outline-text-2" id="text-3">
+<div id="outline-container-org7890963" class="outline-2">
+<h2 id="org7890963"><a href="https://socket.io/">socket.io</a></h2>
+<div class="outline-text-2" id="text-org7890963">
 <blockquote>
 <p>
 Socket.IO enables real-time bidirectional event-based communication.
@@ -132,22 +134,29 @@ go 语言实现 <a href="https://github.com/googollee/go-socket.io">go-socket.io
 </p>
 
 <div class="org-src-container">
-
 <pre class="src src-sh">go get github.com/googollee/go-socket.io
 </pre>
 </div>
+
+<p>
+go 的 socket.io 实现没有官方支持，很不完善，<a href="https://github.com/googollee/go-socket.io">go-socket.io</a> 只有服务器端实现，已
+经很久没有更新了，而 go 的 socket.io 客户端实现就更不靠谱了，实际使用时很多问
+题，直接使用 websocket 会更靠谱一些。
+</p>
 </div>
 </div>
 
-<div id="outline-container-sec-4" class="outline-2">
-<h2 id="sec-4"><a href="https://lyft.github.io/envoy/">envoy</a></h2>
-<div class="outline-text-2" id="text-4">
+<div id="outline-container-org23cbaf4" class="outline-2">
+<h2 id="org23cbaf4"><a href="https://lyft.github.io/envoy/">envoy</a></h2>
+<div class="outline-text-2" id="text-org23cbaf4">
 <p>
 <a href="https://lyft.github.io/envoy/">envoy</a> 有一些插件完成了部分功能：
 </p>
 
 <ul class="org-ul">
-<li><a href="https://envoyproxy.github.io/envoy/configuration/http_filters/grpc_http1_bridge_filter.html">gRPC HTTP/1.1 bridge</a>
+<li><p>
+<a href="https://envoyproxy.github.io/envoy/configuration/http_filters/grpc_http1_bridge_filter.html">gRPC HTTP/1.1 bridge</a>
+</p>
 
 <p>
 实现了通过 HTTP/1.1 协议调用 gRPC（HTTP/2） 的功能。
@@ -155,13 +164,14 @@ go 语言实现 <a href="https://github.com/googollee/go-socket.io">go-socket.io
 
 <p>
 采用和 gRPC 一致的数据编码方式（Protobuf 二进制数据），只支持 <code>unary gRPC API</code> 。
-</p>
-</li>
+</p></li>
 </ul>
 
 
 <ul class="org-ul">
-<li><a href="https://envoyproxy.github.io/envoy/configuration/http_filters/grpc_json_transcoder_filter.html">gRPC-JSON transcoder filter</a>
+<li><p>
+<a href="https://envoyproxy.github.io/envoy/configuration/http_filters/grpc_json_transcoder_filter.html">gRPC-JSON transcoder filter</a>
+</p>
 
 <p>
 支持 gRPC 的 <code>Server streaming</code> 和 <code>Client streaming</code> ，Envoy 将流式请求及响应缓存起来了，所以实时性较差；不支持 <code>Bidirectional streaming</code> 。
@@ -177,27 +187,29 @@ go 语言实现 <a href="https://github.com/googollee/go-socket.io">go-socket.io
 
 <p>
 要在 Envoy 中实现 Websocket 访问 gRPC 可以参考 <a href="https://envoyproxy.github.io/envoy/configuration/http_filters/grpc_json_transcoder_filter.html">gRPC-JSON transcoder filter</a> 。
-</p>
-</li>
+</p></li>
 </ul>
 
 
 <ul class="org-ul">
-<li><a href="https://envoyproxy.github.io/envoy/configuration/http_filters/grpc_web_filter.html">gRPC-Web filter</a>
+<li><p>
+<a href="https://envoyproxy.github.io/envoy/configuration/http_filters/grpc_web_filter.html">gRPC-Web filter</a>
+</p>
 
 <p>
 基于 <a href="https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-WEB.md">gRPC Web</a> 协议的实现，跟原始的 gRPC 协议基本一致，通过去除对 HTTP/2 底层（如 frame）的依赖，使得在浏览器上调用 gRPC 成为可能。
 </p>
 
 <p>
-当前不支持 Streaming，以后在最新的浏览器中可能支持。
-</p>
-</li>
+当前不支持 <code>Bidirectional Streaming</code> ，以后在最新的浏览器中可能支持。
+</p></li>
 </ul>
 
 
 <ul class="org-ul">
-<li><a href="https://envoyproxy.github.io/envoy/intro/arch_overview/websocket.html?highlight=websocket">WebSocket support</a>
+<li><p>
+<a href="https://envoyproxy.github.io/envoy/intro/arch_overview/websocket.html?highlight=websocket">WebSocket support</a>
+</p>
 
 <p>
 支持接入 WebSocket，会建立一条到 Upstream 的 TCP 连接，Upstream 服务需要是一个完整的 WebSocket 服务器，
@@ -206,8 +218,7 @@ go 语言实现 <a href="https://github.com/googollee/go-socket.io">go-socket.io
 
 <p>
 由于客户端发起的 WebSocket 连接与到 Upstream 的连接（TCP）是 <code>1:1</code> 的关系，可扩展性较差。
-</p>
-</li>
+</p></li>
 </ul>
 
 
@@ -218,15 +229,17 @@ Envoy 中编写插件支持 WebSocket 到 gRPC 的协议转换（支持 <code>Bi
 </div>
 
 
-<div id="outline-container-sec-5" class="outline-2">
-<h2 id="sec-5">nginx</h2>
-<div class="outline-text-2" id="text-5">
+<div id="outline-container-org507471c" class="outline-2">
+<h2 id="org507471c">nginx</h2>
+<div class="outline-text-2" id="text-org507471c">
 <p>
 与 envoy 的 <a href="https://envoyproxy.github.io/envoy/intro/arch_overview/websocket.html?highlight=websocket">WebSocket support</a> 相似，支持接入 WebSocket，会建立一条到 Upstream 的 TCP 连接，Upstream 服务需要是一个完整的 WebSocket 服务器，相当于是一个 WebSocket 的透明代理，由于客户端发起的 WebSocket 连接与到 Upstream 的连接（通过 proxy_pass 指令）是 <code>1:1</code> 的关系，连接数倍增，参考 <a href="https://www.nginx.com/blog/http2-module-nginx/#QandAnginx">https://www.nginx.com/blog/http2-module-nginx/#QandAnginx</a> 。
 </p>
 
 <ul class="org-ul">
-<li><a href="https://github.com/slact/nchan">Nchan</a>
+<li><p>
+<a href="https://github.com/slact/nchan">Nchan</a>
+</p>
 
 <blockquote>
 <p>
@@ -236,8 +249,7 @@ Fast, horizontally scalable, multiprocess pub/sub queuing server and proxy for H
 
 <p>
 是 Nginx 的一个插件，支持各种接入方式，是搭建消息推送系统的一种很好的选择。
-通过回调（HTTP/1.1 Restful）与业务系统集成在一起，使得业务系统不需要关心客户端接入细节。</p>
-</li>
+通过回调（HTTP/1.1 Restful）与业务系统集成在一起，使得业务系统不需要关心客户端接入细节。</p></li>
 </ul>
 </div>
 </div>
@@ -274,7 +286,7 @@ Fast, horizontally scalable, multiprocess pub/sub queuing server and proxy for H
 
     <div id="footer">
   	  <div class="copyright" style="text-align: center;">
-  	    版权所有 © 2011-2018 看看俺 – KanKanAn.com
+  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
   	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
   	  </div>
     </div>

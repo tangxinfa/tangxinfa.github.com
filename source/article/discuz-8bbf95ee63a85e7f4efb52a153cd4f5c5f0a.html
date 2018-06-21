@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <title>Discuz访问推广任务反作弊 | </title>
+    <link rel="shortcut icon" href="/static/favicon.ico" />
+    <link rel="stylesheet" type="text/css" href="/style/ediary.css"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="generator" content="o-blog"/>
+  </head>
+  <body>
+    <div class="navbar navbar-fixed-top" id="header">
+      <div class="navbar-inner">
+        <a class="brand" href="/" style="line-height:100%;"></a>
+        <ul class="navbar-links">
+          <li><a href="/index.xml"><i class="icon-rss icon-white"></i> Subscribe</a></li>
+          <li><a href="/category/ediary/0.html"><i class="icon-folder-close icon-white"></i> ediary</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="container container-fluid" id="page">
+      <div class="push-header"></div>
+
+      <div class="article">
+        <header class="article-header">
+          <h1>Discuz访问推广任务反作弊</h1>
+        </header>
+      
+        <div class="article-content">
+          <ul class="org-ul">
+<li>识别作弊
+
+<p>
+发贴、回复较少的用户具有偏高的积分、等级通常就是潜在的作弊对象。在后台查看该用户的积分历史，如果来历不明，那么很可能是通过访问推广作弊获得的。
+</p>
+
+<p>
+在我们的例子里就发现有一个用户金钱数过高，先查看该用户的积分表：
+</p>
+
+<pre class="example">
+mysql&gt; SELECT total, cyclenum, extcredits2 FROM g_common_credit_rule_log WHERE rid=8 and uid=119;
++-------+----------+-------------+
+| total | cyclenum | extcredits2 |
++-------+----------+-------------+
+|  3454 |     3454 |           1 |
++-------+----------+-------------+
+1 row in set (0.00 sec)
+</pre>
+
+<p>
+相关字段说明
+</p>
+<dl class="org-dl">
+<dt> total </dt><dd>策略被执行总次数
+</dd>
+<dt> cyclenum </dt><dd>周期被执行次数 
+</dd>
+<dt> extcredits2 </dt><dd>我们的系统里对应金钱数
+</dd>
+<dt> rid </dt><dd>值8为访问推广任务类型
+</dd>
+<dt> uid </dt><dd>值119为作弊用户id
+</dd>
+</dl>
+<p>
+从上面可以看出该用户完成了3454次任务， 接下来就需要确认这些任务是通过作弊完成的了。
+</p>
+
+<p>
+搜索该用户推广链接在web服务器中留下的访问日志：
+</p>
+<pre class="example">
+logs# grep 'fromuid=119' /usr/local/nginx/logs/access.log*
+"GET /?fromuid=119.jpg HTTP/1.1" 301 6243 "http://xxxx.org/details.php?id=178668"
+...
+</pre>
+
+<p>
+可以初步断定，该用户通过在其它论坛中发布信息并将推广url注入到图片的url中，这样我们的站点在访问量没有任何增长的情况下该用户的推广数却瞬间彪升了。
+</p>
+</li>
+
+<li>阻止作弊
+
+<p>
+通过使用引用页中的用户标识进行记录来解决这个问题，这样只有当用户来到论坛并进行了相关操作才算推荐有效。
+</p>
+
+<p>
+修改source/class/discuz/discuz_application.php文件，将下面的内容：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-php"><span style="color: #b5bd68;">if</span>((<span style="color: #81a2be;">!</span><span style="color: #b5bd68;">empty</span>(<span style="color: #c5c8c6; background-color: #1d1f21;">$</span><span style="color: #f0c674;">_GET</span>[<span style="color: #8abeb7;">'fromuid'</span>]) || <span style="color: #81a2be;">!</span><span style="color: #b5bd68;">empty</span>(<span style="color: #c5c8c6; background-color: #1d1f21;">$</span><span style="color: #f0c674;">_GET</span>[<span style="color: #8abeb7;">'fromuser'</span>])) &amp;&amp; (<span style="color: #81a2be;">$</span><span style="color: #81a2be;">this</span><span style="color: #c5c8c6; background-color: #1d1f21;">-&gt;</span><span style="color: #f0c674;">var</span>[<span style="color: #8abeb7;">'setti</span><span style="color: #de935f; background-color: #373b41;">ng'</span><span style="color: #de935f; background-color: #373b41;">][</span><span style="color: #de935f; background-color: #373b41;">'creditspolicy'</span><span style="color: #de935f; background-color: #373b41;">][</span><span style="color: #de935f; background-color: #373b41;">'promotion_visit'</span><span style="color: #de935f; background-color: #373b41;">] || </span><span style="color: #de935f; background-color: #373b41;">$</span><span style="color: #de935f; background-color: #373b41;">this</span><span style="color: #de935f; background-color: #373b41;">-&gt;</span><span style="color: #de935f; background-color: #373b41;">var</span><span style="color: #de935f; background-color: #373b41;">[</span><span style="color: #de935f; background-color: #373b41;">'setting'</span><span style="color: #de935f; background-color: #373b41;">][</span><span style="color: #de935f; background-color: #373b41;">'creditspolicy'</span><span style="color: #de935f; background-color: #373b41;">][</span><span style="color: #de935f; background-color: #373b41;">'promotion_register'</span><span style="color: #de935f; background-color: #373b41;">])) {</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">require_once</span> libfile(<span style="color: #8abeb7;">'misc/promotion'</span>, <span style="color: #8abeb7;">'include'</span>);
+}
+</pre>
+</div>
+<p>
+改为：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-php"><span style="color: #b5bd68;">if</span> (<span style="color: #b5bd68;">isset</span>(<span style="color: #c5c8c6; background-color: #1d1f21;">$</span><span style="color: #f0c674;">_SERVER</span>[<span style="color: #8abeb7;">'HTTP_REFERER'</span>]) &amp;&amp; strpos(<span style="color: #c5c8c6; background-color: #1d1f21;">$</span><span style="color: #f0c674;">_SERVER</span>[<span style="color: #8abeb7;">'HTTP_REFERER'</span>], <span style="color: #8abeb7;">'http://</span><span style="color: #de935f; background-color: #373b41;">XXX.com/'</span><span style="color: #de935f; background-color: #373b41;">) === 0) {</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #c5c8c6; background-color: #1d1f21;">$</span><span style="color: #f0c674;">referer_query</span> = parse_url(<span style="color: #c5c8c6; background-color: #1d1f21;">$</span><span style="color: #f0c674;">_SERVER</span>[<span style="color: #8abeb7;">'HTTP_REFERER'</span>], <span style="color: #81a2be;">PHP_URL_QUERY</span>);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (<span style="color: #c5c8c6; background-color: #1d1f21;">$</span><span style="color: #f0c674;">referer_query</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   parse_str(<span style="color: #c5c8c6; background-color: #1d1f21;">$</span><span style="color: #f0c674;">referer_query</span>, <span style="color: #c5c8c6; background-color: #1d1f21;">$</span><span style="color: #f0c674;">referer_get</span>);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span>((<span style="color: #81a2be;">!</span><span style="color: #b5bd68;">empty</span>(<span style="color: #c5c8c6; background-color: #1d1f21;">$</span><span style="color: #f0c674;">referer_get</span>[<span style="color: #8abeb7;">'fromuid'</span>]) || <span style="color: #81a2be;">!</span><span style="color: #b5bd68;">empty</span>(<span style="color: #c5c8c6; background-color: #1d1f21;">$</span><span style="color: #f0c674;">referer_get</span>[<span style="color: #8abeb7;">'fromuser'</span>]))<span style="color: #de935f; background-color: #373b41;"> &amp;&amp; (</span><span style="color: #de935f; background-color: #373b41;">$</span><span style="color: #de935f; background-color: #373b41;">this</span><span style="color: #de935f; background-color: #373b41;">-&gt;</span><span style="color: #de935f; background-color: #373b41;">var</span><span style="color: #de935f; background-color: #373b41;">[</span><span style="color: #de935f; background-color: #373b41;">'setting'</span><span style="color: #de935f; background-color: #373b41;">][</span><span style="color: #de935f; background-color: #373b41;">'creditspolicy'</span><span style="color: #de935f; background-color: #373b41;">][</span><span style="color: #de935f; background-color: #373b41;">'promotion_visit'</span><span style="color: #de935f; background-color: #373b41;">] || </span><span style="color: #de935f; background-color: #373b41;">$</span><span style="color: #de935f; background-color: #373b41;">this</span><span style="color: #de935f; background-color: #373b41;">-&gt;</span><span style="color: #de935f; background-color: #373b41;">var</span><span style="color: #de935f; background-color: #373b41;">[</span><span style="color: #de935f; background-color: #373b41;">'setting'</span><span style="color: #de935f; background-color: #373b41;">][</span><span style="color: #de935f; background-color: #373b41;">'creditspolicy'</span><span style="color: #de935f; background-color: #373b41;">][</span><span style="color: #de935f; background-color: #373b41;">'promotion_register'</span><span style="color: #de935f; background-color: #373b41;">])) {</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">require_once</span> libfile(<span style="color: #8abeb7;">'misc/promotion'</span>, <span style="color: #8abeb7;">'include'</span>);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   }
+}
+</pre>
+</div>
+
+<p>
+修改source/include/misc/misc_promotion.php文件，将下面的内容：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-php"><span style="color: #b5bd68;">if</span>(<span style="color: #81a2be;">!</span><span style="color: #b5bd68;">empty</span>(<span style="color: #c5c8c6; background-color: #1d1f21;">$</span><span style="color: #f0c674;">_GET</span>[<span style="color: #8abeb7;">'fromuid'</span>])) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #c5c8c6; background-color: #1d1f21;">$</span><span style="color: #f0c674;">fromuid</span> = intval(<span style="color: #c5c8c6; background-color: #1d1f21;">$</span><span style="color: #f0c674;">_GET</span>[<span style="color: #8abeb7;">'fromuid'</span>]);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #c5c8c6; background-color: #1d1f21;">$</span><span style="color: #f0c674;">fromuser</span> = <span style="color: #8abeb7;">''</span>;
+} <span style="color: #b5bd68;">else</span> {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #c5c8c6; background-color: #1d1f21;">$</span><span style="color: #f0c674;">fromuser</span> = <span style="color: #c5c8c6; background-color: #1d1f21;">$</span><span style="color: #f0c674;">_GET</span>[<span style="color: #8abeb7;">'fromuser'</span>];
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #c5c8c6; background-color: #1d1f21;">$</span><span style="color: #f0c674;">fromuid</span> = <span style="color: #8abeb7;">''</span>;
+}
+</pre>
+</div>
+<p>
+改为：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-php"><span style="color: #b5bd68;">if</span>(<span style="color: #81a2be;">!</span><span style="color: #b5bd68;">empty</span>(<span style="color: #c5c8c6; background-color: #1d1f21;">$</span><span style="color: #f0c674;">referer_get</span>[<span style="color: #8abeb7;">'fromuid'</span>])) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #c5c8c6; background-color: #1d1f21;">$</span><span style="color: #f0c674;">fromuid</span> = intval(<span style="color: #c5c8c6; background-color: #1d1f21;">$</span><span style="color: #f0c674;">referer_get</span>[<span style="color: #8abeb7;">'fromuid'</span>]);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #c5c8c6; background-color: #1d1f21;">$</span><span style="color: #f0c674;">fromuser</span> = <span style="color: #8abeb7;">''</span>;
+} <span style="color: #b5bd68;">else</span> {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #c5c8c6; background-color: #1d1f21;">$</span><span style="color: #f0c674;">fromuser</span> = <span style="color: #c5c8c6; background-color: #1d1f21;">$</span><span style="color: #f0c674;">referer_get</span>[<span style="color: #8abeb7;">'fromuser'</span>];
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #c5c8c6; background-color: #1d1f21;">$</span><span style="color: #f0c674;">fromuid</span> = <span style="color: #8abeb7;">''</span>;
+}
+</pre>
+</div>
+</li>
+</ul>
+
+        </div>
+        <br />
+        <footer class="article-footer">
+          <span class="muted">
+            <i class="icon-time icon-white"></i> <time datetime="2013-12-20T01:02:00+0800">December 20, 2013</time>
+          </span>
+          <a class="tag" href="/tag/php/0.html"><i class="icon-tag icon-white"></i> php</a>
+          <a class="tag" href="/tag/discuz/0.html"><i class="icon-tag icon-white"></i> discuz</a>
+        </footer>
+      </div>
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+  /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+  var disqus_shortname = '';
+
+  /* * * DON'T EDIT BELOW THIS LINE * * */
+  (function() {
+  var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+  dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+      <div class="push-footer"></div>
+    </div>
+
+    <div id="footer">
+  	  <div class="copyright" style="text-align: center;">
+  	    
+  	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
+  	  </div>
+    </div>
+  </body>
+</html>

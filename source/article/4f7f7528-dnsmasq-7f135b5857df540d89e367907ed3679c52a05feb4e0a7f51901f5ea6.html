@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <title>使用 dnsmasq 缓存域名解析结果加快上网速度 | </title>
+    <link rel="shortcut icon" href="/static/favicon.ico" />
+    <link rel="stylesheet" type="text/css" href="/style/ediary.css"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="generator" content="o-blog"/>
+  </head>
+  <body>
+    <div class="navbar navbar-fixed-top" id="header">
+      <div class="navbar-inner">
+        <a class="brand" href="/" style="line-height:100%;"></a>
+        <ul class="navbar-links">
+          <li><a href="/index.xml"><i class="icon-rss icon-white"></i> Subscribe</a></li>
+          <li><a href="/category/ediary/0.html"><i class="icon-folder-close icon-white"></i> ediary</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="container container-fluid" id="page">
+      <div class="push-header"></div>
+
+      <div class="article">
+        <header class="article-header">
+          <h1>使用 dnsmasq 缓存域名解析结果加快上网速度</h1>
+        </header>
+      
+        <div class="article-content">
+          <ul class="org-ul">
+<li>安装 dnsmasq
+
+<div class="org-src-container">
+
+<pre class="src src-sh">yaourt -S dnsmasq
+</pre>
+</div>
+</li>
+
+<li>配置 NetworkManager
+
+<p>
+NetworkManager 包含 dnsmasq 插件，可以很方便地支持 dns 缓存。
+</p>
+
+<p>
+修改 <code>/etc/NetworkManager/NetworkManager.conf</code>
+</p>
+<pre class="example">
+dns=dnsmasq
+</pre>
+
+<p>
+参考 <a href="https://wiki.archlinux.org/index.php/dnsmasq#NetworkManager">dnsmasq - ArchWiki</a>
+</p>
+</li>
+
+<li>配置 dnsmasq
+
+<p>
+NetworkManager 将 dnsmasq 的配置存放在其它位置。
+</p>
+
+<p>
+<code>/etc/NetworkManager/dnsmasq.d/dnsmasq.conf</code>
+</p>
+<pre class="example">
+listen-address=127.0.0.1
+bind-interfaces
+dhcp-authoritative
+no-negcache
+strict-order
+</pre>
+
+<p>
+参考 《<a href="http://blog.kankanan.com/article/4f7f7528-dnsmasq-8fdb884c-dns-7f135b586ce8610f4e8b9879.html">使用 dnsmasq 进行 DNS 缓存注意事项</a>》
+</p>
+</li>
+
+<li>生效配置
+
+<p>
+重启 NetworkManager 正式生效配置
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo systemctl restart NetworkManager
+</pre>
+</div>
+
+<p>
+dnsmasq 不要通过 systemd 以服务方式启动，它会由 NetworkManager 启动
+</p>
+<pre class="example">
+$ COLUMNS=400 ps wax | grep dnsmasq
+ 6072 ?        S      0:00 /usr/bin/dnsmasq --no-resolv --keep-in-foreground --no-hosts --bind-interfaces --pid-file=/var/run/NetworkManager/dnsmasq.pid --listen-address=127.0.0.1 --conf-file=/var/run/NetworkManager/dnsmasq.conf --cache-size=400 --proxy-dnssec --conf-dir=/etc/NetworkManager/dnsmasq.d
+</pre>
+
+<p>
+上游域名服务器在 <code>/var/run/NetworkManager/dnsmasq.conf</code> 中指定，通常由 dhcp 服务分配。
+</p>
+
+<p>
+添加其它域名服务器，在 <code>/etc/NetworkManager/dnsmasq.d/dnsmasq.conf</code> 中添加以下配置：
+</p>
+<pre class="example">
+server=114.114.114.114
+</pre>
+
+<p>
+输出日志调试 dnsmasq ，在 <code>/etc/NetworkManager/dnsmasq.d/dnsmasq.conf</code> 中添加以下配置：
+</p>
+<pre class="example">
+log-facility=/var/log/dnsmasq.log
+log-queries
+</pre>
+
+<p>
+重启 NetworkManager 生效。
+</p>
+</li>
+
+<li>看看效果
+
+<p>
+多次执行下面的命令，可以感觉到后几次明显比第一次快，这就是 DNS 缓存在起作用。
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">nslookup www.baidu.com
+</pre>
+</div>
+</li>
+
+<li>与 pdnsd 比较
+
+<p>
+之前写过一篇《 <a href="http://blog.kankanan.com/article/4f7f7528-pdnsd-7f135b5857df540d89e367907ed3679c52a05feb4e0a7f51901f5ea6.html">使用Pdnsd缓存域名解析结果加快上网速度</a> 》，本篇改用 dnsmasq 实现，可以发现 dnsmasq 和 NetworkManager 集成度很高，即插即用，
+而 pdnsd 则要手动做很多设置，而且很难实现自动使用 dhcp 分配的域名服务器做为上游域名服务器。</p>
+</li>
+</ul>
+
+        </div>
+        <br />
+        <footer class="article-footer">
+          <span class="muted">
+            <i class="icon-time icon-white"></i> <time datetime="2016-04-21T19:44:00+0800">April 21, 2016</time>
+          </span>
+          <a class="tag" href="/tag/linux/0.html"><i class="icon-tag icon-white"></i> linux</a>
+          <a class="tag" href="/tag/dns/0.html"><i class="icon-tag icon-white"></i> dns</a>
+        </footer>
+      </div>
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+  /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+  var disqus_shortname = '';
+
+  /* * * DON'T EDIT BELOW THIS LINE * * */
+  (function() {
+  var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+  dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+      <div class="push-footer"></div>
+    </div>
+
+    <div id="footer">
+  	  <div class="copyright" style="text-align: center;">
+  	    
+  	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
+  	  </div>
+    </div>
+  </body>
+</html>

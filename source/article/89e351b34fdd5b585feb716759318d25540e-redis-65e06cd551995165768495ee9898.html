@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <title>解决保存快照失败后redis无法写入的问题 | </title>
+    <link rel="shortcut icon" href="/static/favicon.ico" />
+    <link rel="stylesheet" type="text/css" href="/style/ediary.css"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="generator" content="o-blog"/>
+  </head>
+  <body>
+    <div class="navbar navbar-fixed-top" id="header">
+      <div class="navbar-inner">
+        <a class="brand" href="/" style="line-height:100%;"></a>
+        <ul class="navbar-links">
+          <li><a href="/index.xml"><i class="icon-rss icon-white"></i> Subscribe</a></li>
+          <li><a href="/category/ediary/0.html"><i class="icon-folder-close icon-white"></i> ediary</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="container container-fluid" id="page">
+      <div class="push-header"></div>
+
+      <div class="article">
+        <header class="article-header">
+          <h1>解决保存快照失败后redis无法写入的问题</h1>
+        </header>
+      
+        <div class="article-content">
+          <p>
+用命令行工具连上后执行“set test 0”出现以下错误提示：
+</p>
+<pre class="example">
+MISCONF Redis is configured to save RDB snapshots, but is currently not able to persist on disk. Commands that may modify the data set are disabled. Please check Redis logs for details about the error.
+</pre>
+<p>
+这个应该是之前强制停止redis快照导致的，查看redis快照状态证实了这一点：
+</p>
+<pre class="example">
+redis 127.0.0.1:6379&gt; info
+...
+rdb_last_bgsave_status:err
+...
+</pre>
+<p>
+通过关闭配置项stop-writes-on-bgsave-error解决该问题。
+</p>
+<pre class="example">
+redis 127.0.0.1:6379&gt; config set stop-writes-on-bgsave-error no
+</pre>
+
+        </div>
+        <br />
+        <footer class="article-footer">
+          <span class="muted">
+            <i class="icon-time icon-white"></i> <time datetime="2012-12-16T15:14:00+0800">December 16, 2012</time>
+          </span>
+          <a class="tag" href="/tag/redis/0.html"><i class="icon-tag icon-white"></i> redis</a>
+        </footer>
+      </div>
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+  /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+  var disqus_shortname = '';
+
+  /* * * DON'T EDIT BELOW THIS LINE * * */
+  (function() {
+  var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+  dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+      <div class="push-footer"></div>
+    </div>
+
+    <div id="footer">
+  	  <div class="copyright" style="text-align: center;">
+  	    
+  	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
+  	  </div>
+    </div>
+  </body>
+</html>

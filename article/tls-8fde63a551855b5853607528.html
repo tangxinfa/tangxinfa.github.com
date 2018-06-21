@@ -16,6 +16,7 @@
           <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
           
           <li><a href="/index.html"><i class="icon-folder-close icon-white"></i> 技术</a></li>
+          <li><a href="/category/life/0.html"><i class="icon-folder-close icon-white"></i> 生活</a></li>
         </ul>
       </div>
     </div>
@@ -33,111 +34,109 @@
 我们有一个 <code>node.js</code> 服务，有大量 <code>tls</code> 长连接，跑了一段时间后发现内存消耗比较大，每个 <code>node.js</code> 实例维持 <code>3000</code> 个连接需要消耗 <code>1G</code> 略多的内存，但是也不能确定有内存泄露，毕竟内存没有再往上涨导致服务中断，所以觉得有必要测试一下 <code>tls</code> 连接的内存消耗情况。
 </p>
 
-<div id="outline-container-sec-1" class="outline-2">
-<h2 id="sec-1">tls服务器</h2>
-<div class="outline-text-2" id="text-1">
+<div id="outline-container-org26796ac" class="outline-2">
+<h2 id="org26796ac">tls服务器</h2>
+<div class="outline-text-2" id="text-org26796ac">
 <div class="org-src-container">
-
 <pre class="src src-js"><span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">tls</span>         = require(<span style="color: #8abeb7;">'tls'</span>),
-<span style="color: #969896; background-color: #222427;"> </span>   fs          = require(<span style="color: #8abeb7;">'fs'</span>);
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   fs          = require(<span style="color: #8abeb7;">'fs'</span>);
 
 
 <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">options</span> = {
-<span style="color: #969896; background-color: #222427;"> </span>   key: fs.readFileSync(<span style="color: #8abeb7;">'server.key'</span>),
-<span style="color: #969896; background-color: #222427;"> </span>   cert: fs.readFileSync(<span style="color: #8abeb7;">'server.cert'</span>),
-<span style="color: #969896; background-color: #222427;"> </span>   handshakeTimeout: 10*1000,
-<span style="color: #969896; background-color: #222427;"> </span>   plain: <span style="color: #81a2be;">true</span>,
-<span style="color: #969896; background-color: #222427;"> </span>   ssl: <span style="color: #81a2be;">true</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   key: fs.readFileSync(<span style="color: #8abeb7;">'server.key'</span>),
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   cert: fs.readFileSync(<span style="color: #8abeb7;">'server.cert'</span>),
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   handshakeTimeout: 10*1000,
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   plain: <span style="color: #81a2be;">true</span>,
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   ssl: <span style="color: #81a2be;">true</span>
 };
 
 <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">port</span> = 1234;
 <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">tlsServer</span> = tls.createServer(options, <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">socket</span>) {
-<span style="color: #969896; background-color: #222427;"> </span>   socket.on(<span style="color: #8abeb7;">"close"</span>, <span style="color: #b5bd68;">function</span> () {
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   console.warn(<span style="color: #8abeb7;">'tls client('</span> + socket.remoteAddress + <span style="color: #8abeb7;">':'</span> + socket.remoteP<span style="color: #de935f; background-color: #373b41;">ort +</span><span style="color: #de935f; background-color: #373b41;">') closed'</span><span style="color: #de935f; background-color: #373b41;">);</span>
-<span style="color: #969896; background-color: #222427;"> </span>   });
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   socket.on(<span style="color: #8abeb7;">"close"</span>, <span style="color: #b5bd68;">function</span> () {
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   console.warn(<span style="color: #8abeb7;">'tls client('</span> + socket.remoteAddress + <span style="color: #8abeb7;">':'</span> + socket.remoteP<span style="text-decoration: underline;">ort +</span><span style="color: #8abeb7; text-decoration: underline;">') closed'</span><span style="text-decoration: underline;">);</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   });
 }).listen(port, <span style="color: #8abeb7;">"0.0.0.0"</span>, <span style="color: #b5bd68;">function</span>(){
-<span style="color: #969896; background-color: #222427;"> </span>   console.log(<span style="color: #8abeb7;">'tls server listening on port('</span> + port + <span style="color: #8abeb7;">')'</span>);
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   console.log(<span style="color: #8abeb7;">'tls server listening on port('</span> + port + <span style="color: #8abeb7;">')'</span>);
 });
 tlsServer.maxConnections = 10000;
 tlsServer.on(<span style="color: #8abeb7;">'clientError'</span>, <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">exception</span>, <span style="color: #f0c674;">socket</span>) {
-<span style="color: #969896; background-color: #222427;"> </span>   console.warn(<span style="color: #8abeb7;">'tls client('</span> + socket.remoteAddress + <span style="color: #8abeb7;">':'</span> + socket.remotePort <span style="color: #de935f; background-color: #373b41;">+</span><span style="color: #de935f; background-color: #373b41;">') error('</span><span style="color: #de935f; background-color: #373b41;"> + exception + </span><span style="color: #de935f; background-color: #373b41;">')'</span><span style="color: #de935f; background-color: #373b41;">);</span>
-<span style="color: #969896; background-color: #222427;"> </span>   socket.destroy();
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   console.warn(<span style="color: #8abeb7;">'tls client('</span> + socket.remoteAddress + <span style="color: #8abeb7;">':'</span> + socket.remotePort <span style="text-decoration: underline;">+</span><span style="color: #8abeb7; text-decoration: underline;">') error('</span><span style="text-decoration: underline;"> + exception + </span><span style="color: #8abeb7; text-decoration: underline;">')'</span><span style="text-decoration: underline;">);</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   socket.destroy();
 });
 
 <span style="color: #b5bd68;">function</span> <span style="color: #de935f;">memoryUsage</span>() {
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">mem</span> = process.memoryUsage();
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">format</span> = <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">bytes</span>) {
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">return</span> (bytes/1024/1024).toFixed(2)+<span style="color: #8abeb7;">'MB'</span>;
-<span style="color: #969896; background-color: #222427;"> </span>   };
-<span style="color: #969896; background-color: #222427;"> </span>   console.log(<span style="color: #8abeb7;">'Process: heapTotal '</span>+format(mem.heapTotal) + <span style="color: #8abeb7;">' heapUsed '</span> + for<span style="color: #de935f; background-color: #373b41;">mat(mem.heapUsed) + </span><span style="color: #de935f; background-color: #373b41;">' rss '</span><span style="color: #de935f; background-color: #373b41;"> + format(mem.rss));</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">mem</span> = process.memoryUsage();
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">format</span> = <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">bytes</span>) {
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">return</span> (bytes/1024/1024).toFixed(2)+<span style="color: #8abeb7;">'MB'</span>;
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   };
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   console.log(<span style="color: #8abeb7;">'Process: heapTotal '</span>+format(mem.heapTotal) + <span style="color: #8abeb7;">' heapUsed '</span> + for<span style="text-decoration: underline;">mat(mem.heapUsed) + </span><span style="color: #8abeb7; text-decoration: underline;">' rss '</span><span style="text-decoration: underline;"> + format(mem.rss));</span>
 }
 
 setInterval(<span style="color: #b5bd68;">function</span> () {
-<span style="color: #969896; background-color: #222427;"> </span>   tlsServer.getConnections(<span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">err</span>, <span style="color: #f0c674;">tlsCount</span>) {
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   console.error(<span style="color: #8abeb7;">"get tls connections count error("</span> + err.toString() + <span style="color: #de935f; background-color: #373b41;">")"</span><span style="color: #de935f; background-color: #373b41;">);</span>
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   tlsServer.getConnections(<span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">err</span>, <span style="color: #f0c674;">tlsCount</span>) {
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">if</span> (err) {
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   console.error(<span style="color: #8abeb7;">"get tls connections count error("</span> + err.toString() + <span style="color: #8abeb7; text-decoration: underline;">")"</span><span style="text-decoration: underline;">);</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   }
 
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   console.warn(<span style="color: #8abeb7;">"server: tls connections("</span> + tlsCount + <span style="color: #8abeb7;">")"</span>);
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   console.warn(<span style="color: #8abeb7;">"server: tls connections("</span> + tlsCount + <span style="color: #8abeb7;">")"</span>);
 
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   memoryUsage();
-<span style="color: #969896; background-color: #222427;"> </span>   });
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   memoryUsage();
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   });
 }, 1*1000);
 </pre>
 </div>
 </div>
 </div>
 
-<div id="outline-container-sec-2" class="outline-2">
-<h2 id="sec-2">tls客户端</h2>
-<div class="outline-text-2" id="text-2">
+<div id="outline-container-org944f541" class="outline-2">
+<h2 id="org944f541">tls客户端</h2>
+<div class="outline-text-2" id="text-org944f541">
 <div class="org-src-container">
-
 <pre class="src src-js"><span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">tls</span> = require(<span style="color: #8abeb7;">'tls'</span>);
 
 <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">tlsCount</span> = 0;
 
 <span style="color: #b5bd68;">function</span> <span style="color: #de935f;">connect</span>() {
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">socket</span> = tls.connect(1234, {rejectUnauthorized: <span style="color: #81a2be;">false</span>}, <span style="color: #b5bd68;">function</span> () {
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   tlsCount += 1;
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   socket.setEncoding(<span style="color: #8abeb7;">'utf8'</span>);
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   socket.on(<span style="color: #8abeb7;">'data'</span>, <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">data</span>) {
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   });
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   socket.on(<span style="color: #8abeb7;">'close'</span>, <span style="color: #b5bd68;">function</span>() {
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   tlsCount -= 1;
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   });
-<span style="color: #969896; background-color: #222427;"> </span>   });
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">socket</span> = tls.connect(1234, {rejectUnauthorized: <span style="color: #81a2be;">false</span>}, <span style="color: #b5bd68;">function</span> () {
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   tlsCount += 1;
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   socket.setEncoding(<span style="color: #8abeb7;">'utf8'</span>);
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   socket.on(<span style="color: #8abeb7;">'data'</span>, <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">data</span>) {
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   });
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   socket.on(<span style="color: #8abeb7;">'close'</span>, <span style="color: #b5bd68;">function</span>() {
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   tlsCount -= 1;
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   });
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   });
 }
 
 <span style="color: #b5bd68;">function</span> <span style="color: #de935f;">memoryUsage</span>() {
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">mem</span> = process.memoryUsage();
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">format</span> = <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">bytes</span>) {
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">return</span> (bytes/1024/1024).toFixed(2)+<span style="color: #8abeb7;">'MB'</span>;
-<span style="color: #969896; background-color: #222427;"> </span>   };
-<span style="color: #969896; background-color: #222427;"> </span>   console.log(<span style="color: #8abeb7;">'Process: heapTotal '</span>+format(mem.heapTotal) + <span style="color: #8abeb7;">' heapUsed '</span> + for<span style="color: #de935f; background-color: #373b41;">mat(mem.heapUsed) + </span><span style="color: #de935f; background-color: #373b41;">' rss '</span><span style="color: #de935f; background-color: #373b41;"> + format(mem.rss));</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">mem</span> = process.memoryUsage();
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">format</span> = <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">bytes</span>) {
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">return</span> (bytes/1024/1024).toFixed(2)+<span style="color: #8abeb7;">'MB'</span>;
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   };
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   console.log(<span style="color: #8abeb7;">'Process: heapTotal '</span>+format(mem.heapTotal) + <span style="color: #8abeb7;">' heapUsed '</span> + for<span style="text-decoration: underline;">mat(mem.heapUsed) + </span><span style="color: #8abeb7; text-decoration: underline;">' rss '</span><span style="text-decoration: underline;"> + format(mem.rss));</span>
 }
 
 <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">round</span> = 0;
 setInterval(<span style="color: #b5bd68;">function</span> () {
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (round &lt; 10) {
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">for</span>(<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">i</span> = 0; i &lt; 100; ++i) {
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   connect();
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   round += 1;
-<span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">if</span> (round &lt; 10) {
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">for</span>(<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">i</span> = 0; i &lt; 100; ++i) {
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   connect();
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   }
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   round += 1;
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   }
 
-<span style="color: #969896; background-color: #222427;"> </span>   console.warn(<span style="color: #8abeb7;">"client: tls connections("</span> + tlsCount + <span style="color: #8abeb7;">")"</span>);
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   console.warn(<span style="color: #8abeb7;">"client: tls connections("</span> + tlsCount + <span style="color: #8abeb7;">")"</span>);
 
-<span style="color: #969896; background-color: #222427;"> </span>   memoryUsage();
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   memoryUsage();
 }, 1000);
 </pre>
 </div>
 </div>
 </div>
 
-<div id="outline-container-sec-3" class="outline-2">
-<h2 id="sec-3">tls服务器日志</h2>
-<div class="outline-text-2" id="text-3">
+<div id="outline-container-orgfa8d14b" class="outline-2">
+<h2 id="orgfa8d14b">tls服务器日志</h2>
+<div class="outline-text-2" id="text-orgfa8d14b">
 <p>
 连接从 <code>0</code> 到 <code>1000</code> 内存增长
 </p>
@@ -183,15 +182,15 @@ Process: heapTotal 22.91MB heapUsed 13.63MB rss 48.44MB
 </p>
 
 <ul class="org-ul">
-<li>每 <code>tls</code> 连接 <code>rss</code> 要消耗 <code>24.2KB</code>  <code>heap</code> 要消耗 <code>8KB</code>
-</li>
+<li>每 <code>tls</code> 连接 <code>rss</code> 要消耗 <code>24.2KB</code>  <code>heap</code> 要消耗 <code>8KB</code></li>
 
-<li>连接关闭后内存没有释放
+<li><p>
+连接关闭后内存没有释放
+</p>
 
 <p>
 还略有增加，要么就是 <code>node.js</code> 没有释放 <code>tls</code> 连接的内存（应该不太可能），要么就是我的代码有问题，没有释放资源
-</p>
-</li>
+</p></li>
 </ul>
 
 <p>
@@ -236,8 +235,7 @@ Process: heapTotal 33.74MB heapUsed 19.24MB rss 59.38MB
 </p>
 
 <ul class="org-ul">
-<li>每 <code>tls</code> 连接 <code>rss</code> 要消耗 <code>5.45KB</code> ， <code>heap</code> 要消耗 <code>6.16KB</code>
-</li>
+<li>每 <code>tls</code> 连接 <code>rss</code> 要消耗 <code>5.45KB</code> ， <code>heap</code> 要消耗 <code>6.16KB</code></li>
 </ul>
 
 <p>
@@ -250,26 +248,25 @@ Process: heapTotal 33.74MB heapUsed 19.24MB rss 59.38MB
 </div>
 </div>
 
-<div id="outline-container-sec-4" class="outline-2">
-<h2 id="sec-4">不同版本的node.js结果会有差异</h2>
-<div class="outline-text-2" id="text-4">
+<div id="outline-container-org22560c2" class="outline-2">
+<h2 id="org22560c2">不同版本的node.js结果会有差异</h2>
+<div class="outline-text-2" id="text-org22560c2">
 <p>
 为了完全模拟真实环境，针对每一个接收的 <code>tls</code> 连接，除了 <code>close</code> ，还监听了 <code>data</code> 、 <code>error</code> 、 <code>timeout</code> 事件：
 </p>
 
 <div class="org-src-container">
-
 <pre class="src src-js">socket.on(<span style="color: #8abeb7;">"data"</span>, <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">data</span>) {
 
 });
 socket.on(<span style="color: #8abeb7;">"error"</span>, <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">err</span>) {
-<span style="color: #969896; background-color: #222427;"> </span>   console.warn(<span style="color: #8abeb7;">'tls client('</span> + socket.remoteAddress + <span style="color: #8abeb7;">':'</span> + socket.remotePort <span style="color: #de935f; background-color: #373b41;">+</span><span style="color: #de935f; background-color: #373b41;">') error('</span><span style="color: #de935f; background-color: #373b41;"> + err.toString() + </span><span style="color: #de935f; background-color: #373b41;">')'</span><span style="color: #de935f; background-color: #373b41;">);</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   console.warn(<span style="color: #8abeb7;">'tls client('</span> + socket.remoteAddress + <span style="color: #8abeb7;">':'</span> + socket.remotePort <span style="text-decoration: underline;">+</span><span style="color: #8abeb7; text-decoration: underline;">') error('</span><span style="text-decoration: underline;"> + err.toString() + </span><span style="color: #8abeb7; text-decoration: underline;">')'</span><span style="text-decoration: underline;">);</span>
 });
 socket.on(<span style="color: #8abeb7;">"close"</span>, <span style="color: #b5bd68;">function</span> () {
-<span style="color: #969896; background-color: #222427;"> </span>   console.warn(<span style="color: #8abeb7;">'tls client('</span> + socket.remoteAddress + <span style="color: #8abeb7;">':'</span> + socket.remotePort <span style="color: #de935f; background-color: #373b41;">+</span><span style="color: #de935f; background-color: #373b41;">') closed'</span><span style="color: #de935f; background-color: #373b41;">);</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   console.warn(<span style="color: #8abeb7;">'tls client('</span> + socket.remoteAddress + <span style="color: #8abeb7;">':'</span> + socket.remotePort <span style="text-decoration: underline;">+</span><span style="color: #8abeb7; text-decoration: underline;">') closed'</span><span style="text-decoration: underline;">);</span>
 });
 socket.on(<span style="color: #8abeb7;">"timeout"</span>, <span style="color: #b5bd68;">function</span> () {
-<span style="color: #969896; background-color: #222427;"> </span>   socket.destroy();
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   socket.destroy();
 });
 </pre>
 </div>
@@ -284,62 +281,64 @@ socket.on(<span style="color: #8abeb7;">"timeout"</span>, <span style="color: #b
 </div>
 </div>
 
-<div id="outline-container-sec-5" class="outline-2">
-<h2 id="sec-5">最后附上 node.js 各个版本的测试结果</h2>
-<div class="outline-text-2" id="text-5">
+<div id="outline-container-org5e49a7e" class="outline-2">
+<h2 id="org5e49a7e">最后附上 node.js 各个版本的测试结果</h2>
+<div class="outline-text-2" id="text-org5e49a7e">
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
 <caption class="t-above"><span class="table-number">Table 1:</span> 10000 tls connections</caption>
 
 <colgroup>
-<col  class="left" />
+<col  class="org-left" />
 
-<col  class="right" />
+<col  class="org-right" />
 
-<col  class="right" />
+<col  class="org-right" />
 
-<col  class="right" />
+<col  class="org-right" />
 </colgroup>
 <thead>
 <tr>
-<th scope="col" class="left">node.js</th>
-<th scope="col" class="right">heapTotal(MB)</th>
-<th scope="col" class="right">heapUsed(MB)</th>
-<th scope="col" class="right">rss(MB)</th>
+<th scope="col" class="org-left">node.js</th>
+<th scope="col" class="org-right">heapTotal(MB)</th>
+<th scope="col" class="org-right">heapUsed(MB)</th>
+<th scope="col" class="org-right">rss(MB)</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td class="left">node-v0.12.7</td>
-<td class="right">158.34</td>
-<td class="right">98.62</td>
-<td class="right">728.26</td>
+<td class="org-left">node-v0.12.7</td>
+<td class="org-right">158.34</td>
+<td class="org-right">98.62</td>
+<td class="org-right">728.26</td>
 </tr>
 
 <tr>
-<td class="left">node-v0.12.9</td>
-<td class="right">239.04</td>
-<td class="right">209.53</td>
-<td class="right">838.40</td>
+<td class="org-left">node-v0.12.9</td>
+<td class="org-right">239.04</td>
+<td class="org-right">209.53</td>
+<td class="org-right">838.40</td>
 </tr>
 
 <tr>
-<td class="left">node-v4.2.3</td>
-<td class="right">86.58</td>
-<td class="right">81.47</td>
-<td class="right">222.97</td>
+<td class="org-left">node-v4.2.3</td>
+<td class="org-right">86.58</td>
+<td class="org-right">81.47</td>
+<td class="org-right">222.97</td>
 </tr>
 
 <tr>
-<td class="left">node-v5.3.0</td>
-<td class="right">96.73</td>
-<td class="right">75.23</td>
-<td class="right">235.11</td>
+<td class="org-left">node-v5.3.0</td>
+<td class="org-right">96.73</td>
+<td class="org-right">75.23</td>
+<td class="org-right">235.11</td>
 </tr>
 </tbody>
 </table>
 
 <ul class="org-ul">
-<li>测试脚本
+<li><p>
+测试脚本
+</p>
 
 <p>
 <a href="../static/test_tls_server.js">test_tls_server.js</a>
@@ -347,17 +346,17 @@ socket.on(<span style="color: #8abeb7;">"timeout"</span>, <span style="color: #b
 
 <p>
 <a href="../static/test_tls_client.js">test_tls_client.js</a>
-</p>
-</li>
+</p></li>
 
-<li>测试命令
+<li><p>
+测试命令
+</p>
 
 <p>
 终端 <code>1</code> ( <code>tls</code> 服务器)
 </p>
 
 <div class="org-src-container">
-
 <pre class="src src-sh">sudo bash -c <span style="color: #8abeb7;">"(ulimit -n 10240; node ./test_tls_server.js)"</span>
 </pre>
 </div>
@@ -367,14 +366,12 @@ socket.on(<span style="color: #8abeb7;">"timeout"</span>, <span style="color: #b
 </p>
 
 <div class="org-src-container">
-
-<pre class="src src-sh">sudo bash -c <span style="color: #8abeb7;">"(ulimit -n 10240; for (( i = 0; i &lt; 100; i++)); do echo round \$i;</span><span style="color: #de935f; background-color: #373b41;"> node ./test_tls_client.js; done;)"</span>
+<pre class="src src-sh">sudo bash -c <span style="color: #8abeb7;">"(ulimit -n 10240; for (( i = 0; i &lt; 100; i++)); do echo round \$i;</span><span style="color: #8abeb7; text-decoration: underline;"> node ./test_tls_client.js; done;)"</span>
 </pre>
 </div>
 
 <p>
-内存占用取的是 <code>tls</code> 测试客户端退出后，服务器端最后建立了 <code>10000</code> 个 <code>tls</code> 连接时的内存占用。</p>
-</li>
+内存占用取的是 <code>tls</code> 测试客户端退出后，服务器端最后建立了 <code>10000</code> 个 <code>tls</code> 连接时的内存占用。</p></li>
 </ul>
 </div>
 </div>
@@ -408,7 +405,7 @@ socket.on(<span style="color: #8abeb7;">"timeout"</span>, <span style="color: #b
 
     <div id="footer">
   	  <div class="copyright" style="text-align: center;">
-  	    版权所有 © 2011-2018 看看俺 – KanKanAn.com
+  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
   	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
   	  </div>
     </div>

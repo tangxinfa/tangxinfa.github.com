@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <title>解决个人用户目录做为 Web 服务根目录的权限问题 | </title>
+    <link rel="shortcut icon" href="/static/favicon.ico" />
+    <link rel="stylesheet" type="text/css" href="/style/ediary.css"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="generator" content="o-blog"/>
+  </head>
+  <body>
+    <div class="navbar navbar-fixed-top" id="header">
+      <div class="navbar-inner">
+        <a class="brand" href="/" style="line-height:100%;"></a>
+        <ul class="navbar-links">
+          <li><a href="/index.xml"><i class="icon-rss icon-white"></i> Subscribe</a></li>
+          <li><a href="/category/ediary/0.html"><i class="icon-folder-close icon-white"></i> ediary</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="container container-fluid" id="page">
+      <div class="push-header"></div>
+
+      <div class="article">
+        <header class="article-header">
+          <h1>解决个人用户目录做为 Web 服务根目录的权限问题</h1>
+        </header>
+      
+        <div class="article-content">
+          <p>
+我们在个人帐号目录下进行日常的开发工作，通常使用弱权限帐号（如：nobody）运行 Web 服务器（如：nginx）。
+</p>
+
+<p>
+nginx 配置 Web 服务器的根目录为个人用户目录，这样修改代码后刷新浏览器就可以看到效果。
+</p>
+
+<pre class="example">
+user nobody;
+
+server {
+   listen       80;
+   server_name  www.example.com;
+
+   location / {
+       root   /home/tangxinfa/projects/www.example.com;
+       index  index.html index.htm;
+   }
+}
+</pre>
+
+<p>
+然而 linux 的用户权限系统禁止 Web 服务器用户（nobody）访问个人用户（tangxinfa）的数据。
+</p>
+
+<p>
+使用浏览器访问，会得到一个错误页面
+</p>
+<pre class="example">
+403 Forbidden
+</pre>
+
+<p>
+使用 linux 命令确认问题是由用户权限系统引起
+</p>
+<pre class="example">
+$ sudo -u nobody -g nobody ls -la /home/tangxinfa/projects/www.example.com
+ls: cannot access '/home/tangxinfa/projects/www.example.com': Permission denied
+</pre>
+
+
+<p>
+解决方法有以下几种：
+</p>
+
+<ul class="org-ul">
+<li>使用软链接
+
+<p>
+很多人都会下意识地想到通过软链接来解决
+</p>
+<pre class="example">
+sudo ln -s /home/tangxinfa/projects/www.example.com /var/www/
+sudo chown -R nobody:nobody /var/www/www.example.com
+sudo chown -R nobody:nobody /home/tangxinfa/projects/www.example.com
+</pre>
+<p>
+将个人用户目录链到 Web 服务器用户目录下是没有用的，linux 按原始路径（/home/tangxinfa/projects/www.example.com）来检查权限。
+</p>
+
+<p>
+可以反过来，将项目从个人用户目录移到 Web 服务器用户目录下，然后反向建一个软链接，即可以让 Web 服务器工作正常，又不影响日常开发。
+</p>
+
+<pre class="example">
+sudo mv /home/tangxinfa/projects/www.example.com /var/www/
+ln -s /var/www/www.example.com /home/tangxinfa/projects/
+</pre>
+
+<p>
+但是，如果项目是版本控制系统（如：git）仓库的一个子项目（目录），将目录变成软链接后 git 会认为目录被删除了。
+</p>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>用户目录给 Web 服务帐号开放权限
+
+<p>
+按 linux 的帐号权限系统要求，修改（chmod）用户目录的属性，每一级目录的权限都要修改，容易过渡放开权限，引入安全问题。
+</p>
+
+<p>
+设置 Web 服务帐号为用户帐号
+</p>
+
+<pre class="example">
+user tangxinfa;
+</pre>
+
+<p>
+由于 Web 服务器（nginx）通常配有多个服务，Web 服务帐号是全局共用的，其它服务的目录权限也要进行调整。
+如果 nginx 只运行这一个服务的话，还是可行的。
+</p>
+
+<p>
+设置 Web 服务帐号为 root 帐号
+</p>
+
+<pre class="example">
+user root;
+</pre>
+
+<p>
+使用 root 帐号会引入安全隐患，一般不推荐，但很少会遇到目录权限方面的问题，可以应急使用。
+</p>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>将用户目录挂载到 Web 帐号目录下
+
+<p>
+mount 命令支持将一个目录重新挂载到其它位置
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo mkdir /var/www/www.example.com
+sudo chown nobody:nobody /var/www/www.example.com
+sudo mount --bind -o ro,<span style="color: #f0c674;">username</span>=nobody /home/tangxinfa/projects/www.example.com<span style="color: #de935f; background-color: #373b41;"> /var/www/www.example.com</span>
+</pre>
+</div>
+
+<p>
+Web 服务器和日常开发可以兼顾，两全其美的方案。
+</p>
+
+<p>
+bind 形式的挂载放到 /etc/fstab 会挂载失败（估计是挂载时相关依赖还没有准备好），影响开机。
+</p>
+
+<p>
+创建挂载脚本 /usr/sbin/bind-mounts 并添加可执行权限，内容如下
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/</span><span style="color: #b5bd68;">bash</span>
+
+mount --bind -o ro,<span style="color: #f0c674;">username</span>=nobody /home/tangxinfa/projects/www.example.com /var<span style="color: #de935f; background-color: #373b41;">/www/www.example.com</span>
+</pre>
+</div>
+
+<p>
+创建 systemd 服务文件 /usr/lib/systemd/system/bind-mounts.service
+</p>
+<pre class="example">
+[Unit]
+Description=Bind Mounts
+After=local-fs.target
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/bind-mounts
+
+[Install]
+WantedBy=multi-user.target
+</pre>
+
+<p>
+启用 bind-mounts 服务
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo systemctl enable bind-mounts
+</pre>
+</div>
+</li>
+</ul>
+
+        </div>
+        <br />
+        <footer class="article-footer">
+          <span class="muted">
+            <i class="icon-time icon-white"></i> <time datetime="2016-06-14T13:38:00+0800">June 14, 2016</time>
+          </span>
+          <a class="tag" href="/tag/web/0.html"><i class="icon-tag icon-white"></i> web</a>
+          <a class="tag" href="/tag/linux/0.html"><i class="icon-tag icon-white"></i> linux</a>
+          <a class="tag" href="/tag/nginx/0.html"><i class="icon-tag icon-white"></i> nginx</a>
+        </footer>
+      </div>
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+  /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+  var disqus_shortname = '';
+
+  /* * * DON'T EDIT BELOW THIS LINE * * */
+  (function() {
+  var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+  dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+      <div class="push-footer"></div>
+    </div>
+
+    <div id="footer">
+  	  <div class="copyright" style="text-align: center;">
+  	    
+  	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
+  	  </div>
+    </div>
+  </body>
+</html>

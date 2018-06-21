@@ -16,6 +16,7 @@
           <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
           
           <li><a href="/index.html"><i class="icon-folder-close icon-white"></i> 技术</a></li>
+          <li><a href="/category/life/0.html"><i class="icon-folder-close icon-white"></i> 生活</a></li>
         </ul>
       </div>
     </div>
@@ -30,9 +31,9 @@
       
         <div class="article-content">
           
-<div id="outline-container-sec-1" class="outline-2">
-<h2 id="sec-1">不要将 redis 和 mysql 混为一谈</h2>
-<div class="outline-text-2" id="text-1">
+<div id="outline-container-org7399a22" class="outline-2">
+<h2 id="org7399a22">不要将 redis 和 mysql 混为一谈</h2>
+<div class="outline-text-2" id="text-org7399a22">
 <p>
 在接触 redis 之前，相信很多人都有 mysql 的使用经验。
 </p>
@@ -42,33 +43,30 @@ mysql 的实体分层由上至下依次是：
 </p>
 
 <ul class="org-ul">
-<li>实例（instance）
+<li><p>
+实例（instance）
+</p>
 
 <p>
 mysqld 进程。
-</p>
-</li>
+</p></li>
 
-<li>库（database）
-</li>
+<li>库（database）</li>
 </ul>
 
 
 <ul class="org-ul">
-<li>表（table）
-</li>
+<li>表（table）</li>
 </ul>
 
 
 <ul class="org-ul">
-<li>记录（row）
-</li>
+<li>记录（row）</li>
 </ul>
 
 
 <ul class="org-ul">
-<li>字段（field）
-</li>
+<li>字段（field）</li>
 </ul>
 
 
@@ -77,21 +75,20 @@ redis 的实体分层由上至下依次是：
 </p>
 
 <ul class="org-ul">
-<li>实例（instance）
+<li><p>
+实例（instance）
+</p>
 
 <p>
 redis 进程。
-</p>
-</li>
+</p></li>
 
-<li>库（database）
-</li>
+<li>库（database）</li>
 </ul>
 
 
 <ul class="org-ul">
-<li>键值（Key-Value）
-</li>
+<li>键值（Key-Value）</li>
 </ul>
 
 
@@ -104,22 +101,20 @@ redis 进程。
 </p>
 
 <ul class="org-ul">
-<li>redis 的实例（instance） 等同于 mysql 的库（database）
-</li>
+<li>redis 的实例（instance） 等同于 mysql 的库（database）</li>
 </ul>
 
 
 <ul class="org-ul">
-<li>redis 的库（database） 等同于 mysql 的表（table）
-</li>
+<li>redis 的库（database） 等同于 mysql 的表（table）</li>
 </ul>
 </div>
 </div>
 
 
-<div id="outline-container-sec-2" class="outline-2">
-<h2 id="sec-2">redis 的多库是鸡肋</h2>
-<div class="outline-text-2" id="text-2">
+<div id="outline-container-orgbf96e7d" class="outline-2">
+<h2 id="orgbf96e7d">redis 的多库是鸡肋</h2>
+<div class="outline-text-2" id="text-orgbf96e7d">
 <p>
 redis 是无预定义结构的（schema-less）数据库，表（table ）的存在意义不大，
 它更多地是做为命名空间（name space），由于使用的是很不友好的数字命名（默认 0-15），
@@ -151,9 +146,9 @@ feature for their work.
 </div>
 </div>
 
-<div id="outline-container-sec-3" class="outline-2">
-<h2 id="sec-3">使用 redis 多库是妥协的结果</h2>
-<div class="outline-text-2" id="text-3">
+<div id="outline-container-orgb080cc7" class="outline-2">
+<h2 id="orgb080cc7">使用 redis 多库是妥协的结果</h2>
+<div class="outline-text-2" id="text-orgb080cc7">
 <p>
 有一种观点认为不同的应用（app）使用不同的库（database）可以从而避免键命名冲突。
 </p>
@@ -171,20 +166,17 @@ redis 对于不同的库（database）没有提供任何隔离机制，完全依
 </p>
 
 <ul class="org-ul">
-<li>如果每个应用（app）使用不同的实例（instance），是最省事的，连接 redis 后，直接操作即可
-</li>
+<li>如果每个应用（app）使用不同的实例（instance），是最省事的，连接 redis 后，直接操作即可</li>
 </ul>
 
 
 <ul class="org-ul">
-<li>如果每个应用（app）使用不同的库（database），略微麻烦一点，连接 redis 后，先执行一下 <code>select</code> <code>db</code> ，redis 客户端库会提供支持
-</li>
+<li>如果每个应用（app）使用不同的库（database），略微麻烦一点，连接 redis 后，先执行一下 <code>select</code> <code>db</code> ，redis 客户端库会提供支持</li>
 </ul>
 
 
 <ul class="org-ul">
-<li>如果每个应用（app）的键（key）都加上应用（app）前缀，会很麻烦，每一处访问 redis 的代码都要涉及
-</li>
+<li>如果每个应用（app）的键（key）都加上应用（app）前缀，会很麻烦，每一处访问 redis 的代码都要涉及</li>
 </ul>
 
 
@@ -193,20 +185,17 @@ redis 对于不同的库（database）没有提供任何隔离机制，完全依
 </p>
 
 <ul class="org-ul">
-<li>如果每个应用（app）使用不同的实例（instance），是最麻烦的，维护压力剧增，每个实例（instance）背后还要有配套的启动、停止脚本，监控，主备实例等
-</li>
+<li>如果每个应用（app）使用不同的实例（instance），是最麻烦的，维护压力剧增，每个实例（instance）背后还要有配套的启动、停止脚本，监控，主备实例等</li>
 </ul>
 
 
 <ul class="org-ul">
-<li>如果每个应用（app）使用不同的库（database），略微麻烦一点，分配并记录一下，告知开发人员使用指定的 redis 实例及库（database）
-</li>
+<li>如果每个应用（app）使用不同的库（database），略微麻烦一点，分配并记录一下，告知开发人员使用指定的 redis 实例及库（database）</li>
 </ul>
 
 
 <ul class="org-ul">
-<li>如果每个应用（app）的键（key）都加上应用（app）前缀，是最省事的，可以灵活地为应用（app）安排使用实例（instance）或库（database）
-</li>
+<li>如果每个应用（app）的键（key）都加上应用（app）前缀，是最省事的，可以灵活地为应用（app）安排使用实例（instance）或库（database）</li>
 </ul>
 
 
@@ -216,9 +205,9 @@ redis 对于不同的库（database）没有提供任何隔离机制，完全依
 </div>
 </div>
 
-<div id="outline-container-sec-4" class="outline-2">
-<h2 id="sec-4">redis 的多库扩容难</h2>
-<div class="outline-text-2" id="text-4">
+<div id="outline-container-org0b52052" class="outline-2">
+<h2 id="org0b52052">redis 的多库扩容难</h2>
+<div class="outline-text-2" id="text-org0b52052">
 <p>
 redis 的数据量或者请求数过高，会导致 redis 不稳定，最终影响服务质量。
 </p>
@@ -228,13 +217,14 @@ redis 的数据量或者请求数过高，会导致 redis 不稳定，最终影�
 </p>
 
 <ul class="org-ul">
-<li>停掉应用（app）
-</li>
+<li>停掉应用（app）</li>
 </ul>
 
 
 <ul class="org-ul">
-<li>将应用（app）的 redis 库（database）同步到新的 redis 实例（instance）上
+<li><p>
+将应用（app）的 redis 库（database）同步到新的 redis 实例（instance）上
+</p>
 
 <p>
 通过拷贝 <code>dump.rdb</code> 的方式同步（传输）数据，redis 实例（instance）上的所有库（database）数据都是混在一起的，
@@ -249,33 +239,30 @@ redis 的数据量或者请求数过高，会导致 redis 不稳定，最终影�
 <p>
 新 redis 实例（instance）设置为旧 redis 实例（instance） 的 slave，同步完成后取消 Master-Slave 关系，
 这种方法相对更好一些。
+</p></li>
+
+<li>启动新的 redis 实例</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>修改应用（app）配置指向新的 redis 实例</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>启动应用（app）</li>
+</ul>
+
+
+<ul class="org-ul">
+<li><p>
+清除两个 redis 实例中的脏数据
 </p>
-</li>
-
-<li>启动新的 redis 实例
-</li>
-</ul>
-
-
-<ul class="org-ul">
-<li>修改应用（app）配置指向新的 redis 实例
-</li>
-</ul>
-
-
-<ul class="org-ul">
-<li>启动应用（app）
-</li>
-</ul>
-
-
-<ul class="org-ul">
-<li>清除两个 redis 实例中的脏数据
 
 <p>
 <code>select</code> <code>db</code> ，然后执行 <code>flushdb</code> 命令即可，这可能是使用多库最大的好处。
-</p>
-</li>
+</p></li>
 </ul>
 
 
@@ -289,67 +276,57 @@ redis 的数据量或者请求数过高，会导致 redis 不稳定，最终影�
 </p>
 
 <ul class="org-ul">
-<li>应用（app）使用 redis sentinel 方式访问 redis
-</li>
+<li>应用（app）使用 redis sentinel 方式访问 redis</li>
 </ul>
 
 
 <ul class="org-ul">
-<li>新机器部署 redis 新实例
-</li>
+<li>新机器部署 redis 新实例</li>
 </ul>
 
 
 <ul class="org-ul">
-<li>新实例设置为旧 redis 实例的 slave
-</li>
+<li>新实例设置为旧 redis 实例的 slave</li>
 </ul>
 
 
 <ul class="org-ul">
-<li>同步完成后进行 Master-Slave 换位
-</li>
+<li>同步完成后进行 Master-Slave 换位</li>
 </ul>
 
 
 <ul class="org-ul">
-<li>应用（app）会自动切到新的 redis 实例
-</li>
+<li>应用（app）会自动切到新的 redis 实例</li>
 </ul>
 
 
 <ul class="org-ul">
-<li>旧的 redis 实例可以停掉
-</li>
+<li>旧的 redis 实例可以停掉</li>
 </ul>
 </div>
 </div>
 
 
-<div id="outline-container-sec-5" class="outline-2">
-<h2 id="sec-5">参考</h2>
-<div class="outline-text-2" id="text-5">
+<div id="outline-container-org9a85a79" class="outline-2">
+<h2 id="org9a85a79">参考</h2>
+<div class="outline-text-2" id="text-org9a85a79">
 <ul class="org-ul">
-<li><a href="http://stackoverflow.com/questions/16221563/whats-the-point-of-multiple-redis-databases">What's the Point of Multiple Redis Databases? - Stack Overflow</a>
-</li>
+<li><a href="http://stackoverflow.com/questions/16221563/whats-the-point-of-multiple-redis-databases">What's the Point of Multiple Redis Databases? - Stack Overflow</a></li>
 </ul>
 
 
 <ul class="org-ul">
-<li><a href="https://groups.google.com/d/msg/redis-db/vS5wX8X4Cjg/8ounBXitG4sJ">database names? - Google 网上论坛</a>
-</li>
+<li><a href="https://groups.google.com/d/msg/redis-db/vS5wX8X4Cjg/8ounBXitG4sJ">database names? - Google 网上论坛</a></li>
 </ul>
 
 
 <ul class="org-ul">
-<li><a href="http://redis.io/topics/partitioning">Partitioning: how to split data among multiple Redis instances. – Redis</a>
-</li>
+<li><a href="http://redis.io/topics/partitioning">Partitioning: how to split data among multiple Redis instances. – Redis</a></li>
 </ul>
 
 
 <ul class="org-ul">
-<li><a href="http://oldblog.antirez.com/post/redis-presharding.html">Redis Presharding</a>
-</li>
+<li><a href="http://oldblog.antirez.com/post/redis-presharding.html">Redis Presharding</a></li>
 </ul>
 </div>
 </div>
@@ -383,7 +360,7 @@ redis 的数据量或者请求数过高，会导致 redis 不稳定，最终影�
 
     <div id="footer">
   	  <div class="copyright" style="text-align: center;">
-  	    版权所有 © 2011-2018 看看俺 – KanKanAn.com
+  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
   	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
   	  </div>
     </div>

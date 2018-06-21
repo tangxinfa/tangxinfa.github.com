@@ -1,0 +1,481 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+    <channel>
+        <title>emacs - </title>
+        <link>/tag/emacs.xml</link>
+        <description></description>
+        <lastBuildDate>Fri, 20 Apr 2018 07:31:37 GMT</lastBuildDate>
+        <docs>http://blogs.law.harvard.edu/tech/rss</docs>
+        <generator>Feed for Node.js</generator>
+        <category>ediary</category>
+        <item>
+            <title><![CDATA[完美的 c++ 项目代码定义跳转]]></title>
+            <link>/article/5b8c7f8e7684-c-987976ee4ee378015b9a4e498df38f6c.html</link>
+            <guid>/article/5b8c7f8e7684-c-987976ee4ee378015b9a4e498df38f6c.html</guid>
+            <pubDate>Wed, 15 Nov 2017 07:26:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+阅读代码时如果能够很方便地跳转到函数、类型定义处，会极大地提高效率。使用 grep 或
+ctags 或 gtags 的问题在于给出的结果不够严谨，可能会给出很多候选，容易打断思路，
+另一方面 c++ 本身语法非常复杂，继承、重载等会让选择正确的跳转处变得更加困难，
+ctags 或 gtags 之类的静态代码分析工具对 c++ 的支持也相当有限。
+</p>
+
+<p>
+clang 编译器较之 gcc 在进行代码分析方面提供了良好的支持，编译器给出的结果往往是
+最正确和最丰富的。
+</p>
+
+<p>
+本文描述了使用如何将 emacs 打造成阅读 c++ 代码的利器。
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">编译数据库</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+编译数据库（ <code>compile_commands.json</code> ）里面记录了每一个源代码文件对应的编译命令，
+有了编译数据库就可以从 clang 编译器获取最详尽的代码分析数据，让代码跳转、自动完
+成更加精确。
+</p>
+
+<p>
+不同的构建工具可以使用相应的工具来生成编译数据库（ <code>compile_commands.json</code> ）。
+</p>
+</div>
+
+<div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1">bazel</h3>
+<div class="outline-text-3" id="text-1-1">
+<ul class="org-ul">
+<li>安装
+
+<p>
+使用 <code>Bazel And Compile Commands</code> 脚本可以很方便地为 Bazel 构建项目生成 compile_commands.json 
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">git clone https://github.com/vincent-picaud/Bazel_and_CompileCommands.git
+</pre>
+</div>
+</li>
+
+<li>生成
+
+<div class="org-src-container">
+
+<pre class="src src-sh">../Bazel_and_CompileCommands/setup_compile_commands.sh
+../Bazel_and_CompileCommands/create_compile_commands.sh //...
+</pre>
+</div>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-1-2" class="outline-3">
+<h3 id="sec-1-2">make</h3>
+<div class="outline-text-3" id="text-1-2">
+<p>
+<a href="https://github.com/rizsotto/Bear">Bear</a> 是一个生成生成编译数据库的工具，其工作原理是监视编译工具（如：make）调用的编译命令，
+是一种很通用的方案。
+</p>
+
+<ul class="org-ul">
+<li>安装
+
+<div class="org-src-container">
+
+<pre class="src src-sh">yaourt -S bear
+</pre>
+</div>
+</li>
+
+<li>生成
+
+<div class="org-src-container">
+
+<pre class="src src-sh">bear make
+</pre>
+</div>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-1-3" class="outline-3">
+<h3 id="sec-1-3">cmake</h3>
+<div class="outline-text-3" id="text-1-3">
+<ul class="org-ul">
+<li>安装
+
+<div class="org-src-container">
+
+<pre class="src src-sh">yaourt -S cmake
+</pre>
+</div>
+</li>
+
+<li>生成
+
+<div class="org-src-container">
+
+<pre class="src src-sh">cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON .
+</pre>
+</div>
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><a href="https://github.com/Andersbakken/rtags">rtags</a></h2>
+<div class="outline-text-2" id="text-2">
+<blockquote>
+<p>
+RTags is a client/server application that indexes C/C++ code and keeps a persistent file-based database of references, declarations, definitions, symbolnames etc. 
+</p>
+</blockquote>
+
+<p>
+<a href="https://github.com/Andersbakken/rtags">rtags</a> 是基于 clang，根据编译器提供的信息可以实现精确的查找定义、引用及调用、
+列出派生类等。
+</p>
+</div>
+
+<div id="outline-container-sec-2-1" class="outline-3">
+<h3 id="sec-2-1">启动后台服务</h3>
+<div class="outline-text-3" id="text-2-1">
+<div class="org-src-container">
+
+<pre class="src src-sh">nohup rdm &amp;
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2-2" class="outline-3">
+<h3 id="sec-2-2">提交项目信息到后台服务</h3>
+<div class="outline-text-3" id="text-2-2">
+<p>
+由于 bazel 会将代码通过软链接放到一个沙箱中进行编译，导致生成的编译数据库中代码目录与实际编辑的路径不一致，
+使用 rtags 查找定义时会报 "/xxx/xxx.cpp not indexed" 错误，可以通过提交项目信息时指定 <code>--project-root</code> 进行修正。
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">rc -J . --project-root $<span style="color: #f0c674;">PWD</span>
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2-3" class="outline-3">
+<h3 id="sec-2-3">在 emacs 中整合以上工具</h3>
+<div class="outline-text-3" id="text-2-3">
+<p>
+请参考 <a href="https://github.com/Andersbakken/rtags#elisp">https://github.com/Andersbakken/rtags#elisp</a>
+</p>
+
+<p>
+以下是我的配置，首先需要安装这些 emacs 包： <code>rtags</code> <code>helm-rtags</code>
+<code>company-rtags</code> <code>flycheck-rtags</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-emacs-lisp"><span style="color: #969896; font-style: italic;">;;;; </span><span style="color: #969896; font-style: italic;">rtags</span>
+(<span style="color: #b5bd68;">defun</span> <span style="color: #de935f;">my-rtags-load-compile-commands-command</span> ()
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b294bb;">"rtags load compile_commands.json command"</span>
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; font-style: italic;">;; </span><span style="color: #969896; font-style: italic;">compile_commands.json generate by https://github.com/vincent-picaud/Bazel_a</span><span style="color: #de935f; background-color: #373b41; font-style: italic;">nd_CompileCommands</span>
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; font-style: italic;">;; </span><span style="color: #969896; font-style: italic;">will refer source code from bazel's sandbox, must use "--project-root" to f</span><span style="color: #de935f; background-color: #373b41; font-style: italic;">ix it.</span>
+<span style="color: #969896; background-color: #222427;"> </span> (<span style="color: #b5bd68;">let</span> ((project-root default-directory)
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   (tmp-project-root <span style="color: #8abeb7;">""</span>))
+<span style="color: #969896; background-color: #222427;"> </span>   (<span style="color: #b5bd68;">while</span> (<span style="color: #b5bd68;">and</span> project-root (not (file-exists-p (concat project-root <span style="color: #8abeb7;">"compile_c</span><span style="color: #de935f; background-color: #373b41;">ommands.json"</span><span style="color: #de935f; background-color: #373b41;">))))</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span> (<span style="color: #b5bd68;">setq</span> tmp-project-root (file-name-directory (directory-file-name project-r<span style="color: #de935f; background-color: #373b41;">oot)))</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span> (message <span style="color: #8abeb7;">"tmp-project-root: %s, project-root: %s"</span> tmp-project-root project<span style="color: #de935f; background-color: #373b41;">-root)</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span> (<span style="color: #b5bd68;">if</span> (equal tmp-project-root project-root)
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span> (<span style="color: #b5bd68;">setq</span> project-root nil)
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   (<span style="color: #b5bd68;">setq</span> project-root tmp-project-root)))
+<span style="color: #969896; background-color: #222427;"> </span>   (<span style="color: #b5bd68;">unless</span> project-root
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span> (message <span style="color: #8abeb7;">"RTags: compile_commands.json not exists"</span>)
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span> (<span style="color: #b5bd68;">setq</span> project-root default-directory))
+<span style="color: #969896; background-color: #222427;"> </span>   (message <span style="color: #8abeb7;">"RTags: %s"</span> (concat project-root <span style="color: #8abeb7;">"compile_commands.json"</span>))
+<span style="color: #969896; background-color: #222427;"> </span>   (format <span style="color: #8abeb7;">"rc -J %s --project-root %s"</span> project-root project-root)))
+
+(<span style="color: #b5bd68;">defun</span> <span style="color: #de935f;">my-rtags-run</span> ()
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b294bb;">"rtags startup with generated compile_commands.json"</span>
+<span style="color: #969896; background-color: #222427;"> </span> (<span style="color: #b5bd68;">interactive</span>)
+<span style="color: #969896; background-color: #222427;"> </span> (rtags-start-process-unless-running)
+<span style="color: #969896; background-color: #222427;"> </span> (shell-command (my-rtags-load-compile-commands-command)))
+
+(<span style="color: #b5bd68;">defun</span> <span style="color: #de935f;">my-rtags-build</span> ()
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b294bb;">"rtags startup use compile_commands.json generate from build tool"</span>
+<span style="color: #969896; background-color: #222427;"> </span> (<span style="color: #b5bd68;">interactive</span>)
+<span style="color: #969896; background-color: #222427;"> </span> (<span style="color: #b5bd68;">cond</span> ((file-exists-p <span style="color: #8abeb7;">"BUILD"</span>) (my-rtags-bazel))
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   ((file-exists-p <span style="color: #8abeb7;">"CMakeLists.txt"</span>) (my-rtags-cmake))
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   ((file-exists-p <span style="color: #8abeb7;">"Makefile"</span>) (my-rtags-make))
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   (t (<span style="color: #cc6666; font-weight: bold;">error</span> <span style="color: #8abeb7;">"No build tool detected"</span>))))
+
+(<span style="color: #b5bd68;">defun</span> <span style="color: #de935f;">my-rtags-bazel</span> ()
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b294bb;">"rtags startup use compile_commands.json generate from bazel"</span>
+<span style="color: #969896; background-color: #222427;"> </span> (<span style="color: #b5bd68;">interactive</span>)
+<span style="color: #969896; background-color: #222427;"> </span> (<span style="color: #b5bd68;">let</span> ((tool_dir <span style="color: #8abeb7;">"~/Opensource/Bazel_and_CompileCommands"</span>)
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   (command <span style="color: #8abeb7;">""</span>))
+<span style="color: #969896; background-color: #222427;"> </span>   (<span style="color: #b5bd68;">setq</span> command (format <span style="color: #8abeb7;">"%s/setup_compile_commands.sh; %s/create_compile_comma</span><span style="color: #de935f; background-color: #373b41;">nds.sh //..."</span><span style="color: #de935f; background-color: #373b41;"> tool_dir tool_dir))</span>
+<span style="color: #969896; background-color: #222427;"> </span>   (<span style="color: #b5bd68;">setq</span> command (read-string <span style="color: #8abeb7;">"Build bazel compile_commands.json: "</span> command nil<span style="color: #de935f; background-color: #373b41;"> nil))</span>
+<span style="color: #969896; background-color: #222427;"> </span>   (<span style="color: #b5bd68;">unless</span> command
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span> (<span style="color: #cc6666; font-weight: bold;">error</span> <span style="color: #8abeb7;">"Build compile_commands.json for bazel failed"</span>))
+<span style="color: #969896; background-color: #222427;"> </span>   (rtags-start-process-unless-running)
+<span style="color: #969896; background-color: #222427;"> </span>   (async-shell-command (concat command <span style="color: #8abeb7;">" &amp;&amp; "</span> (my-rtags-load-compile-commands-<span style="color: #de935f; background-color: #373b41;">command)))))</span>
+
+(<span style="color: #b5bd68;">defun</span> <span style="color: #de935f;">my-rtags-make</span> ()
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b294bb;">"build compile_commands.json for make"</span>
+<span style="color: #969896; background-color: #222427;"> </span> (<span style="color: #b5bd68;">interactive</span>)
+<span style="color: #969896; background-color: #222427;"> </span> (<span style="color: #b5bd68;">let</span> ((command (read-string <span style="color: #8abeb7;">"Build make compile_commands.json: "</span> <span style="color: #8abeb7;">"bear make"</span> n<span style="color: #de935f; background-color: #373b41;">il nil)))</span>
+<span style="color: #969896; background-color: #222427;"> </span>   (<span style="color: #b5bd68;">unless</span> command
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span> (<span style="color: #cc6666; font-weight: bold;">error</span> <span style="color: #8abeb7;">"Build compile_commands.json for make failed"</span>))
+<span style="color: #969896; background-color: #222427;"> </span>   (rtags-start-process-unless-running)
+<span style="color: #969896; background-color: #222427;"> </span>   (async-shell-command (concat command <span style="color: #8abeb7;">" &amp;&amp; "</span> (my-rtags-load-compile-commands-<span style="color: #de935f; background-color: #373b41;">command)))))</span>
+
+(<span style="color: #b5bd68;">defun</span> <span style="color: #de935f;">my-rtags-cmake</span> ()
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b294bb;">"build compile_commands.json for cmake"</span>
+<span style="color: #969896; background-color: #222427;"> </span> (<span style="color: #b5bd68;">interactive</span>)
+<span style="color: #969896; background-color: #222427;"> </span> (<span style="color: #b5bd68;">let</span> ((command (read-string <span style="color: #8abeb7;">"Build cmake compile_commands.json: "</span> <span style="color: #8abeb7;">"cmake -DCMA</span><span style="color: #de935f; background-color: #373b41;">KE_EXPORT_COMPILE_COMMANDS=ON ."</span><span style="color: #de935f; background-color: #373b41;"> nil nil)))</span>
+<span style="color: #969896; background-color: #222427;"> </span>   (rtags-start-process-unless-running)
+<span style="color: #969896; background-color: #222427;"> </span>   (async-shell-command (concat command <span style="color: #8abeb7;">" &amp;&amp; "</span> (my-rtags-load-compile-commands-<span style="color: #de935f; background-color: #373b41;">command)))))</span>
+
+(<span style="color: #b5bd68;">setq</span> rtags-completions-enabled t)
+(eval-after-load 'company
+<span style="color: #969896; background-color: #222427;"> </span> '(add-to-list
+<span style="color: #969896; background-color: #222427;"> </span>   'company-backends 'company-rtags))
+(<span style="color: #b5bd68;">setq</span> rtags-autostart-diagnostics t)
+(rtags-enable-standard-keybindings)
+(<span style="color: #b5bd68;">require</span> '<span style="color: #81a2be;">helm-rtags</span>)
+(<span style="color: #b5bd68;">require</span> '<span style="color: #81a2be;">flycheck-rtags</span>)
+(define-key c-mode-map (kbd <span style="color: #8abeb7;">"C-c C-j"</span>) 'rtags-find-symbol)
+(define-key c++-mode-map (kbd <span style="color: #8abeb7;">"C-c C-j"</span>) 'rtags-find-symbol)
+(define-key c-mode-map (kbd <span style="color: #8abeb7;">"C-c C-b"</span>) 'rtags-location-stack-back)
+(define-key c++-mode-map (kbd <span style="color: #8abeb7;">"C-c C-b"</span>) 'rtags-location-stack-back)
+(define-key c-mode-map (kbd <span style="color: #8abeb7;">"C-c C-r"</span>) 'rtags-find-references)
+(define-key c++-mode-map (kbd <span style="color: #8abeb7;">"C-c C-r"</span>) 'rtags-find-references)
+</pre>
+</div>
+
+<p>
+第一次需在项目根目录执行 <code>M-x my-rtags-build</code> ，它会先生成编译数据库
+（ <code>compile_commands.json</code> ）再启动 rtags 后台服务。以后可直接运行 rtags 后
+台服务 <code>M-x my-rtags-run</code> 。
+</p>
+
+<p>
+现在随便打开项目中的 c++ 源代码，将光标放到变量名上，然后按 <code>C-c C-j</code> 跳转到
+定义处，更多用法请参考 rtags 文档。
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">参考</h2>
+<div class="outline-text-2" id="text-3">
+<ul class="org-ul">
+<li><a href="https://sarcasm.github.io/notes/dev/compilation-database.html#cmake">Compilation database — Sarcasm notebook</a>
+</li>
+</ul>
+</div>
+</div>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Archlinux 下搭建 Rust 开发环境]]></title>
+            <link>/article/archlinux-4e0b642d5efa-rust-5f0053d173af5883.html</link>
+            <guid>/article/archlinux-4e0b642d5efa-rust-5f0053d173af5883.html</guid>
+            <pubDate>Mon, 29 Feb 2016 12:03:00 GMT</pubDate>
+            <content:encoded><![CDATA[<ul class="org-ul">
+<li>Emacs 里安装 rust-mode
+
+<p>
+M-x el-get-install rust-mode
+</p>
+</li>
+
+<li>Archlinux 安装 rust 相关包
+
+<p>
+yaourt -S rust cargo
+</p>
+
+<p>
+安装的版本
+</p>
+
+<pre class="example">
+$ rustc --version
+rustc 1.6.0
+$ cargo --version
+cargo 0.8.0 (28a0cbb 2016-01-17)
+</pre>
+</li>
+
+<li>Hello world!
+
+<p>
+<code>hello_world.rs</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-rust"><span style="color: #b5bd68;">fn</span> <span style="color: #de935f;">main</span>() {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b294bb;">println!</span>(<span style="color: #8abeb7;">"Hello, world!"</span>);
+}
+</pre>
+</div>
+
+<p>
+编译运行
+</p>
+<pre class="example">
+$ rustc hello_world.rs 
+$ ./hello_world 
+Hello, world!
+</pre>
+</li>
+
+<li>更多配置
+
+<p>
+可以参考文章《<a href="http://bassam.co/emacs/2015/08/24/rust-with-emacs/">Configuring Emacs for Rust</a>》进行更高级的配置，对于我这种 Rust 还没入门的人来说，前面的配置已经足够，还是一步一个脚印吧。</p>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[emacs启动速度优化]]></title>
+            <link>/article/emacs-542f52a8901f5ea64f185316.html</link>
+            <guid>/article/emacs-542f52a8901f5ea64f185316.html</guid>
+            <pubDate>Sun, 24 May 2015 03:17:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+emacs装了很多插件后，启动越来越慢了，最近发现启动一次要25秒，赶得上操作系统启动时间了，是时候优化一下启动速度了。
+</p>
+
+<ul class="org-ul">
+<li>裸启动emacs
+
+<div class="org-src-container">
+
+<pre class="src src-sh">emacs --quick
+</pre>
+</div>
+
+<p>
+尽然耗时10秒，网上查了一下这个问题常见于 <code>archlinux</code> ，是网络配置引起: <a href="https://wiki.archlinux.org/index.php/Emacs#Incorrect_network_configuration">Emacs - Slow startup - Incorrect network configuration</a>
+</p>
+
+<p>
+解决方案就是将主机名（ <code>hostname</code> 命令输出）加到 <code>/etc/hosts</code> 中：
+</p>
+
+<pre class="example">
+127.0.0.1   localhost.localdomain   localhost &lt;hostame&gt;
+::1     localhost.localdomain   localhost  &lt;hostname&gt;
+</pre>
+
+<p>
+再试，emacs瞬间启动。
+</p>
+</li>
+
+<li>不加载个人配置文件启动emacs
+
+<div class="org-src-container">
+
+<pre class="src src-sh">emacs --no-init-file
+</pre>
+</div>
+
+<p>
+emacs瞬间启动。
+</p>
+</li>
+
+<li>不加载最近保存的桌面启动emacs
+
+<div class="org-src-container">
+
+<pre class="src src-sh">emacs --no-desktop
+</pre>
+</div>
+
+<p>
+耗时15秒，看来是个人配置的问题了
+</p>
+</li>
+
+<li>从前面开始一块一块反注释emacs配置，看是卡在哪里
+
+<div class="org-src-container">
+
+<pre class="src src-lisp">(<span style="color: #b5bd68;">require</span> '<span style="color: #81a2be;">anything-config</span>)
+</pre>
+</div>
+
+<p>
+这一句耗时11秒，注释掉，现在启时时间为5秒，可以接受了。</p>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[在emacs中如何以root权限使用gdb调试程序]]></title>
+            <link>/article/5728-emacs-4e2d59824f554ee5-root-674396504f7f7528-gdb-8c038bd57a0b5e8f.html</link>
+            <guid>/article/5728-emacs-4e2d59824f554ee5-root-674396504f7f7528-gdb-8c038bd57a0b5e8f.html</guid>
+            <pubDate>Sat, 30 Mar 2013 06:21:00 GMT</pubDate>
+            <content:encoded><![CDATA[<ul class="org-ul">
+<li>由于M-x命令中使用sudo输入密码无效，需要配置为允许用户sudo gdb免密码
+</li>
+</ul>
+<pre class="example">
+visudo
+# Allow user to sudo gdb without password
+用户 ALL=NOPASSWD: /usr/bin/gdb
+</pre>
+
+<ul class="org-ul">
+<li>使用root权限启动gdb
+</li>
+</ul>
+<pre class="example">
+M-x gdb
+sudo gdb &lt;program&gt; &lt;pid&gt; --annotate=3
+</pre>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[在emacs模式行上显示图片的尺寸]]></title>
+            <link>/article/5728-emacs-6a215f0f884c4e0a663e793a56fe724776845c3a5bf8.html</link>
+            <guid>/article/5728-emacs-6a215f0f884c4e0a663e793a56fe724776845c3a5bf8.html</guid>
+            <pubDate>Fri, 03 Aug 2012 00:55:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+下面的lisp代码用于在emacs模式行上显示图片的尺寸：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-lisp">(add-hook 'image-mode-hook (<span style="color: #b5bd68;">lambda</span> ()
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b294bb;">"display image size on mode line."</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span> (setq mode-name (format <span style="color: #8abeb7;">"Image[%s](%s*%s)"</span><span style="color: #373b41; background-color: #de935f;"> </span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span> image-type<span style="color: #373b41; background-color: #de935f;"> </span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span> (car (image-size (image-get-di<span style="color: #de935f; background-color: #373b41;">splay-property) t))</span><span style="color: #de935f; background-color: #373b41;"> </span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span> (cdr (image-size (image-get-di<span style="color: #de935f; background-color: #373b41;">splay-property) t))))))</span>
+</pre>
+</div>
+
+<dl class="org-dl">
+<dt> 效果如下 </dt><dd></dd>
+</dl>
+<pre class="example">
+[(Image[png](181*415))]
+</pre>
+]]></content:encoded>
+        </item>
+    </channel>
+</rss>

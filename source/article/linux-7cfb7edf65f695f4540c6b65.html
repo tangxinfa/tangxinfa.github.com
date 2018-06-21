@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <title>linux 系统时间同步 | </title>
+    <link rel="shortcut icon" href="/static/favicon.ico" />
+    <link rel="stylesheet" type="text/css" href="/style/ediary.css"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="generator" content="o-blog"/>
+  </head>
+  <body>
+    <div class="navbar navbar-fixed-top" id="header">
+      <div class="navbar-inner">
+        <a class="brand" href="/" style="line-height:100%;"></a>
+        <ul class="navbar-links">
+          <li><a href="/index.xml"><i class="icon-rss icon-white"></i> Subscribe</a></li>
+          <li><a href="/category/ediary/0.html"><i class="icon-folder-close icon-white"></i> ediary</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="container container-fluid" id="page">
+      <div class="push-header"></div>
+
+      <div class="article">
+        <header class="article-header">
+          <h1>linux 系统时间同步</h1>
+        </header>
+      
+        <div class="article-content">
+          <dl class="org-dl">
+<dt> ntp </dt><dd>Network Time Protocol，即网络时间同步协议。
+</dd>
+</dl>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">安装 ntp</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+ntpdate 和 ntpd 通常包含在 ntp 软件包里，但有的系统是单独打包。
+</p>
+
+<p>
+ntpdate 命令用于直接同步时间。
+</p>
+
+<p>
+ntpd 服务用于平滑同步时间。
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">yaourt -S ntp
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">使用 ntpdate 命令同步时间</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+ntpdate 命令用于强制性的将系统时间设置为 ntp 服务器时间，导致时钟跃变，可能会引起系统不稳定。
+</p>
+</div>
+
+<div id="outline-container-sec-2-1" class="outline-3">
+<h3 id="sec-2-1">手工同步一次</h3>
+<div class="outline-text-3" id="text-2-1">
+<p>
+带 -d 选项，调试运行，不修改本地时间
+</p>
+<pre class="example">
+<span class="linenr"> 1: </span># ntpdate -d s1a.time.edu.cn
+<span class="linenr"> 2: </span> 9 Mar 18:46:29 ntpdate[20537]: ntpdate 4.2.4p8@1.1612-o Fri Feb 22 11:23:28 UTC 2013 (1)
+<span class="linenr"> 3: </span>Looking for host s1a.time.edu.cn and service ntp
+<span class="linenr"> 4: </span>host found : 202.112.10.60
+<span class="linenr"> 5: </span>transmit(202.112.10.60)
+<span class="linenr"> 6: </span>receive(202.112.10.60)
+<span class="linenr"> 7: </span>transmit(202.112.10.60)
+<span class="linenr"> 8: </span>receive(202.112.10.60)
+<span class="linenr"> 9: </span>transmit(202.112.10.60)
+<span class="linenr">10: </span>receive(202.112.10.60)
+<span class="linenr">11: </span>transmit(202.112.10.60)
+<span class="linenr">12: </span>receive(202.112.10.60)
+<span class="linenr">13: </span>transmit(202.112.10.60)
+<span class="linenr">14: </span>server 202.112.10.60, port 123
+<span class="linenr">15: </span>stratum 1, precision -20, leap 00, trust 000
+<span class="linenr">16: </span>refid [PPS], delay 0.06285, dispersion 0.00003
+<span class="linenr">17: </span>transmitted 4, in filter 4
+<span class="linenr">18: </span>reference time:    da8a8b53.73391350  Wed, Mar  9 2016 19:45:23.450
+<span class="linenr">19: </span>originate timestamp: da8a8b5c.3f42dc7c  Wed, Mar  9 2016 19:45:32.247
+<span class="linenr">20: </span>transmit timestamp:  da8a7d86.32fde4c3  Wed, Mar  9 2016 18:46:30.199
+<span class="linenr">21: </span>filter delay:  0.06323  0.06317  0.06299  0.06285 
+<span class="linenr">22: </span>         0.00000  0.00000  0.00000  0.00000 
+<span class="linenr">23: </span>filter offset: 3542.028 3542.028 3542.028 3542.028
+<span class="linenr">24: </span>         0.000000 0.000000 0.000000 0.000000
+<span class="linenr">25: </span>delay 0.06285, dispersion 0.00003
+<span id="coderef-ntpdate_debug_offset" class="coderef-off"><span class="linenr">26: </span>offset 3542.028898</span>
+<span class="linenr">27: </span>
+<span class="linenr">28: </span> 9 Mar 18:46:30 ntpdate[20537]: step time server 202.112.10.60 offset 3542.028898 sec
+</pre>
+
+<dl class="org-dl">
+<dt> 行 <a href="#coderef-ntpdate_debug_offset"class="coderef" onmouseover="CodeHighlightOn(this, 'coderef-ntpdate_debug_offset');" onmouseout="CodeHighlightOff(this, 'coderef-ntpdate_debug_offset');">26</a>  </dt><dd>本机时间比时间服务器慢了 3542.028898 秒
+</dd>
+</dl>
+
+<p>
+不带 -d 选项，修改本地时间
+</p>
+<pre class="example">
+# ntpdate s1a.time.edu.cn
+ntpdate s1a.time.edu.cn
+ 9 Mar 19:51:51 ntpdate[20553]: step time server 202.112.10.60 offset 3542.052347 sec
+</pre>
+</div>
+</div>
+
+<div id="outline-container-sec-2-2" class="outline-3">
+<h3 id="sec-2-2">定期自动同步时间</h3>
+<div class="outline-text-3" id="text-2-2">
+<p>
+长时间运行的系统，会与标准时间产生偏差，通过 crontab 每日运行一次
+</p>
+
+<p>
+<code>/etc/cron.daily/ntpdate</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/</span><span style="color: #b5bd68;">bash</span>
+
+/usr/sbin/ntpdate s1a.time.edu.cn &gt;/dev/null 2&gt;&amp;1
+</pre>
+</div>
+
+<p>
+请记得为 <code>/etc/cron.daily/ntpdate</code> 添加可执行权限。
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">使用 ntpd 服务同步时间</h2>
+<div class="outline-text-2" id="text-3">
+<dl class="org-dl">
+<dt> ntpd </dt><dd>Network Time Protocol (NTP) Daemon
+The ntpd program is an operating system daemon that synchronizes the system clock to remote NTP time servers or local reference clocks.
+</dd>
+</dl>
+
+
+<p>
+ntpd 服务的配置文件为 /etc/ntp.conf 。
+</p>
+
+<p>
+ntpd 如果时间偏差过大（默认 1000 秒钟），ntpd 会输出错误到系统日志后退出，所以在服务启动前需要先同步好时间。
+</p>
+
+<p>
+某嵌入式系统上的 ntpd 服务脚本：
+</p>
+
+<p>
+<code>/etc/init.d/S49ntp</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">! /bin/</span><span style="color: #b5bd68;">sh</span>
+<span style="color: #969896; font-style: italic;">#</span>
+<span style="color: #969896; font-style: italic;"># </span><span style="color: #969896; font-style: italic;">System-V init script for the openntp daemon</span>
+<span style="color: #969896; font-style: italic;">#</span>
+
+<span style="color: #f0c674;">PATH</span>=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+<span style="color: #f0c674;">DESC</span>=<span style="color: #8abeb7;">"network time protocol daemon"</span>
+<span style="color: #f0c674;">NAME</span>=ntpd
+<span style="color: #f0c674;">DAEMON</span>=/usr/sbin/$<span style="color: #f0c674;">NAME</span>
+<span style="color: #f0c674;">NTPDATE_BIN</span>=/usr/bin/ntpdate
+
+<span style="color: #969896; font-style: italic;"># </span><span style="color: #969896; font-style: italic;">Gracefully exit if the package has been removed.</span>
+<span style="color: #b294bb;">test</span> -x $<span style="color: #f0c674;">DAEMON</span> || <span style="color: #b5bd68;">exit</span> 0
+
+<span style="color: #969896; font-style: italic;"># </span><span style="color: #969896; font-style: italic;">Read config file if it is present.</span>
+<span style="color: #b5bd68;">if</span> [ -r /etc/default/$<span style="color: #f0c674;">NAME</span> ]
+<span style="color: #b5bd68;">then</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b294bb;">.</span> /etc/default/$<span style="color: #f0c674;">NAME</span>
+<span style="color: #b5bd68;">fi</span>
+
+<span style="color: #b5bd68;">case</span> <span style="color: #8abeb7;">"$1"</span><span style="color: #b5bd68;"> in</span>
+<span style="color: #969896; background-color: #222427;"> </span> start)
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> [ -x $<span style="color: #f0c674;">NTPDATE_BIN</span> ] ; <span style="color: #b5bd68;">then</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b294bb;">echo</span> -n <span style="color: #8abeb7;">"Getting initial time via ntp"</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   $<span style="color: #f0c674;">NTPDATE_BIN</span> $<span style="color: #f0c674;">NTPDATE_OPTS</span> $<span style="color: #f0c674;">NTPSERVERS</span> &gt; /dev/null 2&gt;&amp;1
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"."</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">fi</span>
+
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b294bb;">echo</span> -n <span style="color: #8abeb7;">"Starting $DESC: $NAME"</span>
+<span style="color: #969896; background-color: #222427;"> </span>   start-stop-daemon -S -q -x $<span style="color: #f0c674;">DAEMON</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"."</span>
+<span style="color: #969896; background-color: #222427;"> </span>   ;;
+<span style="color: #969896; background-color: #222427;"> </span> stop) <span style="color: #b294bb;">echo</span> -n <span style="color: #8abeb7;">"Stopping $DESC: $NAME"</span>
+<span style="color: #969896; background-color: #222427;"> </span>   start-stop-daemon -K -q -n $<span style="color: #f0c674;">NAME</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"."</span>
+<span style="color: #969896; background-color: #222427;"> </span>   ;;
+<span style="color: #969896; background-color: #222427;"> </span> reload|force-reload) <span style="color: #b294bb;">echo</span> -n <span style="color: #8abeb7;">"Reloading $DESC configuration..."</span>
+<span style="color: #969896; background-color: #222427;"> </span>   start-stop-daemon -K -q -n $<span style="color: #f0c674;">NAME</span> -s 1
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"done."</span>
+<span style="color: #969896; background-color: #222427;"> </span> ;;
+<span style="color: #969896; background-color: #222427;"> </span> restart) <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"Restarting $DESC: $NAME"</span>
+<span style="color: #969896; background-color: #222427;"> </span>   $<span style="color: #f0c674;">0</span> stop
+<span style="color: #969896; background-color: #222427;"> </span>   sleep 1
+<span style="color: #969896; background-color: #222427;"> </span>   $<span style="color: #f0c674;">0</span> start
+<span style="color: #969896; background-color: #222427;"> </span>   ;;
+<span style="color: #969896; background-color: #222427;"> </span> *) <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"Usage: $SCRIPTNAME {start|stop|restart|reload|force-reload}"</span> &gt;&amp;2
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">exit</span> 1
+<span style="color: #969896; background-color: #222427;"> </span>   ;;
+<span style="color: #b5bd68;">esac</span>
+
+<span style="color: #b5bd68;">exit</span> 0
+</pre>
+</div>
+
+<p>
+其中 $NTPDATE_OPTS 定义在 /etc/default/ntpd 中：
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #f0c674;">NTPDATE_OPTS</span>=<span style="color: #8abeb7;">"-t 5"</span>
+</pre>
+</div>
+
+<p>
+通过 ntpdate 同步初始时间失败，ntpd 服务可能因为当前系统时间与时间服务器偏差过大而退出。
+</p>
+
+<p>
+同步失败的原因：
+</p>
+
+<ul class="org-ul">
+<li>开机后网络尚未连通
+</li>
+
+<li>时间服务器繁忙
+</li>
+
+<li>网络环境限制使用 NTP 协议
+</li>
+
+<li>命令执行超时
+
+<p>
+域名解析、网络请求处理都会占用时间，5 秒钟不一定能完成。
+</p>
+</li>
+</ul>
+
+<p>
+由于脚本是在系统启动过程中运行，再延长超时时间可能导致开机启动时间变长。
+</p>
+
+<p>
+可以配置 ntpd 在时间偏差过大时仍然同步时间（注意：ntpd 第一次需要 4-5 分钟才能完成同步），有以下几种方法：
+</p>
+
+<ul class="org-ul">
+<li>添加 -g 命令行选项
+
+<p>
+<code>-g</code> 本地时间与时间服务器偏差达过大（默认为 1000 秒）时，不退出，同步一次时间。
+</p>
+</li>
+
+<li>设置 NTPD_PANICGATE 环境变量
+
+<p>
+绝大部分命令行选项都可以通过加 NTPD_ 前缀的环境变量进行设置。
+</p>
+</li>
+
+<li>修改配置文件
+
+<p>
+将以下内容添加到 /etc/ntp.conf 最前面
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">tinker panic 0
+</pre>
+</div>
+</li>
+</ul>
+</div>
+
+<div id="outline-container-sec-3-1" class="outline-3">
+<h3 id="sec-3-1">手工同步一次</h3>
+<div class="outline-text-3" id="text-3-1">
+<p>
+通过 ntpd 的命令行选项可以更好地完成 ntpdate 的功能。
+</p>
+
+<p>
+<code>-q</code> 同步一次后退出。
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">ntpd -g -q
+</pre>
+</div>
+
+<p>
+上面的命令会确保同步一次时间后结束。
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4">参考</h2>
+<div class="outline-text-2" id="text-4">
+<ul class="org-ul">
+<li><a href="http://blog.csdn.net/suer0101/article/details/7868813">使用ntpdate更新系统时间</a>
+</li>
+
+<li><a href="http://acooly.iteye.com/blog/1993484">NTP服务及时间同步(CentOS6.x)</a>
+</li>
+
+<li><a href="http://www.psce.com/blog/kb/how-to-periodically-synchronize-time-in-linux/">How to periodically synchronize time in Linux?</a>
+</li>
+
+<li><a href="http://www.tldp.org/LDP/sag/html/basic-ntp-config.html">Basic NTP configuration</a>
+</li>
+
+<li><a href="http://linux.die.net/man/8/ntpd">ntpd(8): Network Time Protocol daemon - Linux man page</a>
+</li>
+
+<li><a href="http://askubuntu.com/a/443077/397632">How to force a clock update using ntp? - Ask Ubuntu</a>
+</li>
+</ul>
+</div>
+</div>
+
+        </div>
+        <br />
+        <footer class="article-footer">
+          <span class="muted">
+            <i class="icon-time icon-white"></i> <time datetime="2016-03-10T14:07:00+0800">March 10, 2016</time>
+          </span>
+          <a class="tag" href="/tag/linux/0.html"><i class="icon-tag icon-white"></i> linux</a>
+        </footer>
+      </div>
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+  /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+  var disqus_shortname = '';
+
+  /* * * DON'T EDIT BELOW THIS LINE * * */
+  (function() {
+  var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+  dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+      <div class="push-footer"></div>
+    </div>
+
+    <div id="footer">
+  	  <div class="copyright" style="text-align: center;">
+  	    
+  	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
+  	  </div>
+    </div>
+  </body>
+</html>

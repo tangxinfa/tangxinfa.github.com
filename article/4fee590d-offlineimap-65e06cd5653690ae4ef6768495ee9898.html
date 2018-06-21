@@ -16,6 +16,7 @@
           <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
           
           <li><a href="/index.html"><i class="icon-folder-close icon-white"></i> 技术</a></li>
+          <li><a href="/category/life/0.html"><i class="icon-folder-close icon-white"></i> 生活</a></li>
         </ul>
       </div>
     </div>
@@ -30,9 +31,9 @@
       
         <div class="article-content">
           
-<div id="outline-container-sec-1" class="outline-2">
-<h2 id="sec-1">不使用 ssl</h2>
-<div class="outline-text-2" id="text-1">
+<div id="outline-container-orgaa122b5" class="outline-2">
+<h2 id="orgaa122b5">不使用 ssl</h2>
+<div class="outline-text-2" id="text-orgaa122b5">
 <p>
 .offlineimaprc 配置
 </p>
@@ -49,7 +50,7 @@ $ offlineimap
 ...
  Establishing connection to imap.xxxxxx.com:143
  ERROR: Could not connect via SSL to host 'imap.xxxxxx.com' and non-standard ssl port 143 configured. Make sure you connect to the correct port.
-...
+... 
 </pre>
 <p>
 意外地使用了 ssl 进行连接。
@@ -74,7 +75,6 @@ Escape character is '^]'.
 修改 offlineimap 的源代码文件 <a href="file:///usr/lib/python2.7/site-packages/offlineimap/imapserver.py">imapserver.py</a> ，我们的邮箱不使用 tls
 </p>
 <div class="org-src-container">
-
 <pre class="src src-python">269  <span style="color: #b5bd68;">def</span> <span style="color: #de935f;">__start_tls</span>(<span style="color: #b5bd68;">self</span>, imapobj):
 270          <span style="color: #b5bd68;">if</span> <span style="color: #8abeb7;">'STARTTLS'</span> <span style="color: #b5bd68;">in</span> imapobj.capabilities <span style="color: #b5bd68;">and</span> <span style="color: #b5bd68;">not</span> <span style="color: #b5bd68;">self</span>.usessl:
 </pre>
@@ -84,23 +84,25 @@ Escape character is '^]'.
 改成
 </p>
 <div class="org-src-container">
-
 <pre class="src src-python">269  <span style="color: #b5bd68;">def</span> <span style="color: #de935f;">__start_tls</span>(<span style="color: #b5bd68;">self</span>, imapobj):
-270          <span style="color: #b5bd68;">if</span> <span style="color: #8abeb7;">'STARTTLS'</span> <span style="color: #b5bd68;">in</span> imapobj.capabilities <span style="color: #b5bd68;">and</span> <span style="color: #b5bd68;">not</span> <span style="color: #b5bd68;">self</span>.usessl <span style="color: #b5bd68;">and</span> <span style="color: #b5bd68;">self</span>.<span style="color: #de935f; background-color: #373b41;">repos.account.name != </span><span style="color: #de935f; background-color: #373b41;">'xxxxxx'</span><span style="color: #de935f; background-color: #373b41;">:</span>
+270          <span style="color: #b5bd68;">if</span> <span style="color: #8abeb7;">'STARTTLS'</span> <span style="color: #b5bd68;">in</span> imapobj.capabilities <span style="color: #b5bd68;">and</span> <span style="color: #b5bd68;">not</span> <span style="color: #b5bd68;">self</span>.usessl <span style="color: #b5bd68;">and</span> <span style="color: #b5bd68;">self</span>.<span style="text-decoration: underline;">repos.account.name != </span><span style="color: #8abeb7; text-decoration: underline;">'xxxxxx'</span><span style="text-decoration: underline;">:</span>
 </pre>
 </div>
 
 
 <ul class="org-ul">
-<li>更好的做法
+<li><p>
+更好的做法
+</p>
 
 <p>
 在 imap 协议许可的情况下，加强容错性，tls 连接失败后，使用普通连接重连。
 .offlineimaprc 新加禁用 tls 的配置项，警告用户服务器可能配置有误，提示用户禁用 tls。
-</p>
-</li>
+</p></li>
 
-<li>相关的问题
+<li><p>
+相关的问题
+</p>
 
 <p>
 <a href="https://github.com/OfflineIMAP/offlineimap/pull/54">Optional TLS by mativs · Pull Request #54 · OfflineIMAP/offlineimap</a>
@@ -108,10 +110,11 @@ Escape character is '^]'.
 
 <p>
 有这个问题的 patch，但是没有下文。
-</p>
-</li>
+</p></li>
 
-<li><a href="https://github.com/OfflineIMAP/offlineimap">offlineimap</a> 新加的 starttls 选项解决了这个问题
+<li><p>
+<a href="https://github.com/OfflineIMAP/offlineimap">offlineimap</a> 新加的 starttls 选项解决了这个问题
+</p>
 
 <pre class="example">
 commit ac2a547ec46d590d041d410723f90f45fcb802fe
@@ -131,15 +134,14 @@ Signed-off-by: Nicolas Sebrecht &lt;nicolas.s-dev@laposte.net&gt;
 </p>
 <pre class="example">
 starttls = no
-</pre>
-</li>
+</pre></li>
 </ul>
 </div>
 </div>
 
-<div id="outline-container-sec-2" class="outline-2">
-<h2 id="sec-2">使用 ssl</h2>
-<div class="outline-text-2" id="text-2">
+<div id="outline-container-org7dd3318" class="outline-2">
+<h2 id="org7dd3318">使用 ssl</h2>
+<div class="outline-text-2" id="text-org7dd3318">
 <p>
 .offlineimaprc 配置
 </p>
@@ -157,7 +159,7 @@ $ offlineimap
  Establishing connection to imap.xxxxxx.com:993
  ERROR: Unknown SSL protocol connecting to host 'imap.xxxxxx.com' for repository 'XxxxxxRemote'. OpenSSL responded:
 [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:590)
-...
+... 
 </pre>
 <p>
 ssl 证书验证失败。
@@ -178,8 +180,7 @@ curl: (60) SSL certificate problem: self signed certificate
 从服务器提取证书
 </p>
 <div class="org-src-container">
-
-<pre class="src src-sh"><span style="color: #b294bb;">echo</span> | openssl s_client -connect imap.xxxxxx.com:993 2&gt;&amp;1 | sed -ne <span style="color: #8abeb7;">'/-BEGIN CER</span><span style="color: #de935f; background-color: #373b41;">TIFICATE-/,/-END CERTIFICATE-/p'</span><span style="color: #de935f; background-color: #373b41;"> &gt; ~/imap.xxxxxx.com.pem</span>
+<pre class="src src-sh"><span style="color: #b294bb;">echo</span> | openssl s_client -connect imap.xxxxxx.com:993 2&gt;&amp;1 | sed -ne <span style="color: #8abeb7;">'/-BEGIN CER</span><span style="color: #8abeb7; text-decoration: underline;">TIFICATE-/,/-END CERTIFICATE-/p'</span><span style="text-decoration: underline;"> &gt; ~/imap.xxxxxx.com.pem</span>
 </pre>
 </div>
 
@@ -289,7 +290,7 @@ $ offlineimap
 
     <div id="footer">
   	  <div class="copyright" style="text-align: center;">
-  	    版权所有 © 2011-2018 看看俺 – KanKanAn.com
+  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
   	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
   	  </div>
     </div>

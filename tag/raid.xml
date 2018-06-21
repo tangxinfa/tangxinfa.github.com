@@ -4,7 +4,7 @@
         <title>RAID - 看看俺 – KanKanAn.com</title>
         <link>http://blog.kankanan.com/tag/raid.xml</link>
         <description>记我所思，忆我所为。</description>
-        <lastBuildDate>Sun, 11 Feb 2018 10:19:58 GMT</lastBuildDate>
+        <lastBuildDate>Thu, 21 Jun 2018 10:42:24 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <generator>Feed for Node.js</generator>
         <image>
@@ -12,7 +12,7 @@
             <url>http://blog.kankanan.com/static/favicon.ico</url>
             <link>http://blog.kankanan.com/tag/raid.xml</link>
         </image>
-        <copyright>版权所有 © 2011-2018 看看俺 – KanKanAn.com</copyright>
+        <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <category>技术</category>
         <item>
             <title><![CDATA[FlashCache多盘方案实战]]></title>
@@ -23,18 +23,21 @@
 目标系统为单SSD+多HDD，将多HDD创建为RAID5逻辑盘，然后使用FlashCache将SSD做为RAID5逻辑盘的缓存。
 </p>
 
-<div id="outline-container-sec-1" class="outline-2">
-<h2 id="sec-1">系统信息</h2>
-<div class="outline-text-2" id="text-1">
+<div id="outline-container-orgc572b27" class="outline-2">
+<h2 id="orgc572b27">系统信息</h2>
+<div class="outline-text-2" id="text-orgc572b27">
 <ul class="org-ul">
-<li>OS
+<li><p>
+OS
+</p>
 
 <p>
 CentOS release 6.5 (Final) x86_64
-</p>
-</li>
+</p></li>
 
-<li>CPU
+<li><p>
+CPU
+</p>
 
 <p>
 8
@@ -42,10 +45,11 @@ CentOS release 6.5 (Final) x86_64
 
 <p>
 Intel(R) Atom(TM) CPU  C2750  @ 2.40GHz
-</p>
-</li>
+</p></li>
 
-<li>MEMORY
+<li><p>
+MEMORY
+</p>
 
 <p>
 4
@@ -53,10 +57,11 @@ Intel(R) Atom(TM) CPU  C2750  @ 2.40GHz
 
 <p>
 TOTAL 16G
-</p>
-</li>
+</p></li>
 
-<li>HDD
+<li><p>
+HDD
+</p>
 
 <p>
 4
@@ -68,10 +73,11 @@ WDC WD4000FYYZ-0 4TB 7200转
 
 <p>
 /dev/sdc /dev/sdd /dev/sde /dev/sdf
-</p>
-</li>
+</p></li>
 
-<li>SSD
+<li><p>
+SSD
+</p>
 
 <p>
 1
@@ -83,17 +89,15 @@ INTEL SSDSC2BB30 300GB
 
 <p>
 /dev/sdb
-</p>
-</li>
+</p></li>
 </ul>
 </div>
 </div>
 
-<div id="outline-container-sec-2" class="outline-2">
-<h2 id="sec-2">卸载HDD及SSD盘</h2>
-<div class="outline-text-2" id="text-2">
+<div id="outline-container-org247373b" class="outline-2">
+<h2 id="org247373b">卸载HDD及SSD盘</h2>
+<div class="outline-text-2" id="text-org247373b">
 <div class="org-src-container">
-
 <pre class="src src-sh">umount /dev/sdc /dev/sdd /dev/sde /dev/sdf /dev/sdb
 </pre>
 </div>
@@ -104,14 +108,15 @@ INTEL SSDSC2BB30 300GB
 </div>
 </div>
 
-<div id="outline-container-sec-3" class="outline-2">
-<h2 id="sec-3">将多HDD创建为RAID5逻辑盘</h2>
-<div class="outline-text-2" id="text-3">
+<div id="outline-container-orga795c71" class="outline-2">
+<h2 id="orga795c71">将多HDD创建为RAID5逻辑盘</h2>
+<div class="outline-text-2" id="text-orga795c71">
 <ul class="org-ul">
-<li>格式化HDD盘
+<li><p>
+格式化HDD盘
+</p>
 
 <div class="org-src-container">
-
 <pre class="src src-sh">parted /dev/sdc
 (parted) mklabel gpt
 (parted) unit TB
@@ -122,13 +127,13 @@ INTEL SSDSC2BB30 300GB
 
 <p>
 其它HDD盘也做如上处理.
-</p>
-</li>
+</p></li>
 
-<li>创建RAID5逻辑分区
+<li><p>
+创建RAID5逻辑分区
+</p>
 
 <div class="org-src-container">
-
 <pre class="src src-sh">mdadm --create /dev/md0 --level=raid5 --raid-devices=4 /dev/sd[c-f]1
 parted /dev/md0
 (parted) mklabel gpt
@@ -137,31 +142,29 @@ parted /dev/md0
 (parted) print
 (parted) quit
 </pre>
-</div>
-</li>
+</div></li>
 
-<li>保存RAID5配置
+<li><p>
+保存RAID5配置
+</p>
 
 <div class="org-src-container">
-
 <pre class="src src-sh">mdadm --detail --scan &gt; /etc/mdadm.conf
 </pre>
 </div>
 
 <p>
 参考：<a href="https://raid.wiki.kernel.org/index.php/RAID_setup#Saving_your_RAID_configuration">Saving your RAID configuration</a>
-</p>
-</li>
+</p></li>
 </ul>
 </div>
 </div>
 
-<div id="outline-container-sec-4" class="outline-2">
-<h2 id="sec-4">安装Flashcache</h2>
-<div class="outline-text-2" id="text-4">
+<div id="outline-container-orge0f63a8" class="outline-2">
+<h2 id="orge0f63a8">安装Flashcache</h2>
+<div class="outline-text-2" id="text-orge0f63a8">
 <div class="org-src-container">
-
-<pre class="src src-sh">wget https://github.com/facebook/flashcache/archive/stable_v3.1.3.zip -O flashca<span style="color: #de935f; background-color: #373b41;">che_stable_v3.1.3.zip</span>
+<pre class="src src-sh">wget https://github.com/facebook/flashcache/archive/stable_v3.1.3.zip -O flashca<span style="text-decoration: underline;">che_stable_v3.1.3.zip</span>
 unzip flashcache_stable_v3.1.3.zip
 <span style="color: #b294bb;">cd</span> flashcache-stable_v3.1.3
 make
@@ -172,11 +175,10 @@ modprobe flashcache
 </div>
 </div>
 
-<div id="outline-container-sec-5" class="outline-2">
-<h2 id="sec-5">创建Flashcache混合设备</h2>
-<div class="outline-text-2" id="text-5">
+<div id="outline-container-orgb621067" class="outline-2">
+<h2 id="orgb621067">创建Flashcache混合设备</h2>
+<div class="outline-text-2" id="text-orgb621067">
 <div class="org-src-container">
-
 <pre class="src src-sh">flashcache_create -p around cachedev /dev/sdb /dev/md0p1
 mkfs.ext4 /dev/mapper/cachedev
 </pre>
@@ -184,11 +186,10 @@ mkfs.ext4 /dev/mapper/cachedev
 </div>
 </div>
 
-<div id="outline-container-sec-6" class="outline-2">
-<h2 id="sec-6">挂载Flashcache混合设备</h2>
-<div class="outline-text-2" id="text-6">
+<div id="outline-container-orge7130b2" class="outline-2">
+<h2 id="orge7130b2">挂载Flashcache混合设备</h2>
+<div class="outline-text-2" id="text-orge7130b2">
 <div class="org-src-container">
-
 <pre class="src src-sh">mkdir /data
 mount /dev/mapper/cachedev /data
 </pre>
@@ -196,11 +197,10 @@ mount /dev/mapper/cachedev /data
 </div>
 </div>
 
-<div id="outline-container-sec-7" class="outline-2">
-<h2 id="sec-7">系统重启后需要重新创建并挂载Flashcache设备</h2>
-<div class="outline-text-2" id="text-7">
+<div id="outline-container-org649ffb1" class="outline-2">
+<h2 id="org649ffb1">系统重启后需要重新创建并挂载Flashcache设备</h2>
+<div class="outline-text-2" id="text-org649ffb1">
 <div class="org-src-container">
-
 <pre class="src src-sh">flashcache_create -p around cachedev /dev/sdb /dev/md0p1
 mount /dev/mapper/cachedev /data
 </pre>
@@ -212,183 +212,189 @@ mount /dev/mapper/cachedev /data
 </div>
 </div>
 
-<div id="outline-container-sec-8" class="outline-2">
-<h2 id="sec-8">写入速度测试</h2>
-<div class="outline-text-2" id="text-8">
+<div id="outline-container-org43b9a33" class="outline-2">
+<h2 id="org43b9a33">写入速度测试</h2>
+<div class="outline-text-2" id="text-org43b9a33">
 <p>
 循环创建60MiB大小的文件，测得的磁盘写入速度为 <b>35.6MiB</b> ，磁盘读取速度为 <b>2.1MiB</b> 。
 </p>
 </div>
 </div>
 
-<div id="outline-container-sec-9" class="outline-2">
-<h2 id="sec-9">读取速度测试</h2>
-<div class="outline-text-2" id="text-9">
+<div id="outline-container-orgc7a44a5" class="outline-2">
+<h2 id="orgc7a44a5">读取速度测试</h2>
+<div class="outline-text-2" id="text-orgc7a44a5">
 <ul class="org-ul">
 <li>500并发120G文件每次读取32KB顺序读取
 
 <ul class="org-ul">
-<li>请求处理速度
+<li><p>
+请求处理速度
+</p>
 
 <p>
 2107
-</p>
-</li>
+</p></li>
 
-<li>传输速度
+<li><p>
+传输速度
+</p>
 
 <p>
 132.35MiB/s
-</p>
-</li>
-</ul>
-</li>
+</p></li>
+</ul></li>
 
 <li>500并发500G文件每次读取32KB顺序读取
 
 <ul class="org-ul">
-<li>请求处理速度
+<li><p>
+请求处理速度
+</p>
 
 <p>
 1937
-</p>
-</li>
+</p></li>
 
-<li>传输速度
+<li><p>
+传输速度
+</p>
 
 <p>
 61.09MiB
-</p>
-</li>
-</ul>
-</li>
+</p></li>
+</ul></li>
 
 <li>500并发1T文件每次读取32KB顺序读取
 
 <ul class="org-ul">
-<li>请求处理速度
+<li><p>
+请求处理速度
+</p>
 
 <p>
 1574
-</p>
-</li>
+</p></li>
 
-<li>传输速度
+<li><p>
+传输速度
+</p>
 
 <p>
 49.64MiB/s
-</p>
-</li>
-</ul>
-</li>
+</p></li>
+</ul></li>
 
 <li>500并发120G文件每次读取64KB顺序读取
 
 <ul class="org-ul">
-<li>请求处理速度
+<li><p>
+请求处理速度
+</p>
 
 <p>
 5006
-</p>
-</li>
+</p></li>
 
-<li>传输速度
+<li><p>
+传输速度
+</p>
 
 <p>
 157.88MiB/s
-</p>
-</li>
-</ul>
-</li>
+</p></li>
+</ul></li>
 
 <li>500并发500G文件每次读取64KB顺序读取
 
 <ul class="org-ul">
-<li>请求处理速度
+<li><p>
+请求处理速度
+</p>
 
 <p>
 897
-</p>
-</li>
+</p></li>
 
-<li>传输速度
+<li><p>
+传输速度
+</p>
 
 <p>
 56.37MiB/s
-</p>
-</li>
-</ul>
-</li>
+</p></li>
+</ul></li>
 
 <li>500并发1T文件每次读取64KB顺序读取
 
 <ul class="org-ul">
-<li>请求处理速度
+<li><p>
+请求处理速度
+</p>
 
 <p>
 782
-</p>
-</li>
+</p></li>
 
-<li>传输速度
+<li><p>
+传输速度
+</p>
 
 <p>
 49.10MiB/s
-</p>
-</li>
-</ul>
-</li>
+</p></li>
+</ul></li>
 </ul>
 </div>
 </div>
 
-<div id="outline-container-sec-10" class="outline-2">
-<h2 id="sec-10">注意事项</h2>
-<div class="outline-text-2" id="text-10">
+<div id="outline-container-orga36a150" class="outline-2">
+<h2 id="orga36a150">注意事项</h2>
+<div class="outline-text-2" id="text-orga36a150">
 <ul class="org-ul">
-<li>重建（rebuild）
+<li><p>
+重建（rebuild）
+</p>
 
 <p>
 当一块盘坏掉后，如果配置了热备盘（Hot spare disk），会自动重建，请将坏盘换掉并配置成热备盘；\
 如果未配置热备盘，读性能会下降（坏盘中的数据需要全部通过计算重现），请将坏盘换掉系统会自动进行重建。
-</p>
-</li>
+</p></li>
 </ul>
 </div>
 </div>
 
-<div id="outline-container-sec-11" class="outline-2">
-<h2 id="sec-11">潜在的优化选项</h2>
-<div class="outline-text-2" id="text-11">
+<div id="outline-container-org3528a54" class="outline-2">
+<h2 id="org3528a54">潜在的优化选项</h2>
+<div class="outline-text-2" id="text-org3528a54">
 <ul class="org-ul">
-<li>开启SSD写Cache
-</li>
+<li>开启SSD写Cache</li>
 
-<li>禁用文件、目录访问时间戳
+<li><p>
+禁用文件、目录访问时间戳
+</p>
 
 <p>
 noatime,nodiratime
-</p>
-</li>
+</p></li>
 
-<li><code>Write-Back</code> 模式优化
+<li><p>
+<code>Write-Back</code> 模式优化
+</p>
 
 <div class="org-src-container">
-
 <pre class="src src-sh">sysctl -w dev.flashcache.sdb+md0p1.dirty_thresh_pct=80
 </pre>
-</div>
-</li>
+</div></li>
 </ul>
 </div>
 </div>
 
 
-<div id="outline-container-sec-12" class="outline-2">
-<h2 id="sec-12">卸载Flashcache设备</h2>
-<div class="outline-text-2" id="text-12">
+<div id="outline-container-orgae891a3" class="outline-2">
+<h2 id="orgae891a3">卸载Flashcache设备</h2>
+<div class="outline-text-2" id="text-orgae891a3">
 <div class="org-src-container">
-
 <pre class="src src-sh">umount /dev/mapper/cachedev
 dmsetup remove cachedev
 </pre>
@@ -396,41 +402,36 @@ dmsetup remove cachedev
 </div>
 </div>
 
-<div id="outline-container-sec-13" class="outline-2">
-<h2 id="sec-13">Q&amp;A</h2>
-<div class="outline-text-2" id="text-13">
+<div id="outline-container-org42f1194" class="outline-2">
+<h2 id="org42f1194">Q&amp;A</h2>
+<div class="outline-text-2" id="text-org42f1194">
 <ul class="org-ul">
-<li>重新调整 Flashcache 选项会不会删除数据？
+<li><p>
+重新调整 Flashcache 选项会不会删除数据？
+</p>
 
 <p>
 <code>writethrough</code> 、 <code>writearound</code> 模式不会，其它的会。
-</p>
-</li>
+</p></li>
 </ul>
 </div>
 </div>
 
-<div id="outline-container-sec-14" class="outline-2">
-<h2 id="sec-14">相关参考</h2>
-<div class="outline-text-2" id="text-14">
+<div id="outline-container-org73d2d4f" class="outline-2">
+<h2 id="org73d2d4f">相关参考</h2>
+<div class="outline-text-2" id="text-org73d2d4f">
 <dl class="org-dl">
-<dt> 《<a href="http://lzw.me/a/linux-lvm.html">Linux LVM逻辑卷管理详细介绍</a>》 </dt><dd>非常好的LVM入门文章
-</dd>
+<dt>《<a href="http://lzw.me/a/linux-lvm.html">Linux LVM逻辑卷管理详细介绍</a>》</dt><dd>非常好的LVM入门文章</dd>
 
-<dt> 《<a href="http://www.linux-mag.com/id/7582/">Pick Your Pleasure: RAID-0 mdadm Striping or LVM Striping?</a>》 </dt><dd>LVM与RAID-0的比较
-</dd>
+<dt>《<a href="http://www.linux-mag.com/id/7582/">Pick Your Pleasure: RAID-0 mdadm Striping or LVM Striping?</a>》</dt><dd>LVM与RAID-0的比较</dd>
 
-<dt> 《<a href="http://www.tecmint.com/create-raid0-in-linux/">Creating Software RAID0 (Stripe) on ‘Two Devices’ Using ‘mdadm’ Tool in Linux – Part 2</a>》 </dt><dd>构建RAID-0教程
-</dd>
+<dt>《<a href="http://www.tecmint.com/create-raid0-in-linux/">Creating Software RAID0 (Stripe) on ‘Two Devices’ Using ‘mdadm’ Tool in Linux – Part 2</a>》</dt><dd>构建RAID-0教程</dd>
 
-<dt> 《<a href="http://zengrong.net/post/2014.htm">在CentOS 6.1上配置 4TB硬盘+RAID1</a>》 </dt><dd>使用 <code>parted</code> 代替 <code>fdisk</code> 对大于2TB的硬盘进行分区
-</dd>
+<dt>《<a href="http://zengrong.net/post/2014.htm">在CentOS 6.1上配置 4TB硬盘+RAID1</a>》</dt><dd>使用 <code>parted</code> 代替 <code>fdisk</code> 对大于2TB的硬盘进行分区</dd>
 
-<dt> 《<a href="http://wiki.mikejung.biz/Software_RAID">Software RAID - How to Optimize Software RAID on Linux using Mdadm</a>》 </dt><dd>优化RAID
-</dd>
+<dt>《<a href="http://wiki.mikejung.biz/Software_RAID">Software RAID - How to Optimize Software RAID on Linux using Mdadm</a>》</dt><dd>优化RAID</dd>
 
-<dt> 《<a href="http://sysadmin.blog.51cto.com/83876/236802">RAID5单盘故障读写分析</a>》 </dt><dd>RAID5一块盘坏掉后的情形分析
-</dd>
+<dt>《<a href="http://sysadmin.blog.51cto.com/83876/236802">RAID5单盘故障读写分析</a>》</dt><dd>RAID5一块盘坏掉后的情形分析</dd>
 </dl>
 </div>
 </div>

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <title>python中的UTC与本地时区处理 | </title>
+    <link rel="shortcut icon" href="/static/favicon.ico" />
+    <link rel="stylesheet" type="text/css" href="/style/ediary.css"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="generator" content="o-blog"/>
+  </head>
+  <body>
+    <div class="navbar navbar-fixed-top" id="header">
+      <div class="navbar-inner">
+        <a class="brand" href="/" style="line-height:100%;"></a>
+        <ul class="navbar-links">
+          <li><a href="/index.xml"><i class="icon-rss icon-white"></i> Subscribe</a></li>
+          <li><a href="/category/ediary/0.html"><i class="icon-folder-close icon-white"></i> ediary</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="container container-fluid" id="page">
+      <div class="push-header"></div>
+
+      <div class="article">
+        <header class="article-header">
+          <h1>python中的UTC与本地时区处理</h1>
+        </header>
+      
+        <div class="article-content">
+          <p>
+在通过sqlalchemy使用sqlite3数据库的过程中，发现日期时间字段默认值为CURRENT_TIMESTAMP，但是查出的值少了8个小时。很明显是遇到时区问题了。
+</p>
+
+<p>
+mysql的TIMESTAMP字段类型和sqlite3一样使用UTC时间保存，因为在存取时自动进行了本地时间与UTC时间互转，所以不会遇到时区问题。但是sqlite3没有自动进行这一转换，需要在sql中自行转换:
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sql"><span style="color: #b5bd68;">select</span> datetime(<span style="color: #b294bb;">CURRENT_TIMESTAMP</span>, <span style="color: #8abeb7;">'localtime'</span>)
+</pre>
+</div>
+
+<p>
+进一步google后，找到了这篇文章：《<a href="http://lucumr.pocoo.org/2011/7/15/eppur-si-muove/">Dealing with Timezones in Python</a>》，文章大意是python中的datetime库默认不携带时区信息，而加上时区后又与不带时区的datetime对象无法一起工作（如：比较），另外像datetime.datetime.utcnow()返回的utc时间和datetime.datetime.now()返回的本地时间也是不携带时区信息的（tzinfo属性为None），容易引起混淆，因此处理的简单性，内部最好统一使用UTC标准时间，和用户交互时再转换为本地时间。
+</p>
+
+<p>
+下面是互转的算法：
+</p>
+<div class="org-src-container">
+
+<pre class="src src-python"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">/usr/bin/env python</span>
+
+<span style="color: #b5bd68;">import</span> datetime
+<span style="color: #b5bd68;">import</span> time
+<span style="color: #b5bd68;">import</span> sys
+
+<span style="color: #b5bd68;">if</span> sys.version &gt;= <span style="color: #8abeb7;">'3.2.'</span>:
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #f0c674;">localtimezone</span> = datetime.timezone(datetime.timedelta(seconds=-time.timezone)<span style="color: #de935f; background-color: #373b41;">, time.tzname[0])</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #f0c674;">utctimezone</span> = datetime.timezone.utc
+<span style="color: #b5bd68;">else</span>:
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">from</span> dateutil <span style="color: #b5bd68;">import</span> tz
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #f0c674;">localtimezone</span> = tz.tzlocal()
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #f0c674;">utctimezone</span> = tz.gettz(<span style="color: #8abeb7;">'UTC'</span>)
+
+<span style="color: #b5bd68;">def</span> <span style="color: #de935f;">parsedatetime</span>(dt, fmt=<span style="color: #8abeb7;">"%Y-%m-%d %H:%M:%S"</span>):
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b294bb;">"""parse local datetime string as utc datetime object"""</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">return</span> datetime.datetime.strptime(dt, fmt).replace(tzinfo=localtimezone).ast<span style="color: #de935f; background-color: #373b41;">imezone(utctimezone)</span>
+
+<span style="color: #b5bd68;">def</span> <span style="color: #de935f;">formatdatetime</span>(dt, fmt=<span style="color: #8abeb7;">"%Y-%m-%d %H:%M:%S"</span>):
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b294bb;">"""format utc datetime object as local datetime string"""</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">return</span> dt.replace(tzinfo=utctimezone).astimezone(localtimezone).strftime(fmt<span style="color: #de935f; background-color: #373b41;">)</span>
+
+<span style="color: #b5bd68;">if</span> <span style="color: #b294bb;">__name__</span> == <span style="color: #8abeb7;">'__main__'</span>:
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #f0c674;">input_local_datetime</span> = <span style="color: #8abeb7;">'2012-01-02 03:04:05'</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #f0c674;">parsed_utc_datetime</span> = parsedatetime(input_local_datetime)
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">assert</span>(formatdatetime(parsed_utc_datetime) == input_local_datetime)
+</pre>
+</div>
+
+        </div>
+        <br />
+        <footer class="article-footer">
+          <span class="muted">
+            <i class="icon-time icon-white"></i> <time datetime="2013-03-20T17:29:00+0800">March 20, 2013</time>
+          </span>
+          <a class="tag" href="/tag/python/0.html"><i class="icon-tag icon-white"></i> python</a>
+        </footer>
+      </div>
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+  /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+  var disqus_shortname = '';
+
+  /* * * DON'T EDIT BELOW THIS LINE * * */
+  (function() {
+  var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+  dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+      <div class="push-footer"></div>
+    </div>
+
+    <div id="footer">
+  	  <div class="copyright" style="text-align: center;">
+  	    
+  	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
+  	  </div>
+    </div>
+  </body>
+</html>

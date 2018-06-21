@@ -1,0 +1,1395 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+    <channel>
+        <title>network - </title>
+        <link>/tag/network.xml</link>
+        <description></description>
+        <lastBuildDate>Fri, 20 Apr 2018 07:31:37 GMT</lastBuildDate>
+        <docs>http://blogs.law.harvard.edu/tech/rss</docs>
+        <generator>Feed for Node.js</generator>
+        <category>ediary</category>
+        <item>
+            <title><![CDATA[修复 offlineimap 无法收邮件的问题]]></title>
+            <link>/article/4fee590d-offlineimap-65e06cd5653690ae4ef6768495ee9898.html</link>
+            <guid>/article/4fee590d-offlineimap-65e06cd5653690ae4ef6768495ee9898.html</guid>
+            <pubDate>Fri, 18 Mar 2016 02:44:00 GMT</pubDate>
+            <content:encoded><![CDATA[
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">不使用 ssl</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+.offlineimaprc 配置
+</p>
+<pre class="example">
+ssl = no
+</pre>
+
+
+<p>
+offlineimap 收邮件出错
+</p>
+<pre class="example">
+$ offlineimap
+...
+ Establishing connection to imap.xxxxxx.com:143
+ ERROR: Could not connect via SSL to host 'imap.xxxxxx.com' and non-standard ssl port 143 configured. Make sure you connect to the correct port.
+...
+</pre>
+<p>
+意外地使用了 ssl 进行连接。
+</p>
+
+
+<p>
+telnet 邮件服务器进行诊断
+</p>
+<pre class="example">
+$ telnet imap.xxxxxx.com 143
+Connected to imap.xxxxxx.com.
+Escape character is '^]'.
+* OK [CAPABILITY IMAP4rev1 UIDPLUS CHILDREN NAMESPACE THREAD=ORDEREDSUBJECT THREAD=REFERENCES SORT QUOTA IDLE ACL ACL2=UNION STARTTLS] Courier-IMAP ready. Copyright 1998-2011 Double Precision, Inc.  See COPYING for distribution information.
+</pre>
+<p>
+输出的 CAPABILITY 包含 STARTTLS，应该是邮件服务器配置有误
+</p>
+
+
+<p>
+修改 offlineimap 的源代码文件 <a href="file:///usr/lib/python2.7/site-packages/offlineimap/imapserver.py">imapserver.py</a> ，我们的邮箱不使用 tls
+</p>
+<div class="org-src-container">
+
+<pre class="src src-python">269  <span style="color: #b5bd68;">def</span> <span style="color: #de935f;">__start_tls</span>(<span style="color: #b5bd68;">self</span>, imapobj):
+270          <span style="color: #b5bd68;">if</span> <span style="color: #8abeb7;">'STARTTLS'</span> <span style="color: #b5bd68;">in</span> imapobj.capabilities <span style="color: #b5bd68;">and</span> <span style="color: #b5bd68;">not</span> <span style="color: #b5bd68;">self</span>.usessl:
+</pre>
+</div>
+
+<p>
+改成
+</p>
+<div class="org-src-container">
+
+<pre class="src src-python">269  <span style="color: #b5bd68;">def</span> <span style="color: #de935f;">__start_tls</span>(<span style="color: #b5bd68;">self</span>, imapobj):
+270          <span style="color: #b5bd68;">if</span> <span style="color: #8abeb7;">'STARTTLS'</span> <span style="color: #b5bd68;">in</span> imapobj.capabilities <span style="color: #b5bd68;">and</span> <span style="color: #b5bd68;">not</span> <span style="color: #b5bd68;">self</span>.usessl <span style="color: #b5bd68;">and</span> <span style="color: #b5bd68;">self</span>.<span style="color: #de935f; background-color: #373b41;">repos.account.name != </span><span style="color: #de935f; background-color: #373b41;">'xxxxxx'</span><span style="color: #de935f; background-color: #373b41;">:</span>
+</pre>
+</div>
+
+
+<ul class="org-ul">
+<li>更好的做法
+
+<p>
+在 imap 协议许可的情况下，加强容错性，tls 连接失败后，使用普通连接重连。
+.offlineimaprc 新加禁用 tls 的配置项，警告用户服务器可能配置有误，提示用户禁用 tls。
+</p>
+</li>
+
+<li>相关的问题
+
+<p>
+<a href="https://github.com/OfflineIMAP/offlineimap/pull/54">Optional TLS by mativs · Pull Request #54 · OfflineIMAP/offlineimap</a>
+</p>
+
+<p>
+有这个问题的 patch，但是没有下文。
+</p>
+</li>
+
+<li><a href="https://github.com/OfflineIMAP/offlineimap">offlineimap</a> 新加的 starttls 选项解决了这个问题
+
+<pre class="example">
+commit ac2a547ec46d590d041d410723f90f45fcb802fe
+Author: Nicolas Sebrecht &lt;nicolas.s-dev@laposte.net&gt;
+Date:   Thu Jun 23 03:55:00 2016 +0200
+
+learn to disable STARTTLS
+
+Some servers might have this feature broken.
+
+Github-ref: https://github.com/OfflineIMAP/offlineimap/issues/207
+Signed-off-by: Nicolas Sebrecht &lt;nicolas.s-dev@laposte.net&gt;
+</pre>
+
+<p>
+在 .offlineimaprc 中添加禁用 starttls 配置项
+</p>
+<pre class="example">
+starttls = no
+</pre>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">使用 ssl</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+.offlineimaprc 配置
+</p>
+<pre class="example">
+ssl = yes
+</pre>
+
+
+<p>
+offlineimap 收邮件出错
+</p>
+<pre class="example">
+$ offlineimap
+...
+ Establishing connection to imap.xxxxxx.com:993
+ ERROR: Unknown SSL protocol connecting to host 'imap.xxxxxx.com' for repository 'XxxxxxRemote'. OpenSSL responded:
+[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:590)
+...
+</pre>
+<p>
+ssl 证书验证失败。
+</p>
+
+<p>
+curl 邮件服务器进行诊断
+</p>
+<pre class="example">
+$ curl https://imap.xxxxxx.com:993/
+curl: (60) SSL certificate problem: self signed certificate
+</pre>
+<p>
+邮件服务器的 ssl 证书是自签名的
+</p>
+
+<p>
+从服务器提取证书
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #b294bb;">echo</span> | openssl s_client -connect imap.xxxxxx.com:993 2&gt;&amp;1 | sed -ne <span style="color: #8abeb7;">'/-BEGIN CER</span><span style="color: #de935f; background-color: #373b41;">TIFICATE-/,/-END CERTIFICATE-/p'</span><span style="color: #de935f; background-color: #373b41;"> &gt; ~/imap.xxxxxx.com.pem</span>
+</pre>
+</div>
+
+<p>
+.offlineimaprc 指定证书
+</p>
+<pre class="example">
+ssl = yes
+sslcacertfile = /home/xxxxxxxx/imap.xxxxxx.com.pem
+</pre>
+
+
+<p>
+offlineimap 收邮件出错
+</p>
+<pre class="example">
+$ offlineimap
+...
+ Establishing connection to imap.xxxxxx.com:993
+ ERROR: Unknown SSL protocol connecting to host 'imap.xxxxxx.com' for repository 'XxxxxxRemote'. OpenSSL responded:
+[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:590)
+...
+</pre>
+<p>
+ssl 证书验证失败。
+</p>
+
+<p>
+curl 邮件服务器进行诊断
+</p>
+<pre class="example">
+$ curl https://imap.xxxxxx.com:993/ --cacert /home/xxxxxxxx/imap.xxxxxx.com.pem
+curl: (60) SSL certificate problem: certificate has expired
+</pre>
+<p>
+邮件服务器的 ssl 证书已过期。
+</p>
+
+
+<p>
+提取 ssl 证书指纹
+</p>
+<pre class="example">
+$ openssl x509 -noout -in ~/imap.xxxxxx.com.pem -fingerprint -sha1
+SHA1 Fingerprint=XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX
+</pre>
+
+<p>
+.offlineimaprc 使用证书指纹（SHA1 Fingerprint= 后的串剔除冒号再转为小写 ）
+</p>
+<pre class="example">
+ssl = yes
+#sslcacertfile = /home/xxxxxxxx/imap.xxxxxx.com.pem
+cert_fingerprint = xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+</pre>
+<p>
+参考 <a href="https://github.com/OfflineIMAP/offlineimap/pull/8">Adding support for multi-fingerprint IMAP servers by Kdecherf · Pull Request #8 · OfflineIMAP/offlineimap</a>
+</p>
+
+<p>
+offlineimap 收邮件出错
+</p>
+<pre class="example">
+$ offlineimap
+ Establishing connection to imap.xxxxxx.com:993
+ ERROR: Unknown SSL protocol connecting to host 'imap.xxxxxx.com' for repository 'XxxxxxRemote'. OpenSSL responded:
+[SSL: SSL_NEGATIVE_LENGTH] dh key too small (_ssl.c:590)
+</pre>
+<p>
+邮件服务器的 openssl 可能太老了，生成的 DH KEY 文件只有 768 位不安全，需要重新生成更安全的 KEY 文件。
+参考 <a href="http://offlineimap-project.alioth.debian.narkive.com/dVTlxZyP/ssl-error-with-offlineimap-version-6-6-1-debian-package">Ssl error with offlineimap version 6.6.1 (debian package)</a>
+</p>
+
+<p>
+使用 ssl 折腾失败，还是邮件服务器配置问题，除非 offlineimap 支持对服务器不进行安全验证，否则服务器端才能解决。</p>
+</div>
+</div>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[修复 SSL certificate problem: unable to get local issuer certificate]]></title>
+            <link>/article/4fee590d-ssl-certificate-problem-unable-to-get-local-issuer-certificate.html</link>
+            <guid>/article/4fee590d-ssl-certificate-problem-unable-to-get-local-issuer-certificate.html</guid>
+            <pubDate>Mon, 14 Mar 2016 12:36:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+在嵌入式 linux 设备上使用 curl 访问 https 站点会报错：
+</p>
+<pre class="example">
+# curl https://www.google.com
+curl: (60) SSL certificate problem: unable to get local issuer certificate
+More details here: http://curl.haxx.se/docs/sslcerts.html
+
+curl performs SSL certificate verification by default, using a "bundle"
+ of Certificate Authority (CA) public keys (CA certs). If the default
+ bundle file isn't adequate, you can specify an alternate file
+ using the --cacert option.
+If this HTTPS server uses a certificate signed by a CA represented in
+ the bundle, the certificate verification probably failed due to a
+ problem with the certificate (it might be expired, or the name might
+ not match the domain name in the URL).
+If you'd like to turn off curl's verification of the certificate, use
+ the -k (or --insecure) option.
+</pre>
+
+<p>
+而 linux 桌面上使用 curl 访问 https 站点则正常：
+</p>
+<pre class="example">
+$ curl https://www.google.com
+&lt;HTML&gt;&lt;HEAD&gt;&lt;meta http-equiv="content-type" content="text/html;charset=utf-8"&gt;
+&lt;TITLE&gt;302 Moved&lt;/TITLE&gt;&lt;/HEAD&gt;&lt;BODY&gt;
+&lt;H1&gt;302 Moved&lt;/H1&gt;
+The document has moved
+&lt;A HREF="https://www.google.com.hk/?gfe_rd=cr&amp;amp;ei=i2DmVtXLDOzN8geg-afACA"&gt;here&lt;/A&gt;.
+&lt;/BODY&gt;&lt;/HTML&gt;
+</pre>
+
+<p>
+嵌入式 linux 设备上缺少了 CA 证书。
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">什么是 CA 证书</h2>
+<div class="outline-text-2" id="text-1">
+<blockquote>
+<p>
+Certificate Authority (CA) Certificates
+</p>
+
+<p>
+A certificate authority (CA) is a trusted entity that issues electronic documents that verify a digital entity’s identity on the Internet. The electronic documents, which are called digital certificates, are an essential part of secure communication and play an important part in the public key infrastructure (PKI). Certificates typically include the owner's public key, the expiration date of the certificate, the owner's name and other information about the public key owner.
+</p>
+</blockquote>
+<p>
+引用自 <a href="http://searchsecurity.techtarget.com/definition/certificate-authority">What is certificate authority (CA)? - Definition from WhatIs.com</a>
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">获取 CA 证书</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+比较有名的 CA 证书列表由 mozilla 维护，<a href="https://curl.haxx.se/">curl</a> 提供了命令行工具 <a href="https://github.com/curl/curl/raw/master/lib/mk-ca-bundle.pl">mk-ca-bundle.pl</a> ，用于下载 mozilla 维护的 CA 证书列表，转换成 SSL 应用程序可直接使用的格式。
+</p>
+
+<p>
+linux 系统的 CA 证书由操作系统发行版负责维护，没有统一的标准规定如何维护和管理 CA 证书。
+</p>
+
+<p>
+Archlinux 的 CA 证书由 <a href="https://www.archlinux.org/packages/core/any/ca-certificates/">ca-certificates</a> 包维护，CA 证书来自依赖的包 <a href="https://www.archlinux.org/packages/core/i686/ca-certificates-mozilla/">ca-certificates-mozilla</a> 及 <a href="https://www.archlinux.org/packages/core/any/ca-certificates-cacert/">ca-certificates-cacert</a> 。
+</p>
+<pre class="example">
+$ pacman -Qi ca-certificates
+Name            : ca-certificates
+Version         : 20150402-1
+Description     : Common CA certificates (default providers)
+Architecture    : any
+URL             : http://pkgs.fedoraproject.org/cgit/ca-certificates.git
+Licenses        : GPL2
+Groups          : None
+Provides        : None
+Depends On      : ca-certificates-mozilla  ca-certificates-cacert
+Optional Deps   : None
+Required By     : curl  glib-networking  mono  neon  perl-lwp-protocol-https  qt4
+Optional For    : lib32-openssl  openssl  wget
+Conflicts With  : None
+Replaces        : None
+Installed Size  : 1024.00 B
+Packager        : Jan Alexander Steffens (heftig) &lt;jan.steffens@gmail.com&gt;
+Build Date      : 2015年04月03日 星期五 04时36分52秒
+Install Date    : 2015年04月13日 星期一 16时04分37秒
+Install Reason  : Installed as a dependency for another package
+Install Script  : No
+Validated By    : Signature
+$ pacman -Ql ca-certificates
+$ pacman -Ql ca-certificates-cacert
+ca-certificates-cacert /usr/
+ca-certificates-cacert /usr/share/
+ca-certificates-cacert /usr/share/ca-certificates/
+ca-certificates-cacert /usr/share/ca-certificates/trust-source/
+ca-certificates-cacert /usr/share/ca-certificates/trust-source/anchors/
+ca-certificates-cacert /usr/share/ca-certificates/trust-source/anchors/CAcert.org_class3.crt
+ca-certificates-cacert /usr/share/ca-certificates/trust-source/anchors/CAcert.org_root.crt
+ca-certificates-cacert /usr/share/licenses/
+ca-certificates-cacert /usr/share/licenses/ca-certificates-cacert/
+ca-certificates-cacert /usr/share/licenses/ca-certificates-cacert/LICENSE
+$ pacman -Ql ca-certificates-mozilla
+ca-certificates-mozilla /usr/
+ca-certificates-mozilla /usr/share/
+ca-certificates-mozilla /usr/share/ca-certificates/
+ca-certificates-mozilla /usr/share/ca-certificates/trust-source/
+ca-certificates-mozilla /usr/share/ca-certificates/trust-source/mozilla.neutral-trust.crt
+ca-certificates-mozilla /usr/share/ca-certificates/trust-source/mozilla.supplement.p11-kit
+ca-certificates-mozilla /usr/share/ca-certificates/trust-source/mozilla.trust.crt
+</pre>
+
+<p>
+拷贝 Archlinux 的 CA 证书文件 /etc/ssl/certs/ca-certificates.crt 到嵌入式 linux 设备，
+curl 编译时需要通过 <code>--with-ca-bundle</code> 指定默认的 CA 证书文件，运行时通过 <code>--cacert</code> 选项指定
+</p>
+<pre class="example">
+# curl https://www.google.com --cacert /etc/ssl/certs/ca-certificates.crt
+&lt;HTML&gt;&lt;HEAD&gt;&lt;meta http-equiv="content-type" content="text/html;charset=utf-8"&gt;
+&lt;TITLE&gt;302 Moved&lt;/TITLE&gt;&lt;/HEAD&gt;&lt;BODY&gt;
+&lt;H1&gt;302 Moved&lt;/H1&gt;
+The document has moved
+&lt;A HREF="https://www.google.com.hk/?gfe_rd=cr&amp;amp;ei=LoDmVuXlB9TC8gecrZv4DA"&gt;here&lt;/A&gt;.
+&lt;/BODY&gt;&lt;/HTML&gt;
+</pre>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">更新 CA 证书</h2>
+<div class="outline-text-2" id="text-3">
+</div><div id="outline-container-sec-3-1" class="outline-3">
+<h3 id="sec-3-1">使用 openwrt 的嵌入式设备</h3>
+<div class="outline-text-3" id="text-3-1">
+<p>
+可以通过 opkg 进行安装和更新 CA 证书文件
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">opkg install ca-certificates
+opkg upgrade ca-certificates
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-3-2" class="outline-3">
+<h3 id="sec-3-2">使用 linux 的嵌入式设备</h3>
+<div class="outline-text-3" id="text-3-2">
+<p>
+如果没有软件包管理器，可以从 linux 服务器上定时下载最新的 CA 证书文件。
+</p>
+
+<p>
+linux 服务器上的 CA 证书文件可以通过两种方式更新
+</p>
+
+<ul class="org-ul">
+<li>更新 ca-certificates 软件包
+
+<p>
+CentOS 6.4
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">yum update ca-certificates
+</pre>
+</div>
+
+<p>
+CentOS 6.4 的 CA 证书文件 /etc/pki/tls/certs/ca-bundle.crt
+</p>
+</li>
+
+<li><a href="https://github.com/curl/curl/raw/master/lib/mk-ca-bundle.pl">mk-ca-bundle.pl</a> 脚本生成最新的 CA 证书文件
+
+<p>
+该脚本生成的 CA 证书文件包含 mozilla 维护的证书
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">mk-ca-bundle.pl -q ca-bundle.crt
+</pre>
+</div>
+</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4">参考</h2>
+<div class="outline-text-2" id="text-4">
+<ul class="org-ul">
+<li><a href="https://en.wikipedia.org/wiki/Root_certificate">Root certificate - Wikipedia, the free encyclopedia</a>
+</li>
+
+<li><a href="https://curl.haxx.se/docs/sslcerts.html">cURL - SSL CA Certificates</a>
+</li>
+
+<li><a href="https://gist.github.com/jjb/996292">How to securely acquire the Mozilla root certificate bundle for use with curl, Net::HTTP, etc.</a>
+</li>
+
+<li><a href="https://curl.haxx.se/docs/mk-ca-bundle.html">mk-ca-bundle</a>
+</li>
+
+<li><a href="https://wiki.openwrt.org/doc/howto/wget-ssl-certs">SSL and Certificates in wget - OpenWrt Wiki</a>
+</li>
+
+<li><a href="https://www.happyassassin.net/2015/01/12/a-note-about-ssltls-trusted-certificate-stores-and-platforms/">A note about SSL/TLS trusted certificate stores, and platforms (OpenSSL and GnuTLS)</a>
+</li>
+
+<li><a href="http://searchsecurity.techtarget.com/definition/certificate-authority">What is certificate authority (CA)? - Definition from WhatIs.com</a>
+</li>
+
+<li><a href="https://projects.archlinux.org/svntogit/packages.git/tree/trunk/PKGBUILD?h=packages/curl">PKGBUILD of curl on Archlinux</a>
+</li>
+</ul>
+</div>
+</div>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[node.js下进行mqtt实践]]></title>
+            <link>/article/node.js-4e0b8fdb884c-mqtt-5b9e8df5.html</link>
+            <guid>/article/node.js-4e0b8fdb884c-mqtt-5b9e8df5.html</guid>
+            <pubDate>Sun, 21 Feb 2016 05:13:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+通过 mqtt 可以将设备连接在一起，能够实现将消息（可能来自服务器也可能来自其它设备）推送到设备，如果设备离线，
+服务器可以暂存消息，在设备上线时再推送，有一些特性很关键：
+</p>
+
+<ul class="org-ul">
+<li>offline
+
+<p>
+允许设备暂时离线。
+</p>
+
+<p>
+即使是使用固定宽带，有些用户也会因为各种原因无法保持稳定的长连接，可能是上级路由设备有限制，或者是带宽被其它应用抢占而导致长连接不稳定。
+将设备的在线状态与 TCP 长连接状态耦合在一起是不明智的。
+</p>
+</li>
+
+<li>bridge
+
+<p>
+设备连接在不同的 broker 上，通过 bridge 实现互通。
+</p>
+
+<p>
+支持几万台设备在线，估计一台 broker 就够了，但是一旦达到数十万、百万甚至上亿，肯定需要搭建 broker 集群，参见 <a href="http://www.kegel.com/c10k.html">The C10K problem</a>。
+</p>
+</li>
+</ul>
+
+<p>
+简单起见， node.js 服务器端使用 <a href="https://github.com/mcollina/mosca">mosca</a>， 客户端使用 <a href="https://github.com/mqttjs/MQTT.js">MQTT.js</a> ，由于 <a href="https://github.com/mcollina/mosca">mosca</a> 不支持 bridge，本文不涉及 bridge 特性。
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">客户端与服务器通信</h2>
+<div class="outline-text-2" id="text-1">
+<ul class="org-ul">
+<li>客户端通过服务器给自已发个消息
+
+<p>
+<code>server.js</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-js"><span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">mosca</span> = require(<span style="color: #8abeb7;">'mosca'</span>);
+
+<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">settings</span> = {
+<span style="color: #969896; background-color: #222427;"> </span>   port: 1883
+};
+
+<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">server</span> = <span style="color: #b5bd68;">new</span> <span style="color: #81a2be;">mosca.Server</span>(settings);
+server.on(<span style="color: #8abeb7;">'ready'</span>, <span style="color: #b5bd68;">function</span> () {
+<span style="color: #969896; background-color: #222427;"> </span>   console.log(<span style="color: #8abeb7;">'mosca server running'</span>);
+}).on(<span style="color: #8abeb7;">'clientConnected'</span>, <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">client</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   console.log(<span style="color: #8abeb7;">'client('</span> + client.id + <span style="color: #8abeb7;">') connected'</span>);
+}).on(<span style="color: #8abeb7;">'published'</span>, <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">packet</span>, <span style="color: #f0c674;">client</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   console.log(<span style="color: #8abeb7;">'client('</span> + (client ? client.id : <span style="color: #8abeb7;">'internal'</span>) + <span style="color: #8abeb7;">') published top</span><span style="color: #de935f; background-color: #373b41;">ic('</span><span style="color: #de935f; background-color: #373b41;"> + packet.topic + </span><span style="color: #de935f; background-color: #373b41;">'): '</span><span style="color: #de935f; background-color: #373b41;"> + packet.payload);</span>
+}).on(<span style="color: #8abeb7;">'subscribed'</span>, <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">topic</span>, <span style="color: #f0c674;">client</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   console.log(<span style="color: #8abeb7;">'client('</span> + client.id + <span style="color: #8abeb7;">') subscribed topic('</span> + topic + <span style="color: #8abeb7;">')'</span>);
+}).on(<span style="color: #8abeb7;">'unsubscribed'</span>, <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">topic</span>, <span style="color: #f0c674;">client</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   console.log(<span style="color: #8abeb7;">'client('</span> + client.id + <span style="color: #8abeb7;">') unsubscribed topic('</span> + topic + <span style="color: #8abeb7;">')'</span>);
+}).on(<span style="color: #8abeb7;">'clientDisconnecting'</span>, <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">client</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   console.log(<span style="color: #8abeb7;">'client('</span> + client.id + <span style="color: #8abeb7;">') disconnecting'</span>);
+}).on(<span style="color: #8abeb7;">'clientDisconnected'</span>, <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">client</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   console.log(<span style="color: #8abeb7;">'client('</span> + client.id + <span style="color: #8abeb7;">') disconnected'</span>);
+});
+</pre>
+</div>
+
+<p>
+<code>client.js</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-js"><span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">mqtt</span> = require(<span style="color: #8abeb7;">'mqtt'</span>);
+
+
+<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">client</span> = mqtt.connect(<span style="color: #8abeb7;">'mqtt://127.0.0.1:1883'</span>);
+client.on(<span style="color: #8abeb7;">'connect'</span>, <span style="color: #b5bd68;">function</span> () {
+<span style="color: #969896; background-color: #222427;"> </span>   client.subscribe(<span style="color: #8abeb7;">'presence'</span>);
+<span style="color: #969896; background-color: #222427;"> </span>   client.publish(<span style="color: #8abeb7;">'presence'</span>, <span style="color: #8abeb7;">'a message from myself'</span>);
+}).on(<span style="color: #8abeb7;">'message'</span>, <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">topic</span>, <span style="color: #f0c674;">message</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   console.log(topic + <span style="color: #8abeb7;">': '</span> + message.toString());
+<span style="color: #969896; background-color: #222427;"> </span>   client.end();
+});
+</pre>
+</div>
+
+<p>
+运行 <code>server.js</code>
+</p>
+<pre class="example">
+$ node server.js
+mosca server running
+client(mqttjs_a423c0af) connected
+client(internal) published topic($SYS/41TXEHPDe/new/clients): mqttjs_a423c0af
+client(mqttjs_a423c0af) subscribed topic(presence)
+client(internal) published topic($SYS/41TXEHPDe/new/subscribes): {"clientId":"mqttjs_a423c0af","topic":"presence"}
+client(mqttjs_a423c0af) published topic(presence): a message from myself
+client(mqttjs_a423c0af) unsubscribed topic(presence)
+client(mqttjs_a423c0af) disconnected
+client(internal) published topic($SYS/41TXEHPDe/new/unsubscribes): {"clientId":"mqttjs_a423c0af","topic":"presence"}
+client(internal) published topic($SYS/41TXEHPDe/disconnect/clients): mqttjs_a423c0af
+</pre>
+
+<p>
+运行 <code>client.js</code>
+</p>
+<pre class="example">
+$ node client.js
+presence: a message from myself
+$
+</pre>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">客户端与客户端通信</h2>
+<div class="outline-text-2" id="text-2">
+<ul class="org-ul">
+<li>客户端发送消息给另一个客户端
+
+<p>
+下面的例子演示了客户端通过约定的 <code>topic</code> 互相通信。
+</p>
+
+<p>
+<code>client_sub.js</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-js"><span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">mqtt</span> = require(<span style="color: #8abeb7;">'mqtt'</span>);
+
+<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">client</span> = mqtt.connect(<span style="color: #8abeb7;">'mqtt://127.0.0.1:1883'</span>);
+client.on(<span style="color: #8abeb7;">'connect'</span>, <span style="color: #b5bd68;">function</span> () {
+<span style="color: #969896; background-color: #222427;"> </span>   client.publish(<span style="color: #8abeb7;">'sub'</span>, <span style="color: #8abeb7;">'message from pub'</span>);
+}).on(<span style="color: #8abeb7;">'message'</span>, <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">topic</span>, <span style="color: #f0c674;">message</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   console.log(topic + <span style="color: #8abeb7;">': '</span> + message.toString());
+<span style="color: #969896; background-color: #222427;"> </span>   client.end();
+});
+</pre>
+</div>
+
+<p>
+<code>client_pub.js</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-js"><span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">mqtt</span> = require(<span style="color: #8abeb7;">'mqtt'</span>);
+
+<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">client</span> = mqtt.connect(<span style="color: #8abeb7;">'mqtt://127.0.0.1:1883'</span>);
+client.on(<span style="color: #8abeb7;">'connect'</span>, <span style="color: #b5bd68;">function</span> () {
+<span style="color: #969896; background-color: #222427;"> </span>   client.publish(<span style="color: #8abeb7;">'sub'</span>, <span style="color: #8abeb7;">'message from pub'</span>);
+}).on(<span style="color: #8abeb7;">'message'</span>, <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">topic</span>, <span style="color: #f0c674;">message</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   console.log(topic + <span style="color: #8abeb7;">': '</span> + message.toString());
+<span style="color: #969896; background-color: #222427;"> </span>   client.end();
+});
+</pre>
+</div>
+
+<p>
+运行 <code>server.js</code>
+</p>
+<pre class="example">
+$ node server.js
+mosca server running
+client(mqttjs_ebdc9fd4) connected
+client(internal) published topic($SYS/4Jk9PBwDe/new/clients): mqttjs_ebdc9fd4
+client(mqttjs_ebdc9fd4) subscribed topic(sub)
+client(internal) published topic($SYS/4Jk9PBwDe/new/subscribes): {"clientId":"mqttjs_ebdc9fd4","topic":"sub"}
+client(mqttjs_ff000868) connected
+client(internal) published topic($SYS/4Jk9PBwDe/new/clients): mqttjs_ff000868
+client(mqttjs_ff000868) published topic(sub): message from pub
+client(mqttjs_ebdc9fd4) unsubscribed topic(sub)
+client(mqttjs_ebdc9fd4) disconnected
+client(internal) published topic($SYS/4Jk9PBwDe/new/unsubscribes): {"clientId":"mqttjs_ebdc9fd4","topic":"sub"}
+client(internal) published topic($SYS/4Jk9PBwDe/disconnect/clients): mqttjs_ebdc9fd4
+</pre>
+
+<p>
+运行 <code>client_sub.js</code>
+</p>
+<pre class="example">
+$ node client_sub.js
+sub: message from pub
+$
+</pre>
+
+<p>
+运行 <code>client_pub.js</code>
+</p>
+<pre class="example">
+$ node client_pub.js
+</pre>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">客户端与客户端离线通信</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+离线通信需要同时满足以下条件
+</p>
+
+<ul class="org-ul">
+<li>服务器配置持久存储
+</li>
+
+<li>订阅方启用会话状态
+
+<p>
+连接服务器时使用同样的 clientId 并指定 <code>clean</code> 为 <code>false</code>
+</p>
+</li>
+
+<li>发布方发布持久消息
+
+<p>
+发布消息时指定 <code>qos</code> 大于 <code>0</code> 以及 <code>retain</code> 为 <code>true</code>
+</p>
+</li>
+</ul>
+
+<p>
+下面的例子演示了客户端接收离线消息
+</p>
+
+<p>
+<code>client_sub.js</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-js"><span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">mqtt</span> = require(<span style="color: #8abeb7;">'mqtt'</span>);
+
+<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">client</span> = mqtt.connect(<span style="color: #8abeb7;">'mqtt://127.0.0.1:1883'</span>, {clientId: <span style="color: #8abeb7;">'sub'</span>, clean: <span style="color: #81a2be;">fals</span><span style="color: #de935f; background-color: #373b41;">e</span><span style="color: #de935f; background-color: #373b41;">});</span>
+client.on(<span style="color: #8abeb7;">'connect'</span>, <span style="color: #b5bd68;">function</span> () {
+<span style="color: #969896; background-color: #222427;"> </span>   client.subscribe(<span style="color: #8abeb7;">'sub'</span>);
+}).on(<span style="color: #8abeb7;">'message'</span>, <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">topic</span>, <span style="color: #f0c674;">message</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   console.log(topic + <span style="color: #8abeb7;">': '</span> + message.toString());
+<span style="color: #969896; background-color: #222427;"> </span>   client.end();
+});
+</pre>
+</div>
+
+<p>
+<code>client_pub.js</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-js"><span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">mqtt</span> = require(<span style="color: #8abeb7;">'mqtt'</span>);
+
+<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">client</span> = mqtt.connect(<span style="color: #8abeb7;">'mqtt://127.0.0.1:1883'</span>, {clientId: <span style="color: #8abeb7;">'pub'</span>});
+client.on(<span style="color: #8abeb7;">'connect'</span>, <span style="color: #b5bd68;">function</span> () {
+<span style="color: #969896; background-color: #222427;"> </span>   client.publish(<span style="color: #8abeb7;">'sub'</span>, <span style="color: #8abeb7;">'message from pub'</span>, {qos: 1, retain: <span style="color: #81a2be;">true</span>});
+}).on(<span style="color: #8abeb7;">'message'</span>, <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">topic</span>, <span style="color: #f0c674;">message</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   console.log(topic + <span style="color: #8abeb7;">': '</span> + message.toString());
+<span style="color: #969896; background-color: #222427;"> </span>   client.end();
+});
+</pre>
+</div>
+
+<p>
+运行 <code>srever.js</code>
+</p>
+<pre class="example">
+$ node mqtt_server.js
+mosca server running
+client(sub) connected
+client(internal) published topic($SYS/V19OSVfix/new/clients): sub
+client(sub) subscribed topic(sub)
+client(internal) published topic($SYS/V19OSVfix/new/subscribes): {"clientId":"sub","topic":"sub"}
+client(sub) disconnected
+client(internal) published topic($SYS/V19OSVfix/disconnect/clients): sub
+client(pub) connected
+client(internal) published topic($SYS/V19OSVfix/new/clients): pub
+client(pub) published topic(sub): message from pub
+client(sub) connected
+client(internal) published topic($SYS/V19OSVfix/new/clients): sub
+client(sub) subscribed topic(sub)
+client(internal) published topic($SYS/V19OSVfix/new/subscribes): {"clientId":"sub","topic":"sub"}
+client(sub) disconnected
+client(internal) published topic($SYS/V19OSVfix/disconnect/clients): sub
+</pre>
+
+<p>
+运行 <code>client_sub.js</code> 订阅消息后退出
+</p>
+<pre class="example">
+$ node client_sub.js 
+sub: message from pub
+$
+</pre>
+
+<p>
+运行 <code>client_pub.js</code> 发布消息
+</p>
+<pre class="example">
+$ node mqtt_client_pub.js
+</pre>
+
+<p>
+运行 <code>client_sub.js</code> 接收离线消息后退出
+</p>
+<pre class="example">
+$ node client_sub.js 
+sub: message from pub
+$
+</pre>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4">参考</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+<a href="http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html">MQTT Version 3.1.1</a>
+</p>
+
+<p>
+<a href="https://www.youtube.com/watch?v=WE7GVIFRV7Q">Matteo Collina: "MQTT" and "Node.js"- Messaging the Internet of Things </a>
+</p>
+
+<p>
+<a href="http://thejackalofjavascript.com/getting-started-mqtt/">Getting started with MQTT | The Jackal of Javascript</a></p>
+</div>
+</div>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[mqtt协议一瞥]]></title>
+            <link>/article/mqtt-534f8bae4e0077a5.html</link>
+            <guid>/article/mqtt-534f8bae4e0077a5.html</guid>
+            <pubDate>Tue, 05 Jan 2016 03:16:00 GMT</pubDate>
+            <content:encoded><![CDATA[<blockquote>
+<p>
+IoT是Internet of Things的缩写，字面翻译是“物体组成的因特网”，准确的翻译应该为“物联网”。物联网(Internet Of Things)又称传感网，简要讲就是互联网从人向物的延伸。
+</p>
+</blockquote>
+<p>
+引用自 <a href="http://baike.baidu.com/subview/2831030/13489169.htm">IOT（物联网）_百度百科</a>
+</p>
+
+
+<blockquote>
+<p>
+MQTT is a machine-to-machine (M2M)/"Internet of Things" connectivity protocol. It was designed as an extremely lightweight publish/subscribe messaging transport. It is useful for connections with remote locations where a small code footprint is required and/or network bandwidth is at a premium. For example, it has been used in sensors communicating to a broker via satellite link, over occasional dial-up connections with healthcare providers, and in a range of home automation and small device scenarios. It is also ideal for mobile applications because of its small size, low power usage, minimised data packets, and efficient distribution of information to one or many receivers.
+</p>
+</blockquote>
+<p>
+引用自 <a href="http://mqtt.org/">mqtt.org</a>
+</p>
+
+
+<blockquote>
+<p>
+MQTT（Message Queuing Telemetry Transport，消息队列遥测传输）是IBM开发的一个即时通讯协议，有可能成为物联网的重要组成部分。
+</p>
+</blockquote>
+<p>
+引用自 <a href="http://baike.baidu.com/view/9956531.htm">MQTT_百度百科</a>
+</p>
+
+
+<blockquote>
+<p>
+MQTT is a lightweight messaging protocol that is based on publish/subscribe pattern. Due to its low overhead and simplicity, this protocol is suitable for use in IoT and M2M applications. 
+</p>
+</blockquote>
+<p>
+引用自 <a href="http://www.bitreactive.com/mqtt-request-response/">Request/Response Pattern Over MQTT | Bitreactive</a>
+</p>
+
+
+<blockquote>
+<p>
+MQTT - MQ Telemetry Transport
+</p>
+
+<p>
+轻量级的 Machine-to-Machine 通信协议。
+Publish/Subscribe模式。
+基于TCP/IP。
+支持QoS。
+适合于低带宽、不可靠连接、嵌入式设备、CPU内存资源紧张。
+是一种比较不错的Android消息推送方案。
+FacebookMessenger采用了MQTT。
+MQTT有可能成为物联网的重要协议。
+</p>
+</blockquote>
+<p>
+引用自 <a href="http://www.cnblogs.com/caca/p/mqtt.html">MQTT协议简记 - cacard - 博客园</a>
+</p>
+
+<blockquote>
+<p>
+Why MQTT?
+</p>
+
+<p>
+It is a publish/subscribe protocol
+It has Multiple Quality of Service levels (QOS)
+It has at-least-once and exactly-once semantics
+It has a low overhead (2 bytes at minimum)
+It supports offline messaging
+It retains messages, like a key/value store
+</p>
+</blockquote>
+<p>
+引用自 <a href="http://thejackalofjavascript.com/getting-started-mqtt/">Getting started with MQTT | The Jackal of Javascript</a>
+</p>
+
+
+<p>
+<span class="underline">简言之， <code>mqtt</code> 就是简单高效基于 <code>发布/订阅</code> 的 <code>消息传输协议</code> ，主要用于资源受限设备（如：传感器、手机等）与服务器间有保障地进行消息或事件推送。</span>
+</p>
+
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">有一些人（或项目）在尝试将 <code>mqtt</code> 扩展到其它用途</h2>
+<div class="outline-text-2" id="text-1">
+<dl class="org-dl">
+<dt> 请求/响应模型（Request/Response） </dt><dd><a href="http://www.bitreactive.com/mqtt-request-response/">Request/Response Pattern Over MQTT | Bitreactive</a>
+</dd>
+</dl>
+
+
+<dl class="org-dl">
+<dt> 远程过程调用（RPC） </dt><dd><a href="https://github.com/wolfeidau/mqtt-rpc">wolfeidau/mqtt-rpc</a>
+</dd>
+</dl>
+
+
+<dl class="org-dl">
+<dt> 包裹WEB服务（REST） </dt><dd><a href="http://bytecontinnum.com/2014/12/consuming-mobile-apis-with-mqtt-reqres-pattern/">REST over MQTT for Constrained Devices/Mobiles | Prithiviraj Damodaran</a>
+</dd>
+</dl>
+</div>
+</div>
+
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">IoT领域的其它竞争对手</h2>
+<div class="outline-text-2" id="text-2">
+<dl class="org-dl">
+<dt> <a href="https://tools.ietf.org/html/rfc7252">CoAP</a> </dt><dd>Constrained Applications Protocol
+
+<p>
+基于 <code>UDP</code> 协议，简化版的 <a href="https://tools.ietf.org/html/draft-ietf-httpbis-http2">HTTP/2</a> 。
+</p>
+
+<blockquote>
+<p>
+The Constrained Application Protocol (CoAP) is a specialized web transfer protocol for use with constrained nodes and constrained networks in the Internet of Things.
+The protocol is designed for machine-to-machine (M2M) applications such as smart energy and building automation.
+</p>
+</blockquote>
+<p>
+引用自  <a href="http://coap.technology/">CoAP — Constrained Application Protocol</a>
+</p>
+</dd>
+</dl>
+
+
+<dl class="org-dl">
+<dt> <a href="https://tools.ietf.org/html/draft-ietf-httpbis-http2">HTTP/2</a> </dt><dd>HTTP/2 (originally named HTTP/2.0) is the second major version of the HTTP network protocol used by the World Wide Web
+
+<p>
+<a href="http://timkellogg.me/blog/2015/02/20/can-http2-replace-mqtt/">Can HTTP/2 Replace MQTT? - Tim Kellogg</a>
+</p>
+
+<p>
+<a href="http://www.limmat.co/2015/02/18/http-2-the-new-iot-protocol/">HTTP/2 - The New IoT Protocol?</a>
+</p>
+
+<p>
+<a href="http://robbysimpson.com/2015/01/26/http2-and-the-internet-of-things/">HTTP/2 and the Internet of Things</a>
+</p>
+
+<p>
+<a href="https://systembash.com/mqtt-vs-websockets-vs-http2-the-best-iot-messaging-protocol/">MQTT vs Websockets vs HTTP/2: The Best IoT Messaging Protocol?</a>
+</p>
+
+<p>
+<a href="http://webofthings.org/2015/10/25/http2-for-internet-of-things-1/">What’s in HTTP/2 for the Internet of Things? 1/2 | Web of Things</a>
+</p>
+</dd>
+</dl>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">个人总结</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+<a href="https://tools.ietf.org/html/draft-ietf-httpbis-http2">HTTP/2</a> 做为一种通用的应用层协议，由于被广泛部署，有着天然的优势，但是 <code>mqtt</code> 带来的 <code>Machine-To-Machine</code> 、 <code>offline</code> 、 <code>bridge</code>  消息传输，现在就可以应用到产品中。
+</p>
+
+<p>
+或许将来有一天会出现构建于 <a href="https://tools.ietf.org/html/draft-ietf-httpbis-http2">HTTP/2</a> 上的类 <code>mqtt</code> 解决方案，它能够运行在绝大多数的资源内限嵌入式设备上，在这之前 <code>mqtt</code> 之类的成熟的应用层协议会有一席之地，特别是在它完美契合你的应用的情况下。
+</p>
+
+<p>
+做为一个开发者，与其坐等完美的解决方案出现，还不如立即开始学习 <code>mqtt</code> ，应用 <code>mqtt</code> ，从 <code>mqtt</code> 中学到协议设计的经验与技术，以至成为实现构建于 <a href="https://tools.ietf.org/html/draft-ietf-httpbis-http2">HTTP/2</a> 上的类 <code>mqtt</code> 解决方案的那个人。</p>
+</div>
+</div>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Archlinux下解决上网慢问题]]></title>
+            <link>/article/archlinux-4e0b89e351b34e0a7f51616295ee9898.html</link>
+            <guid>/article/archlinux-4e0b89e351b34e0a7f51616295ee9898.html</guid>
+            <pubDate>Wed, 30 Dec 2015 02:17:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+发现  <code>Firefox</code> 的状态栏长时间显示 <code>Looking up www.xxxx.com ...</code> ，应该是我的电脑的 <code>DNS</code> 配置出问题了。
+</p>
+
+<p>
+<code>/etc/resolv.conf</code> 内容如下：
+</p>
+
+<pre class="example">
+# Generated by resolvconf
+search lan
+nameserver 8.8.8.8
+nameserver 192.168.111.1
+</pre>
+
+<p>
+<code>/etc/resolvconf.conf</code> 内容如下：
+</p>
+
+<pre class="example">
+resolv_conf=/etc/resolv.conf
+name_servers=8.8.8.8
+</pre>
+
+<p>
+我配置的是使用静态DNS <code>8.8.8.8</code> ，但是 <code>/etc/resolv.conf</code> 文件内容多出了两项，怀疑是 <code>search lan</code> 引起。
+</p>
+
+<p>
+很多的网络管理工具都会去改动 <code>/etc/resolv.conf</code> 文件，如 <code>pdnsd</code> <code>dnsmasq</code> <code>NetworkManager</code> 。
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">禁止 <code>NetworkManager</code> 改动 <code>/etc/resolv.conf</code></h2>
+<div class="outline-text-2" id="text-1">
+<ul class="org-ul">
+<li>修改 <code>/etc/NetworkManager/NetworkManager.conf</code> 配置
+
+<p>
+<code>dns=none</code>
+</p>
+</li>
+
+<li>重新载入 <code>systemd</code> 配置
+
+<p>
+<code>sudo systemctl daemon-reload</code>
+</p>
+</li>
+
+<li>重启 <code>NetworkManager</code>
+
+<p>
+<code>sudo systemctl restart NetworkManager</code>
+</p>
+</li>
+
+<li>重新生成 <code>/etc/resolv.conf</code>
+
+<p>
+<code>sudo resolvconf -u</code>
+</p>
+
+<pre class="example">
+# Generated by resolvconf
+nameserver 8.8.8.8
+</pre>
+
+<p>
+现在可以正常上网了。
+</p>
+
+<p>
+但是静态DNS <code>8.8.8.8</code> 不太稳定，最好换成优先使用DHCP分配的本地DNS。
+</p>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">使用DHCP分配的本地DNS</h2>
+<div class="outline-text-2" id="text-2">
+<ul class="org-ul">
+<li>撤销之前对 <code>/etc/NetworkManager/NetworkManager.conf</code> 的修改
+
+<p>
+<code>dns=default</code>
+</p>
+</li>
+
+<li>去掉 <code>/etc/resolvconf.conf</code> 配置的静态DNS
+
+<pre class="example">
+resolv_conf=/etc/resolv.conf
+#name_servers=8.8.8.8
+</pre>
+</li>
+
+<li>重新载入 <code>systemd</code> 配置
+
+<p>
+<code>sudo systemctl daemon-reload</code>
+</p>
+</li>
+
+<li>重启 <code>NetworkManager</code>
+
+<p>
+<code>sudo systemctl restart NetworkManager</code>
+</p>
+</li>
+
+<li>重新生成 <code>/etc/resolv.conf</code>
+
+<p>
+<code>sudo resolvconf -u</code>
+</p>
+
+<pre class="example">
+# Generated by resolvconf
+nameserver 192.168.111.1
+</pre>
+
+<p>
+过一会儿 <code>/etc/resolv.conf</code> 内容自动被更新
+</p>
+
+<pre class="example">
+# Generated by resolvconf
+search lan
+nameserver 192.168.111.1
+</pre>
+
+<p>
+<code>search lan</code> 又出现了， <code>NetworkManager</code> 貌似是通过 <code>dhclient</code> 对 <code>/etc/resolv.conf</code> 进行修改的，
+具体指令参见 <code>/sbin/dhclient-script</code> 。
+</p>
+
+<p>
+上网又很流畅了，看来之前上网慢是由 <code>8.8.8.8</code> DNS服务器抽风引起，与 <code>search lan</code> 配置无关。
+</p>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">参考</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+<a href="https://wiki.archlinux.org/index.php/Resolv.conf#Preserve_DNS_settings">resolv.conf - ArchWiki</a></p>
+</div>
+</div>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[内网IP段有哪些]]></title>
+            <link>/article/51857f51-ip-6bb5670954ea4e9b.html</link>
+            <guid>/article/51857f51-ip-6bb5670954ea4e9b.html</guid>
+            <pubDate>Fri, 18 Dec 2015 06:39:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+常见的内网IP段有：
+</p>
+
+<dl class="org-dl">
+<dt> 10.0.0.0/8 </dt><dd>10.0.0.0 - 10.255.255.255
+</dd>
+
+<dt> 172.16.0.0/12 </dt><dd>172.16.0.0 - 172.31.255.255
+</dd>
+
+<dt> 192.168.0.0/16 </dt><dd>192.168.0.0 - 192.168.255.255
+</dd>
+</dl>
+
+<p>
+以上三个网段分别属于A、B、C三类IP地址，来自 《<a href="https://tools.ietf.org/html/rfc1918">RFC 1918</a>》。
+</p>
+
+<p>
+但是根据 《<a href="https://en.wikipedia.org/wiki/Reserved_IP_addresses">Reserved IP addresses - Wikipedia, the free encyclopedia</a>》 及《<a href="https://tools.ietf.org/html/rfc6890">RFC 6890 - Special-Purpose IP Address Registries</a>》的描述，
+还有很多其它的内网IP段（包括IPv6），以及其它用途的保留IP地址。
+</p>
+
+<p>
+其它IPv4内网段罗列如下：
+</p>
+
+<dl class="org-dl">
+<dt> 0.0.0.0/8 </dt><dd>0.0.0.0 - 0.255.255.255
+
+<p>
+用于当前网络内的广播消息。
+</p>
+</dd>
+
+<dt> 100.64.0.0/10 </dt><dd>100.64.0.0 - 100.127.255.255
+
+<p>
+由运营商使用的私网IP段，随着IPv4地址池的耗光，会有更多用户被分配到这个网段。
+</p>
+</dd>
+
+<dt> 127.0.0.0/8 </dt><dd>127.0.0.0 - 127.255.255.255
+
+<p>
+本机回环地址。
+</p>
+</dd>
+
+<dt> 169.254.0.0/16 </dt><dd>169.254.0.0 - 169.254.255.255
+
+<p>
+获取不到IP地址时使用，通常因为从DHCP服务器获取不到IP。
+</p>
+</dd>
+
+<dt> 192.0.0.0/24 </dt><dd>192.0.0.0 - 192.0.0.255
+
+<p>
+Used for the IANA IPv4 Special Purpose Address Registry as specified by RFC 5736
+</p>
+
+<p>
+一般用户不可能被分配到这个IP段。
+</p>
+</dd>
+
+<dt> 192.0.2.0/24 </dt><dd>192.0.2.0 - 192.0.2.255
+
+<p>
+Assigned as "TEST-NET" in RFC 5737 for use solely in documentation and example source code and should not be used publicly.
+</p>
+
+<p>
+一般用户不可能被分配到这个IP段。
+</p>
+</dd>
+
+<dt> 198.18.0.0/15 </dt><dd>198.18.0.0 - 198.19.255.255
+
+<p>
+用于测试两个独立子网的网间通信。
+</p>
+
+<p>
+一般用户不可能被分配到这个IP段。
+</p>
+</dd>
+
+<dt> 198.51.100.0/24 </dt><dd>198.51.100.0 - 198.51.100.255
+
+<p>
+Assigned as "TEST-NET-2" in RFC 5737 for use solely in documentation and example source code and should not be used publicly.
+</p>
+
+<p>
+一般用户不可能被分配到这个IP段。
+</p>
+</dd>
+
+<dt> 203.0.113.0/24 </dt><dd>203.0.113.0 - 203.0.113.255
+
+<p>
+Assigned as "TEST-NET-3" in RFC 5737 for use solely in documentation and example source code and should not be used publicly.
+</p>
+
+<p>
+一般用户不可能被分配到这个IP段。
+</p>
+</dd>
+
+<dt> 255.255.255.255/32 </dt><dd>255.255.255.255
+
+<p>
+本网段的广播地址。</p>
+</dd>
+</dl>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Node.js服务器TCP死连接问题诊断]]></title>
+            <link>/article/node.js-670d52a15668-tcp-6b7b8fde63a595ee98988bca65ad.html</link>
+            <guid>/article/node.js-670d52a15668-tcp-6b7b8fde63a595ee98988bca65ad.html</guid>
+            <pubDate>Thu, 16 Apr 2015 12:29:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+最近一段时间，由于开发工作开始跟嵌入式相关，开始遇到一个问题：TCP死连接。
+</p>
+
+<p>
+TCP死连接症状是这样的：通信双方从一方系统上看已经断开（不存在），但是另一方系统上看却是连接中（ESTABLISHED状态）。
+</p>
+
+<p>
+TCP死连接一般在一方（或中间线路上的设备）断电、死机后出现，此时由于另一方收不到断开连接的IP报文，会认为连接仍然存在，日积月累会耗光文件描述符空间从而导致性能下降，最终拒绝服务。
+</p>
+
+<p>
+对付这种问题，一般需要双方都进行连接心跳检测。比如：连接空闲一段时间后一方发一个心跳请求，另一端回个心跳响应，心跳请求发送方一段时间后还收不到响应则认为连接已断开，心跳请求接收方一段时间内没有收到心跳请求也认为连接已断开。
+</p>
+
+<p>
+需要注意到的是node.js的tls服务器端握手超时处理不当可能会导致TCP死连接出现，有问题的代码示例如下：
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-js"><span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">options</span> = {
+<span style="color: #969896; background-color: #222427;"> </span>   key: <span style="color: #8abeb7;">"..."</span>,
+<span style="color: #969896; background-color: #222427;"> </span>   cert: <span style="color: #8abeb7;">"..."</span>,
+<span style="color: #969896; background-color: #222427;"> </span>   handshakeTimeout: 10*1000,
+<span style="color: #969896; background-color: #222427;"> </span>   plain: <span style="color: #81a2be;">true</span>,
+<span style="color: #969896; background-color: #222427;"> </span>   ssl: <span style="color: #81a2be;">true</span>
+};
+
+<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">tlsServer</span> = tls.createServer(options, app).listen(5433, 8192, <span style="color: #b5bd68;">function</span>(){
+<span style="color: #969896; background-color: #222427;"> </span>   logger.log(<span style="color: #8abeb7;">'tls server listening on port 5433'</span>);
+});
+
+tlsServer.on(<span style="color: #8abeb7;">'clientError'</span>, <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">exception</span>, <span style="color: #f0c674;">socket</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   logger.warn(<span style="color: #8abeb7;">'tls server client('</span> + socket.remoteAddress + <span style="color: #8abeb7;">':'</span> + socket.remot<span style="color: #de935f; background-color: #373b41;">ePort +</span><span style="color: #de935f; background-color: #373b41;">') error('</span><span style="color: #de935f; background-color: #373b41;"> + exception + </span><span style="color: #de935f; background-color: #373b41;">')'</span><span style="color: #de935f; background-color: #373b41;">);</span>
+});
+</pre>
+</div>
+
+<p>
+上面的代码通过指定 <code>handshakeTimeout</code> 使用指定SSL握手超时时间，但是并未关闭底层的TCP连接，从而导致TCP连接泄露，在 <code>clientError</code> 事件处理函数中添加以下释放语句即可：
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-js">socket.destroy();
+</pre>
+</div>
+
+<p>
+除了常见的断电、死机引起TCP死连接外，这里还有一个论坛帖子论坛其它原因：《<a href="http://serverfault.com/questions/504187/too-many-established-connections-left-open">Too many established connections left open</a>》。
+</p>
+
+<p>
+另外还有 linux 内核的 tcp keepalive机制作为心跳解决方案：《<a href="http://machael.blog.51cto.com/829462/211989/">linux下使用TCP存活(keepalive)定时器</a>》。
+</p>
+
+<p>
+谨记：除了主动通过连接发送数据外，其它情况下操作系统可能不会告诉你连接已经关闭了。
+</p>
+
+<p>
+要彻底解决这个问题，除了要避免泄露（或忘记关闭）TCP连接外，要有心跳机制，还需要从代码层面进行防御性编程，如：对于读写操作设置超时时间，一旦超时主动关闭连接。</p>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Archlinux网络接口上出现两个IP]]></title>
+            <link>/article/archlinux-7f517edc63a553e34e0a51fa73b04e244e2a-ip.html</link>
+            <guid>/article/archlinux-7f517edc63a553e34e0a51fa73b04e244e2a-ip.html</guid>
+            <pubDate>Wed, 12 Mar 2014 03:32:00 GMT</pubDate>
+            <content:encoded><![CDATA[<ul class="org-ul">
+<li>发现两个IP
+
+<p>
+我的电脑是直接连到公司的墙上的网口上网的，在测试路由器的时候，我把路由器的WAN口接墙上的网口，然后电脑连到路由器的LAN口上，上网正常。查看分配到的IP为192.168.111.2，路由器的IP为192.168.111.1， 想到我一直用 <code>192.168.90.73</code> 这个IP，有些配置也依赖这个IP，所以还想分到这个IP，所以把路由器的DHCP做了设置，路由器IP改为192.168.90.74，分配的IP范围为192.168.90.71-192.168.90.73，再次重连电脑分配的IP为192.168.90.71，然后发现上不了网了，浏览器上输入路由器的IP（192.168.90.74）竟然打开了我机器（192.168.90.71）上建的WEB服务，其他人连这个网络却可以通过192.168.90.74这个IP正常打开路由器界面，最终通过“ip address show”这个命令发现我的网口上有两个IP（192.168.90.71、192.168.90.74）， <code>ipconfig</code> 和其它GUI工具只能看到第一个IP。
+</p>
+</li>
+
+<li>第二个IP是怎么来的？
+
+<p>
+抓包分析了一下DHCP网络包，只给分配了192.168.90.71这个IP，看来192.168.90.74这个IP是我机器上配置的，于是搜索/etc、/var下的文件，最后在/var/log/journal/*/system.journal中找到了日志：
+</p>
+
+<pre class="example">
+NetworkManager[375]: &lt;debug&gt; [1394509845.924245] [nm-system.c:280] sync_addresses(): (eno1): adding address '192.168.90.74/24'
+</pre>
+
+<p>
+然后在NetworkManager的配置文件 <code>/etc/NetworkManager/system-connections/Profile 1</code> 中找到了相关配置：
+</p>
+
+<pre class="example">
+[ipv4]
+method=auto
+address1=192.168.90.74/24,192.168.90.2
+</pre>
+
+<p>
+删除掉 <code>address1</code> 后，再重连网络，就只有一个IP了。
+</p>
+
+<p>
+这应该是 <code>NetworkManager</code> 的一个 <a href="https://bugs.archlinux.org/task/41395">BUG</a> ，当手动设置IP后切回DHCP自动获取IP方式时不清除手动设置的时会出现。</p>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
+    </channel>
+</rss>

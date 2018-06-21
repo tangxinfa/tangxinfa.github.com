@@ -16,6 +16,7 @@
           <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
           
           <li><a href="/index.html"><i class="icon-folder-close icon-white"></i> 技术</a></li>
+          <li><a href="/category/life/0.html"><i class="icon-folder-close icon-white"></i> 生活</a></li>
         </ul>
       </div>
     </div>
@@ -55,20 +56,13 @@ downtime for your users:
 </p>
 
 <ul class="org-ul">
-<li>Start empty instances in your new server.
-</li>
-<li>Move data configuring these new instances as slaves for your source instances.
-</li>
-<li>Stop your clients.
-</li>
-<li>Update the configuration of the moved instances with the new server IP address.
-</li>
-<li>Send the SLAVEOF NO ONE command to the slaves in the new server.
-</li>
-<li>Restart your clients with the new updated configuration.
-</li>
-<li>Finally shut down the no longer used instances in the old server.
-</li>
+<li>Start empty instances in your new server.</li>
+<li>Move data configuring these new instances as slaves for your source instances.</li>
+<li>Stop your clients.</li>
+<li>Update the configuration of the moved instances with the new server IP address.</li>
+<li>Send the SLAVEOF NO ONE command to the slaves in the new server.</li>
+<li>Restart your clients with the new updated configuration.</li>
+<li>Finally shut down the no longer used instances in the old server.</li>
 </ul>
 </blockquote>
 
@@ -105,26 +99,19 @@ The following steps provide a very commonly used way in order to avoid any downt
 <ul class="org-ul">
 <li>Setup your new Redis instance as a slave for your current Redis instance. In order to
 do so you need a different server, or a server that has enough RAM to keep two
-instances of Redis running at the same time.
-</li>
+instances of Redis running at the same time.</li>
 <li>If you use a single server, make sure that the slave is started in a different port
-than the master instance, otherwise the slave will not be able to start at all.
-</li>
+than the master instance, otherwise the slave will not be able to start at all.</li>
 <li>Wait for the replication initial synchronization to complete (check the slave log
-file).
-</li>
+file).</li>
 <li>Make sure using INFO that there are the same number of keys in the master and in the
 slave. Check with redis-cli that the slave is working as you wish and is replying to
-your commands.
-</li>
-<li>Allow writes to the slave using CONFIG SET slave-read-only no
-</li>
-<li>Configure all your clients in order to use the new instance (that is, the slave).
-</li>
+your commands.</li>
+<li>Allow writes to the slave using CONFIG SET slave-read-only no</li>
+<li>Configure all your clients in order to use the new instance (that is, the slave).</li>
 <li>Once you are sure that the master is no longer receiving any query (you can check
 this with the MONITOR command), elect the slave to master using the SLAVEOF NO ONE
-command, and shut down your master.
-</li>
+command, and shut down your master.</li>
 </ul>
 </blockquote>
 
@@ -133,10 +120,11 @@ command, and shut down your master.
 </p>
 
 <ul class="org-ul">
-<li>创建新 Redis 实例为旧 Redis 实例的 Slave
-</li>
+<li>创建新 Redis 实例为旧 Redis 实例的 Slave</li>
 
-<li>服务同时连接新旧 Redis 实例
+<li><p>
+服务同时连接新旧 Redis 实例
+</p>
 
 <p>
 迁移时代码需要更新并重启服务，服务需支持优雅重启：服务进程依次重启使得客户感觉不到服务被中断。
@@ -152,10 +140,11 @@ command, and shut down your master.
 
 <p>
 Slave 的数据复制进度追上后，进行下一步。
-</p>
-</li>
+</p></li>
 
-<li>让新 Redis 实例可写
+<li><p>
+让新 Redis 实例可写
+</p>
 
 <pre class="example">
 config set slave-read-only no
@@ -167,10 +156,11 @@ config set slave-read-only no
 
 <p>
 要求新旧 Redis 实例比较稳定，发生全量同步会导致数据丢失。
-</p>
-</li>
+</p></li>
 
-<li>服务从新 Redis 实例访问迁移走的数据
+<li><p>
+服务从新 Redis 实例访问迁移走的数据
+</p>
 
 <p>
 可以通过给所有服务结点广播消息方式实现，将服务的 Redis 访问快速切到新 Redis 实例上。
@@ -178,10 +168,11 @@ config set slave-read-only no
 
 <p>
 正常情况下，旧 Redis 中已迁移的数据应该不会再有读写，如果有的话可能是还没有迁移干净，应该立即找到访问源，进行中断或迁移。
-</p>
-</li>
+</p></li>
 
-<li>新 Redis 实例断开与旧实例的 Master-Slave 关系
+<li><p>
+新 Redis 实例断开与旧实例的 Master-Slave 关系
+</p>
 
 <p>
 新 Redis 实例改为角色为 Master，恢复 <code>slave-read-only</code> 配置项为 <code>yes</code> 。
@@ -189,18 +180,17 @@ config set slave-read-only no
 
 <p>
 新的 Redis 实例可以进一步使用 Redis Sentinel 来监控以实现高可用。
+</p></li>
+
+<li>删除新 Redis 实例中多迁来的数据</li>
+
+<li><p>
+删除旧 Redis 实例中已迁走的数据
 </p>
-</li>
-
-<li>删除新 Redis 实例中多迁来的数据
-</li>
-
-<li>删除旧 Redis 实例中已迁走的数据
 
 <p>
 所有数据都迁移走后，可以将它停掉。
-</p>
-</li>
+</p></li>
 </ul>
 
 
@@ -209,40 +199,45 @@ config set slave-read-only no
 </p>
 
 <ul class="org-ul">
-<li>迁移前
+<li><p>
+迁移前
+</p>
 
 <p>
 写旧、读旧
-</p>
-</li>
+</p></li>
 
-<li>上线双写
+<li><p>
+上线双写
+</p>
 
 <p>
 写新、写旧、读旧
-</p>
-</li>
+</p></li>
 
-<li>历史数据搬迁
+<li><p>
+历史数据搬迁
+</p>
 
 <p>
 写新、写旧、读旧
-</p>
-</li>
+</p></li>
 
-<li>切读
+<li><p>
+切读
+</p>
 
 <p>
 写新、写旧、读新
-</p>
-</li>
+</p></li>
 
-<li>清理
+<li><p>
+清理
+</p>
 
 <p>
 写新、读新。
-</p>
-</li>
+</p></li>
 </ul>
 
 <p>
@@ -293,7 +288,7 @@ Every change you make must be backward compatible with the rest of the system
 
     <div id="footer">
   	  <div class="copyright" style="text-align: center;">
-  	    版权所有 © 2011-2018 看看俺 – KanKanAn.com
+  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
   	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
   	  </div>
     </div>

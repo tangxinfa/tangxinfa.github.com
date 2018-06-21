@@ -16,6 +16,7 @@
           <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
           
           <li><a href="/index.html"><i class="icon-folder-close icon-white"></i> 技术</a></li>
+          <li><a href="/category/life/0.html"><i class="icon-folder-close icon-white"></i> 生活</a></li>
         </ul>
       </div>
     </div>
@@ -30,14 +31,17 @@
       
         <div class="article-content">
           <ul class="org-ul">
-<li>频繁的域名解析容易导致超时出错
+<li><p>
+频繁的域名解析容易导致超时出错
+</p>
 
 <p>
 在执行 <code>opkg-cl update</code> 或 <code>yaourt -Syua</code> 命令更新系统软件信息时，容易因为频繁的域名解析而导致更新速度奇慢甚至是超时出错，通过将要访问的域名添加到 <code>/etc/hosts</code> 中，可以立即解决这个问题。考虑到服务器IP可能会换，使用 <code>/etc/hosts</code> 非长久之计。
-</p>
-</li>
+</p></li>
 
-<li>缓存域名解析结果
+<li><p>
+缓存域名解析结果
+</p>
 
 <p>
 更好的办法是缓存域名解析结果，一般来说后台服务程序可以通过缓存域名解析结果加快后继请求的处理，但是对于像 <code>opkg-cl</code> 、 <code>yaourt</code> 之类的工具程序，由于运行一次就退出了，要实现缓存域名解析结果就显得有点小题大作了，最好是在系统底层来实现，而不是每个应用程序都实现这个功能。
@@ -45,29 +49,30 @@
 
 <p>
 <a href="http://members.home.nl/p.a.rombouts/pdnsd/">Pdnsd</a> 就是这样一款开源DNS代理服务程序，它安装在客户机上，对于客户端应用程序来说，它是DNS服务程序，对于真正的DNS服务来说它是DNS客户端程序。
-</p>
-</li>
+</p></li>
 
-<li><a href="http://members.home.nl/p.a.rombouts/pdnsd/">Pdnsd</a> 安装
+<li><p>
+<a href="http://members.home.nl/p.a.rombouts/pdnsd/">Pdnsd</a> 安装
+</p>
 
 <div class="org-src-container">
-
 <pre class="src src-sh">yaourt -S pdnsd
 </pre>
-</div>
-</li>
+</div></li>
 
-<li><a href="http://members.home.nl/p.a.rombouts/pdnsd/">Pdnsd</a> 运行
+<li><p>
+<a href="http://members.home.nl/p.a.rombouts/pdnsd/">Pdnsd</a> 运行
+</p>
 
 <div class="org-src-container">
-
 <pre class="src src-sh">sudo systemctl enable pdnsd
 sudo systemctl start pdnsd
 </pre>
-</div>
-</li>
+</div></li>
 
-<li>客户机DNS设置
+<li><p>
+客户机DNS设置
+</p>
 
 <p>
 修改 <code>/etc/resolv.conf</code> 为如下内容：
@@ -88,26 +93,26 @@ nameserver 127.0.0.1
 然后重新生成 <code>/etc/resolv.conf</code> 配置文件：
 </p>
 <div class="org-src-container">
-
 <pre class="src src-sh">sudo resolvconf -u
 </pre>
-</div>
-</li>
+</div></li>
 
-<li>看看效果
+<li><p>
+看看效果
+</p>
 
 <p>
 多次执行下面的命令，可以感觉到后几次明显比第一次快，这就是DNS缓存在起作用。
 </p>
 
 <div class="org-src-container">
-
 <pre class="src src-sh">nslookup www.google.com
 </pre>
-</div>
-</li>
+</div></li>
 
-<li>适合国内环境的配置（仅供参考）
+<li><p>
+适合国内环境的配置（仅供参考）
+</p>
 
 <p>
 将 <code>/etc/pdnsd.conf</code> 配置文件修改为以下内容：
@@ -167,13 +172,13 @@ rr {
 </p>
 
 <div class="org-src-container">
-
 <pre class="src src-sh">sudo systemctl restart pdnsd
 </pre>
-</div>
-</li>
+</div></li>
 
-<li>配置pdnsd使用dhcp分配的dns服务器
+<li><p>
+配置pdnsd使用dhcp分配的dns服务器
+</p>
 
 <p>
 往往dhcp提供的dns服务器是最快的（它可能也做了缓存），用到了本地域名的情况下必须使用dhcp提供的dns服务器，
@@ -196,21 +201,20 @@ pdnsd_conf=/etc/pdnsd.conf
 重启 <code>NetworkManager</code> 生效配置
 </p>
 <div class="org-src-container">
-
 <pre class="src src-sh">sudo systemctl restart NetworkManager
 </pre>
 </div>
 
 <p>
 现在 <code>/etc/pdnsd.conf</code> 中的 <code>server</code> 配置块将由 <code>resolvconf</code> 来提供。
-</p>
-</li>
+</p></li>
 
-<li>参考
+<li><p>
+参考
+</p>
 
 <p>
-《<a href="http://venmos-com.qiniudn.com/blog/2013/06/19/pdnsd/">用Pdnsd快速打造无污染高速缓存DNS服务器</a>》</p>
-</li>
+《<a href="http://venmos-com.qiniudn.com/blog/2013/06/19/pdnsd/">用Pdnsd快速打造无污染高速缓存DNS服务器</a>》</p></li>
 </ul>
 
         </div>
@@ -243,7 +247,7 @@ pdnsd_conf=/etc/pdnsd.conf
 
     <div id="footer">
   	  <div class="copyright" style="text-align: center;">
-  	    版权所有 © 2011-2018 看看俺 – KanKanAn.com
+  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
   	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
   	  </div>
     </div>

@@ -16,6 +16,7 @@
           <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
           
           <li><a href="/index.html"><i class="icon-folder-close icon-white"></i> 技术</a></li>
+          <li><a href="/category/life/0.html"><i class="icon-folder-close icon-white"></i> 生活</a></li>
         </ul>
       </div>
     </div>
@@ -30,9 +31,9 @@
       
         <div class="article-content">
           
-<div id="outline-container-sec-1" class="outline-2">
-<h2 id="sec-1">级连同步失效</h2>
-<div class="outline-text-2" id="text-1">
+<div id="outline-container-org00ac94f" class="outline-2">
+<h2 id="org00ac94f">级连同步失效</h2>
+<div class="outline-text-2" id="text-org00ac94f">
 <p>
 级连同步的描述（摘自 <a href="http://redis.io/topics/replication">Replication – Redis</a>）：
 </p>
@@ -88,9 +89,9 @@ Salvatore
 </div>
 </div>
 
-<div id="outline-container-sec-2" class="outline-2">
-<h2 id="sec-2">内网流量外网化</h2>
-<div class="outline-text-2" id="text-2">
+<div id="outline-container-org91f700c" class="outline-2">
+<h2 id="org91f700c">内网流量外网化</h2>
+<div class="outline-text-2" id="text-org91f700c">
 <p>
 跨机房部署就意味着需要跨机房同步或访问 Redis 数据，如果另一机房有多个 Slave，则会有多份流量，机房外网流量会相应增长，需要预先进行流量规划。
 </p>
@@ -101,19 +102,21 @@ Redis 为内网部署提供了如下配置项
 </p>
 
 <ul class="org-ul">
-<li>Sentinel 的 announce-ip 和 announce-port 选项
+<li><p>
+Sentinel 的 announce-ip 和 announce-port 选项
+</p>
 
 <p>
 要求 Redis 版本至少为 2.8，参见 <a href="https://raw.githubusercontent.com/antirez/redis/2.8/redis.conf">redis.conf</a>
-</p>
-</li>
+</p></li>
 
-<li>Redis 的 slave-announce-ip 和 slave-announce-port 选项
+<li><p>
+Redis 的 slave-announce-ip 和 slave-announce-port 选项
+</p>
 
 <p>
 要求 Redis 版本至少为 3.2，参见 <a href="https://raw.githubusercontent.com/antirez/redis/3.2/redis.conf">redis.conf</a>
-</p>
-</li>
+</p></li>
 </ul>
 
 <p>
@@ -129,13 +132,11 @@ Remapping ports and addresses creates issues with Sentinel in two ways:
 hello messages where each Sentinel announce at which port and IP address they are
 listening for connection. However Sentinels have no way to understand that an address
 or port is remapped, so it is announcing an information that is not correct for other
-Sentinels to connect.
-</li>
+Sentinels to connect.</li>
 <li>Slaves are listed in the INFO output of a Redis master in a similar way: the address
 is detected by the master checking the remote peer of the TCP connection, while the
 port is advertised by the slave itself during the handshake, however the port may be
-wrong for the same reason as exposed in point 1.
-</li>
+wrong for the same reason as exposed in point 1.</li>
 </ol>
 </blockquote>
 <p>
@@ -148,17 +149,20 @@ wrong for the same reason as exposed in point 1.
 </p>
 
 <ul class="org-ul">
-<li>Master
+<li><p>
+Master
+</p>
 
 <p>
 自身监听的 IP 和 PORT 并不重要，只要 Slave 和 Sentinel 能够连上即可，所以往往在所有 IP 上进行监听。
-</p>
-</li>
+</p></li>
 </ul>
 
 
 <ul class="org-ul">
-<li>Slave
+<li><p>
+Slave
+</p>
 
 <p>
 Slave 配置中指定的 Master 结点 IP 是关键所在。
@@ -174,10 +178,11 @@ Slave 连接的 Master IP，经由路由规则，也就决定了 Master 看到�
 
 <p>
 可以通过 slave-announce-ip 和 slave-announce-port 配置项强制指定。
-</p>
-</li>
+</p></li>
 
-<li>Sentinel
+<li><p>
+Sentinel
+</p>
 
 <p>
 Sentinel 配置中指定的 Master 结点 IP 是关键所在。
@@ -193,8 +198,7 @@ Sentinel 连接的 Master IP，经由路由规则，也就决定了 Sentinel 看
 
 <p>
 可以通过 announce-ip 和 announce-port 配置项强制指定。
-</p>
-</li>
+</p></li>
 </ul>
 
 <p>
@@ -211,38 +215,40 @@ DataCenter 2 上部署的应用会通过 Sentinel 获取到 DataCenter 1 上的�
 </div>
 </div>
 
-<div id="outline-container-sec-3" class="outline-2">
-<h2 id="sec-3">相关资源</h2>
-<div class="outline-text-2" id="text-3">
+<div id="outline-container-orgd43fb6e" class="outline-2">
+<h2 id="orgd43fb6e">相关资源</h2>
+<div class="outline-text-2" id="text-orgd43fb6e">
 <ul class="org-ul">
-<li><a href="http://redis.io/topics/sentinel">Redis Sentinel Documentation – Redis</a>
-</li>
+<li><a href="http://redis.io/topics/sentinel">Redis Sentinel Documentation – Redis</a></li>
 
-<li><a href="https://groups.google.com/forum/#!searchin/redis-db/data$20center|sort:relevance/redis-db/o5afhx9Zn5E/DwQU3JLJJKgJ">Replication for read-scalability - Google 网上论坛</a>
+<li><p>
+<a href="https://groups.google.com/forum/#!searchin/redis-db/data$20center%7Csort:relevance/redis-db/o5afhx9Zn5E/DwQU3JLJJKgJ">Replication for read-scalability - Google 网上论坛</a>
+</p>
 
 <p>
 通过公网跨数据中心复制数据相关的问题：安全、迟延等
-</p>
-</li>
+</p></li>
 </ul>
 
 
 <ul class="org-ul">
-<li><a href="https://groups.google.com/d/msg/redis-db/uMOIX3m3Is4/HWhYegU4OawJ">Sentinels in Multi Region configuration - Google 网上论坛</a>
+<li><p>
+<a href="https://groups.google.com/d/msg/redis-db/uMOIX3m3Is4/HWhYegU4OawJ">Sentinels in Multi Region configuration - Google 网上论坛</a>
+</p>
 
 <p>
 Redis Sentinel 多数据中心配置问题
-</p>
-</li>
+</p></li>
 </ul>
 
 
 <ul class="org-ul">
-<li><a href="https://redislabs.com/ebook/redis-in-action/part-3-next-steps-3/chapter-10-scaling-redis/10-1-scaling-reads">Redis in Action - Scaling reads</a>
+<li><p>
+<a href="https://redislabs.com/ebook/redis-in-action/part-3-next-steps-3/chapter-10-scaling-redis/10-1-scaling-reads">Redis in Action - Scaling reads</a>
+</p>
 
 <p>
-Redis 压缩、安全传输相关</p>
-</li>
+Redis 压缩、安全传输相关</p></li>
 </ul>
 </div>
 </div>
@@ -276,7 +282,7 @@ Redis 压缩、安全传输相关</p>
 
     <div id="footer">
   	  <div class="copyright" style="text-align: center;">
-  	    版权所有 © 2011-2018 看看俺 – KanKanAn.com
+  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
   	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
   	  </div>
     </div>

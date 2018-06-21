@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+    <channel>
+        <title>rust - </title>
+        <link>/tag/rust.xml</link>
+        <description></description>
+        <lastBuildDate>Fri, 20 Apr 2018 07:31:37 GMT</lastBuildDate>
+        <docs>http://blogs.law.harvard.edu/tech/rss</docs>
+        <generator>Feed for Node.js</generator>
+        <category>ediary</category>
+        <item>
+            <title><![CDATA[Archlinux 下搭建 Rust 开发环境]]></title>
+            <link>/article/archlinux-4e0b642d5efa-rust-5f0053d173af5883.html</link>
+            <guid>/article/archlinux-4e0b642d5efa-rust-5f0053d173af5883.html</guid>
+            <pubDate>Mon, 29 Feb 2016 12:03:00 GMT</pubDate>
+            <content:encoded><![CDATA[<ul class="org-ul">
+<li>Emacs 里安装 rust-mode
+
+<p>
+M-x el-get-install rust-mode
+</p>
+</li>
+
+<li>Archlinux 安装 rust 相关包
+
+<p>
+yaourt -S rust cargo
+</p>
+
+<p>
+安装的版本
+</p>
+
+<pre class="example">
+$ rustc --version
+rustc 1.6.0
+$ cargo --version
+cargo 0.8.0 (28a0cbb 2016-01-17)
+</pre>
+</li>
+
+<li>Hello world!
+
+<p>
+<code>hello_world.rs</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-rust"><span style="color: #b5bd68;">fn</span> <span style="color: #de935f;">main</span>() {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b294bb;">println!</span>(<span style="color: #8abeb7;">"Hello, world!"</span>);
+}
+</pre>
+</div>
+
+<p>
+编译运行
+</p>
+<pre class="example">
+$ rustc hello_world.rs 
+$ ./hello_world 
+Hello, world!
+</pre>
+</li>
+
+<li>更多配置
+
+<p>
+可以参考文章《<a href="http://bassam.co/emacs/2015/08/24/rust-with-emacs/">Configuring Emacs for Rust</a>》进行更高级的配置，对于我这种 Rust 还没入门的人来说，前面的配置已经足够，还是一步一个脚印吧。</p>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Rust 是 C++ 的继承者]]></title>
+            <link>/article/rust-662f-c-76847ee7627f8005.html</link>
+            <guid>/article/rust-662f-c-76847ee7627f8005.html</guid>
+            <pubDate>Mon, 29 Feb 2016 11:35:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+刚看完《<a href="http://killercup.github.io/trpl-ebook/trpl-2015-09-26.html">Rust Programming Language</a>》开头章节“A brief introduction to Rust”，第一个例子就可以看出它是 C++ 的继承者，相信每个 C++ 开发者会忍不住会心一笑。
+</p>
+
+<p>
+看以下代码
+</p>
+<div class="org-src-container">
+
+<pre class="src src-rust"><span style="color: #b5bd68;">fn</span> <span style="color: #de935f;">main</span>() {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #b5bd68;">mut</span> <span style="color: #f0c674;">x</span> = <span style="color: #b294bb;">vec!</span>[<span style="color: #8abeb7;">"Hello"</span>, <span style="color: #8abeb7;">"world"</span>];
+
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #f0c674;">y</span> = &amp;x[0];
+
+<span style="color: #969896; background-color: #222427;"> </span>   x.push(<span style="color: #8abeb7;">"foo"</span>);
+}
+</pre>
+</div>
+
+<p>
+会编译出错
+</p>
+<pre class="example">
+error: cannot borrow `x` as mutable because it is also borrowed as immutable
+      x.push("foo");
+      ^
+  note: previous borrow of `x` occurs here; the immutable borrow prevents
+  subsequent moves or mutable borrows of `x` until the borrow ends
+      let y = &amp;x[0];
+               ^
+  note: previous borrow ends here
+  fn main() {
+
+  }
+  ^
+</pre>
+
+<p>
+可以这样修复
+</p>
+<div class="org-src-container">
+
+<pre class="src src-rust"><span style="color: #b5bd68;">fn</span> <span style="color: #de935f;">main</span>() {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #b5bd68;">mut</span> <span style="color: #f0c674;">x</span> = <span style="color: #b294bb;">vec!</span>[<span style="color: #8abeb7;">"Hello"</span>, <span style="color: #8abeb7;">"world"</span>];
+
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #f0c674;">y</span> = x[0].clone();
+
+<span style="color: #969896; background-color: #222427;"> </span>   x.push(<span style="color: #8abeb7;">"foo"</span>);
+}
+</pre>
+</div>
+
+<p>
+也可以这样修复
+</p>
+<div class="org-src-container">
+
+<pre class="src src-rust"><span style="color: #b5bd68;">fn</span> <span style="color: #de935f;">main</span>() {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #b5bd68;">mut</span> <span style="color: #f0c674;">x</span> = <span style="color: #b294bb;">vec!</span>[<span style="color: #8abeb7;">"Hello"</span>, <span style="color: #8abeb7;">"world"</span>];
+
+<span style="color: #969896; background-color: #222427;"> </span>   {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">let</span> <span style="color: #f0c674;">y</span> = &amp;x[0];
+<span style="color: #969896; background-color: #222427;"> </span>   }
+
+<span style="color: #969896; background-color: #222427;"> </span>   x.push(<span style="color: #8abeb7;">"foo"</span>);
+}
+</pre>
+</div>
+
+<p>
+再多新颖的关键字也掩不住骨子里的 C++ 气息：作用域、引用，还有代码未明确表达的 “move语义”、RAII等。
+</p>
+
+<p>
+考虑到 Rust 宣称是一门“安全”、“高效”、“并发”的语言，消除了大量 C++ 的缺陷，对于一个掌握 C++ 的开发人员来说，语法形式上添加的繁琐不是问题，只要是经得起推敲那就是合理的。
+</p>
+
+<p>
+Rust 是由 <a href="https://github.com/servo/servo">Servo</a> （浏览器引擎）项目驱动的，这导致现阶段 Rust 的定位是客户端系统软件开发，服务端高并发相关的需求被延后（如：异步I/O、协程），从这一点上看 Rust、Golang 其实是互补的。
+</p>
+
+<p>
+Rust 的主要特性：
+</p>
+
+<ul class="org-ul">
+<li>基本类型
+
+<p>
+与 C++ 相似
+</p>
+</li>
+
+<li>模板
+
+<p>
+与 C++ 相似，更友好的错误信息
+</p>
+</li>
+
+<li>Trait
+
+<p>
+Rust 语言级的支持，没有继承，通过 Trait 实现了运行时多态
+</p>
+</li>
+
+<li>RAII
+</li>
+
+<li>静态类型及自动类型推导
+</li>
+
+<li>模块化支持
+</li>
+
+<li>文档及测试
+</li>
+
+<li>宏
+
+<p>
+Rust 的宏更安全，不同于 C++ 的基于文本的替换，Rust 的宏是语义完备的。
+</p>
+</li>
+
+<li>安全优先
+
+<p>
+Rust 设计上的主要考虑就是安全（Safety），如变量定义默认是 const 的，borrow checker，lifetime等,
+强大的编译期检测。</p>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[计划学一门新语言：Rust]]></title>
+            <link>/article/8ba152125b664e0095e865b08bed8a00ff1a-rust.html</link>
+            <guid>/article/8ba152125b664e0095e865b08bed8a00ff1a-rust.html</guid>
+            <pubDate>Mon, 29 Feb 2016 09:52:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+常常听到每年学一门新语言的建议，想想还是有道理的，可能主力开发语言还是一两种，但是拓宽视野才是关键。
+</p>
+
+<p>
+一开始比较倾向于 golang ，语言设计简单、后台硬，而且有很多杀手级应用。
+</p>
+
+<p>
+但是自已用 node.js 开发后台应用接近两年时间，除了部署时要下载一大堆包，并且包的兼容性变化较大这一点缺陷外，无论是开发效率和运行效率都合我意。再学一门应用领域差不多的 golang 有点动力不够。
+</p>
+
+<p>
+rust 看起来和手头上的语言差异较大，是一门严肃认真的语言，野心不小，反正也没指望立即拿它混饭吃，就暂定它吧。
+</p>
+
+<p>
+学习计划分为以下阶段：
+</p>
+
+<ul class="org-ul">
+<li>学习语言本身并做一些示例练习
+
+<p>
+从 《Rust Programming Language》一书入手。
+</p>
+
+<p>
+预计用一部分 3、4 月份的业余时间。
+</p>
+</li>
+
+<li>用于写一些对自已有用的临时性项目
+
+<p>
+预计用一部分 5、6 月份的业余时间。
+</p>
+</li>
+
+<li>参与一些开源项目
+
+<p>
+预计 7 月份之后的时间吧。
+</p>
+</li>
+
+<li>用于产品开发
+
+<p>
+如果这门语言本身经得起考验的话，不排除在工作中的一些小项目上正式使用。</p>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
+    </channel>
+</rss>

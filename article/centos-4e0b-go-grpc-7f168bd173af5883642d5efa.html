@@ -16,6 +16,7 @@
           <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
           
           <li><a href="/index.html"><i class="icon-folder-close icon-white"></i> 技术</a></li>
+          <li><a href="/category/life/0.html"><i class="icon-folder-close icon-white"></i> 生活</a></li>
         </ul>
       </div>
     </div>
@@ -30,10 +31,11 @@
       
         <div class="article-content">
           <ul class="org-ul">
-<li>安装 <code>protobuf</code>
+<li><p>
+安装 <code>protobuf</code>
+</p>
 
 <div class="org-src-container">
-
 <pre class="src src-sh">git clone https://github.com/google/protobuf.git
 <span style="color: #b294bb;">cd</span> protobuf
 git checkout v3.4.1 -b v3.4.1
@@ -42,25 +44,70 @@ git checkout v3.4.1 -b v3.4.1
 make
 make install
 </pre>
-</div>
-</li>
+</div></li>
 
-<li>安装 <code>protobuf go 插件</code>
+<li><p>
+安装 <code>protobuf go 插件</code>
+</p>
 
 <div class="org-src-container">
-
-<pre class="src src-sh"><span style="color: #b294bb;">export</span> <span style="color: #f0c674;">GOPATH</span>=/usr/local/lib/golang
-go get -u github.com/golang/protobuf/{proto,protoc-gen-go}
-cp $<span style="color: #f0c674;">GOPATH</span>/bin/protoc-gen-go /usr/local/bin/
+<pre class="src src-sh">go get -u github.com/golang/protobuf/{proto,protoc-gen-go}
 </pre>
 </div>
-</li>
-
-<li>参考
 
 <p>
-<a href="http://www.jianshu.com/p/e2435b834d68">golang开发环境搭建-安装go 和 grpc - 简书</a></p>
-</li>
+在 <code>~/.profile</code> 中将 <code>protoc-gen-go</code> 所在路径加到 <code>PATH</code> 环境变量中
+</p>
+<div class="org-src-container">
+<pre class="src src-sh"><span style="color: #f0c674;">PATH</span>=<span style="color: #8abeb7;">"`go env GOPATH`/bin:$PATH"</span>
+</pre>
+</div>
+
+<p>
+最新版本的 <code>protoc-gen-go</code> 默认生成的 protobuf 4.x 的代码，我们的项目目前还
+是使用 protobuf 3.x，这会导致生成的代码无法通过编译，错误信息
+</p>
+<pre class="example">
+xxx.pb.go:2799:21: c.cc.NewStream undefined (type *grpc.ClientConn has no field or method NewStream)
+xxx.pb.go:2831:13: c.cc.Invoke undefined (type *grpc.ClientConn has no field or method Invoke)
+</pre>
+
+<p>
+需要改回生成 protobuf 3.x 的代码，修改
+<code>github.com/golang/protobuf/protoc-gen-go/grpc/grpc.go</code>
+</p>
+<div class="org-src-container">
+<pre class="src src-go"><span style="color: #b5bd68;">const</span> generatedCodeVersion = 4
+</pre>
+</div>
+<p>
+改为 
+</p>
+<div class="org-src-container">
+<pre class="src src-go"><span style="color: #b5bd68;">const</span> generatedCodeVersion = 3
+</pre>
+</div>
+
+<p>
+重新编译安装 <code>protoc-gen-go</code>
+</p>
+<div class="org-src-container">
+<pre class="src src-sh"><span style="color: #b294bb;">cd</span> github.com/golang/protobuf
+make install
+</pre>
+</div></li>
+
+<li><p>
+参考
+</p>
+
+<p>
+<a href="http://www.jianshu.com/p/e2435b834d68">golang开发环境搭建-安装go 和 grpc - 简书</a>
+</p>
+
+<p>
+<a href="https://github.com/golang/protobuf/issues/264">grpc version conflict · Issue #264 · golang/protobuf</a>
+</p></li>
 </ul>
 
         </div>
@@ -94,7 +141,7 @@ cp $<span style="color: #f0c674;">GOPATH</span>/bin/protoc-gen-go /usr/local/bin
 
     <div id="footer">
   	  <div class="copyright" style="text-align: center;">
-  	    版权所有 © 2011-2018 看看俺 – KanKanAn.com
+  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
   	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
   	  </div>
     </div>

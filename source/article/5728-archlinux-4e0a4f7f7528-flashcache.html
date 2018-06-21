@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <title>在Archlinux上使用FlashCache | </title>
+    <link rel="shortcut icon" href="/static/favicon.ico" />
+    <link rel="stylesheet" type="text/css" href="/style/ediary.css"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="generator" content="o-blog"/>
+  </head>
+  <body>
+    <div class="navbar navbar-fixed-top" id="header">
+      <div class="navbar-inner">
+        <a class="brand" href="/" style="line-height:100%;"></a>
+        <ul class="navbar-links">
+          <li><a href="/index.xml"><i class="icon-rss icon-white"></i> Subscribe</a></li>
+          <li><a href="/category/ediary/0.html"><i class="icon-folder-close icon-white"></i> ediary</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="container container-fluid" id="page">
+      <div class="push-header"></div>
+
+      <div class="article">
+        <header class="article-header">
+          <h1>在Archlinux上使用FlashCache</h1>
+        </header>
+      
+        <div class="article-content">
+          <p>
+<a href="https://github.com/facebook/flashcache/">Flashcache</a> 是 <a href="https://www.facebook.com">Facebook</a> 的一个开源项目，通过将固态硬盘（SSD）做为机械硬盘（HDD）的缓存层，提升磁盘I/O性能。
+</p>
+
+<p>
+<a href="https://github.com/facebook/flashcache/">Flashcache</a> 位于磁盘驱动层与文件系统层之间，是一个 <code>linux</code> 内核模块。
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">编译安装</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+由于Archlinux总是使用最新的linux内核，最好从最新的 <a href="https://github.com/facebook/flashcache/">Flashcache</a> 源代码进行编译安装。
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">git clone https://github.com/facebook/flashcache.git
+<span style="color: #b294bb;">cd</span> flashcache
+make
+sudo make install
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">挂载模块</h2>
+<div class="outline-text-2" id="text-2">
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo insmod /lib/modules/<span style="color: #b294bb;">`uname -r`</span>/extra/flashcache/flashcache.ko
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>修复挂载错误
+
+<blockquote>
+<p>
+insmod: ERROR: could not insert module /lib/modules/3.19.3-3-ARCH/extra/flashcache/flashcache.ko: Unknown symbol in module
+</p>
+</blockquote>
+
+<p>
+通过 <code>dmesg | grep flashcache</code> 可以看到以下错误信息：
+</p>
+
+<blockquote>
+<p>
+[ 2130.514615] flashcache: Unknown symbol dm_put_device (err 0)<br  />
+       [ 2130.514654] flashcache: Unknown symbol dm_io_client_create (err 0)<br  />
+       [ 2130.514693] flashcache: Unknown symbol dm_kcopyd_client_create (err 0)<br  />
+       [ 2130.514738] flashcache: Unknown symbol dm_unregister_target (err 0)<br  />
+       [ 2130.514774] flashcache: Unknown symbol dm_io_client_destroy (err 0)<br  />
+       [ 2130.514798] flashcache: Unknown symbol dm_kcopyd_copy (err 0)<br  />
+       [ 2130.514821] flashcache: Unknown symbol dm_register_target (err 0)<br  />
+       [ 2130.514846] flashcache: Unknown symbol dm_kcopyd_client_destroy (err 0)<br  />
+       [ 2130.514870] flashcache: Unknown symbol dm_table_get_mode (err 0)<br  />
+       [ 2130.514895] flashcache: Unknown symbol dm_io (err 0)<br  />
+       [ 2130.514915] flashcache: Unknown symbol dm_get_device (err 0)
+</p>
+</blockquote>
+
+<p>
+先挂载 <code>dm-mod</code> 模块再挂载 <code>flashcache</code> 模块即可：
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo modprobe dm-mod
+sudo insmod /lib/modules/<span style="color: #b294bb;">`uname -r`</span>/extra/flashcache/flashcache.ko
+</pre>
+</div>
+
+<p>
+参考：<a href="https://bbs.archlinux.org/viewtopic.php?id=30478">No entry for device-mapper found</a>
+</p>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">模拟实验</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+参考：<a href="http://my.oschina.net/renguijiayi/blog/303747">flashcache的实现与用法</a>
+</p>
+
+<ul class="org-ul">
+<li>创建SSD模拟设备
+
+<p>
+使用内存文件模拟块设备（1G）
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">dd <span style="color: #f0c674;">if</span>=/dev/zero <span style="color: #f0c674;">of</span>=/dev/shm/ssd.img <span style="color: #f0c674;">bs</span>=1024k <span style="color: #f0c674;">count</span>=1024
+sudo losetup /dev/loop1 /dev/shm/ssd.img
+</pre>
+</div>
+</li>
+
+<li>创建HDD模拟设备
+
+<p>
+使用普通磁盘文件模拟块设备（5G）
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo dd <span style="color: #f0c674;">if</span>=/dev/zero <span style="color: #f0c674;">of</span>=/hdd.img <span style="color: #f0c674;">bs</span>=1024k <span style="color: #f0c674;">count</span>=5120
+sudo losetup /dev/loop2 /hdd.img
+</pre>
+</div>
+</li>
+
+<li>创建Flashcache混合设备
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo flashcache_create -p around cachedev /dev/loop1 /dev/loop2
+sudo mkfs.ext4 /dev/mapper/cachedev
+</pre>
+</div>
+</li>
+
+<li>挂载Flashcache混合设备
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo mkdir /data
+sudo mount /dev/mapper/cachedev /data
+</pre>
+</div>
+</li>
+</ul>
+
+<p>
+/data目录下的数据读写就已经在使用Flashcache了。
+</p>
+
+<ul class="org-ul">
+<li>创建用来测试的数据文件（1G）
+
+<div class="org-src-container">
+
+<pre class="src src-sh">dd <span style="color: #f0c674;">if</span>=/dev/urandom <span style="color: #f0c674;">of</span>=/dev/shm/test.dat <span style="color: #f0c674;">bs</span>=1024k <span style="color: #f0c674;">count</span>=1024
+</pre>
+</div>
+</li>
+
+<li>测算使用HDD写耗时
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo sh -c <span style="color: #8abeb7;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /dev/shm/test.dat /'</span>
+</pre>
+</div>
+
+<p>
+输出：
+</p>
+
+<pre class="example">
+real    0m4.751s
+user    0m0.000s
+sys 0m0.600s
+</pre>
+</li>
+
+<li>测算使用HDD读耗时
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo sh -c <span style="color: #8abeb7;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /test.dat /dev/shm/</span>
+</pre>
+</div>
+
+<p>
+输出：
+</p>
+
+<pre class="example">
+real    0m10.580s
+user    0m0.010s
+sys 0m0.727s
+</pre>
+</li>
+
+<li>测算使用Flashcache写耗时
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo sh -c <span style="color: #8abeb7;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /dev/shm/test.dat /data/'</span>
+</pre>
+</div>
+
+<p>
+输出：
+</p>
+
+<pre class="example">
+real    0m7.363s
+user    0m0.000s
+sys 0m0.760s
+</pre>
+</li>
+
+<li>测算使用Flashcache读耗时
+
+<p>
+第一轮测试（缓存预热）
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo sh -c <span style="color: #8abeb7;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /data/test.dat /dev/shm/'</span>
+</pre>
+</div>
+
+<p>
+输出：
+</p>
+
+<pre class="example">
+real    0m9.557s
+user    0m0.013s
+sys 0m1.157s
+</pre>
+
+<p>
+第二轮测试（缓存生效）
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo sh -c <span style="color: #8abeb7;">'echo 1 &gt; /proc/sys/vm/drop_caches; time cp /data/test.dat /dev/shm/'</span>
+</pre>
+</div>
+
+<p>
+输出：
+</p>
+
+<pre class="example">
+real    0m3.107s
+user    0m0.000s
+sys 0m0.850s
+</pre>
+</li>
+
+<li>清除测试数据
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo rm /test.dat /dev/shm/test.dat /data/test.dat
+</pre>
+</div>
+</li>
+
+<li>结果分析
+
+<ul class="org-ul">
+<li>Flashcache读性能： <b>提升70%</b>
+</li>
+
+<li>Flashcache写性能： <b>降低55%</b>
+</li>
+</ul>
+<p>
+因为使用了 <code>Write-Around</code> 方式，所以提升了读性能，降低了写性能。
+</p>
+</li>
+
+<li>清除模拟环境
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo umount /data
+sudo dmsetup remove cachedev
+sudo losetup -d /dev/loop1
+sudo rm /dev/shm/ssd.img
+sudo losetup -d /dev/loop2
+sudo rm /hdd.img
+sudo rmdir /data
+</pre>
+</div>
+</li>
+</ul>
+</div>
+</div>
+
+        </div>
+        <br />
+        <footer class="article-footer">
+          <span class="muted">
+            <i class="icon-time icon-white"></i> <time datetime="2015-04-23T20:16:00+0800">April 23, 2015</time>
+          </span>
+          <a class="tag" href="/tag/linux/0.html"><i class="icon-tag icon-white"></i> linux</a>
+          <a class="tag" href="/tag/flashcache/0.html"><i class="icon-tag icon-white"></i> flashcache</a>
+        </footer>
+      </div>
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+  /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+  var disqus_shortname = '';
+
+  /* * * DON'T EDIT BELOW THIS LINE * * */
+  (function() {
+  var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+  dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+      <div class="push-footer"></div>
+    </div>
+
+    <div id="footer">
+  	  <div class="copyright" style="text-align: center;">
+  	    
+  	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
+  	  </div>
+    </div>
+  </body>
+</html>

@@ -4,7 +4,7 @@
         <title>gitlab - 看看俺 – KanKanAn.com</title>
         <link>http://blog.kankanan.com/tag/gitlab.xml</link>
         <description>记我所思，忆我所为。</description>
-        <lastBuildDate>Sun, 11 Feb 2018 10:19:58 GMT</lastBuildDate>
+        <lastBuildDate>Thu, 21 Jun 2018 10:42:24 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <generator>Feed for Node.js</generator>
         <image>
@@ -12,7 +12,7 @@
             <url>http://blog.kankanan.com/static/favicon.ico</url>
             <link>http://blog.kankanan.com/tag/gitlab.xml</link>
         </image>
-        <copyright>版权所有 © 2011-2018 看看俺 – KanKanAn.com</copyright>
+        <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <category>技术</category>
         <item>
             <title><![CDATA[gitlab 针对 go 项目做持续集成]]></title>
@@ -32,23 +32,27 @@
 </p>
 
 <ul class="org-ul">
-<li><code>mv</code> 操作默认是不会移动隐藏目录（如： <code>.git</code> ）到目标位置的，这会导致后面的任务拉取代码失败
+<li><p>
+<code>mv</code> 操作默认是不会移动隐藏目录（如： <code>.git</code> ）到目标位置的，这会导致后面的任务拉取代码失败
+</p>
 
 <p>
 可以开启 <code>bash</code> 的选项 <code>dotglob</code> 让 <code>*</code> 匹配隐藏文件
-</p>
-</li>
+</p></li>
 
-<li>文件移动到目标位置后，没有清理机制，会影响下一任务
+<li><p>
+文件移动到目标位置后，没有清理机制，会影响下一任务
+</p>
 
 <p>
 将 <code>gitlab</code> 的 <code>GIT_STRATEGY</code> 变量配置为 <code>fetch</code> ，它会在拉取代码后执行 <code>git
     clean</code> 将未知的文件删除，如果我们将移动后的代码放在原来的位置下就可以做到自
 动清除没有负作用了。
-</p>
-</li>
+</p></li>
 
-<li>缓存 <code>vendor</code> 目录
+<li><p>
+缓存 <code>vendor</code> 目录
+</p>
 
 <p>
 <code>glide update</code> 会更新 Go 项目依赖，比较耗时，构建有 <code>build</code> <code>test</code> <code>deploy</code>
@@ -56,10 +60,11 @@
 任务是并行的，可以将 <code>build</code> 阶段的工作目录状态保留到其它阶段，可以用
 <code>cache</code> 来实现，也可以将除了 <code>build</code> 阶段以外的其它阶段的 <code>GIT_STRATEGY</code> 置
 为 <code>none</code> 来实现。
-</p>
-</li>
+</p></li>
 
-<li>创建 docker 镜像
+<li><p>
+创建 docker 镜像
+</p>
 
 <p>
 安装完 <code>gitlab-runner</code> 后要将 <code>gitlab-runner</code> 用户加入到 <code>docker</code> 用户组，这
@@ -67,7 +72,6 @@
 </p>
 
 <div class="org-src-container">
-
 <pre class="src src-sh">usermod gitlab-runner -a -G docker
 </pre>
 </div>
@@ -77,7 +81,6 @@
 <code>~gitlab-runner/.bashrc</code> 中设置环境变量
 </p>
 <div class="org-src-container">
-
 <pre class="src src-sh"><span style="color: #b294bb;">export</span> <span style="color: #f0c674;">DOCKER_REGISTRY</span>=gitlab.xxxxxx.com
 <span style="color: #b294bb;">export</span> <span style="color: #f0c674;">DOCKER_USER</span>=xxx@xxxxxx.com
 <span style="color: #b294bb;">export</span> <span style="color: #f0c674;">DOCKER_PASSWORD</span>=xxxxxxxx
@@ -89,7 +92,9 @@ docker 镜像按照简单的约定：
 </p>
 
 <ul class="org-ul">
-<li>git 打 tag 时打一个镜像，做为发布镜像
+<li><p>
+git 打 tag 时打一个镜像，做为发布镜像
+</p>
 
 <p>
 之前一直想实现仅当 <code>master</code> 分支打 <code>tag</code> 时才创建镜像，但是实现起来会很麻
@@ -99,23 +104,19 @@ branchs 是平级的概念。
 
 <p>
 相关讨论 <a href="https://gitlab.com/gitlab-org/gitlab-ce/issues/27818">Update `.gitlab-ci.yml` to support conjunction logic for build conditions (#27818)</a>
-</p>
-</li>
+</p></li>
 
-<li><code>dev</code> 开头的分支进行代码提交时打一个镜像，做为测试镜像
-</li>
-</ul>
-</li>
+<li><code>dev</code> 开头的分支进行代码提交时打一个镜像，做为测试镜像</li>
+</ul></li>
 </ul>
 
-<div id="outline-container-sec-1" class="outline-2">
-<h2 id="sec-1">示例配置：</h2>
-<div class="outline-text-2" id="text-1">
+<div id="outline-container-org3ad481b" class="outline-2">
+<h2 id="org3ad481b">示例配置：</h2>
+<div class="outline-text-2" id="text-org3ad481b">
 <p>
 <code>.gitlab-ci.yml</code>
 </p>
 <div class="org-src-container">
-
 <pre class="src src-yaml"><span style="color: #f0c674;">variables</span>:
   <span style="color: #f0c674;">REPO_NAME</span>: gitlab.example.com/mygroup/myproject
   <span style="color: #f0c674;">BIN_NAME</span>: mygroup.myproject

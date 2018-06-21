@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <title>解决 DNS 服务器不稳定引起的服务超时问题 | </title>
+    <link rel="shortcut icon" href="/static/favicon.ico" />
+    <link rel="stylesheet" type="text/css" href="/style/ediary.css"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="generator" content="o-blog"/>
+  </head>
+  <body>
+    <div class="navbar navbar-fixed-top" id="header">
+      <div class="navbar-inner">
+        <a class="brand" href="/" style="line-height:100%;"></a>
+        <ul class="navbar-links">
+          <li><a href="/index.xml"><i class="icon-rss icon-white"></i> Subscribe</a></li>
+          <li><a href="/category/ediary/0.html"><i class="icon-folder-close icon-white"></i> ediary</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="container container-fluid" id="page">
+      <div class="push-header"></div>
+
+      <div class="article">
+        <header class="article-header">
+          <h1>解决 DNS 服务器不稳定引起的服务超时问题</h1>
+        </header>
+      
+        <div class="article-content">
+          <p>
+微服务架构下，服务间常常会互相调用，调用前要先解析域名，如果 DNS 服务器不稳定则会导致服务响应超时。
+</p>
+
+<p>
+DNS 服务器一般由运维人员或者数据中心指定，属于不可控的因素，可以在程序内做 DNS 缓存缓解问题。
+</p>
+
+<p>
+通过 <a href="https://github.com/yahoo/dnscache">dnscache</a> 模块可以为 node.js 应用全局启用 DNS 缓存。
+</p>
+
+<ul class="org-ul">
+<li>安装
+
+<div class="org-src-container">
+
+<pre class="src src-sh">npm install dnscache
+</pre>
+</div>
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>启用 DNS 缓存
+
+<div class="org-src-container">
+
+<pre class="src src-js"><span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">dnscache</span> = require(<span style="color: #8abeb7;">'dnscache'</span>)({
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #8abeb7;">"enable"</span> : <span style="color: #81a2be;">true</span>,
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #8abeb7;">"ttl"</span> : 300,
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #8abeb7;">"cachesize"</span> : 1000
+});
+</pre>
+</div>
+</li>
+</ul>
+
+
+<p>
+启用 DNS 缓存后，只会在缓存过期后才会重新解析域名，如果重新解析域名时 DNS 服务器不稳定还是会导致服务响应超时，相比不用 dnscache 这种问题出现的机率减少了。
+</p>
+
+<p>
+想到一个对 dnscache 的改进：引入一个刷新时间 refresh_time （远小于缓存时间 ttl），每隔一段时间（refresh_time）异步重新解析一次缓存的域名，如果解析成功则更新 dnscache 并延长 ttl，这样只有当一段时间内（约为 ttl） DNS 服务器始终不稳定才会对服务造成影响，这个特性已在我的分支上实现 <a href="https://github.com/tangxinfa/dnscache/tree/feature-keepalive">feature-keepalive</a> 。</p>
+
+        </div>
+        <br />
+        <footer class="article-footer">
+          <span class="muted">
+            <i class="icon-time icon-white"></i> <time datetime="2016-10-11T20:30:00+0800">October 11, 2016</time>
+          </span>
+          <a class="tag" href="/tag/node/0.html"><i class="icon-tag icon-white"></i> node</a>
+          <a class="tag" href="/tag/dns/0.html"><i class="icon-tag icon-white"></i> dns</a>
+        </footer>
+      </div>
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+  /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+  var disqus_shortname = '';
+
+  /* * * DON'T EDIT BELOW THIS LINE * * */
+  (function() {
+  var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+  dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+      <div class="push-footer"></div>
+    </div>
+
+    <div id="footer">
+  	  <div class="copyright" style="text-align: center;">
+  	    
+  	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
+  	  </div>
+    </div>
+  </body>
+</html>

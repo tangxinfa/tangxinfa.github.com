@@ -16,6 +16,7 @@
           <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
           
           <li><a href="/index.html"><i class="icon-folder-close icon-white"></i> 技术</a></li>
+          <li><a href="/category/life/0.html"><i class="icon-folder-close icon-white"></i> 生活</a></li>
         </ul>
       </div>
     </div>
@@ -34,14 +35,13 @@
 </p>
 
 <div class="org-src-container">
-
 <pre class="src src-c++"><span style="color: #b5bd68;">class</span> <span style="color: #81a2be;">Chicken</span> : <span style="color: #b5bd68;">public</span> <span style="color: #81a2be;">enable_shared_from_this</span>&lt;<span style="color: #81a2be;">Chicken</span>&gt;
 {
 <span style="color: #b5bd68;">public</span>:
-<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #de935f;">Chicken</span>()
-<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> {
-<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #81a2be;">shared_ptr</span>&lt;<span style="color: #81a2be;">Chicken</span>&gt; <span style="color: #f0c674;">chicken_ptr</span> = shared_from_this();    <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">throw std::ba</span><span style="color: #de935f; background-color: #373b41; font-style: italic;">d_weak_ptr</span>
-<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> }
+<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #de935f;">Chicken</span>()
+<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> {
+<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #81a2be;">shared_ptr</span>&lt;<span style="color: #81a2be;">Chicken</span>&gt; <span style="color: #f0c674;">chicken_ptr</span> = shared_from_this();    <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">throw std::ba</span><span style="color: #969896; font-style: italic; text-decoration: underline;">d_weak_ptr</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> }
 };
 </pre>
 </div>
@@ -50,7 +50,6 @@
 再看shared_from_this()的行为：
 </p>
 <div class="org-src-container">
-
 <pre class="src src-c++"><span style="color: #b5bd68;">return</span> _weak_ptr-&gt;lock();
 </pre>
 </div>
@@ -63,9 +62,8 @@
 其实 <code>_weak_ptr</code> 成员变量是在 <code>shared_ptr</code> 的构造函数中延迟初始化的，不只是在构造函数中不能调用 <code>shared_from_this</code> ，像下面的使用方式同样不行：
 </p>
 <div class="org-src-container">
-
 <pre class="src src-c++"><span style="color: #81a2be;">Chicken</span>* <span style="color: #f0c674;">chicken</span> = <span style="color: #b5bd68;">new</span> <span style="color: #81a2be;">Chicken</span>();
-<span style="color: #81a2be;">shared_ptr</span>&lt;<span style="color: #81a2be;">Chicken</span>&gt; <span style="color: #f0c674;">chicken_ptr</span> = chicken-&gt;shared_from_this();  <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">throw std::bad</span><span style="color: #de935f; background-color: #373b41; font-style: italic;">_weak_ptr</span>
+<span style="color: #81a2be;">shared_ptr</span>&lt;<span style="color: #81a2be;">Chicken</span>&gt; <span style="color: #f0c674;">chicken_ptr</span> = chicken-&gt;shared_from_this();  <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">throw std::bad</span><span style="color: #969896; font-style: italic; text-decoration: underline;">_weak_ptr</span>
 </pre>
 </div>
 
@@ -81,18 +79,17 @@
 你应该像下面这样用：
 </p>
 <div class="org-src-container">
-
 <pre class="src src-c++"><span style="color: #b5bd68;">class</span> <span style="color: #81a2be;">Chicken</span> : <span style="color: #b5bd68;">public</span> <span style="color: #81a2be;">enable_shared_from_this</span>&lt;<span style="color: #81a2be;">Chicken</span>&gt;
 {
 <span style="color: #b5bd68;">public</span>:
-<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #de935f;">Chicken</span>()
-<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> {
-<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> }
+<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #de935f;">Chicken</span>()
+<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> {
+<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> }
 
-<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #81a2be;">void</span> <span style="color: #de935f;">use</span>()
-<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> {
-<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #81a2be;">shared_ptr</span>&lt;<span style="color: #81a2be;">Chicken</span>&gt; <span style="color: #f0c674;">chicken_ptr</span> = shared_from_this();
-<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> }
+<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #81a2be;">void</span> <span style="color: #de935f;">use</span>()
+<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> {
+<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #81a2be;">shared_ptr</span>&lt;<span style="color: #81a2be;">Chicken</span>&gt; <span style="color: #f0c674;">chicken_ptr</span> = shared_from_this();
+<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> }
 };
 
 <span style="color: #81a2be;">shared_ptr</span>&lt;<span style="color: #81a2be;">Chicken</span>&gt; <span style="color: #f0c674;">chicken_ptr</span>(<span style="color: #b5bd68;">new</span> <span style="color: #81a2be;">Chicken</span>);
@@ -187,7 +184,7 @@ chicken_ptr-&gt;use();
 
     <div id="footer">
   	  <div class="copyright" style="text-align: center;">
-  	    版权所有 © 2011-2018 看看俺 – KanKanAn.com
+  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
   	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
   	  </div>
     </div>

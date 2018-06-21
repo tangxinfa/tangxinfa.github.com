@@ -16,6 +16,7 @@
           <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
           
           <li><a href="/index.html"><i class="icon-folder-close icon-white"></i> 技术</a></li>
+          <li><a href="/category/life/0.html"><i class="icon-folder-close icon-white"></i> 生活</a></li>
         </ul>
       </div>
     </div>
@@ -37,9 +38,9 @@ Q: <code>snprintf</code> 返回的是实际写入到缓冲区的字符数吗？
 A: 错。当缓冲区空间不足时会返回比缓存区空间大的值。
 </p>
 
-<div id="outline-container-sec-1" class="outline-2">
-<h2 id="sec-1">man 3 snprintf</h2>
-<div class="outline-text-2" id="text-1">
+<div id="outline-container-orgfcc147d" class="outline-2">
+<h2 id="orgfcc147d">man 3 snprintf</h2>
+<div class="outline-text-2" id="text-orgfcc147d">
 <p>
 摘录关键部分
 </p>
@@ -108,9 +109,9 @@ If an output error is encountered, a negative value is returned.
 </div>
 </div>
 
-<div id="outline-container-sec-2" class="outline-2">
-<h2 id="sec-2">了解 snprintf</h2>
-<div class="outline-text-2" id="text-2">
+<div id="outline-container-org647978c" class="outline-2">
+<h2 id="org647978c">了解 snprintf</h2>
+<div class="outline-text-2" id="text-org647978c">
 <p>
 sprintf 输出到缓冲区，提供的缓存区空间不足时，引发臭名昭著的 <code>缓存区溢出</code> 漏洞，snprintf 通过指定缓存区空间大小解决了这个问题。
 </p>
@@ -123,21 +124,20 @@ snprintf 常用于字符串格式化（如：拼接 SQL 或 shell 命令），�
 如下代码所示：
 </p>
 <div class="org-src-container">
-
 <pre class="src src-c"><span style="color: #b5bd68;">const</span> <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">fields</span>[] = {
-<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #8abeb7;">"name"</span>,
-<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #8abeb7;">"age"</span>,
-<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #8abeb7;">"city"</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #8abeb7;">"name"</span>,
+<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #8abeb7;">"age"</span>,
+<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #8abeb7;">"city"</span>
 };
 
 <span style="color: #81a2be;">char</span> <span style="color: #f0c674;">sql</span>[10] = <span style="color: #8abeb7;">"select "</span>;
 <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">pos</span> = 0;
 
 <span style="color: #b5bd68;">for</span>(<span style="color: #81a2be;">int</span> <span style="color: #f0c674;">i</span> = 0; i &lt; <span style="color: #b5bd68;">sizeof</span>(fields)/<span style="color: #b5bd68;">sizeof</span>(fields[0]); ++i) {
-<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> pos += snprintf(sql + pos, <span style="color: #b5bd68;">sizeof</span>(sql) - pos, <span style="color: #8abeb7;">"%s%s"</span>, (i ? <span style="color: #8abeb7;">", "</span> : <span style="color: #8abeb7;">""</span>), field<span style="color: #de935f; background-color: #373b41;">s[i]);</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> pos += snprintf(sql + pos, <span style="color: #b5bd68;">sizeof</span>(sql) - pos, <span style="color: #8abeb7;">"%s%s"</span>, (i ? <span style="color: #8abeb7;">", "</span> : <span style="color: #8abeb7;">""</span>), field<span style="text-decoration: underline;">s[i]);</span>
 }
 
-snprintf(sql + pos, <span style="color: #b5bd68;">sizeof</span>(sql) - pos, <span style="color: #8abeb7;">" from users"</span>);
+<span style="color: #de935f;">snprintf</span>(sql + pos, <span style="color: #b5bd68;">sizeof</span>(<span style="color: #81a2be;">sql</span>) - pos, <span style="color: #8abeb7;">" from users"</span>);
 </pre>
 </div>
 
@@ -156,25 +156,24 @@ snprintf(sql + pos, <span style="color: #b5bd68;">sizeof</span>(sql) - pos, <spa
 </div>
 </div>
 
-<div id="outline-container-sec-3" class="outline-2">
-<h2 id="sec-3">使用 snprintf 的正确姿势</h2>
-<div class="outline-text-2" id="text-3">
+<div id="outline-container-org174e243" class="outline-2">
+<h2 id="org174e243">使用 snprintf 的正确姿势</h2>
+<div class="outline-text-2" id="text-org174e243">
 <div class="org-src-container">
-
 <pre class="src src-c"><span style="color: #81a2be;">int</span> <span style="color: #f0c674;">pos</span> = 0;
 <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">n</span> = snprintf(buffer + pos, <span style="color: #b5bd68;">sizeof</span>(buffer) - pos, <span style="color: #8abeb7;">"%s"</span>, <span style="color: #8abeb7;">"hello"</span>);
 <span style="color: #b5bd68;">if</span> (n &gt;= <span style="color: #b5bd68;">sizeof</span>(buffer) - pos) {
-<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">a return value of size or more means that the output was truncated</span>
-<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> fprintf(stderr, <span style="color: #8abeb7;">"error: buffer size not enough\n"</span>);
-<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span>;
+<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">a return value of size or more means that the output was truncated</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> fprintf(stderr, <span style="color: #8abeb7;">"error: buffer size not enough\n"</span>);
+<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #b5bd68;">return</span>;
 }
 n += pos;
 
 n = snprintf(buffer + pos, <span style="color: #b5bd68;">sizeof</span>(buffer) - pos, <span style="color: #8abeb7;">"%s"</span>, <span style="color: #8abeb7;">" snprintf"</span>);
 <span style="color: #b5bd68;">if</span> (n &gt;= <span style="color: #b5bd68;">sizeof</span>(buffer) - pos) {
-<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">a return value of size or more means that the output was truncated</span>
-<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> fprintf(stderr, <span style="color: #8abeb7;">"error: buffer size not enough\n"</span>);
-<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span>;
+<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">a return value of size or more means that the output was truncated</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> fprintf(stderr, <span style="color: #8abeb7;">"error: buffer size not enough\n"</span>);
+<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #b5bd68;">return</span>;
 }
 n += pos;
 </pre>
@@ -214,7 +213,7 @@ n += pos;
 
     <div id="footer">
   	  <div class="copyright" style="text-align: center;">
-  	    版权所有 © 2011-2018 看看俺 – KanKanAn.com
+  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
   	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
   	  </div>
     </div>

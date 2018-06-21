@@ -1,0 +1,1619 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+    <channel>
+        <title>pm2 - </title>
+        <link>/tag/pm2.xml</link>
+        <description></description>
+        <lastBuildDate>Fri, 20 Apr 2018 07:31:37 GMT</lastBuildDate>
+        <docs>http://blogs.law.harvard.edu/tech/rss</docs>
+        <generator>Feed for Node.js</generator>
+        <category>ediary</category>
+        <item>
+            <title><![CDATA[使用 pm2 启动 bash 后台脚本]]></title>
+            <link>/article/4f7f7528-pm2-542f52a8-bash-540e53f0811a672c.html</link>
+            <guid>/article/4f7f7528-pm2-542f52a8-bash-540e53f0811a672c.html</guid>
+            <pubDate>Fri, 02 Sep 2016 02:28:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+我们常常会使用 bash 写一些后台运行的守护进程，然后使用 crontab 实现开机启动并监控，
+也可以改为使用 pm2 来运行，功能更强大，更简单规范。
+</p>
+
+<p>
+使用 pm2 来管理后台进程仍然可以获得其大部分功能，如：
+</p>
+
+<ul class="org-ul">
+<li>日志管理
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>监控
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>进程管理
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>开机启动
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>崩溃重启
+</li>
+</ul>
+
+
+<p>
+如下定义 process.json
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-json">{
+<span style="color: #969896; background-color: #222427;"> </span> apps : [{
+<span style="color: #969896; background-color: #222427;"> </span>   name      : <span style="color: #8abeb7;">"run-log-analyze"</span>,
+<span style="color: #969896; background-color: #222427;"> </span>   script    : <span style="color: #8abeb7;">"./tools/run-log-analyze.sh"</span>,
+<span style="color: #969896; background-color: #222427;"> </span>   env: {
+<span style="color: #969896; background-color: #222427;"> </span>   },
+<span style="color: #969896; background-color: #222427;"> </span>   merge_logs: <span style="color: #81a2be;">true</span>,
+<span style="color: #969896; background-color: #222427;"> </span>   error_file: <span style="color: #8abeb7;">"tools/run-log-analyze.log"</span>,
+<span style="color: #969896; background-color: #222427;"> </span>   out_file: <span style="color: #8abeb7;">"tools/run-log-analyze.log"</span>,
+<span style="color: #969896; background-color: #222427;"> </span>   exec_mode: <span style="color: #8abeb7;">"fork"</span>
+<span style="color: #969896; background-color: #222427;"> </span> }]
+}
+</pre>
+</div>
+
+<p>
+run-log-analyze.sh 用于实时分析应用的日志
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">tail -f ./run.log | bunyan --strict -c <span style="color: #8abeb7;">'this.msg == "file uploaded"'</span> -0 | json -<span style="color: #de935f; background-color: #373b41;">ga file | ./tools/file-scan -o ./tools/file-scan-successed.log -e ./tools/file-scan-failed.log</span>
+</pre>
+</div>
+
+<p>
+上面的脚本不断读取 run.log，将上传的文件路径名提取出来，然后传给文件扫描程序（./tools/file-scan），扫描成功日志文件为 ./tools/file-scan-successed.log，扫描失败日志文件为 ./tools/file-scan-failed.log。
+</p>
+
+<p>
+现在在尝试启动进程
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">pm2 start process.json
+</pre>
+</div>
+
+<p>
+查看进程运行状态
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">pm2 list
+</pre>
+</div>
+
+<p>
+然后尝试重启
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">pm2 restart process.json
+</pre>
+</div>
+
+<p>
+发现后台有两个 <code>file-scan</code> 及 <code>tail -f ./run.log</code> 进程，restart 没有将子进程杀死，不过父进程 /bin/bash 进程倒是杀死了。
+</p>
+
+<p>
+估计是 bash 使用 pm2 fork-mode 运行后，其终端被 detach 了，相当于是后台 daemon 进程，bash 进程死掉后， <code>tail -f ./run.log</code> 进程收不到 SIGHUP 信号也就没有跟着退出。
+</p>
+
+<p>
+可以利用 tail 命令的参数 <code>-pid</code> ，指定 bash 结束时中断 <code>tail -f</code> 命令
+</p>
+
+<p>
+<code>man tail</code>
+</p>
+<blockquote>
+<p>
+&#x2013;pid=PID
+       with -f, terminate after process ID, PID dies  
+</p>
+</blockquote>
+
+<p>
+将 run-log-analyze.sh 改写如下
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">tail -f --pid=$<span style="color: #f0c674;">$</span> ./run.log | bunyan --strict -c <span style="color: #8abeb7;">'this.msg == "file uploaded"'</span> -0<span style="color: #de935f; background-color: #373b41;"> | json -ga file | ./tools/file-scan -o ./tools/file-scan-successed.log -e ./tools/file-scan-failed.log</span>
+</pre>
+</div>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[使用 collectd 监控 pm2 应用性能]]></title>
+            <link>/article/4f7f7528-collectd-76d163a7-pm2-5e947528602780fd.html</link>
+            <guid>/article/4f7f7528-collectd-76d163a7-pm2-5e947528602780fd.html</guid>
+            <pubDate>Thu, 05 May 2016 08:45:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+<a href="https://github.com/Unitech/pm2">pm2</a> 是 node.js 应用的产品级进程管理器。
+</p>
+
+<blockquote>
+<p>
+PM2 is a production process manager for Node.js applications with a built-in load balancer. It allows you to keep applications alive forever, to reload them without downtime and to facilitate common system admin tasks.
+</p>
+</blockquote>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">关键性能指标</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+通过 <a href="https://github.com/Unitech/pm2">pm2</a> 可以获取到 node.js 应用的几个关键性能指标：
+</p>
+
+<ul class="org-ul">
+<li>Memory used
+
+<p>
+node.js 应用的内存占用。
+</p>
+
+<p>
+node.js（v8） 通过垃圾收集（GC）技术进行自动内存管理，这里测量到的内存占用还包含一部分未回收的垃圾。
+</p>
+</li>
+
+<li>CPU used
+
+<p>
+node.js 应用的 CPU 占用。
+</p>
+
+<p>
+node.js 是单线程模型，虽然所有 I/O 操作是异步的，但是代码指令执行是同步的，过多的请求处理或消耗 CPU 的操作会导致应用响应速度变慢，可能无法提供正常的服务。
+</p>
+</li>
+
+<li>Loop delay
+
+<p>
+node.js 应用事件循环的延迟。
+</p>
+
+<p>
+pm2 测量 node.js 应用 Loop delay 的逻辑如下：
+</p>
+
+<blockquote>
+<p>
+记下开始时间（ process.hrtime ）
+</p>
+
+<p>
+设置 1 秒钟的定时器（setInterval）
+</p>
+
+<p>
+定时器触发时获取结束时间（ process.hrtime ）
+</p>
+
+<p>
+结束时间与开始时间的时间差减去 1 秒钟就是 Loop delay
+</p>
+</blockquote>
+<p>
+具体实现请查阅 pm2 源代码：node_modules/pm2/node_modules/pmx/lib/probes/pacemaker.js
+</p>
+</li>
+</ul>
+
+
+<p>
+一般来说 <code>Loop delay</code> 与 <code>CPU used</code> 指标是正相关的，但是如果 node.js 应用不小心调用了一些同步 I/O 操作或 I/O 出现瓶颈，则会出现 <code>CPU used</code> 低但是 <code>Loop delay</code> 高的情况。
+</p>
+
+<ul class="org-ul">
+<li>restart_time 及 unstable_restarts
+
+<p>
+node.js（javascript）是一门动态语言，很少运行到的代码分支里一个错误的变量引用就可能导致整个应用异常退出，pm2 会在 node.js 应用退出时自动重新拉起应用，
+但这可能会掩盖潜藏的问题（BUG），监控 node.js 应用的重启次数可以及时发现这种问题（BUG）。
+</p>
+</li>
+</ul>
+
+<p>
+上线新代码后，通过观测这几个关键性能指标，以及与历史记录进行对比，可以用来评估新代码的运行效率与质量。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">收集性能指标</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+通过 pm2 收集 node.js 应用性能指标的脚本 <code>/usr/local/bin/collectd-pm2.js</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-js"><span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">os</span> = require(<span style="color: #8abeb7;">'os'</span>);
+<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">exec</span> = require(<span style="color: #8abeb7;">'child_process'</span>).exec;
+
+
+<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">hostname</span> = process.env.COLLECTD_HOSTNAME || os.hostname();
+<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">interval</span> = parseInt(process.env.COLLECTD_INTERVAL, 10) || 1;
+
+<span style="color: #b5bd68;">function</span> <span style="color: #de935f;">collect</span> () {
+<span style="color: #969896; background-color: #222427;"> </span>   exec(<span style="color: #8abeb7;">'pm2 jlist'</span>, <span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">error</span>, <span style="color: #f0c674;">stdout</span>, <span style="color: #f0c674;">stderr</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (error) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   process.stderr.write(error.toString());
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   process.exit(1);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (stderr) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   process.stderr.write(stderr.toString() + <span style="color: #8abeb7;">"\n"</span>);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">timestamp</span> = Math.floor(Date.now() / 1000);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">list</span> = JSON.parse(stdout);
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   list.forEach(<span style="color: #b5bd68;">function</span> (<span style="color: #f0c674;">item</span>) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">name</span> = <span style="color: #8abeb7;">''</span>;
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">for</span>(<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">i</span> = 0, <span style="color: #f0c674;">n</span> = item.name.length; i &lt; n; ++i) {
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   name += item.name[i].match(<span style="color: #8abeb7;">/^[0-9a-zA-Z]+$/</span>) ? item.name[i] : <span style="color: #8abeb7;">'_</span><span style="color: #de935f; background-color: #373b41;">'</span><span style="color: #de935f; background-color: #373b41;">;</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   process.stdout.write(<span style="color: #8abeb7;">"PUTVAL \""</span> + hostname + <span style="color: #8abeb7;">"/"</span> + name + <span style="color: #8abeb7;">"-loop_de</span><span style="color: #de935f; background-color: #373b41;">lay"</span><span style="color: #de935f; background-color: #373b41;"> + </span><span style="color: #de935f; background-color: #373b41;">"/delay-"</span><span style="color: #de935f; background-color: #373b41;"> + item.pm_id + </span><span style="color: #de935f; background-color: #373b41;">"\" interval="</span><span style="color: #de935f; background-color: #373b41;"> + interval + </span><span style="color: #de935f; background-color: #373b41;">" "</span><span style="color: #de935f; background-color: #373b41;"> + timestamp + </span><span style="color: #de935f; background-color: #373b41;">":"</span><span style="color: #de935f; background-color: #373b41;"> + item.pm2_env.axm_monitor[</span><span style="color: #de935f; background-color: #373b41;">"Loop delay"</span><span style="color: #de935f; background-color: #373b41;">].value.replace(</span><span style="color: #de935f; background-color: #373b41;">'ms'</span><span style="color: #de935f; background-color: #373b41;">, </span><span style="color: #de935f; background-color: #373b41;">''</span><span style="color: #de935f; background-color: #373b41;">) + </span><span style="color: #de935f; background-color: #373b41;">"\n"</span><span style="color: #de935f; background-color: #373b41;">);</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   process.stdout.write(<span style="color: #8abeb7;">"PUTVAL \""</span> + hostname + <span style="color: #8abeb7;">"/"</span> + name + <span style="color: #8abeb7;">"-memory_</span><span style="color: #de935f; background-color: #373b41;">used"</span><span style="color: #de935f; background-color: #373b41;"> + </span><span style="color: #de935f; background-color: #373b41;">"/gauge-"</span><span style="color: #de935f; background-color: #373b41;"> + item.pm_id + </span><span style="color: #de935f; background-color: #373b41;">"\" interval="</span><span style="color: #de935f; background-color: #373b41;"> + interval + </span><span style="color: #de935f; background-color: #373b41;">" "</span><span style="color: #de935f; background-color: #373b41;"> + timestamp + </span><span style="color: #de935f; background-color: #373b41;">":"</span><span style="color: #de935f; background-color: #373b41;"> + item.monit.memory + </span><span style="color: #de935f; background-color: #373b41;">"\n"</span><span style="color: #de935f; background-color: #373b41;">);</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   process.stdout.write(<span style="color: #8abeb7;">"PUTVAL \""</span> + hostname + <span style="color: #8abeb7;">"/"</span> + name + <span style="color: #8abeb7;">"-cpu_use</span><span style="color: #de935f; background-color: #373b41;">d"</span><span style="color: #de935f; background-color: #373b41;"> + </span><span style="color: #de935f; background-color: #373b41;">"/gauge-"</span><span style="color: #de935f; background-color: #373b41;"> + item.pm_id + </span><span style="color: #de935f; background-color: #373b41;">"\" interval="</span><span style="color: #de935f; background-color: #373b41;"> + interval + </span><span style="color: #de935f; background-color: #373b41;">" "</span><span style="color: #de935f; background-color: #373b41;"> + timestamp + </span><span style="color: #de935f; background-color: #373b41;">":"</span><span style="color: #de935f; background-color: #373b41;"> + item.monit.cpu + </span><span style="color: #de935f; background-color: #373b41;">"\n"</span><span style="color: #de935f; background-color: #373b41;">);</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   process.stdout.write(<span style="color: #8abeb7;">"PUTVAL \""</span> + hostname + <span style="color: #8abeb7;">"/"</span> + name + <span style="color: #8abeb7;">"-restart</span><span style="color: #de935f; background-color: #373b41;">_time"</span><span style="color: #de935f; background-color: #373b41;"> + </span><span style="color: #de935f; background-color: #373b41;">"/gauge-"</span><span style="color: #de935f; background-color: #373b41;"> + item.pm_id + </span><span style="color: #de935f; background-color: #373b41;">"\" interval="</span><span style="color: #de935f; background-color: #373b41;"> + interval + </span><span style="color: #de935f; background-color: #373b41;">" "</span><span style="color: #de935f; background-color: #373b41;"> + timestamp + </span><span style="color: #de935f; background-color: #373b41;">":"</span><span style="color: #de935f; background-color: #373b41;"> + item.pm2_env.restart_time + </span><span style="color: #de935f; background-color: #373b41;">"\n"</span><span style="color: #de935f; background-color: #373b41;">);</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   process.stdout.write(<span style="color: #8abeb7;">"PUTVAL \""</span> + hostname + <span style="color: #8abeb7;">"/"</span> + name + <span style="color: #8abeb7;">"-unstabl</span><span style="color: #de935f; background-color: #373b41;">e_restarts"</span><span style="color: #de935f; background-color: #373b41;"> + </span><span style="color: #de935f; background-color: #373b41;">"/gauge-"</span><span style="color: #de935f; background-color: #373b41;"> + item.pm_id + </span><span style="color: #de935f; background-color: #373b41;">"\" interval="</span><span style="color: #de935f; background-color: #373b41;"> + interval + </span><span style="color: #de935f; background-color: #373b41;">" "</span><span style="color: #de935f; background-color: #373b41;"> + timestamp + </span><span style="color: #de935f; background-color: #373b41;">":"</span><span style="color: #de935f; background-color: #373b41;"> + item.pm2_env.unstable_restarts + </span><span style="color: #de935f; background-color: #373b41;">"\n"</span><span style="color: #de935f; background-color: #373b41;">);</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   });
+
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   setTimeout(collect, interval*1000);
+<span style="color: #969896; background-color: #222427;"> </span>   });
+}
+
+collect();
+</pre>
+</div>
+
+<p>
+pm2 是使用 root 帐号运行的，collectd exec 插件不允许以 root 权限运行收集统计的程序（collectd-pm2.js），一个简单的方法是用 c 写一个包裹程序，使用 <code>setuid</code> 切换到 root 帐号。
+</p>
+
+<p>
+<code>collectd-pm2-root.c</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-c"><span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;stdio.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;sys/types.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;sys/stat.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;sys/wait.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;unistd.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;stdlib.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;signal.h&gt;</span>
+<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;string.h&gt;</span>
+
+
+<span style="color: #81a2be;">int</span> <span style="color: #de935f;">main</span>(<span style="color: #81a2be;">int</span> <span style="color: #f0c674;">argc</span>, <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">argv</span>[]) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">if</span> (setuid(0) == -1 || setgid(0) == -1) {
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> perror(<span style="color: #8abeb7;">"setuid or setgid to root user error"</span>);
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> fprintf(stderr, <span style="color: #8abeb7;">"\npermit setuid and setgid to root user: \n\tchown root</span><span style="color: #de935f; background-color: #373b41;">:root %s\n\tchmod 4755 %s\n"</span><span style="color: #de935f; background-color: #373b41;">, argv[0], argv[0]);</span>
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> EXIT_FAILURE;
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> }
+
+<span style="color: #969896; background-color: #222427;"> </span> <span style="color: #969896; background-color: #222427;"> </span> <span style="color: #b5bd68;">return</span> system(<span style="color: #8abeb7;">"/bin/bash -c 'export PM2_HOME=${PM2_HOME:-~root/.pm2}; node /</span><span style="color: #de935f; background-color: #373b41;">usr/local/bin/collectd-pm2.js'"</span><span style="color: #de935f; background-color: #373b41;">);</span>
+}
+</pre>
+</div>
+
+<p>
+编译安装
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">gcc -O2 collectd-pm2-root.c -o collectd-pm2-root
+cp collectd-pm2-root /usr/local/bin
+chown root:root /usr/local/bin/collectd-pm2-root
+chmod 4755 /usr/local/bin/collectd-pm2-root
+</pre>
+</div>
+
+<p>
+配置 collectd，修改 <code>collectd.conf</code>
+</p>
+<pre class="example">
+LoadPlugin exec
+
+&lt;Plugin exec&gt;
+    Exec "nobody:nobody" "/usr/local/bin/collectd-pm2-root"
+&lt;/Plugin&gt;
+</pre>
+
+<p>
+测试运行统计收集脚本
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo -u nobody -g nobody /usr/local/bin/collectd-pm2-root
+</pre>
+</div>
+
+<p>
+重启 collectd 生效即可。
+</p>
+
+<p>
+以上代码已在 github 开源：<a href="https://github.com/tangxinfa/collectd-pm2">https://github.com/tangxinfa/collectd-pm2</a> 。</p>
+</div>
+</div>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Module version mismatch 错误排查]]></title>
+            <link>/article/module-version-mismatch-95198bef639267e5.html</link>
+            <guid>/article/module-version-mismatch-95198bef639267e5.html</guid>
+            <pubDate>Wed, 02 Mar 2016 07:41:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+node.js 应用启动时出现以下错误：
+</p>
+<pre class="example">
+Error: Cannot find module '../build/Debug/addon'
+    at Function.Module._resolveFilename (module.js:339:15)
+    at Function.Module._load (module.js:290:25)
+    at Function._load (/usr/lib/node_modules/pm2/node_modules/pmx/lib/transaction.js:62:21)
+    at Module.require (module.js:367:17)
+    at require (internal/module.js:16:19)
+    at Object.&lt;anonymous&gt; (node_modules/heapdump/lib/main.js:18:15)
+    at Module._compile (module.js:413:34)
+    at Object.Module._extensions..js (module.js:422:10)
+    at Module.load (module.js:357:32)
+    at Function.Module._load (module.js:314:12)
+</pre>
+
+<p>
+改了一下 heapdump/lib/main.js:18:15 附近的代码，输出了真正的错误信息：
+</p>
+<pre class="example">
+Error: Module version mismatch. Expected 47, got 46.
+</pre>
+
+<p>
+根据 node_version.h 中 NODE_MODULE_VERSION 的定义，46 对应 Node.js v4.0.0，47 对应 Node.js v5.0.0。
+应该是编译 heapdump 模块使用的 Node.js 版本和运行时 Node.js 版本不一致，编译时我通过 $PATH 环境变量，将 Node.js v4.2.3 置为默认的 Node.js 版本了。
+</p>
+<pre class="example">
+$ /usr/bin/node --version 
+v5.7.0
+$ node --version
+v4.2.3
+</pre>
+
+<p>
+我使用的是 pm2 做为进程管理器，cluster 模式运行 node.js 应用，pm2 后台进程使用的是默认版本的 Node.js 版本（v5.7.0）启动，应该是 pm2 也使用同样的 Node.js 版本（v5.7.0）来运行应用，执行 pm2 save 后，~/.pm2/dump.pm2 中我的应用的 $PATH 是正确的，已经将 Node.js v4.2.3 置为默认的 Node.js 版本，不知为何 pm2 并未采用。
+</p>
+
+<p>
+pm2 分为前端命令和后端 daemon 两部分，真正的操作都是由 daemon 来施行，当我们使用 pm2 start 来启动 app 时，只是把命令通过 unix socket 传递给了 daemon，一个合理的猜想是 pm2 命令并没有把当前 shell 的 $PATH 传递给 daemon，或者是 daemon 创建 app 进程时传递过来的 $PATH 设置未生效。
+</p>
+
+<p>
+查看当前的 pm2 版本：
+</p>
+<pre class="example">
+$ ps aux | grep PM2 | grep -v grep 
+tangxin+ 17538  0.1  0.4 1185564 32020 ?       Ssl  2月25   9:29 PM2 v0.14.5: God Daemon
+</pre>
+
+<p>
+通过 &#x2013;interpreter 选项启动应用时指定 Node.js v4.2.3： &#x2013;interpreter=/usr/local/node-v4.2.3/bin/node
+</p>
+
+<p>
+通过 pm2 delete 删除应用后再 start 应用，结果还是一样的错误，查看应用实际使用的 node 版本：
+</p>
+<pre class="example">
+$ ls -la /proc/22387/exe
+lrwxrwxrwx 1 tangxinfa tangxinfa 0 3月   2 14:00 /proc/22387/exe -&gt; /usr/bin/node
+</pre>
+<p>
+使用的还是系统默认的 Node.js 版本 v5.7.0。
+</p>
+
+<p>
+经过测试，可以确认：
+</p>
+<blockquote>
+<p>
+通过 &#x2013;interpreter 指定其它 node 版本，在 cluster 模式下无效，fork 模式下有效。
+</p>
+</blockquote>
+
+<p>
+参见相关 Issues：
+</p>
+
+<ul class="org-ul">
+<li><a href="https://github.com/Unitech/PM2/issues/1575">interpreter ignored when using cluster mode · Issue #1575 · Unitech/pm2</a>
+</li>
+
+<li><a href="https://github.com/Unitech/PM2/issues/1034">Using different versions of node via nvm for each app · Issue #1034 · Unitech/pm2</a>
+</li>
+
+<li><a href="https://github.com/Unitech/PM2/issues/1224#issuecomment-99931316">&#x2013;interpreter not applied? · Issue #1224 · Unitech/pm2</a>
+</li>
+</ul>
+
+
+<p>
+查看 pm2 与 node.js 的源代码进一步确认该问题：
+</p>
+
+<ul class="org-ul">
+<li>pm2 调用 cluster.fork 创建工作进程
+
+<p>
+引用自 pm2/lib/God/ClusterMode.js
+</p>
+<div class="org-src-container">
+
+<pre class="src src-js">cluster.fork({pm2_env: JSON.stringify(env_copy)})
+</pre>
+</div>
+</li>
+
+<li>cluster.fork 调用 child_process.fork 创建工作进程
+
+<p>
+引用自 node/lib/cluster.js
+</p>
+<div class="org-src-container">
+
+<pre class="src src-js"><span style="color: #b5bd68;">return</span> fork(cluster.settings.exec, cluster.settings.args, {
+<span style="color: #969896; background-color: #222427;"> </span> env: workerEnv,
+<span style="color: #969896; background-color: #222427;"> </span> silent: cluster.settings.silent,
+<span style="color: #969896; background-color: #222427;"> </span> execArgv: execArgv,
+<span style="color: #969896; background-color: #222427;"> </span> gid: cluster.settings.gid,
+<span style="color: #969896; background-color: #222427;"> </span> uid: cluster.settings.uid
+});
+</pre>
+</div>
+
+<p>
+根据 child_process.fork 的实现（见 node/lib/child_process.js），由于未传入 <code>execPath</code> 选项，会使用 <code>process.execPath</code> 的值，也就是会使用 pm2 后台进程的 node 可执行程序路径来创建工作进程。
+</p>
+</li>
+</ul>
+
+<p>
+应该可以通过指定不同的 $PM2_HOME 环境变量，跑多套 pm2，各个 pm2 使用不同版本的 Node.js，多个 cluster 模式的 pm2 应用也就会使用不同版本 Node.js。</p>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[CentOS 6.4 生产环境上安装 pm2]]></title>
+            <link>/article/centos-6.4-751f4ea773af58834e0a5b8988c5-pm2.html</link>
+            <guid>/article/centos-6.4-751f4ea773af58834e0a5b8988c5-pm2.html</guid>
+            <pubDate>Thu, 25 Feb 2016 09:27:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+确保系统要干净（尚未安装 node.js），使用 root 帐号登录。
+</p>
+
+<ul class="org-ul">
+<li>安装 LTS 版的 node.js
+
+<p>
+当前 <a href="https://nodejs.org/en/">官方</a> 推荐的 LTS 版本为 v4.3.1，通过淘宝镜像下载速度快一些，直接安装在系统目录中 /usr 下，便于使用。
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">wget http://npm.taobao.org/mirrors/node/latest-v4.x/node-v4.3.1-linux-x64.tar.xz<span style="color: #de935f; background-color: #373b41;"> -O node-v4.3.1-linux-x64.tar.xz</span>
+tar xJvf node-v4.3.1-linux-x64.tar.xz --no-same-owner --exclude CHANGELOG.md --e<span style="color: #de935f; background-color: #373b41;">xclude LICENSE --exclude README.md --strip-components 1 -C /usr</span>
+</pre>
+</div>
+
+<p>
+参考：<a href="https://gist.github.com/TooTallNate/2477f53a23a51537332e">Install Node.js one-liner</a>
+</p>
+</li>
+
+<li>安装稳定版 pm2
+
+<p>
+从 <a href="https://github.com/Unitech/pm2/blob/master/CHANGELOG.md">CHANGELOG.md</a> 查到的当前的稳定版本为 v0.14.3，pm2 发布很频繁,不宜追新。
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">npm install pm2@0.14.3 -g
+</pre>
+</div>
+</li>
+
+<li>设置 pm2 为开机启动
+
+<div class="org-src-container">
+
+<pre class="src src-sh">pm2 startup centos
+</pre>
+</div>
+</li>
+
+<li>定期清理日志
+
+<p>
+按《 <a href="http://blog.kankanan.com/article/pm2-768465e55fd77ba17406.html#sec-6">pm2的日志管理</a> 》中的“定期清理日志”一节所述使用 logrotate 服务定期清理日志。</p>
+</li>
+</ul>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[使用 pm2 管理应用]]></title>
+            <link>/article/4f7f7528-pm2-7ba174065e947528.html</link>
+            <guid>/article/4f7f7528-pm2-7ba174065e947528.html</guid>
+            <pubDate>Thu, 25 Feb 2016 07:18:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+pm2 是使用 node.js 开发的进程管理器，实现统一方式管理进程，如：崩溃后拉起、启动/停止、监控、日志管理等。
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">安装</h2>
+<div class="outline-text-2" id="text-1">
+<div class="org-src-container">
+
+<pre class="src src-sh">npm install pm2@latest -g
+</pre>
+</div>
+</div>
+
+<div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1">为什么要全局（global）方式安装 pm2？</h3>
+<div class="outline-text-3" id="text-1-1">
+<p>
+pm2 被设计成管理用户的全部应用，pm2 的数据保存在 ~/.pm2 目录下，同一用户只能启动一个 pm2 后台进程（PM2 daemon），不同用户的 pm2 互不影响。
+不安装为全局的情况下，如果安装多个版本的 pm2，不同版本的 pm2 前端工具程序与 pm2 后台进程（PM2 daemon）交互是有风险的。
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">应用管理</h2>
+<div class="outline-text-2" id="text-2">
+<ul class="org-ul">
+<li>启动应用
+
+<div class="org-src-container">
+
+<pre class="src src-sh">pm2 start -n app1 app1.js
+pm2 start -n app2 app2.js
+</pre>
+</div>
+</li>
+
+<li>列出应用
+
+<div class="org-src-container">
+
+<pre class="src src-sh">pm2 list
+</pre>
+</div>
+</li>
+
+<li>应用详情
+
+<div class="org-src-container">
+
+<pre class="src src-sh">pm2 describe app1
+</pre>
+</div>
+</li>
+
+<li>停止应用
+
+<div class="org-src-container">
+
+<pre class="src src-sh">pm2 stop app1
+pm2 stop app2
+</pre>
+</div>
+</li>
+
+<li>删除应用
+
+<div class="org-src-container">
+
+<pre class="src src-sh">pm2 delete app1
+pm2 delete app2
+</pre>
+</div>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">开机启动</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+应用启动后需要保存，应用才会在开机后由 pm2 服务启动。
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">pm2 save
+</pre>
+</div>
+
+<p>
+创建 pm2 系统服务，开机启动 pm2
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">sudo pm2 startup systemd -u app
+</pre>
+</div>
+
+<p>
+不重启试运行一下，看是否正常
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #969896; font-style: italic;"># </span><span style="color: #969896; font-style: italic;">&#28165;&#31354;&#36827;&#31243;&#24182;&#36864;&#20986; pm2&#65292;&#22238;&#21040;&#24178;&#20928;&#30340;&#31995;&#32479;&#29366;&#24577;</span>
+sudo systemctl stop pm2
+ps aux | grep node
+
+<span style="color: #969896; font-style: italic;"># </span><span style="color: #969896; font-style: italic;">&#21551;&#21160; pm2 &#26381;&#21153;&#65292;&#39564;&#35777;&#19968;&#19979;&#24212;&#29992;&#26159;&#21542;&#27491;&#24120;&#21551;&#21160;</span>
+sudo systemctl start pm2
+pm2 list
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4">日志管理</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+《 <a href="http://blog.kankanan.com/article/pm2-768465e55fd77ba17406.html">pm2的日志管理</a> 》有详细描述。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5">多 node.js 版本共存</h2>
+<div class="outline-text-2" id="text-5">
+<p>
+pm2 本身就是 node.js 开发的程序，依赖 node.js，pm2 应用可以使用不同版本的 node.js。
+</p>
+
+<p>
+pm2 命令行工具会通过“#!/usr/bin/env node”方式引用 node，如果应用也以同样的方式引用 node.js，就要随时注意切换 node.js 版本，一不小心 pm2 命令行工具和 pm2 应用使用的 node.js 版本会错乱，有一定风险性。一个 node.js 版本安装的模块不能保证与另一个 node.js 版本兼容，特别是一些 c++ 扩展模块。
+</p>
+
+<p>
+我以前的实践中，应用会提供一个环境脚本 .bashrc ，在操作某个应用时，总是会通过 <code>source .bashrc</code> 先设置应用的 shell 环境变量，通过 $PATH 环境变量指定 node 命令为应用所需的 node.js 版本不是一个好主意，当操作 pm2 时，pm2 也会使用这个应用的 node.js 版本。
+</p>
+
+<p>
+从这一点上看，不应该使用 node.js 、php、python、ruby 之类的脚本语言来开发进程管理器，它本身的依赖管理就是个大麻烦，使用 go、c 或 c++ 来开发会好得多。
+</p>
+
+<p>
+理想情况下，pm2 和 应用（app）总是使用正确的 node.js 版本，可以归为以下三种情形。新应用应该总是假设布署环境为情形 1，不要过多考虑系统运行的 node.js 版本，这也就要求应用能够兼容各种 node.js 版本，但是现实情况是，node.js 以及 javascript 发展得太快了，应用依赖的各种 node.js 模块也往往做不到兼容各种 node.js 版本，很多模块基于实现的简洁性考虑，提供多个版本分别对应不同的 node.js 版本，导致应用也必须从一开始就选择特定的 node.js 版本，不同团队、人员及项目跟进新技术步调不一致时，情形 2 及情形 3 是现实的选择。
+</p>
+</div>
+
+<div id="outline-container-sec-5-1" class="outline-3">
+<h3 id="sec-5-1">情形 1：系统中只有一个 node.js 版本，并且是全局安装</h3>
+<div class="outline-text-3" id="text-5-1">
+<p>
+在专机专用的生产环境下，这种情形会很常见，特别是 docker 容器环境下。
+</p>
+
+<p>
+这是最简单的一种情况，不需要为 node.js 版本操心，整个开发组织在 node.js 版本选择上共进退，保持一致。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-5-2" class="outline-3">
+<h3 id="sec-5-2">情形 2：系统中有一个全局 node.js 版本，应用有自已的 node.js 版本</h3>
+<div class="outline-text-3" id="text-5-2">
+<p>
+开发环境下，或者同一机器部署大量微服务的情况下，一般就是这种情形。
+</p>
+
+<p>
+这是最复杂的一种情况，在运行应用代码的时候，要确保切到应用所需的 node.js 版本，在执行 pm2 操作的时候，要确保切到 pm2 所需的 node.js 版本，有如履薄冰的感觉。
+</p>
+
+<p>
+node.js 版本需要在以下方面正确匹配：
+</p>
+
+<ul class="org-ul">
+<li>pm2 的 node.js 版本
+
+<p>
+pm2 本身就是一套用户全局的进程管理工具，使用全局的 node.js 版本是自然而然的选择。
+</p>
+
+<p>
+否则就一定要记得使用正确的 node.js 版本运行 pm2：/usr/local/node-v5.0.0/bin/node pm2 list，很是不便。
+</p>
+</li>
+
+<li>应用的 node.js 版本
+
+<p>
+建议使用 <code>--interpreter</code> 选项指定 node.js 版本，参见讨论：<a href="https://github.com/Unitech/PM2/issues/1034">Using different versions of node via nvm for each app · Issue #1034 · Unitech/pm2</a> 。
+</p>
+
+<p>
+警告：pm2 在 <code>cluster</code> 模式下， <code>--interpreter</code> 选项被忽略，详见：<a href="http://blog.kankanan.com/article/module-version-mismatch-95198bef639267e5.html">Module version mismatch 错误排查 | 看看俺 – KanKanAn.com</a> 。
+</p>
+
+<p>
+这是最关键的一点，应用的 node.js 版本不对，可能导致应用启动失败，中断服务。
+</p>
+</li>
+
+<li>应用的辅助脚本的 node.js 版本
+
+<p>
+使用 node.js 开发的应用附带命令行工具运行时如果 node.js 版本不对，通常不会对运行中的服务造成影响。
+</p>
+
+<p>
+可以简单地写一些 shell 脚本封装，在 shell 脚本中指定正确的 node.js 版本，如：
+</p>
+
+<p>
+<code>dump.sh</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/</span><span style="color: #b5bd68;">bash</span>
+
+/usr/local/node-v5.0.0/bin/node ./dump.js
+</pre>
+</div>
+
+<p>
+也可以直接在 node.js 脚本中引用正确的 node.js 版本，如：
+</p>
+
+<p>
+<code>dump.js</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-js">#!/usr/local/node-v5.0.0/bin/node
+
+<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">fs</span> = require(<span style="color: #8abeb7;">'fs'</span>);
+...
+</pre>
+</div>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">chmod a+x dump.js
+./dump.js
+</pre>
+</div>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-5-3" class="outline-3">
+<h3 id="sec-5-3">情形 3：系统没有全局 node.js 版本，应用各自维护 node.js 版本</h3>
+<div class="outline-text-3" id="text-5-3">
+<p>
+这是上面情况的简化版，考验开发、运维团队的纪律性。
+</p>
+
+<p>
+由于 $PATH 中没有 node.js，不会由于没有指定 node.js 绝对路径无意间引用错误的 node.js 版本。
+</p>
+
+<p>
+可以把 node.js 安装在应用根目录下，如下目录结构所示：
+</p>
+
+<pre class="example">
+Applications
+|
+|
+|--- Application 1
+|         |
+|         |--------- node
+|         |
+|         |--------- package.json
+|         |
+|         |--------- ...
+|
+|    
+|--- Application 2
+|         |
+|         |--------- node
+|         |
+|         |--------- package.json
+|         |
+|         |--------- ...
+|
+|
+|--- Application 3
+|         |
+|         |--------- node
+|         |
+|         |--------- package.json
+|         |
+|         |--------- ...
+|
+</pre>
+
+<p>
+甚至 pm2 也通过以上方式安装自已的 node.js 版本。
+</p>
+
+<p>
+通过 ./node/bin/node 引用 node.js 可执行程序，不要试图通过将 ./node/bin 目录加到 $PATH 中以简化使用，否则操作不同应用或 pm2 时，又会一不小心引用到错误的 node.js 版本。
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-6" class="outline-2">
+<h2 id="sec-6">参考</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+<a href="http://pm2.keymetrics.io/docs/usage/pm2-doc-single-page/">PM2 - One page documentation</a></p>
+</div>
+</div>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[pm2的日志管理]]></title>
+            <link>/article/pm2-768465e55fd77ba17406.html</link>
+            <guid>/article/pm2-768465e55fd77ba17406.html</guid>
+            <pubDate>Wed, 17 Feb 2016 06:16:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+<a href="https://github.com/Unitech/pm2">pm2</a> 自身的日志文件 ~/.pm2/pm2.log，下面讲的是 <a href="https://github.com/Unitech/pm2">pm2</a> app（应用）的日志文件。
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">默认日志</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+每个 app（应用） 会生成 instances*2 （实例数×2）个日志文件。
+</p>
+
+<dl class="org-dl">
+<dt> app 的标准输出日志文件 </dt><dd>~/.pm2/logs/&lt;app name&gt;-out-&lt;instance id&gt;.log
+</dd>
+
+<dt> app 的错误输出日志文件 </dt><dd>~/.pm2/logs/&lt;app name&gt;-error-&lt;instance id&gt;.log
+</dd>
+</dl>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2">合并输出类型日志（-l）</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+每个 app（应用） 会生成 instances+1 （实例数+1）个日志文件。
+</p>
+
+<dl class="org-dl">
+<dt> app 的日志文件 </dt><dd>~/.pm2/logs/&lt;app name&gt;-&lt;instance id&gt;.log
+</dd>
+</dl>
+
+<p>
+不影响默认日志。
+</p>
+
+<ul class="org-ul">
+<li>可以指定合并输出类型的日志文件名（-l app.log）
+
+<p>
+输出日志文件名为 app-&lt;instance id&gt;.log
+</p>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">合并实例日志（&#x2013;merge-logs）</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+同一 app（应用）的所有 instances（实例）日志文件放在一起。
+</p>
+
+<dl class="org-dl">
+<dt> app 的默认标准输出日志文件 </dt><dd>~/.pm2/logs/&lt;app name&gt;-out.log
+</dd>
+
+<dt> app 的默认错误输出日志文件 </dt><dd>~/.pm2/logs/&lt;app name&gt;-error.log
+</dd>
+
+<dt> app 的合并输出类型日志文件 </dt><dd>~/.pm2/logs/&lt;app name&gt;.log
+</dd>
+</dl>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4">禁止默认日志</h2>
+<div class="outline-text-2" id="text-4">
+<ul class="org-ul">
+<li>禁止默认的标准输出日志文件（-o /dev/null）
+</li>
+
+<li>禁止默认的错误输出日志文件（-e /dev/null）
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5">示例：app 生成一个日志文件简化日志管理</h2>
+<div class="outline-text-2" id="text-5">
+<div class="org-src-container">
+
+<pre class="src src-sh">pm2 -n app -i 0 -l app.log -o /dev/null -e /dev/null --merge-logs start app.js
+</pre>
+</div>
+
+<p>
+这样只会生成一个日志文件 app.log。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-6" class="outline-2">
+<h2 id="sec-6">定期清理日志</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+不建议使用 <a href="https://www.npmjs.com/package/pm2-logrotate">pm2-logrotate</a> ，太多问题了（详见： <a href="http://blog.kankanan.com/article/63a75236-pm2-768465e55fd765874ef659275c0f.html#sec-1">控制pm2的日志文件大小</a> ）。
+</p>
+
+<p>
+还是使用 logrotate 服务靠谱（参考 <a href="http://pm2.keymetrics.io/docs/usage/log-management/#setting-up-a-native-logrotate">Setting up a native logrotate</a> <a href="http://huoding.com/2013/04/21/246">被遗忘的Logrotate | 火丁笔记</a>）：
+</p>
+
+<p>
+<code>/etc/logrotate.d/pm2-root</code>
+</p>
+<pre class="example">
+/root/.pm2/pm2.log /root/.pm2/logs/*.log {
+    daily
+    size 1M
+    rotate 10
+    create 600 nobody nobody
+    missingok
+    notifempty
+    compress
+    sharedscripts
+    copytruncate
+}
+</pre>
+</div>
+</div>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[修复文件目录权限引起的错误：Cannot find module]]></title>
+            <link>/article/4fee590d65874ef676ee5f55674396505f158d77768495198befff1a-cannot-find-module.html</link>
+            <guid>/article/4fee590d65874ef676ee5f55674396505f158d77768495198befff1a-cannot-find-module.html</guid>
+            <pubDate>Mon, 28 Dec 2015 07:28:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+<code>node.js</code> 应用部署后多次遇到这种错误：
+</p>
+
+<pre class="example">
+Error: Cannot find module '../encodings'
+      at Function.Module._resolveFilename (module.js:338:15)
+      at Function.Module._load (module.js:289:25)
+      at Function._load (/usr/local/www.xxxxxxxx.com/node_modules/pm2/node_modules/pmx/lib/transaction.js:62:21)
+      at Module.require (module.js:366:17)
+      at require (module.js:385:17)
+      at Object.getCodec (/usr/local/www.xxxxxxxx.com/node_modules/koa-body/node_modules/co-body/node_modules/raw-body/node_modules/iconv-lite/lib/index.js:61:27)
+      at Object.getDecoder (/usr/local/www.xxxxxxxx.com/node_modules/koa-body/node_modules/co-body/node_modules/raw-body/node_modules/iconv-lite/lib/index.js:118:23)
+      at getDecoder (/usr/local/www.xxxxxxxx.com/node_modules/koa-body/node_modules/co-body/node_modules/raw-body/index.js:44:18)
+      at readStream (/usr/local/www.xxxxxxxx.com/node_modules/koa-body/node_modules/co-body/node_modules/raw-body/index.js:218:15)
+      at executor (/usr/local/www.xxxxxxxx.com/node_modules/koa-body/node_modules/co-body/node_modules/raw-body/index.js:110:5)
+</pre>
+
+<p>
+下意识地以为是 <code>node.js</code> 版本用错了（ <code>npm install</code> 和运行时的 <code>node.js</code> 版本不一致），删除 <code>node_modules</code> 重新 <code>npm install</code> 后还是一样的问题。
+</p>
+
+<p>
+查了一下源代码，找到了出错位置 <code>node_modules/koa-body/node_modules/co-body/node_modules/raw-body/node_modules/iconv-lite/lib/index.js:61</code> ：
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-js"><span style="color: #b5bd68;">if</span> (!iconv.encodings)
+<span style="color: #969896; background-color: #222427;"> </span>   iconv.encodings = require(<span style="color: #8abeb7;">"../encodings"</span>); <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">Lazy load all encoding definit</span><span style="color: #de935f; background-color: #373b41; font-style: italic;">ions.</span>
+</pre>
+</div>
+
+<p>
+这是延迟加载模块，代码本身没有错， <code>../encodings</code> 模块是存在的，以前也有遇到类似问题，不过是在 <code>node.js</code> 一启动就报错，因为系统默认的权限太严格了（如： <code>umask</code> 为 <code>0077</code> ）， <code>npm install</code> 安装的 <code>node_modules</code> 其它用户（如 <code>nobody</code> ）没有访问权限。这次是在处理用户请求过程中报错，考虑到上面的模块是延迟加载，在初始化完成与监听端口处理用户请求的代码之间，我的代码有 <code>setuid</code> 到 <code>nobody</code> 的逻辑，应该还是文件目录权限引起。
+</p>
+
+<p>
+最终发现是 <code>/usr/local/www.xxxxxxxx.com</code> 在创建时因为系统默认的权限设置太严格（ <code>umask</code> 为 <code>0077</code> ），导致 <code>nobody</code> 用户无法访问，改一下目录权限后问题修复。</p>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[控制pm2的日志文件大小]]></title>
+            <link>/article/63a75236-pm2-768465e55fd765874ef659275c0f.html</link>
+            <guid>/article/63a75236-pm2-768465e55fd765874ef659275c0f.html</guid>
+            <pubDate>Fri, 25 Dec 2015 10:41:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+下班前发现线上服务器的 <code>100G</code> 磁盘只有 <code>10%</code> 空闲空间了，检查了一下是 <code>pm2</code> 的日志文件（在 <code>~/.pm2/logs</code> 目录下）占用的。
+</p>
+
+<p>
+参考帖子 <a href="https://github.com/Unitech/pm2/issues/535">Limit logs size? · Issue #535 · Unitech/pm2</a> 安装 <a href="https://www.npmjs.com/package/pm2-logrotate">pm2-logrotate</a> <code>pm2 install pm2-logrotate</code> ，
+</p>
+
+<p>
+安装完成后，观察到正在按时间切分成多个日志文件，但空闲空间在迅速减少，眼看就要低于 <code>5%</code> 了，要是磁盘满了会影响关键的 <code>redis</code> 数据库，
+</p>
+
+<p>
+立即手工将日志文件全部删除，但是磁盘空闲空间在继续减少，明白是 <code>pm2</code> 或者 <code>pm2-logrotate</code> 打开了日志文件导致空间无法释放，
+</p>
+
+<p>
+立即执行 <code>pm2 kill</code> ， 等 <code>crontab</code> 将服务重新拉起，一分钟后确认危机解决。好在这台服务器上的 <code>node.js</code> 服务都不是很关键，
+</p>
+
+<p>
+没有造成太大影响，圣诞节快乐:)
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1">今天（2016-02-16）运维人员发现pm2的日志快占满磁盘</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+<a href="https://www.npmjs.com/package/pm2-logrotate">pm2-logrotate</a> （当前版本为1.3.1） 默认情况下，并未限制日志文件数，旧的日志文件未自动删除释放空间，需要设置 retain 配置项：
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-js">pm2 set pm2-logrotate:retain 100
+</pre>
+</div>
+
+<p>
+这样最多会保留 100 个日志文件。
+</p>
+
+<p>
+max_size 配置项默认是 10MB，并不意味着切割出来的日志文件大小一定就是 10MB，而是检查时发现日志文件大小达到 max_size，则触发日志切割。
+</p>
+
+<p>
+interval 和 interval_unit 配置项指定了按时间维度进行日志切割。
+</p>
+
+<p>
+切割是指将日志文件内容移到名称为 &lt;project name&gt;-out__YYYY-MM-DD-HH-mm.log 的日志文件中，所以日志文件大小往往是超过 max_size 的。
+</p>
+
+<p>
+由于默认配置 interval 为 1， interval_unit 为 DD，所以每天至少会切割一次日志，每分钟当发现日志大小超过 10MB，也会触发一次日志切割。
+</p>
+
+<p>
+pm2-logrotate 现阶段小问题还是比较多的（详见项目的 <a href="https://github.com/pm2-hive/pm2-logrotate/issues">issues</a> ），如：
+</p>
+
+<ul class="org-ul">
+<li>日志文件日期始终是前一天，日志文件大小超过 max_size 触发日志切割时，文件名中的日期也为前一天不合理了。
+
+<p>
+详见 <a href="https://github.com/pm2-hive/pm2-logrotate/issues/18">Fast growing log files may be overwritten #18</a>
+</p>
+</li>
+
+<li>如果日志文件写得很快，切割时有可能因为日志文件名冲突，导致同名的旧日志文件被覆盖。
+
+<p>
+详见 <a href="https://github.com/pm2-hive/pm2-logrotate/issues/17">Rotated files date #17</a>
+</p>
+</li>
+
+<li>pm2 开启 merge_logs 时，日志会重复
+
+<p>
+详见 <a href="https://github.com/pm2-hive/pm2-logrotate/issues/14">logrotate rotate the log multiple times if merge_logs is true #14</a>
+</p>
+</li>
+
+<li>无法精确限制日志占用空间。
+
+<p>
+不过 logrotate 工具也不能，所以也不算是个严重的问题。
+</p>
+</li>
+</ul>
+
+<p>
+更好的方式可能是使用操作系统的 logrotate 服务。</p>
+</div>
+</div>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[后台服务监护工具：forever与pm2]]></title>
+            <link>/article/540e53f0670d52a176d162a45de55177ff1a-forever-4e0e-pm2.html</link>
+            <guid>/article/540e53f0670d52a176d162a45de55177ff1a-forever-4e0e-pm2.html</guid>
+            <pubDate>Fri, 24 Jul 2015 16:15:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+使用后台服务监护工具有很多好处：
+</p>
+
+<ul class="org-ul">
+<li>程序崩溃时自动拉起
+</li>
+
+<li>程序日志聚合（你的系统有多个模块或多个进程的时候很有必要）
+</li>
+
+<li>代码更新时自动重启服务
+</li>
+</ul>
+
+<p>
+node.js下最常用的后台服务监护工具有：<a href="https://github.com/nodejitsu/forever">forever</a> 、<a href="https://github.com/Unitech/pm2">pm2</a> 。
+</p>
+
+<p>
+<a href="https://github.com/nodejitsu/forever">forever</a> 先出现，<a href="https://github.com/Unitech/pm2">pm2</a> 后出现功能更丰富，下面是特性对比：
+</p>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="left" />
+
+<col  class="left" />
+
+<col  class="left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="left">Feature</th>
+<th scope="col" class="left">Forever</th>
+<th scope="col" class="left">PM2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="left">Keep Alive</td>
+<td class="left">✔</td>
+<td class="left">✔</td>
+</tr>
+
+<tr>
+<td class="left">Coffeescript</td>
+<td class="left">✔</td>
+<td class="left">&#xa0;</td>
+</tr>
+
+<tr>
+<td class="left">Log aggregation</td>
+<td class="left">&#xa0;</td>
+<td class="left">✔</td>
+</tr>
+
+<tr>
+<td class="left">API</td>
+<td class="left">&#xa0;</td>
+<td class="left">✔</td>
+</tr>
+
+<tr>
+<td class="left">Terminal monitoring</td>
+<td class="left">&#xa0;</td>
+<td class="left">✔</td>
+</tr>
+
+<tr>
+<td class="left">Clustering</td>
+<td class="left">&#xa0;</td>
+<td class="left">✔</td>
+</tr>
+
+<tr>
+<td class="left">JSON configuration</td>
+<td class="left">&#xa0;</td>
+<td class="left">✔</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+我在3个项目中使用 <a href="https://github.com/nodejitsu/forever">forever</a> ，多次重启出错后，决定转向 <a href="https://github.com/Unitech/pm2">pm2</a> ，目前我已经在两个较小的项目中成功使用 <a href="https://github.com/Unitech/pm2">pm2</a> 。
+</p>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><a href="https://github.com/nodejitsu/forever">forever</a></h2>
+<div class="outline-text-2" id="text-1">
+<ul class="org-ul">
+<li>安装
+
+<div class="org-src-container">
+
+<pre class="src src-js">npm install -g forever
+</pre>
+</div>
+</li>
+
+<li>配置
+
+<p>
+启动脚本
+<code>start.sh</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/</span><span style="color: #b5bd68;">bash</span>
+
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">PATH</span>=$<span style="color: #f0c674;">PATH</span>:<span style="color: #b294bb;">`pwd`</span>/node/bin:<span style="color: #b294bb;">`pwd`</span>/../node/bin:<span style="color: #b294bb;">`pwd`</span>/node_modules/forever/bi<span style="color: #de935f; background-color: #373b41;">n:/usr/local/node/bin</span>
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">NODE_ENV</span>=${<span style="color: #f0c674;">NODE_ENV</span>:-production}
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">NODE_CONFIG_DIR</span>=<span style="color: #b294bb;">`pwd`</span>/config
+
+<span style="color: #f0c674;">SCRIPT</span>=<span style="color: #b294bb;">`pwd`</span>/src/index.js
+<span style="color: #f0c674;">LOGFILE</span>=<span style="color: #b294bb;">`pwd`</span>/run.log
+
+<span style="color: #f0c674;">running</span>=<span style="color: #b294bb;">`forever list | grep "$SCRIPT" | grep -v grep | wc -l`</span>
+
+<span style="color: #b5bd68;">if</span> [ $<span style="color: #f0c674;">running</span> -lt 1 ]; <span style="color: #b5bd68;">then</span>
+<span style="color: #969896; background-color: #222427;"> </span>   forever start --spinSleepTime=10000 --killSignal=SIGINT --pidFile=<span style="color: #b294bb;">`pwd`</span>/run.<span style="color: #de935f; background-color: #373b41;">pid -l $</span><span style="color: #de935f; background-color: #373b41;">LOGFILE</span><span style="color: #de935f; background-color: #373b41;"> -a -w --watchDirectory=</span><span style="color: #de935f; background-color: #373b41;">`pwd`</span><span style="color: #de935f; background-color: #373b41;">/src --watchIgnore=</span><span style="color: #de935f; background-color: #373b41;">".svn/*"</span><span style="color: #de935f; background-color: #373b41;"> </span><span style="color: #de935f; background-color: #373b41;">"$SCRIPT"</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b294bb;">echo</span> -e <span style="color: #8abeb7;">"\nRunning."</span>
+<span style="color: #b5bd68;">else</span>
+<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b294bb;">echo</span> -e <span style="color: #8abeb7;">"\nAlready running."</span>
+<span style="color: #b5bd68;">fi</span>
+
+forever list | grep <span style="color: #8abeb7;">"$SCRIPT"</span>
+</pre>
+</div>
+
+<p>
+停止脚本
+<code>stop.sh</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/</span><span style="color: #b5bd68;">bash</span>
+
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">PATH</span>=$<span style="color: #f0c674;">PATH</span>:<span style="color: #b294bb;">`pwd`</span>/node/bin:<span style="color: #b294bb;">`pwd`</span>/../node/bin:<span style="color: #b294bb;">`pwd`</span>/node_modules/forever/bi<span style="color: #de935f; background-color: #373b41;">n:/usr/local/node/bin</span>
+
+<span style="color: #f0c674;">SCRIPT</span>=<span style="color: #b294bb;">`pwd`</span>/src/index.js
+
+forever stop <span style="color: #8abeb7;">"$SCRIPT"</span>
+</pre>
+</div>
+
+<p>
+重启脚本     
+<code>restart.sh</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/</span><span style="color: #b5bd68;">bash</span>
+
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">PATH</span>=$<span style="color: #f0c674;">PATH</span>:<span style="color: #b294bb;">`pwd`</span>/node/bin:<span style="color: #b294bb;">`pwd`</span>/../node/bin:<span style="color: #b294bb;">`pwd`</span>/node_modules/forever/bi<span style="color: #de935f; background-color: #373b41;">n:/usr/local/node/bin</span>
+
+<span style="color: #f0c674;">SCRIPT</span>=<span style="color: #b294bb;">`pwd`</span>/src/index.js
+
+forever restart <span style="color: #8abeb7;">"$SCRIPT"</span> || ./start.sh
+</pre>
+</div>
+</li>
+
+<li>用法
+
+<p>
+启动
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">./start.sh
+</pre>
+</div>
+
+<p>
+停止
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">./stop.sh
+</pre>
+</div>
+
+<p>
+重启
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">./restart.sh
+</pre>
+</div>
+</li>
+
+<li>缺点
+
+<ul class="org-ul">
+<li>程序退出过程中的日志无法捕获
+
+<p>
+参见：<a href="https://github.com/foreverjs/forever/issues/385#issuecomment-115163346">no logging after graceful shutdown #385</a>
+</p>
+
+<p>
+应该是forever通过信号通知程序退出后，不再捕获程序的日志输出，程序退出的这段时间内日志丢失。
+</p>
+
+<p>
+一个补丁方案：程序收到forever的退出信号后将日志直接写到日志文件（正常情况下是由forever捕获程序的错误输出写日志文件）。
+</p>
+</li>
+
+<li>重启可能失败
+
+<p>
+代码更新后，forever会发信号重启进程，但是程序始终重启不成功，出现大量下面的日志：
+</p>
+<pre class="example">
+Error: bind EADDRINUSE
+</pre>
+
+<p>
+怀疑跟node.js的cluster中master自动拉起slave的行为相冲突，此时只有一个forever实例在运行，这种情况占比很高。
+</p>
+
+<p>
+另外crontab中调用start.sh也可能和forever相冲突，当node全退出时，可能启动多个forever实例，这种情况占比稍低。
+</p>
+
+<p>
+另外一种情况是node.js出问题了CPU及内存100%占用，此时普通的kill杀不死（必须得kill -9），forever误认为已成功结束node.js进程，
+然后拉起新的进程。
+</p>
+</li>
+
+<li>未内置支持开机启动
+
+<p>
+可以直接放在crontab每分钟调用一次 <code>start.sh</code> 来实现，万一连forever进程都挂了，可以全部拉起来。
+开机启动不内置则意味着一百个人有一百种做法，带来不必要的争议。
+</p>
+</li>
+
+<li>允许程序同时启动多个实例
+
+<p>
+forever未对启动的程序进行唯一性标识，导致程序可能意外启动多个实例，多个实例之间往往相冲突，降低了系统可用性。
+</p>
+
+<p>
+而由程序自已来实现单实例运行是很困难的，forever会不断地拉起退出的多余副本。
+</p>
+</li>
+
+<li>未内置支持cluster以及优雅重启
+
+<p>
+部署代码重启程序过程中会停止服务几秒钟。
+</p>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><a href="https://github.com/Unitech/pm2">pm2</a></h2>
+<div class="outline-text-2" id="text-2">
+<ul class="org-ul">
+<li>安装
+
+<div class="org-src-container">
+
+<pre class="src src-js">npm install -g pm2
+</pre>
+</div>
+</li>
+
+<li>配置
+
+<p>
+以 <a href="https://github.com/tangxinfa/upload-fiddle">upload-fiddle</a> 项目为例。
+</p>
+
+<p>
+统一配置其它脚本需要的环境变量
+<code>.bashrc</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #b294bb;">export</span> <span style="color: #f0c674;">PATH</span>=<span style="color: #b294bb;">`pwd`</span>/node/bin:<span style="color: #b294bb;">`pwd`</span>/../node/bin:<span style="color: #b294bb;">`pwd`</span>/node_modules/pm2/bin:/usr/loc<span style="color: #de935f; background-color: #373b41;">al/node/bin:$</span><span style="color: #de935f; background-color: #373b41;">PATH</span>
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">NODE_ENV</span>=${<span style="color: #f0c674;">NODE_ENV</span>:-production}
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">NODE_CONFIG_DIR</span>=<span style="color: #b294bb;">`pwd`</span>/config
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">APP_NAME</span>=<span style="color: #8abeb7;">"upload-fiddle"</span>
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">APP_SCRIPT</span>=<span style="color: #b294bb;">`pwd`</span>/src/index.js
+</pre>
+</div>
+
+<p>
+启动脚本
+<code>start.sh</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/</span><span style="color: #b5bd68;">bash</span>
+
+<span style="color: #b294bb;">source</span> .bashrc
+pm2 --node-args=<span style="color: #8abeb7;">"--harmony"</span> -n <span style="color: #8abeb7;">"$APP_NAME"</span> start <span style="color: #8abeb7;">"$APP_SCRIPT"</span> -i 0 --watch <span style="color: #8abeb7;">"`pw</span><span style="color: #de935f; background-color: #373b41;">d`/src/*.js"</span>
+</pre>
+</div>
+
+<p>
+停止脚本
+<code>stop.sh</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/</span><span style="color: #b5bd68;">bash</span>
+
+<span style="color: #b294bb;">source</span> .bashrc
+pm2 --node-args=<span style="color: #8abeb7;">"--harmony"</span> stop <span style="color: #8abeb7;">"$APP_NAME"</span>
+</pre>
+</div>
+
+<p>
+重启脚本
+<code>restart.sh</code>
+</p>
+<div class="org-src-container">
+
+<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/</span><span style="color: #b5bd68;">bash</span>
+
+<span style="color: #b294bb;">source</span> .bashrc
+pm2 --node-args=<span style="color: #8abeb7;">"--harmony"</span> restart <span style="color: #8abeb7;">"$APP_NAME"</span>
+</pre>
+</div>
+</li>
+
+<li>用法
+
+<p>
+启动
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">./start.sh
+</pre>
+</div>
+
+<p>
+停止
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">./stop.sh
+</pre>
+</div>
+
+<p>
+重启
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">./restart.sh
+</pre>
+</div>
+</li>
+
+<li>缺点
+
+<ul class="org-ul">
+<li>程序退出过程中的日志无法捕获？
+
+<p>
+不一定。使用 <code>pm2 stop</code> 会有同样的问题，但是pm2支持优雅退出（ <code>pm2 gracefulReload</code> ），此时不但退出过程中的日志能够正常捕获，而且可以实现服务0停机时间。
+</p>
+</li>
+
+<li>重启可能失败
+
+<p>
+是的。=pm2 restart= 并没有采用激进的措施（kill -9）确保旧进程结束。重现步骤：用gdb调试运行中的node进程（gdb node &lt;PID&gt;后不执行任何gdb命令），然后用pm2 restart重启服务，此时旧的进程杀不死，新的进程被创建。
+</p>
+</li>
+
+<li>允许程序同时启动多个实例
+
+<p>
+pm2对启动的程序进行了唯一性标识，但是它将启动的信息保存在了当前用户的home目录下（~/.pm2），所以使用其它帐号时还是有能够启动多个程序实例，对于这一点forever也存在同样的问题。
+</p>
+
+<p>
+对于服务器来说，多帐号是常态，应该默认防止这种问题发生。
+</p>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3">程序写日志相关</h2>
+<div class="outline-text-2" id="text-3">
+<p>
+用c/c++写日志的时候我一般都会使用日志库，如：<a href="http://logging.apache.org/log4cxx/index.html">log4cxx</a> 、<a href="https://github.com/HardySimpson/zlog">zlog</a> ，这些日志库容易使用而且很稳定，支持将日志写到文件或控制台，支持按大小、日期分割日志文件，支持限定日志文件数、占用空间。
+</p>
+
+<p>
+但是node.js下最好的写日志方式其实是将日志直接输出到错误输出（stderr），由 <a href="https://github.com/nodejitsu/forever">forever</a> 、<a href="https://github.com/Unitech/pm2">pm2</a> 这样的后台服务监护工具来写日志文件。这是因为node.js做为一种动态语言，容易出现异常，特别是前期开发阶段，很多分支没有跑到，往往是写日志的语句出错，此时日志库是很难做到将异常时程序的调用堆栈写到日志文件中的，由台后服务监护工具来做能确保万无一失。
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4">参考</h2>
+<div class="outline-text-2" id="text-4">
+<ul class="org-ul">
+<li>《<a href="http://se77en.cc/2013/06/27/goodbye-node-forever-hello-pm2-translation/">告别node-forever,拥抱PM2</a>》
+</li>
+</ul>
+</div>
+</div>
+]]></content:encoded>
+        </item>
+    </channel>
+</rss>

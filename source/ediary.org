@@ -5464,7 +5464,8 @@ class RedisShard {
   :TEMPLATE: blog_static_no_title.html
   :END:
 
-  [[http://babel.pocoo.org/][Babel]] 是 =Python= 的一个国际化工具包，原本为[[Edgewall.org]]下的一个项目，现在已经转为由[[pocoo.org]]维护。
+  [[http://babel.pocoo.org/][Babel]] 是 =Python= 的一个国际化工具包，原本为 [[https://www.edgewall.org/][Edgewall.org]] 下的一个项目，现在已
+  经转为由 [[http://pocoo.org][pocoo.org]] 维护。
   
 ** 统一管理 =Python= 虚拟环境
    
@@ -11562,13 +11563,43 @@ class RedisShard {
 
 ** 使用 UEFI 做为启动管理器
 
-   由于主板直接支持 UEFI 启动，使用 efibootmgr 来创建 Boot Loader 不但更简单，而且系统启动更快。
+   由于主板直接支持 UEFI 启动，使用 `efibootmgr` 来创建 Boot Loader 不但更简单，而且系统启动更快。
 
    参考
    
    - [[https://wiki.archlinux.org/index.php/EFISTUB#Using_UEFI_directly_.28efibootmgr.29][EFISTUB - Using UEFI directly (efibootmgr) - ArchWiki]]
 
    - [[http://superuser.com/questions/912417/i-wanted-to-install-arch-linux-on-a-uefi-gpt-system-and-had-questions-about-the/912435#912435][I wanted to install arch linux on a UEFI/GPT system and had questions about the process - Super User]]
+
+*** 支持休眠
+
+    在 `efibootmgr` 命令中添加 `resume=/dev/sdaX` 选项，其中 `/dev/sdaX` 为
+    具体的 `swap` 分区。
+
+    生成支持 `resume` 的 `initramfs`，修改 [[/etc/mkinitcpio.conf]] ，在 `HOOKS` 中添
+    加 `resume` 项，确保放到 `udev` 及 `filesystem` 之后。重新生成 `initramfs`：
+    #+begin_src sh
+      mkinitcpio -p linux
+    #+end_src
+
+    另外可能还要修改 `/sys/power/image_size` 的值，默认为 `2/5` 内存大小，创建
+    `/etc/tmpfiles.d/modify_power_image_size.conf` 内容为:
+    #+begin_example
+      w /sys/power/image_size - - - - 0
+    #+end_example
+
+    启用笔记本盒盖休眠，编辑 `/etc/systemd/logind.conf`，添加以下配置项
+    #+begin_example
+      HandleLidSwitch=hibernate
+    #+end_example
+ 
+    参考
+
+    - [[https://bbs.archlinux.org/viewtopic.php?id=210919][Hibernation issue. / Newbie Corner / Arch Linux Forums]]
+
+    - [[http://www.cnblogs.com/xiaozhang9/p/6443478.html][Archlinux休眠设置 - whilst - 博客园]]
+
+    - [[https://wiki.archlinux.org/index.php/Power_management_(%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87)][Power management (简体中文) - ArchWiki]]
 
 ** 开通 sudo 权限组
 
@@ -11764,7 +11795,7 @@ class RedisShard {
 
    安装相关软件包
    #+begin_src sh
-     yaourt -S pulseaudio-bluetooth bluez-firmware bluez-utils
+     yaourt -S pulseaudio-bluetooth bluez-firmware bluez-utils paman
    #+end_src
 
    启动蓝牙服务
@@ -11775,6 +11806,7 @@ class RedisShard {
    
    参考
    - [[https://wiki.archlinux.org/index.php/Bluetooth_headset_%28%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87%29][Bluetooth headset (简体中文) - ArchWiki]]
+   
 
 * DONE 修复 offlineimap 无法收邮件的问题               :linux:network:python:
   CLOSED: [2016-03-18 Fri 10:44]
@@ -12854,12 +12886,12 @@ class RedisShard {
 
 ** 查看开源项目的 Issues 及 Pull requests
 
-   如果这个问题已经有人在着手解决了，估计我们只能够发表一下意见，如果没有则进入下一步。
-    
+   如果这个问题已经有人在着手解决了，估计我们只能够发表一下意见，如果没有则进入
+   下一步。
+
 ** Fork 开源项目
 
    在 github 的开源项目页面上点击 Fork 即可。
-
 
    下面假设：
     
@@ -12892,20 +12924,22 @@ class RedisShard {
      git checkout -b my-feature-branch -t origin/master
    #+end_src
 
-   主干分支（master）确保不做任何提交，与上游分支（upstream）保持同步，所有开发工作都在特性分支上进行。
+   我的主干分支 =origin/master= 确保不做任何提交，与上游主干分支
+   =upstream/master= 保持同步，所有开发工作都在我的特性分支
+   =origin/my-feature-branch= 上进行。
 
-** 在特性分支上进行开发
+** 在我的特性分支上进行开发
 
-** 多个特性分支间的合并
+*** 多个特性分支间的合并
 
-   可以创建多个分支，并在分支间进行合并
+    可以创建多个分支，并在分支间进行合并
 
-   #+begin_src sh
-     git checkout my-feature-branch1
-     git merge my-feature-branch2
-   #+end_src
+    #+begin_src sh
+      git checkout my-feature-branch1
+      git merge my-feature-branch2
+    #+end_src
 
-** 合并特性分支的提交记录，便于上游开发人员做 Code Review
+** 合并我的特性分支的提交记录，便于上游开发人员做 Code Review
 
    如特性分支上做了 3 次提交，将这 3 次提交合并为 1 次提交
 
@@ -12913,15 +12947,15 @@ class RedisShard {
      git rebase -i HEAD~3
    #+end_src
 
-   按 s 键将后 2 次提交合并进第 1 次提交。
+   按 =s= 键将后 =2= 次提交合并进第 =1= 次提交。
 
-   合并完后强制提交到特性分支
+   合并完后强制提交到我的特性分支
 
    #+begin_src sh
      git push origin my-feature-branch1
    #+end_src
 
-** 从特性分支创建 Pull requests 提交到上游分支
+** 从我的特性分支创建 Pull requests 提交到上游分支
 
    在个人 github 项目主页上切到特性分支 =my-feature-branch= ，点击 =New pull request=
 
@@ -12931,11 +12965,11 @@ class RedisShard {
       Signed-off-by: username <username@gmail.com>
    #+end_example
 
-   可以在 git commit 时加 =-s= 选项，以便自动添加。
+   可以在 =git commit= 时加 =-s= 选项，以便自动添加。
 
-   如果已经创建 =Pull request= 别人 Review 时说少了 =Signed-off-by= ，则可以先回滚到第一个提交：
+   如果 Review 时说少了 =Signed-off-by= ，则可以先回滚到第一个提交：
    #+begin_src sh
-     git reset --soft 提交ID
+     git reset --soft <commitid>
    #+end_src
 
    通过 =git commit --amend= 命令修改提交注释以加上 =Signed-off-by= ，然后重做后继提交，
@@ -12949,6 +12983,7 @@ class RedisShard {
    #+begin_src sh
      git fetch upstream
      git checkout master
+     git pull
      git rebase upstream/master
      git push origin master
    #+end_src
@@ -16699,34 +16734,66 @@ Every change you make must be backward compatible with the rest of the system
 
 * TODO 使用 glide 进行 GO 项目包管理                                     :go:
 
-  =glide= 将包安装在 =vendor= 目录下，由于通过非全路径引入的包不会在 =vendor= 目录下进行查找，所以也就引申出下面几条 glide 最佳实践。
+  =glide= 将包安装在 =vendor= 目录下，由于通过非全路径引入的包不会在 =vendor= 目
+  录下进行查找，所以也就引申出下面几条 glide 最佳实践。
 
-** glide 最佳实践
+** 使用 go get 替代 git clone
 
-*** 在标准位置进行项目开发
+   =go get= 会拉取项目代码标准位置 =$GOPATH/src/<project>= ，它带来的最大一个好
+   处就是各种 Go 工具（如：go-guru）开箱可用。
 
-    也就是将开发中的项目代码放到 =$GOPATH/src/<project>= ，可以直接使用 =go get= 拉取项目代码：
+   =go get= 默认会使用 https 下载代码，对于需要输入用户名密码才能访问的 https 仓
+   库地址会立即报错，需要启用 Git 的终端用户名密码提示：
 
-**** 使用 https（帐号密码认证）
+   #+begin_src sh
+     export GIT_TERMINAL_PROMPT=1
+   #+end_src
 
-     =go get= 进行 =git clone= 时允许输入帐号密码（默认不充许）
+   Git 还支持使用 ssh 协议获取代码，通过上传 SSH 公钥到 gitlab 可以实现免密码访
+   问，下面是具体的步骤：
+
+   - 生成 SSH 公钥
+
+     SSH 公钥文件默认为 =~/.ssh/id_rsa.pub= ，该文件通常不存在，则需要生成
+
      #+begin_src sh
-       export GIT_TERMINAL_PROMPT=1
+       ssh-keygen -t rsa -C "me@example.com" -b 4096
      #+end_src
 
-**** 使用 git（SSH key 认证）
+     对于命令的提示全部回车接受默认值即可。
 
-     =go get= 进行 =git clone= 时优先进行 =SSH key= 认证 （默认 =https= ），这样通过上传 =SSH key= 可以免密码
+   - 将 SSH 公钥添加到 gitlab
+
+     打开 https://gitlab.example.com/profile/keys ，将 =~/.ssh/id_rsa.pub= 文件内
+     容拷贝到 =Key= 编辑框，点 =Add Key= 添加 SSH 公钥。
+
+   - 配置 Git 强制使用 ssh 协议
+
+     然后配置为强制 Git 使用 ssh 协议替代 https 协议
+
      #+begin_src sh
        git config --global url."git@gitlab.example.com:".insteadOf "https://gitlab.example.com"
      #+end_src
 
-**** 拉取代码并切到 dev 分支
-     #+begin_src sh
-       go get gitlab.example.com/myapp
-       cd $GOPATH/src/gitlab.example.com/myapp
-       git checkout dev
-     #+end_src
+** 谨慎使用子包
+
+   对于以下语句
+
+   #+begin_src go
+     import "xxx/yyy"
+   #+end_src
+
+   Go 会依次在以下路径中查找 =yyy= 包
+
+   - .../vendor/xxx/yyy
+
+     当前目录、上级目录下的 =vendor/xxx/yyy= ，同时这些目录必须是在
+     =$GOPATH/src= 下。
+
+   - $GOPATH/src/xxx/yyy
+
+
+   - $GOROOT/src/xxx/yyy
 
 *** 使用全路径引入子包
 
@@ -16777,6 +16844,11 @@ Every change you make must be backward compatible with the rest of the system
 ** vendor 包管理
    
 ** glide 简介
+** 参考
+
+   - [[https://www.szyhf.org/2017/07/12/%E5%BD%93go-get%E9%81%87%E4%B8%8Agitlab/][当go get遇上gitlab – szyhf.org]]
+
+   - [[https://studygolang.com/articles/10312][golang使用vendor目录来管理依赖包 - Go语言中文网 - Golang中文社区]]
 
 * DONE glide get 出错（Failed to checkout packages: Cannot detect VCS）问题排查 :go:
   CLOSED: [2017-07-21 Fri 20:30]
@@ -17095,7 +17167,7 @@ can be defined by the purpose the data is going to be used for.
 * DONE Archlinux 下 i3 桌面启动                                   :linux:
   CLOSED: [2017-08-30 Wed 14:11]
 
-** 不通过 gdm 启动
+** 不使用 gdm
 
    - 设置 archlinux 为文本模式启动
 
@@ -17104,18 +17176,24 @@ can be defined by the purpose the data is going to be used for.
      #+end_src
 
   
-   - 配置 ~/.xinitrc 启动 i3
+   - 在 ~/.xinitrc 中添加以下内容运行 i3
 
      #+begin_src sh
-       [ -f /etc/xprofile ] && source /etc/xprofile
-       [ -f ~/.xprofile ] && source ~/.xprofile
        exec dbus-launch i3
      #+end_src
 
 
+   - 配置 ~/.bash_profile 中添加以下内容运行 startx
+
+     #+begin_src sh
+       if [ -z "$DISPLAY" ] && [ -n "$XDG_VTNR" ] && [ "$XDG_VTNR" -eq 1 ]; then
+         exec startx
+       fi
+     #+end_src
+
    经过以上设置，首先通过文本模式启动 Archlinux，在 tty1 输入用户名及密码后，进入 i3 桌面。
 
-** 通过 gdm 启动
+** 恢复为使用 gdm
 
    - 设置 archlinux 为图形模式启动
 
@@ -17125,14 +17203,19 @@ can be defined by the purpose the data is going to be used for.
      #+end_src
 
   
-   - 注释 ~/.xinitrc 启动 i3
+   - 注释之前在 ~/.xinitrc 中添加的内容
 
      #+begin_src sh
-       [ -f /etc/xprofile ] && source /etc/xprofile
-       [ -f ~/.xprofile ] && source ~/.xprofile
        #exec dbus-launch i3
      #+end_src
 
+   - 注释之前在 ~/.bash_profile 中添加的内容
+
+     #+begin_src sh
+       # if [ -z "$DISPLAY" ] && [ -n "$XDG_VTNR" ] && [ "$XDG_VTNR" -eq 1 ]; then
+       #   exec startx
+       # fi
+     #+end_src
 
    经过以上设置，首先通过图形模式启动 Archlinux，第一次需在 gdm 登录界面选择桌面为 i3，输入用户名及密码后进入 i3 桌面。
 
@@ -17817,6 +17900,10 @@ clang 编译器较之 gcc 在进行代码分析方面提供了良好的支持，
      go get github.com/googollee/go-socket.io
    #+end_src
 
+   go 的 socket.io 实现没有官方支持，很不完善，[[https://github.com/googollee/go-socket.io][go-socket.io]] 只有服务器端实现，已
+   经很久没有更新了，而 go 的 socket.io 客户端实现就更不靠谱了，实际使用时很多问
+   题，直接使用 websocket 会更靠谱一些。
+
 ** [[https://lyft.github.io/envoy/][envoy]]
 
    [[https://lyft.github.io/envoy/][envoy]] 有一些插件完成了部分功能：
@@ -17843,7 +17930,7 @@ clang 编译器较之 gcc 在进行代码分析方面提供了良好的支持，
 
      基于 [[https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-WEB.md][gRPC Web]] 协议的实现，跟原始的 gRPC 协议基本一致，通过去除对 HTTP/2 底层（如 frame）的依赖，使得在浏览器上调用 gRPC 成为可能。
 
-     当前不支持 Streaming，以后在最新的浏览器中可能支持。
+     当前不支持 =Bidirectional Streaming= ，以后在最新的浏览器中可能支持。
 
 
    - [[https://envoyproxy.github.io/envoy/intro/arch_overview/websocket.html?highlight=websocket][WebSocket support]]
@@ -18772,14 +18859,43 @@ clang 编译器较之 gcc 在进行代码分析方面提供了良好的支持，
   - 安装 =protobuf go 插件=
 
     #+begin_src sh
-      export GOPATH=/usr/local/lib/golang
       go get -u github.com/golang/protobuf/{proto,protoc-gen-go}
-      cp $GOPATH/bin/protoc-gen-go /usr/local/bin/
+    #+end_src
+
+    在 =~/.profile= 中将 =protoc-gen-go= 所在路径加到 =PATH= 环境变量中
+    #+begin_src sh
+     PATH="`go env GOPATH`/bin:$PATH"
+    #+end_src
+
+    最新版本的 =protoc-gen-go= 默认生成的 protobuf 4.x 的代码，我们的项目目前还
+    是使用 protobuf 3.x，这会导致生成的代码无法通过编译，错误信息
+    #+begin_example
+      xxx.pb.go:2799:21: c.cc.NewStream undefined (type *grpc.ClientConn has no field or method NewStream)
+      xxx.pb.go:2831:13: c.cc.Invoke undefined (type *grpc.ClientConn has no field or method Invoke)
+    #+end_example
+
+    需要改回生成 protobuf 3.x 的代码，修改
+    =github.com/golang/protobuf/protoc-gen-go/grpc/grpc.go=
+    #+begin_src go
+      const generatedCodeVersion = 4
+    #+end_src
+    改为 
+    #+begin_src go
+      const generatedCodeVersion = 3
+    #+end_src
+
+    重新编译安装 =protoc-gen-go=
+    #+begin_src sh
+      cd github.com/golang/protobuf
+      make install
     #+end_src
 
   - 参考
     
     [[http://www.jianshu.com/p/e2435b834d68][golang开发环境搭建-安装go 和 grpc - 简书]]
+
+    [[https://github.com/golang/protobuf/issues/264][grpc version conflict · Issue #264 · golang/protobuf]]
+
 
 * DONE Scan 时进行 Rename 导致结果未定义                              :redis:
   CLOSED: [2018-01-18 Thu 20:16]
@@ -19060,3 +19176,4 @@ REST 带来的弹性、扩展性并非刚需。
 ** 结语
 
 采用 REST 还是 RPC 对系统的根本复杂性影响较小，更多的是开发过程中会有不同的体验。
+

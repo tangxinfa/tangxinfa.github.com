@@ -16,6 +16,7 @@
           <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
           
           <li><a href="/index.html"><i class="icon-folder-close icon-white"></i> 技术</a></li>
+          <li><a href="/category/life/0.html"><i class="icon-folder-close icon-white"></i> 生活</a></li>
         </ul>
       </div>
     </div>
@@ -33,17 +34,18 @@
 koa2 简单易用，代码量少且易读，代码实现中有大量“经验法则”，了解这些才能用好它。
 </p>
 
-<div id="outline-container-sec-1" class="outline-2">
-<h2 id="sec-1">默认的响应处理</h2>
-<div class="outline-text-2" id="text-1">
+<div id="outline-container-orgec93b86" class="outline-2">
+<h2 id="orgec93b86">默认的响应处理</h2>
+<div class="outline-text-2" id="text-orgec93b86">
 <ul class="org-ul">
-<li><code>req.statusCode</code> 默认值为 404
-</li>
+<li><code>req.statusCode</code> 默认值为 404</li>
 </ul>
 
 
 <ul class="org-ul">
-<li>为 <code>response.body</code> 赋值时
+<li><p>
+为 <code>response.body</code> 赋值时
+</p>
 
 <p>
 如果赋 null 值，将 <code>response.status</code> 置为 <code>204</code> ；
@@ -59,109 +61,99 @@ koa2 简单易用，代码量少且易读，代码实现中有大量“经验法
 
 <p>
 如：内容是 <code>string</code> 类型，以 <code>&lt;</code> 开头则认为是 <code>html</code> 否则是 <code>text</code> 。
-</p>
-</li>
+</p></li>
 </ul>
 
 
 <ul class="org-ul">
-<li>响应码为 204、205、304 时强制 <code>response.body</code> 为空
-</li>
+<li>响应码为 204、205、304 时强制 <code>response.body</code> 为空</li>
 </ul>
 </div>
 </div>
 
 
-<div id="outline-container-sec-2" class="outline-2">
-<h2 id="sec-2">默认的异常处理</h2>
-<div class="outline-text-2" id="text-2">
+<div id="outline-container-org3942de1" class="outline-2">
+<h2 id="org3942de1">默认的异常处理</h2>
+<div class="outline-text-2" id="text-org3942de1">
 <p>
 koa2 在中间件的最外层会捕获异常，将它转化为合适的 HTTP 错误响应：
 </p>
 
 <ul class="org-ul">
-<li>向 <code>app</code> 发送 <code>error</code> 事件，而 <code>app</code> 的处理则是输出日志到控制台
-</li>
+<li>向 <code>app</code> 发送 <code>error</code> 事件，而 <code>app</code> 的处理则是输出日志到控制台</li>
 
-<li>如果 HTTP 响应头已经发送，则不走下面的流程，不做任何处理
-</li>
+<li>如果 HTTP 响应头已经发送，则不走下面的流程，不做任何处理</li>
 
-<li>清空 HTTP 响应头
-</li>
+<li>清空 HTTP 响应头</li>
 
-<li>设置响应头为 <code>err.headers</code>
-</li>
+<li>设置响应头为 <code>err.headers</code></li>
 
-<li><code>err.code</code> 为 <code>ENOENT</code> 时设置 <code>err.status</code> 为 <code>404</code>
-</li>
+<li><code>err.code</code> 为 <code>ENOENT</code> 时设置 <code>err.status</code> 为 <code>404</code></li>
 
-<li><code>err.status</code> 为无效的 HTTP 状态码时修复为 <code>500</code>
-</li>
+<li><code>err.status</code> 为无效的 HTTP 状态码时修复为 <code>500</code></li>
 
-<li><code>err.status</code> 做为 HTTP 状态码
-</li>
+<li><code>err.status</code> 做为 HTTP 状态码</li>
 
-<li><code>err.expose</code> 为真时使用 <code>err.message</code> 做为 HTTP 响应体，否则使用 <code>err.status</code> 对应的文本描述做为 HTTP 响应体
-</li>
+<li><code>err.expose</code> 为真时使用 <code>err.message</code> 做为 HTTP 响应体，否则使用 <code>err.status</code> 对应的文本描述做为 HTTP 响应体</li>
 </ul>
 </div>
 </div>
 
-<div id="outline-container-sec-3" class="outline-2">
-<h2 id="sec-3">自定义异常处理</h2>
-<div class="outline-text-2" id="text-3">
+<div id="outline-container-org381b1dc" class="outline-2">
+<h2 id="org381b1dc">自定义异常处理</h2>
+<div class="outline-text-2" id="text-org381b1dc">
 <ul class="org-ul">
-<li>自定义日志输出
+<li><p>
+自定义日志输出
+</p>
 
 <p>
 如：使用 <code>bunyan</code> 来输出日志
 </p>
 
 <div class="org-src-container">
-
 <pre class="src src-js">app.on(<span style="color: #8abeb7;">'error'</span>, <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">err</span>, <span style="color: #f0c674;">ctx</span>) {
-<span style="color: #969896; background-color: #222427;"> </span>   logger.error({
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   stack: err.stack,
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   ctx: ctx
-<span style="color: #969896; background-color: #222427;"> </span>   }, <span style="color: #8abeb7;">"service error"</span>);
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   logger.error({
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   stack: err.stack,
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   ctx: ctx
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   }, <span style="color: #8abeb7;">"service error"</span>);
 });
 </pre>
-</div>
-</li>
+</div></li>
 
-<li>自定义异常响应
+<li><p>
+自定义异常响应
+</p>
 
 <p>
 如：总是响应 <code>json</code> ，格式为 <code>{ message: "错误描述" }</code>
 </p>
 
 <div class="org-src-container">
+<pre class="src src-js">app.use(<span style="color: #b5bd68;">async</span> (ctx, next) =&gt; {
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">try</span> {
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">await</span> next();
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   } <span style="color: #b5bd68;">catch</span> ( err ) {
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   ctx.app.emit(<span style="color: #8abeb7;">'error'</span>, err, ctx);
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   ctx.status = err.status || 500;
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   ctx.body = {
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   message: err.expose ? err.message : ctx.message
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   };
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">return</span>;
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   }
 
-<pre class="src src-js">app.use(async (ctx, next) =&gt; {
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">try</span> {
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   await next();
-<span style="color: #969896; background-color: #222427;"> </span>   } <span style="color: #b5bd68;">catch</span> ( err ) {
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   ctx.app.emit(<span style="color: #8abeb7;">'error'</span>, err, ctx);
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   ctx.status = err.status || 500;
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   ctx.body = {
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   message: err.expose ? err.message : ctx.message
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   };
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">return</span>;
-<span style="color: #969896; background-color: #222427;"> </span>   }
-
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (ctx.status == 404) {
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #b5bd68;">if</span> (!ctx.body || !ctx.body.message) {
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">explicitly set status, avoid revert to 200 when assign body.</span>
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   ctx.status = 404;
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   ctx.body = {
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   message: ctx.message
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   };
-<span style="color: #969896; background-color: #222427;"> </span>   <span style="color: #969896; background-color: #222427;"> </span>   }
-<span style="color: #969896; background-color: #222427;"> </span>   }
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">if</span> (ctx.status == 404) {
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">if</span> (!ctx.body || !ctx.body.message) {
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">explicitly set status, avoid revert to 200 when assign body.</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   ctx.status = 404;
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   ctx.body = {
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   message: ctx.message
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   };
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   }
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   }
 })
 </pre>
-</div>
-</li>
+</div></li>
 </ul>
 </div>
 </div>
@@ -195,7 +187,7 @@ koa2 在中间件的最外层会捕获异常，将它转化为合适的 HTTP 错
 
     <div id="footer">
   	  <div class="copyright" style="text-align: center;">
-  	    版权所有 © 2011-2018 看看俺 – KanKanAn.com
+  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
   	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
   	  </div>
     </div>

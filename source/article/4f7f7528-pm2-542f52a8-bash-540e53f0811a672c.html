@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <title>使用 pm2 启动 bash 后台脚本 | </title>
+    <link rel="shortcut icon" href="/static/favicon.ico" />
+    <link rel="stylesheet" type="text/css" href="/style/ediary.css"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="generator" content="o-blog"/>
+  </head>
+  <body>
+    <div class="navbar navbar-fixed-top" id="header">
+      <div class="navbar-inner">
+        <a class="brand" href="/" style="line-height:100%;"></a>
+        <ul class="navbar-links">
+          <li><a href="/index.xml"><i class="icon-rss icon-white"></i> Subscribe</a></li>
+          <li><a href="/category/ediary/0.html"><i class="icon-folder-close icon-white"></i> ediary</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="container container-fluid" id="page">
+      <div class="push-header"></div>
+
+      <div class="article">
+        <header class="article-header">
+          <h1>使用 pm2 启动 bash 后台脚本</h1>
+        </header>
+      
+        <div class="article-content">
+          <p>
+我们常常会使用 bash 写一些后台运行的守护进程，然后使用 crontab 实现开机启动并监控，
+也可以改为使用 pm2 来运行，功能更强大，更简单规范。
+</p>
+
+<p>
+使用 pm2 来管理后台进程仍然可以获得其大部分功能，如：
+</p>
+
+<ul class="org-ul">
+<li>日志管理
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>监控
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>进程管理
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>开机启动
+</li>
+</ul>
+
+
+<ul class="org-ul">
+<li>崩溃重启
+</li>
+</ul>
+
+
+<p>
+如下定义 process.json
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-json">{
+<span style="color: #969896; background-color: #222427;"> </span> apps : [{
+<span style="color: #969896; background-color: #222427;"> </span>   name      : <span style="color: #8abeb7;">"run-log-analyze"</span>,
+<span style="color: #969896; background-color: #222427;"> </span>   script    : <span style="color: #8abeb7;">"./tools/run-log-analyze.sh"</span>,
+<span style="color: #969896; background-color: #222427;"> </span>   env: {
+<span style="color: #969896; background-color: #222427;"> </span>   },
+<span style="color: #969896; background-color: #222427;"> </span>   merge_logs: <span style="color: #81a2be;">true</span>,
+<span style="color: #969896; background-color: #222427;"> </span>   error_file: <span style="color: #8abeb7;">"tools/run-log-analyze.log"</span>,
+<span style="color: #969896; background-color: #222427;"> </span>   out_file: <span style="color: #8abeb7;">"tools/run-log-analyze.log"</span>,
+<span style="color: #969896; background-color: #222427;"> </span>   exec_mode: <span style="color: #8abeb7;">"fork"</span>
+<span style="color: #969896; background-color: #222427;"> </span> }]
+}
+</pre>
+</div>
+
+<p>
+run-log-analyze.sh 用于实时分析应用的日志
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">tail -f ./run.log | bunyan --strict -c <span style="color: #8abeb7;">'this.msg == "file uploaded"'</span> -0 | json -<span style="color: #de935f; background-color: #373b41;">ga file | ./tools/file-scan -o ./tools/file-scan-successed.log -e ./tools/file-scan-failed.log</span>
+</pre>
+</div>
+
+<p>
+上面的脚本不断读取 run.log，将上传的文件路径名提取出来，然后传给文件扫描程序（./tools/file-scan），扫描成功日志文件为 ./tools/file-scan-successed.log，扫描失败日志文件为 ./tools/file-scan-failed.log。
+</p>
+
+<p>
+现在在尝试启动进程
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">pm2 start process.json
+</pre>
+</div>
+
+<p>
+查看进程运行状态
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">pm2 list
+</pre>
+</div>
+
+<p>
+然后尝试重启
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">pm2 restart process.json
+</pre>
+</div>
+
+<p>
+发现后台有两个 <code>file-scan</code> 及 <code>tail -f ./run.log</code> 进程，restart 没有将子进程杀死，不过父进程 /bin/bash 进程倒是杀死了。
+</p>
+
+<p>
+估计是 bash 使用 pm2 fork-mode 运行后，其终端被 detach 了，相当于是后台 daemon 进程，bash 进程死掉后， <code>tail -f ./run.log</code> 进程收不到 SIGHUP 信号也就没有跟着退出。
+</p>
+
+<p>
+可以利用 tail 命令的参数 <code>-pid</code> ，指定 bash 结束时中断 <code>tail -f</code> 命令
+</p>
+
+<p>
+<code>man tail</code>
+</p>
+<blockquote>
+<p>
+&#x2013;pid=PID
+       with -f, terminate after process ID, PID dies  
+</p>
+</blockquote>
+
+<p>
+将 run-log-analyze.sh 改写如下
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">tail -f --pid=$<span style="color: #f0c674;">$</span> ./run.log | bunyan --strict -c <span style="color: #8abeb7;">'this.msg == "file uploaded"'</span> -0<span style="color: #de935f; background-color: #373b41;"> | json -ga file | ./tools/file-scan -o ./tools/file-scan-successed.log -e ./tools/file-scan-failed.log</span>
+</pre>
+</div>
+
+        </div>
+        <br />
+        <footer class="article-footer">
+          <span class="muted">
+            <i class="icon-time icon-white"></i> <time datetime="2016-09-02T10:28:00+0800">September 2, 2016</time>
+          </span>
+          <a class="tag" href="/tag/linux/0.html"><i class="icon-tag icon-white"></i> linux</a>
+          <a class="tag" href="/tag/node/0.html"><i class="icon-tag icon-white"></i> node</a>
+          <a class="tag" href="/tag/pm2/0.html"><i class="icon-tag icon-white"></i> pm2</a>
+        </footer>
+      </div>
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+  /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+  var disqus_shortname = '';
+
+  /* * * DON'T EDIT BELOW THIS LINE * * */
+  (function() {
+  var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+  dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+      <div class="push-footer"></div>
+    </div>
+
+    <div id="footer">
+  	  <div class="copyright" style="text-align: center;">
+  	    
+  	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
+  	  </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <title>git多人协作：维护干净的提交树 | </title>
+    <link rel="shortcut icon" href="/static/favicon.ico" />
+    <link rel="stylesheet" type="text/css" href="/style/ediary.css"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="generator" content="o-blog"/>
+  </head>
+  <body>
+    <div class="navbar navbar-fixed-top" id="header">
+      <div class="navbar-inner">
+        <a class="brand" href="/" style="line-height:100%;"></a>
+        <ul class="navbar-links">
+          <li><a href="/index.xml"><i class="icon-rss icon-white"></i> Subscribe</a></li>
+          <li><a href="/category/ediary/0.html"><i class="icon-folder-close icon-white"></i> ediary</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="container container-fluid" id="page">
+      <div class="push-header"></div>
+
+      <div class="article">
+        <header class="article-header">
+          <h1>git多人协作：维护干净的提交树</h1>
+        </header>
+      
+        <div class="article-content">
+          <p>
+很多开源项目是被强制要求维护干净的提交树，上游容易合并你通过 pull request 提交的补丁，要实现这一点，pull 代码时需要使用 rebase 替换默认的 merge 方式。
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">git pull --rebase
+</pre>
+</div>
+
+<p>
+git pull 时自动进行 rebase。
+</p>
+
+<ul class="org-ul">
+<li>全局开启
+
+<div class="org-src-container">
+
+<pre class="src src-sh">git config --global pull.rebase true
+</pre>
+</div>
+</li>
+
+<li>当前分支开启
+
+<div class="org-src-container">
+
+<pre class="src src-sh">git config branch.master.rebase true
+</pre>
+</div>
+</li>
+</ul>
+
+<p>
+现在，如果你的工作区有未提交的代码，是不允许 pull 的，需要 stash 将工作区清理一下，等 pull 完成再恢复一下。
+</p>
+
+<div class="org-src-container">
+
+<pre class="src src-sh">git stash
+git pull
+git stash pop
+</pre>
+</div>
+
+<p>
+使用 rebase 模式相对来说麻烦一些，但是好处就是中心仓库的提交历史是线性的，特别是通过 pull request 提交补丁来协作开发的时候，接收方随时可以将补丁合并进来，完全没有 merge 模式合并补丁那么麻烦。强烈建议默认情况下使用这种模式。</p>
+
+        </div>
+        <br />
+        <footer class="article-footer">
+          <span class="muted">
+            <i class="icon-time icon-white"></i> <time datetime="2016-02-21T13:14:00+0800">February 21, 2016</time>
+          </span>
+          <a class="tag" href="/tag/git/0.html"><i class="icon-tag icon-white"></i> git</a>
+        </footer>
+      </div>
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+  /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+  var disqus_shortname = '';
+
+  /* * * DON'T EDIT BELOW THIS LINE * * */
+  (function() {
+  var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+  dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+      <div class="push-footer"></div>
+    </div>
+
+    <div id="footer">
+  	  <div class="copyright" style="text-align: center;">
+  	    
+  	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
+  	  </div>
+    </div>
+  </body>
+</html>
