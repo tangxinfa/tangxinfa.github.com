@@ -12878,6 +12878,15 @@ class RedisShard {
     #+end_example
 * TODO 参与 github 开源项目的正确姿势                                   :git:
 
+** 初始配置
+
+   #+begin_src sh
+     git config --global user.name "user"
+     git config --global user.email user@example.com
+   #+end_src
+
+参考 [[https://git-scm.com/book/zh/v1/%E8%B5%B7%E6%AD%A5-%E5%88%9D%E6%AC%A1%E8%BF%90%E8%A1%8C-Git-%E5%89%8D%E7%9A%84%E9%85%8D%E7%BD%AE][Git - 初次运行 Git 前的配置]]
+
 ** 使用开源项目
 
 
@@ -19177,3 +19186,195 @@ REST 带来的弹性、扩展性并非刚需。
 
 采用 REST 还是 RPC 对系统的根本复杂性影响较小，更多的是开发过程中会有不同的体验。
 
+* DONE CMakeLists.txt 如何控制库路径的顺序                            :linux:
+  CLOSED: [2018-07-12 Thu 18:10]
+
+一般来说，系统默认的配置会放在 ~LDFLAGS~ 环境变量中，用于指定默认的库查找路径，
+有一些子项目会使用自已附带的最新版或定制版第三方库，会希望将自已附带的库路径放到
+最前面。
+
+~LDFLAGS~ 环境变量指定了库查找路径 A ~-L/opt/a/lib~ ， ~CMakeLists.txt~ 指定了库
+查找路径 B ~link_directories(/opt/b/lib)~ ，实际上 A 总是会位于 B 之前，这是因为
+CMake 并没有解析 ~LDFLAGS~ 中的 ~-L~ 选项。
+
+相关讨论 [[https://cmake.org/pipermail/cmake/2007-November/017479.html][{CMake} Link directories order]]
+
+当对库查找路径的顺序有要求时，不应该使用 ~link_directories~ 选项来指定库查找路径，
+而是使用 ~CMAKE_*_LINKER_FLAGS~ ，如
+
+#+begin_src cmake
+  set(CMAKE_EXE_LINKER_FLAGS "-L/opt/b/lib ${CMAKE_EXE_LINKER_FLAGS}")
+#+end_src
+
+* DONE Archlinux 下编译 Android                               :linux:android:
+  CLOSED: [2018-08-09 Thu 15:26]
+
+** 安装 openjdk
+
+根据 Android 版本选择 ~openjdk~ 版本进行安装
+
+#+begin_src sh
+  yaourt -S jdk8-openjdk
+#+end_src
+
+- 参考 [[https://wiki.archlinux.org/index.php/Android#Java_Development_Kit][Java_Development_Kit - Android - ArchWiki]]
+
+** 安装 repo
+
+[[https://android.googlesource.com/tools/repo][repo]] 是用来从多个 ~Git~ 仓库构建 ~Android~ 的工具。
+
+#+begin_src sh
+  curl https://storage.googleapis.com/git-repo-downloads/repo > ~/repo
+  chmod a+x ~/repo
+  sudo mv ~/repo /usr/local/bin/
+#+end_src
+
+参考 [[https://source.android.com/setup/build/downloading#installing-repo][Downloading the Source  |  Android Open Source Project]]
+
+** 设置编译环境
+
+#+begin_src sh
+  mkdir -p ~/Opensource/android
+  cd ~/Opensource/android
+  virtualenv2 venv
+  source venv/bin/activate
+#+end_src
+
+- 参考 [[https://wiki.archlinux.org/index.php/Android#Setting_up_the_build_environment][Setting up the build environment - Android - ArchWiki]]
+
+** 下载源代码
+
+#+begin_src sh
+  repo init -u https://android.googlesource.com/platform/manifest -b master
+  repo sync -j4
+#+end_src
+
+以后如果要同步最新代码，则执行
+
+#+begin_src sh
+  repo sync
+#+end_src
+
+下载过程中可能被墙导致失败，可以考虑使用 ~proxychains~ 来翻墙，最好还是国内找一
+个镜像，加快下载速度。
+
+代码有几十个 G，下载和编译都需要很长时间。
+
+- 参考 [[https://wiki.archlinux.org/index.php/Android#Downloading%20the%20source%20code][Downloading the source code - Android - ArchWiki]]
+
+** 编译
+
+#+begin_src sh
+  source build/envsetup.sh
+  lunch full-eng
+  make -j4
+#+end_src
+
+** 测试
+
+#+begin_src sh
+  emulator
+#+end_src
+
+** 参考
+
+   - [[https://wiki.archlinux.org/index.php/Android#Building][Building - Android - ArchWiki]]
+
+* DONE 使用 NDK 移植 Linux C/C++ 程序到 Android 系统                :android:
+  CLOSED: [2018-08-09 Thu 15:28]
+  [2018-08-04 Sat]
+
+** 区分基础概念：JNI 与 NDK
+
+- JNI（Java Native Interface）是一种 Java 语言特性
+
+用于 Java 程序与 C、C++ 库间的互相调用。
+
+- NDK（Native Development Kit）是 Google 提供的使用 C/C++ 编写 Android 程序的开
+  发工具包
+
+它使用 JNI 实现 Java 程序调用 C/C++ 本地代码，允许 C/C++ 本地代码访问 Android
+API，不只是用来开发或移植 C/C++ 库，也可以是 C/C++ 程序。
+
+引用自 [[https://developer.android.com/ndk/][Android NDK  |  Android NDK  |  Android Developers]]
+#+begin_quote
+Android NDK
+
+The Android NDK is a toolset that lets you implement parts of your app in native
+code, using languages such as C and C++. For certain types of apps, this can
+help you reuse code libraries written in those languages.
+#+end_quote
+
+** NDK 交叉编译工具链适用于使用 GNU Autotools 进行构建的项目
+
+NDK 自带完整的交叉编译工具链，可以直接将使用 GNU Autotools 构建的一些开源库移植
+到 Android 平台，这样可以省去自已去写 Android.mk 编译脚本。
+
+通常只需要先设置以下环境变量：
+
+#+begin_src sh
+  export PATH=$PATH:/opt/android-toolchain/bin
+  export CC=aarch64-linux-android-clang
+  export CXX=aarch64-linux-android-clang++
+  export LD=aarch64-linux-android-ld
+  export AR=aarch64-linux-android-ar
+  export STRIP=aarch64-linux-android-strip
+  export RANLIB=aarch64-linux-android-ranlib
+  export AS=aarch64-linux-android-clang
+  export CFLAGS="-fPIE -fPIC"
+  export LDFLAGS="-pie"
+  export SYSROOT=/opt/android-toolchain/sysroot
+  export CROSS_COMPILE_HOST=aarch64-linux-android
+#+end_src
+
+然后在执行 ~./configure~ 时指定 ~--host=${CROSS_COMPILE_HOST}~ 选项即可编译成功。
+
+** NDK 的局限性
+
+NDK 提供一系列稳定的 C/C++ API，头文件在 ~sysroot/usr/include~ 下，主要包括 C 标
+准库、C++ 标准库、jni、math、pthread、zlib、OpenGL、Android 相关的库。随着时间的推
+移 [[https://developer.android.com/ndk/guides/stable_apis][NDK 支持的 API]] 也在增加。
+
+除了支持 Android 开发之外，NDK 开发环境只是嵌入式 Linux 开发环境的一个子集，这可
+能是因为 Android 安全沙箱需要、GPL 版权限制。
+
+- 没有使用 ~glibc~
+
+~glibc~ 是 Linux 下的 C 标准库实现，除了实现 ~ANSI C~ 标准库还有大量方便 Linux
+开发的扩展功能。而 NDK 提供的 C 标准库并非 ~glibc~ 。这导致移植 Nginx 时由于缺少
+~crypt.h~ 头文件而编译不过。如果强行将 ~glibc~ 之类的东西也移植过来我估计后面也
+很难打包成 APK 从而正常地进行安装、升级。
+
+NDK 将在未来的版本中移除 ~gcc~ 而只支持 ~clang~ ，已知 Standalone 工具链中使用
+~gcc~ 会 [[https://github.com/android-ndk/ndk/issues/215][出现编译错误]]：
+#+begin_quote
+cstddef:43:25: fatal error: stddef.h: No such file or directory
+#+end_quote
+初步使用 ~clang~ 移植了一些库（如 [[https://sourceforge.net/projects/pcre/][pcre]] ）是没有问题的。
+
+** 结论
+
+   一般的 C/C++ 库通常本身就会注重可移植性，不会生硬地依赖系统底层特性，使用 NDK
+   移植是可行的，即使是 ~ffmpeg~ 这种大型的库也可以成功移植到 Android。
+
+   而对于一些 Linux 下的程序，使用 NDK 直接移植会有很大的失败机率，因为他们可能
+   使用了 NDK 不支持的特性（如 ~glibc~ ），应该采用和 Android 源代码一起编译的方
+   式，这样可以使用 NDK 不支持的特性。
+
+** 参考
+
+   - [[https://developer.android.com/ndk/guides/concepts][Concepts  |  Android NDK  |  Android Developers]]
+
+   - [[http://www.jkeabc.com/475203.html][Android NDK vs AOSP Build System]]
+
+   - [[https://developer.android.com/ndk/guides/stable_apis][Android NDK Native APIs  |  Android NDK  |  Android Developers]]
+
+   - [[https://software.intel.com/en-us/articles/building-an-android-command-line-application-using-the-ndk-build-tools][Building an Android* Command-Line Application Using the NDK Build Tools | Intel® Software]]
+
+   - [[https://www.jianshu.com/p/6332418b12b1][Android NDK开发扫盲及最新CMake的编译使用 - 简书]]
+
+   - [[https://blog.csdn.net/minghuang2017/article/details/78938852][在命令行下用cmake交叉编译可在android中运行的so包 - CSDN博客]]
+
+   - [[https://blog.csdn.net/minghuang2017/article/details/79000345][cmake使用独立工具链交叉编译可在android中运行的so包 - CSDN博客]]
+
+   - [[https://warpedtimes.wordpress.com/2010/02/03/building-open-source-libraries-with-android-ndk/][Building Open Source libraries with Android NDK | Thoughts and Ideas In Warped Times]]

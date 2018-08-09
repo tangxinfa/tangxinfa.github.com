@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+  <head>
+    <meta charset="utf-8"/>
+    <title>CMakeLists.txt 如何控制库路径的顺序 | 看看俺 – KanKanAn.com</title>
+    <link rel="shortcut icon" href="/static/favicon.ico" />
+    <link rel="stylesheet" type="text/css" href="/style/ediary.css"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="generator" content="o-blog"/>
+  </head>
+  <body>
+    <div class="navbar navbar-fixed-top" id="header">
+      <div class="navbar-inner">
+        <a class="brand" href="/" style="line-height:100%;">看看俺 – KanKanAn.com</a>
+        <ul class="navbar-links">
+          <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
+          
+          <li><a href="/index.html"><i class="icon-folder-close icon-white"></i> 技术</a></li>
+          <li><a href="/category/life/0.html"><i class="icon-folder-close icon-white"></i> 生活</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="container container-fluid" id="page">
+      <div class="push-header"></div>
+
+      <div class="article">
+        <header class="article-header">
+          <h1>CMakeLists.txt 如何控制库路径的顺序</h1>
+        </header>
+      
+        <div class="article-content">
+          <p>
+一般来说，系统默认的配置会放在 <code>LDFLAGS</code> 环境变量中，用于指定默认的库查找路径，
+有一些子项目会使用自已附带的最新版或定制版第三方库，会希望将自已附带的库路径放到
+最前面。
+</p>
+
+<p>
+<code>LDFLAGS</code> 环境变量指定了库查找路径 A <code>-L/opt/a/lib</code> ， <code>CMakeLists.txt</code> 指定了库
+查找路径 B <code>link_directories(/opt/b/lib)</code> ，实际上 A 总是会位于 B 之前，这是因为
+CMake 并没有解析 <code>LDFLAGS</code> 中的 <code>-L</code> 选项。
+</p>
+
+<p>
+相关讨论 <a href="https://cmake.org/pipermail/cmake/2007-November/017479.html">{CMake} Link directories order</a>
+</p>
+
+<p>
+当对库查找路径的顺序有要求时，不应该使用 <code>link_directories</code> 选项来指定库查找路径，
+而是使用 <code>CMAKE_*_LINKER_FLAGS</code> ，如
+</p>
+
+<div class="org-src-container">
+<pre class="src src-cmake"><span style="color: #de935f;">set</span>(CMAKE_EXE_LINKER_FLAGS <span style="color: #8abeb7;">"-L/opt/b/lib ${</span><span style="color: #f0c674;">CMAKE_EXE_LINKER_FLAGS</span><span style="color: #8abeb7;">}"</span>)
+</pre>
+</div>
+
+        </div>
+        <br />
+        <footer class="article-footer">
+          <span class="muted">
+            <i class="icon-time icon-white"></i> <time datetime="2018-07-12T18:10:00+0800">2018年7月12日 18时</time>
+          </span>
+          <a class="tag" href="/tag/linux/0.html"><i class="icon-tag icon-white"></i> linux</a>
+        </footer>
+      </div>
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+  /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+  var disqus_shortname = 'kankananblog';
+
+  /* * * DON'T EDIT BELOW THIS LINE * * */
+  (function() {
+  var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+  dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+      <div class="push-footer"></div>
+    </div>
+
+    <div id="footer">
+  	  <div class="copyright" style="text-align: center;">
+  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
+  	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
+  	  </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+    <channel>
+        <title>android - 看看俺 – KanKanAn.com</title>
+        <link>http://blog.kankanan.com/tag/android.xml</link>
+        <description>记我所思，忆我所为。</description>
+        <lastBuildDate>Thu, 09 Aug 2018 07:29:36 GMT</lastBuildDate>
+        <docs>http://blogs.law.harvard.edu/tech/rss</docs>
+        <generator>Feed for Node.js</generator>
+        <image>
+            <title>android - 看看俺 – KanKanAn.com</title>
+            <url>http://blog.kankanan.com/static/favicon.ico</url>
+            <link>http://blog.kankanan.com/tag/android.xml</link>
+        </image>
+        <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
+        <category>技术</category>
+        <item>
+            <title><![CDATA[使用 NDK 移植 Linux C/C++ 程序到 Android 系统]]></title>
+            <link>/article/4f7f7528-ndk-79fb690d-linux-c-c-7a0b5e8f5230-android-7cfb7edf.html</link>
+            <guid>/article/4f7f7528-ndk-79fb690d-linux-c-c-7a0b5e8f5230-android-7cfb7edf.html</guid>
+            <pubDate>Thu, 09 Aug 2018 07:28:00 GMT</pubDate>
+            <content:encoded><![CDATA[
+<div id="outline-container-orgabcf354" class="outline-2">
+<h2 id="orgabcf354">区分基础概念：JNI 与 NDK</h2>
+<div class="outline-text-2" id="text-orgabcf354">
+<ul class="org-ul">
+<li>JNI（Java Native Interface）是一种 Java 语言特性</li>
+</ul>
+
+<p>
+用于 Java 程序与 C、C++ 库间的互相调用。
+</p>
+
+<ul class="org-ul">
+<li>NDK（Native Development Kit）是 Google 提供的使用 C/C++ 编写 Android 程序的开
+发工具包</li>
+</ul>
+
+<p>
+它使用 JNI 实现 Java 程序调用 C/C++ 本地代码，允许 C/C++ 本地代码访问 Android
+API，不只是用来开发或移植 C/C++ 库，也可以是 C/C++ 程序。
+</p>
+
+<p>
+引用自 <a href="https://developer.android.com/ndk/">Android NDK  |  Android NDK  |  Android Developers</a>
+</p>
+<blockquote>
+<p>
+Android NDK
+</p>
+
+<p>
+The Android NDK is a toolset that lets you implement parts of your app in native
+code, using languages such as C and C++. For certain types of apps, this can
+help you reuse code libraries written in those languages.
+</p>
+</blockquote>
+</div>
+</div>
+
+<div id="outline-container-orga133842" class="outline-2">
+<h2 id="orga133842">NDK 交叉编译工具链适用于使用 GNU Autotools 进行构建的项目</h2>
+<div class="outline-text-2" id="text-orga133842">
+<p>
+NDK 自带完整的交叉编译工具链，可以直接将使用 GNU Autotools 构建的一些开源库移植
+到 Android 平台，这样可以省去自已去写 Android.mk 编译脚本。
+</p>
+
+<p>
+通常只需要先设置以下环境变量：
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh"><span style="color: #b294bb;">export</span> <span style="color: #f0c674;">PATH</span>=$<span style="color: #f0c674;">PATH</span>:/opt/android-toolchain/bin
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">CC</span>=aarch64-linux-android-clang
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">CXX</span>=aarch64-linux-android-clang++
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">LD</span>=aarch64-linux-android-ld
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">AR</span>=aarch64-linux-android-ar
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">STRIP</span>=aarch64-linux-android-strip
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">RANLIB</span>=aarch64-linux-android-ranlib
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">AS</span>=aarch64-linux-android-clang
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">CFLAGS</span>=<span style="color: #8abeb7;">"-fPIE -fPIC"</span>
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">LDFLAGS</span>=<span style="color: #8abeb7;">"-pie"</span>
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">SYSROOT</span>=/opt/android-toolchain/sysroot
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">CROSS_COMPILE_HOST</span>=aarch64-linux-android
+</pre>
+</div>
+
+<p>
+然后在执行 <code>./configure</code> 时指定 <code>--host=${CROSS_COMPILE_HOST}</code> 选项即可编译成功。
+</p>
+</div>
+</div>
+
+<div id="outline-container-org0be3a78" class="outline-2">
+<h2 id="org0be3a78">NDK 的局限性</h2>
+<div class="outline-text-2" id="text-org0be3a78">
+<p>
+NDK 提供一系列稳定的 C/C++ API，头文件在 <code>sysroot/usr/include</code> 下，主要包括 C 标
+准库、C++ 标准库、jni、math、pthread、zlib、OpenGL、Android 相关的库。随着时间的推
+移 <a href="https://developer.android.com/ndk/guides/stable_apis">NDK 支持的 API</a> 也在增加。
+</p>
+
+<p>
+除了支持 Android 开发之外，NDK 开发环境只是嵌入式 Linux 开发环境的一个子集，这可
+能是因为 Android 安全沙箱需要、GPL 版权限制。
+</p>
+
+<ul class="org-ul">
+<li>没有使用 <code>glibc</code></li>
+</ul>
+
+<p>
+<code>glibc</code> 是 Linux 下的 C 标准库实现，除了实现 <code>ANSI C</code> 标准库还有大量方便 Linux
+开发的扩展功能。而 NDK 提供的 C 标准库并非 <code>glibc</code> 。这导致移植 Nginx 时由于缺少
+<code>crypt.h</code> 头文件而编译不过。如果强行将 <code>glibc</code> 之类的东西也移植过来我估计后面也
+很难打包成 APK 从而正常地进行安装、升级。
+</p>
+
+<p>
+NDK 将在未来的版本中移除 <code>gcc</code> 而只支持 <code>clang</code> ，已知 Standalone 工具链中使用
+<code>gcc</code> 会 <a href="https://github.com/android-ndk/ndk/issues/215">出现编译错误</a>：
+</p>
+<blockquote>
+<p>
+cstddef:43:25: fatal error: stddef.h: No such file or directory
+</p>
+</blockquote>
+<p>
+初步使用 <code>clang</code> 移植了一些库（如 <a href="https://sourceforge.net/projects/pcre/">pcre</a> ）是没有问题的。
+</p>
+</div>
+</div>
+
+<div id="outline-container-org5a9a189" class="outline-2">
+<h2 id="org5a9a189">结论</h2>
+<div class="outline-text-2" id="text-org5a9a189">
+<p>
+一般的 C/C++ 库通常本身就会注重可移植性，不会生硬地依赖系统底层特性，使用 NDK
+移植是可行的，即使是 <code>ffmpeg</code> 这种大型的库也可以成功移植到 Android。
+</p>
+
+<p>
+而对于一些 Linux 下的程序，使用 NDK 直接移植会有很大的失败机率，因为他们可能
+使用了 NDK 不支持的特性（如 <code>glibc</code> ），应该采用和 Android 源代码一起编译的方
+式，这样可以使用 NDK 不支持的特性。
+</p>
+</div>
+</div>
+
+<div id="outline-container-org7b4254f" class="outline-2">
+<h2 id="org7b4254f">参考</h2>
+<div class="outline-text-2" id="text-org7b4254f">
+<ul class="org-ul">
+<li><a href="https://developer.android.com/ndk/guides/concepts">Concepts  |  Android NDK  |  Android Developers</a></li>
+
+<li><a href="http://www.jkeabc.com/475203.html">Android NDK vs AOSP Build System</a></li>
+
+<li><a href="https://developer.android.com/ndk/guides/stable_apis">Android NDK Native APIs  |  Android NDK  |  Android Developers</a></li>
+
+<li><a href="https://software.intel.com/en-us/articles/building-an-android-command-line-application-using-the-ndk-build-tools">Building an Android* Command-Line Application Using the NDK Build Tools | Intel® Software</a></li>
+
+<li><a href="https://www.jianshu.com/p/6332418b12b1">Android NDK开发扫盲及最新CMake的编译使用 - 简书</a></li>
+
+<li><a href="https://blog.csdn.net/minghuang2017/article/details/78938852">在命令行下用cmake交叉编译可在android中运行的so包 - CSDN博客</a></li>
+
+<li><a href="https://blog.csdn.net/minghuang2017/article/details/79000345">cmake使用独立工具链交叉编译可在android中运行的so包 - CSDN博客</a></li>
+
+<li><a href="https://warpedtimes.wordpress.com/2010/02/03/building-open-source-libraries-with-android-ndk/">Building Open Source libraries with Android NDK | Thoughts and Ideas In Warped Times</a></li>
+</ul>
+</div>
+</div>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Archlinux 下编译 Android]]></title>
+            <link>/article/archlinux-4e0b7f168bd1-android.html</link>
+            <guid>/article/archlinux-4e0b7f168bd1-android.html</guid>
+            <pubDate>Thu, 09 Aug 2018 07:26:00 GMT</pubDate>
+            <content:encoded><![CDATA[
+<div id="outline-container-orgb1b2833" class="outline-2">
+<h2 id="orgb1b2833">安装 openjdk</h2>
+<div class="outline-text-2" id="text-orgb1b2833">
+<p>
+根据 Android 版本选择 <code>openjdk</code> 版本进行安装
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">yaourt -S jdk8-openjdk
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>参考 <a href="https://wiki.archlinux.org/index.php/Android#Java_Development_Kit">Java_Development_Kit - Android - ArchWiki</a></li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-org0a59a31" class="outline-2">
+<h2 id="org0a59a31">安装 repo</h2>
+<div class="outline-text-2" id="text-org0a59a31">
+<p>
+<a href="https://android.googlesource.com/tools/repo">repo</a> 是用来从多个 <code>Git</code> 仓库构建 <code>Android</code> 的工具。
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">curl https://storage.googleapis.com/git-repo-downloads/repo &gt; ~/repo
+chmod a+x ~/repo
+sudo mv ~/repo /usr/local/bin/
+</pre>
+</div>
+
+<p>
+参考 <a href="https://source.android.com/setup/build/downloading#installing-repo">Downloading the Source  |  Android Open Source Project</a>
+</p>
+</div>
+</div>
+
+<div id="outline-container-org718e789" class="outline-2">
+<h2 id="org718e789">设置编译环境</h2>
+<div class="outline-text-2" id="text-org718e789">
+<div class="org-src-container">
+<pre class="src src-sh">mkdir -p ~/Opensource/android
+<span style="color: #b294bb;">cd</span> ~/Opensource/android
+virtualenv2 venv
+<span style="color: #b294bb;">source</span> venv/bin/activate
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>参考 <a href="https://wiki.archlinux.org/index.php/Android#Setting_up_the_build_environment">Setting up the build environment - Android - ArchWiki</a></li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-org61669f5" class="outline-2">
+<h2 id="org61669f5">下载源代码</h2>
+<div class="outline-text-2" id="text-org61669f5">
+<div class="org-src-container">
+<pre class="src src-sh">repo init -u https://android.googlesource.com/platform/manifest -b master
+repo sync -j4
+</pre>
+</div>
+
+<p>
+以后如果要同步最新代码，则执行
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">repo sync
+</pre>
+</div>
+
+<p>
+下载过程中可能被墙导致失败，可以考虑使用 <code>proxychains</code> 来翻墙，最好还是国内找一
+个镜像，加快下载速度。
+</p>
+
+<p>
+代码有几十个 G，下载和编译都需要很长时间。
+</p>
+
+<ul class="org-ul">
+<li>参考 <a href="https://wiki.archlinux.org/index.php/Android#Downloading%20the%20source%20code">Downloading the source code - Android - ArchWiki</a></li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-org9349b05" class="outline-2">
+<h2 id="org9349b05">编译</h2>
+<div class="outline-text-2" id="text-org9349b05">
+<div class="org-src-container">
+<pre class="src src-sh"><span style="color: #b294bb;">source</span> build/envsetup.sh
+lunch full-eng
+make -j4
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org4ba3ce6" class="outline-2">
+<h2 id="org4ba3ce6">测试</h2>
+<div class="outline-text-2" id="text-org4ba3ce6">
+<div class="org-src-container">
+<pre class="src src-sh">emulator
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org297a3ca" class="outline-2">
+<h2 id="org297a3ca">参考</h2>
+<div class="outline-text-2" id="text-org297a3ca">
+<ul class="org-ul">
+<li><a href="https://wiki.archlinux.org/index.php/Android#Building">Building - Android - ArchWiki</a></li>
+</ul>
+</div>
+</div>
+]]></content:encoded>
+        </item>
+    </channel>
+</rss>
