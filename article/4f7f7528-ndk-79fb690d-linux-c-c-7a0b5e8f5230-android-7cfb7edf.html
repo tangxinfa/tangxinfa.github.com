@@ -31,9 +31,9 @@
       
         <div class="article-content">
           
-<div id="outline-container-orgabcf354" class="outline-2">
-<h2 id="orgabcf354">区分基础概念：JNI 与 NDK</h2>
-<div class="outline-text-2" id="text-orgabcf354">
+<div id="outline-container-orgaeede20" class="outline-2">
+<h2 id="orgaeede20">区分基础概念：JNI 与 NDK</h2>
+<div class="outline-text-2" id="text-orgaeede20">
 <ul class="org-ul">
 <li>JNI（Java Native Interface）是一种 Java 语言特性</li>
 </ul>
@@ -66,19 +66,42 @@ code, using languages such as C and C++. For certain types of apps, this can
 help you reuse code libraries written in those languages.
 </p>
 </blockquote>
-</div>
-</div>
 
-<div id="outline-container-orga133842" class="outline-2">
-<h2 id="orga133842">NDK 交叉编译工具链适用于使用 GNU Autotools 进行构建的项目</h2>
-<div class="outline-text-2" id="text-orga133842">
 <p>
-NDK 自带完整的交叉编译工具链，可以直接将使用 GNU Autotools 构建的一些开源库移植
-到 Android 平台，这样可以省去自已去写 Android.mk 编译脚本。
+NDK 提供一系列稳定的 C/C++ API，头文件在 <code>sysroot/usr/include</code> 下，主要包括 C 标
+准库、C++ 标准库、jni、math、pthread、zlib、OpenGL、Android 相关的库。
 </p>
 
 <p>
-通常只需要先设置以下环境变量：
+<a href="https://developer.android.com/ndk/guides/stable_apis">NDK 支持的 API</a> 也会随着需求的增加而日趋完善，比如有人提 ISSUE（<a href="https://github.com/android-ndk/ndk/issues/718">Undefined
+reference to glob and globfree in libc.so · Issue #718 · android-ndk/ndk</a> ），然
+后在接下来的版本 <code>r17b</code> 中就添加了 <code>glob</code> 的支持，可以期待以后使用 NDK 移植程序
+到 Android 平台会越来越方便。
+</p>
+</div>
+</div>
+
+<div id="outline-container-org4088a47" class="outline-2">
+<h2 id="org4088a47">移植使用 GNU Autotools 的项目</h2>
+<div class="outline-text-2" id="text-org4088a47">
+<p>
+NDK 提供了创建独立工具链的工具，对于移植使用 GNU Autotools 的项目到 Android 平台
+很有帮助，省去写 <code>Android.mk</code> 。
+</p>
+
+<ul class="org-ul">
+<li><p>
+创建独立工具链
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">/opt/android-ndk-r16/build/tools/make_standalone_toolchain.py <span style="color: #8abeb7;">\</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   --arch arm64 --api 28 --stl=libc++ --install-dir /opt/android-toolchain
+</pre>
+</div></li>
+
+<li><p>
+环境变量配置
 </p>
 
 <div class="org-src-container">
@@ -92,29 +115,197 @@ NDK 自带完整的交叉编译工具链，可以直接将使用 GNU Autotools �
 <span style="color: #b294bb;">export</span> <span style="color: #f0c674;">AS</span>=aarch64-linux-android-clang
 <span style="color: #b294bb;">export</span> <span style="color: #f0c674;">CFLAGS</span>=<span style="color: #8abeb7;">"-fPIE -fPIC"</span>
 <span style="color: #b294bb;">export</span> <span style="color: #f0c674;">LDFLAGS</span>=<span style="color: #8abeb7;">"-pie"</span>
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">SYSROOT</span>=/opt/android-toolchain/sysroot
 <span style="color: #b294bb;">export</span> <span style="color: #f0c674;">CROSS_COMPILE_HOST</span>=aarch64-linux-android
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">CROSS_COMPILE_SYS_ROOT</span>=/opt/android-toolchain/sysroot
+</pre>
+</div></li>
+
+<li><p>
+交叉编译
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">./configure --host=${<span style="color: #f0c674;">CROSS_COMPILE_HOST</span>} --prefix=/opt/local
+make
+make install
+</pre>
+</div></li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-org5ed50fa" class="outline-2">
+<h2 id="org5ed50fa">移植 Nginx 遇到的问题</h2>
+<div class="outline-text-2" id="text-org5ed50fa">
+<ul class="org-ul">
+<li><p>
+交叉编译 OpenSSL
+</p>
+
+<p>
+网上有大量的移植文档，基本上是基于 <a href="https://wiki.openssl.org/index.php/Android">OpenSSL Android - OpenSSLWiki</a> ，最大的问题
+是使用的 NDK 和 OpenSSL 版本都比较旧，最后主要参考
+<a href="https://github.com/couchbaselabs/couchbase-lite-libcrypto">couchbaselabs/couchbase-lite-libcrypto: Pre-built OpenSSL libcrypto static
+libraries</a> 移植成功。OpenSSL 的交叉编译需要完整的 NDK 包，最好新开一个 Shell 来
+编译 OpenSSL，避免为独立工具链设置的环境变量影响到 OpenSSL 的编译。
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh"><span style="color: #969896; font-style: italic;"># </span><span style="color: #969896; font-style: italic;">Download</span>
+wget https://codeload.github.com/openssl/openssl/zip/OpenSSL_1_1_0-stable -O ope<span style="text-decoration: underline;">nssl-OpenSSL_1_1_0-stable.zip</span>
+unzip openssl-OpenSSL_1_1_0-stable.zip
+wget https://raw.githubusercontent.com/couchbaselabs/couchbase-lite-libcrypto/ma<span style="text-decoration: underline;">ster/build-android-setenv.sh -O openssl.setenv</span>
+sed -i -e <span style="color: #8abeb7;">'s/^_ANDROID_NDK=/#_ANDROID_NDK=/g'</span> openssl.setenv
+
+<span style="color: #969896; font-style: italic;"># </span><span style="color: #969896; font-style: italic;">Config</span>
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">ANDROID_NDK_ROOT</span>=/opt/android-ndk
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">_ANDROID_TARGET_SELECT</span>=arch-arm64-v8a
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">_ANDROID_NDK</span>=<span style="color: #8abeb7;">"android-ndk"</span>
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">ANDROID_EABI_PREFIX</span>=aarch64-linux-android
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">_ANDROID_EABI</span>=<span style="color: #8abeb7;">"${ANDROID_EABI_PREFIX}-4.9"</span>
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">_ANDROID_ARCH</span>=arch-arm64
+<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">_ANDROID_API</span>=<span style="color: #8abeb7;">"android-28"</span>
+<span style="color: #b294bb;">source</span> openssl.setenv
+
+<span style="color: #969896; font-style: italic;"># </span><span style="color: #969896; font-style: italic;">Build</span>
+<span style="color: #b294bb;">cd</span> openssl-OpenSSL_1_1_0-stable
+./Configure dist
+./Configure no-ssl2 no-ssl3 no-comp no-hw no-engine --openssldir=/opt/local/ --p<span style="text-decoration: underline;">refix=/opt/local/ linux-generic64 -DB_ENDIAN -B$</span><span style="color: #f0c674; text-decoration: underline;">ANDROID_DEV</span><span style="text-decoration: underline;"> </span><span style="color: #8abeb7; text-decoration: underline;">\</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   -fPIE -fPIC -I${<span style="color: #f0c674;">ANDROID_NDK_ROOT</span>}/sysroot/usr/include -I${<span style="color: #f0c674;">ANDROID_ND</span><span style="color: #f0c674; text-decoration: underline;">K_ROOT</span><span style="text-decoration: underline;">}/sysroot/usr/include/${</span><span style="color: #f0c674; text-decoration: underline;">ANDROID_EABI_PREFIX</span><span style="text-decoration: underline;">} </span><span style="color: #8abeb7; text-decoration: underline;">\</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   -pie -L${<span style="color: #f0c674;">ANDROID_NDK_ROOT</span>}/platforms/${<span style="color: #f0c674;">_ANDROID_API</span>}/${<span style="color: #f0c674;">_ANDROID_ARCH</span><span style="text-decoration: underline;">}/usr/lib</span>
+ln -s ${<span style="color: #f0c674;">SYSROOT</span>}/usr/lib/crtbegin_so.o
+ln -s ${<span style="color: #f0c674;">SYSROOT</span>}/usr/lib/crtend_so.o
+ln -s ${<span style="color: #f0c674;">SYSROOT</span>}/usr/lib/crtbegin_dynamic.o
+ln -s ${<span style="color: #f0c674;">SYSROOT</span>}/usr/lib/crtend_android.o
+make -j6
+make install
+</pre>
+</div></li>
+
+<li>交叉编译出的配置检测程序无法直接运行</li>
+</ul>
+
+<p>
+Nginx 没有使用 GNU Autotools，而是有自已的 Configure 脚本，遇到的第一个问题就是
+Nginx 是通过使用编译器编译一个测试程序来获取配置信息，交叉编译出来的程序肯定是无
+法在编译机上运行的，一个可靠的办法就是修改 Configure 脚本，改为上传到目标设备上
+执行。
+</p>
+
+<p>
+下面是我写好的一个远程执行脚本 <code>execute</code>
+</p>
+<div class="org-src-container">
+<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/</span><span style="color: #b5bd68;">bash</span>
+
+<span style="color: #b5bd68;">if</span> [ $<span style="color: #f0c674;">#</span> != 2 ] || ([ $<span style="color: #f0c674;">1</span> != <span style="color: #8abeb7;">"-c"</span> ] &amp;&amp; [ $<span style="color: #f0c674;">1</span> != <span style="color: #8abeb7;">"-f"</span> ]) ; <span style="color: #b5bd68;">then</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"usage: $0 -&lt;c|f&gt; &lt;cmd|file&gt;"</span> &gt;&gt; /dev/stderr
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">exit</span> 22 <span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">Invalid argument</span>
+<span style="color: #b5bd68;">fi</span>
+
+<span style="color: #f0c674;">LOG_FILE</span>=/dev/null
+
+<span style="color: #b5bd68;">if</span> [[ <span style="color: #8abeb7;">"$CROSS_COMPILE_HOST"</span> = *<span style="color: #8abeb7;">"android"</span>* ]]; <span style="color: #b5bd68;">then</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   adb connect ${<span style="color: #f0c674;">CROSS_COMPILE_DEVICE_IP</span>} &gt;&gt;$<span style="color: #f0c674;">LOG_FILE</span> 2&gt;&amp;1
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   timeout 10 adb wait-for-device
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   adb root &gt;&gt;$<span style="color: #f0c674;">LOG_FILE</span> 2&gt;&amp;1
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   adb connect ${<span style="color: #f0c674;">CROSS_COMPILE_DEVICE_IP</span>} &gt;&gt;$<span style="color: #f0c674;">LOG_FILE</span> 2&gt;&amp;1
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   timeout 10 adb wait-for-device
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   adb remount &gt;&gt;$<span style="color: #f0c674;">LOG_FILE</span> 2&gt;&amp;1
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   adb connect ${<span style="color: #f0c674;">CROSS_COMPILE_DEVICE_IP</span>} &gt;&gt;$<span style="color: #f0c674;">LOG_FILE</span> 2&gt;&amp;1
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   timeout 10 adb wait-for-device
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">if</span> [ $<span style="color: #f0c674;">1</span> == <span style="color: #8abeb7;">"-f"</span> ]; <span style="color: #b5bd68;">then</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #f0c674;">tempfile</span>=<span style="color: #b294bb;">`mktemp -u XXXXXXXX`</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #f0c674;">tempdir</span>=/tmp/cross-compile
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   adb shell mkdir ${<span style="color: #f0c674;">tempdir</span>} &gt;&gt;$<span style="color: #f0c674;">LOG_FILE</span> 2&gt;&amp;1
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   adb push $<span style="color: #f0c674;">2</span> ${<span style="color: #f0c674;">tempdir</span>}/${<span style="color: #f0c674;">tempfile</span>} &gt;&gt;$<span style="color: #f0c674;">LOG_FILE</span> 2&gt;&amp;1
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   adb shell <span style="color: #8abeb7;">"find ${tempdir} -mmin +1 -type f -exec rm {} \; &gt;/dev/null 2&gt;</span><span style="color: #8abeb7; text-decoration: underline;">&amp;1; cd ${tempdir} &amp;&amp; chmod a+x $tempfile &amp;&amp; ./$tempfile"</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">else</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   adb shell $<span style="color: #f0c674;">2</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">fi</span>
+<span style="color: #b5bd68;">else</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">if</span> [ $<span style="color: #f0c674;">1</span> == <span style="color: #8abeb7;">"-f"</span> ]; <span style="color: #b5bd68;">then</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #f0c674;">tempfile</span>=<span style="color: #b294bb;">`mktemp -u XXXXXXXX`</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #f0c674;">tempdir</span>=/tmp/cross-compile
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   ssh -o <span style="color: #f0c674;">StrictHostKeyChecking</span>=no root@${<span style="color: #f0c674;">CROSS_COMPILE_DEVICE_IP</span>} mkdir ${<span style="color: #f0c674; text-decoration: underline;">tempdir</span><span style="text-decoration: underline;">} &gt;&gt;$</span><span style="color: #f0c674; text-decoration: underline;">LOG_FILE</span><span style="text-decoration: underline;"> 2&gt;&amp;1</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   scp -o <span style="color: #f0c674;">StrictHostKeyChecking</span>=no $<span style="color: #f0c674;">2</span> root@${<span style="color: #f0c674;">CROSS_COMPILE_DEVICE_IP</span>}:${<span style="color: #f0c674;">tem</span><span style="color: #f0c674; text-decoration: underline;">pdir</span><span style="text-decoration: underline;">}/${</span><span style="color: #f0c674; text-decoration: underline;">tempfile</span><span style="text-decoration: underline;">} &gt;&gt;$</span><span style="color: #f0c674; text-decoration: underline;">LOG_FILE</span><span style="text-decoration: underline;"> 2&gt;&amp;1</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   ssh -o <span style="color: #f0c674;">StrictHostKeyChecking</span>=no root@${<span style="color: #f0c674;">CROSS_COMPILE_DEVICE_IP</span>} <span style="color: #8abeb7;">"find ${</span><span style="color: #8abeb7; text-decoration: underline;">tempdir} -mmin +1 -type f -exec rm {} \; &gt;/dev/null 2&gt;&amp;1; cd ${tempdir} &amp;&amp; chmod a+x $tempfile &amp;&amp; ./$tempfile"</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">else</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   ssh -o <span style="color: #f0c674;">StrictHostKeyChecking</span>=no root@${<span style="color: #f0c674;">CROSS_COMPILE_DEVICE_IP</span>} $<span style="color: #f0c674;">2</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">fi</span>
+<span style="color: #b5bd68;">fi</span>
 </pre>
 </div>
 
 <p>
-然后在执行 <code>./configure</code> 时指定 <code>--host=${CROSS_COMPILE_HOST}</code> 选项即可编译成功。
+修改 <code>nginx-1.14.0</code> 的配置脚本，将本地运行测试程序的地方改为远程执行
 </p>
-</div>
+<div class="org-src-container">
+<pre class="src src-sh">sed -i -e <span style="color: #8abeb7;">'s/\/bin\/sh -c $NGX_AUTOTEST/\/build\/execute -f $NGX_AUTOTEST/g'</span> <span style="color: #b294bb;">`fi</span><span style="color: #b294bb; text-decoration: underline;">nd auto -type f`</span>
+sed -i -e <span style="color: #8abeb7;">'s/$NGX_AUTOTEST &gt;\/dev\/null/\/build\/execute -f $NGX_AUTOTEST &gt;\/dev</span><span style="color: #8abeb7; text-decoration: underline;">\/null/g'</span><span style="text-decoration: underline;"> </span><span style="color: #b294bb; text-decoration: underline;">`find auto -type f`</span>
+sed -i -e <span style="color: #8abeb7;">'s/`$NGX_AUTOTEST`/`\/build\/execute -f $NGX_AUTOTEST`/g'</span> <span style="color: #b294bb;">`find auto -</span><span style="color: #b294bb; text-decoration: underline;">type f`</span>
+</pre>
 </div>
 
-<div id="outline-container-org0be3a78" class="outline-2">
-<h2 id="org0be3a78">NDK 的局限性</h2>
-<div class="outline-text-2" id="text-org0be3a78">
 <p>
-NDK 提供一系列稳定的 C/C++ API，头文件在 <code>sysroot/usr/include</code> 下，主要包括 C 标
-准库、C++ 标准库、jni、math、pthread、zlib、OpenGL、Android 相关的库。随着时间的推
-移 <a href="https://developer.android.com/ndk/guides/stable_apis">NDK 支持的 API</a> 也在增加。
+运行时需要预先设置环境变量 <code>CROSS_COMPILE_DEVICE_IP</code> 为目标设备 IP，对于嵌入式
+Linux 设备，需要使用 <code>ssh-copy-id</code> 命令设置为本机免密码 ssh 登录，对于 Android
+设备需要预先 adb 授权通过。
 </p>
 
+<ul class="org-ul">
+<li>编译时找不到 <code>crypt.h</code></li>
+</ul>
+
+<p>
+<code>crypt.h</code> 属于 <code>glibc</code> ，NDK 没有包括进来，可以将 <code>crypt</code> 调用替换为 <code>DES_crypt</code>
+</p>
+<div class="org-src-container">
+<pre class="src src-sh">sed -i -e <span style="color: #8abeb7;">'s/#include &lt;crypt.h&gt;/#if (NGX_HAVE_CRYPT_H)\n#include &lt;crypt.h&gt;\n#end</span><span style="color: #8abeb7; text-decoration: underline;">if\n#include &lt;openssl\/des.h&gt;/g'</span><span style="text-decoration: underline;"> src/os/unix/ngx_linux_config.h</span>
+sed -i -e <span style="color: #8abeb7;">'s/= crypt(/= DES_crypt(/g'</span> src/os/unix/ngx_user.c
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>链接时找不到 <code>glob</code> 函数</li>
+</ul>
+
+<p>
+NDK 工具链是有提供 <code>glob.h</code> 头文件的，但是链接时却找不到 <code>glob</code> 函数。网络上有很
+多单独提供 <a href="https://github.com/tatowilson/Cross-Compile-Nginx-with-RTMP-Module-for-Android/tree/master/glob">glob</a> 下载的，但是都无法直接通过编译，因为里面有很多平台相关的特性。
+NDK 有人提了一个 ISSUE （<a href="https://github.com/android-ndk/ndk/issues/718">Undefined
+reference to glob and globfree in libc.so · Issue #718 · android-ndk/ndk</a> ），说
+是已经在 <code>r17b</code> 版本解决，升级 NDK 到最新的 <code>r17-beta2</code> 还必须将 <code>API Level</code> 设
+置为 <code>28</code> 才能解决这个问题，这就意味着编译出来的程序无法在旧版本的
+Android（&lt;=8.1） 上运行。
+</p>
+
+<ul class="org-ul">
+<li><p>
+交叉编译 Nginx
+</p>
+
+<p>
+可使用独立工具链来交叉编译 Nginx，参考前面环境变量配置部分先设置好工具链的环境
+变量。
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh"><span style="color: #f0c674;">CC_TEST_FLAGS</span>=<span style="color: #8abeb7;">"${CFLAGS} ${LDFLAGS}"</span> ./configure --with-ld-opt=<span style="color: #8abeb7;">"${LDFLAGS}"</span> --pr<span style="text-decoration: underline;">efix=/opt/local --crossbuild=</span><span style="color: #b294bb; text-decoration: underline;">`/build/execute -c 'uname -srm' | tr ' ' ':'`</span><span style="text-decoration: underline;"> --user=root --group=root --with-select_module --with-poll_module --with-file-aio --with-http_ssl_module --without-mail_pop3_module --without-mail_imap_module  --without-mail_smtp_module</span>
+make
+make install
+</pre>
+</div></li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-org218b0bc" class="outline-2">
+<h2 id="org218b0bc">NDK 的局限性</h2>
+<div class="outline-text-2" id="text-org218b0bc">
 <p>
 除了支持 Android 开发之外，NDK 开发环境只是嵌入式 Linux 开发环境的一个子集，这可
-能是因为 Android 安全沙箱需要、GPL 版权限制。
+能是因为 Android 安全沙箱需要或者版权限制。
 </p>
 
 <ul class="org-ul">
@@ -124,8 +315,7 @@ NDK 提供一系列稳定的 C/C++ API，头文件在 <code>sysroot/usr/include<
 <p>
 <code>glibc</code> 是 Linux 下的 C 标准库实现，除了实现 <code>ANSI C</code> 标准库还有大量方便 Linux
 开发的扩展功能。而 NDK 提供的 C 标准库并非 <code>glibc</code> 。这导致移植 Nginx 时由于缺少
-<code>crypt.h</code> 头文件而编译不过。如果强行将 <code>glibc</code> 之类的东西也移植过来我估计后面也
-很难打包成 APK 从而正常地进行安装、升级。
+<code>crypt.h</code> 头文件而编译不过。
 </p>
 
 <p>
@@ -143,9 +333,9 @@ cstddef:43:25: fatal error: stddef.h: No such file or directory
 </div>
 </div>
 
-<div id="outline-container-org5a9a189" class="outline-2">
-<h2 id="org5a9a189">结论</h2>
-<div class="outline-text-2" id="text-org5a9a189">
+<div id="outline-container-org50de139" class="outline-2">
+<h2 id="org50de139">结论</h2>
+<div class="outline-text-2" id="text-org50de139">
 <p>
 一般的 C/C++ 库通常本身就会注重可移植性，不会生硬地依赖系统底层特性，使用 NDK
 移植是可行的，即使是 <code>ffmpeg</code> 这种大型的库也可以成功移植到 Android。
@@ -153,15 +343,18 @@ cstddef:43:25: fatal error: stddef.h: No such file or directory
 
 <p>
 而对于一些 Linux 下的程序，使用 NDK 直接移植会有很大的失败机率，因为他们可能
-使用了 NDK 不支持的特性（如 <code>glibc</code> ），应该采用和 Android 源代码一起编译的方
-式，这样可以使用 NDK 不支持的特性。
+使用了 NDK 不支持的特性（如 <code>glibc</code> ）。
+</p>
+
+<p>
+NDK 一直在改进，以前阻碍我们移植到 Android 的问题很可能会在新版本中解决。
 </p>
 </div>
 </div>
 
-<div id="outline-container-org7b4254f" class="outline-2">
-<h2 id="org7b4254f">参考</h2>
-<div class="outline-text-2" id="text-org7b4254f">
+<div id="outline-container-org93cf207" class="outline-2">
+<h2 id="org93cf207">参考</h2>
+<div class="outline-text-2" id="text-org93cf207">
 <ul class="org-ul">
 <li><a href="https://developer.android.com/ndk/guides/concepts">Concepts  |  Android NDK  |  Android Developers</a></li>
 
@@ -178,6 +371,8 @@ cstddef:43:25: fatal error: stddef.h: No such file or directory
 <li><a href="https://blog.csdn.net/minghuang2017/article/details/79000345">cmake使用独立工具链交叉编译可在android中运行的so包 - CSDN博客</a></li>
 
 <li><a href="https://warpedtimes.wordpress.com/2010/02/03/building-open-source-libraries-with-android-ndk/">Building Open Source libraries with Android NDK | Thoughts and Ideas In Warped Times</a></li>
+
+<li><a href="https://zhangtom.com/2017/07/11/%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91%E5%B8%A6RTMP%E6%A8%A1%E5%9D%97%E7%9A%84Nginx%E5%88%B0Android/">交叉编译带RTMP模块的Nginx到Android | Tom's Blog</a></li>
 </ul>
 </div>
 </div>
@@ -189,6 +384,7 @@ cstddef:43:25: fatal error: stddef.h: No such file or directory
             <i class="icon-time icon-white"></i> <time datetime="2018-08-09T15:28:00+0800">2018年8月9日 15时</time>
           </span>
           <a class="tag" href="/tag/android/0.html"><i class="icon-tag icon-white"></i> android</a>
+          <a class="tag" href="/tag/nginx/0.html"><i class="icon-tag icon-white"></i> nginx</a>
         </footer>
       </div>
 

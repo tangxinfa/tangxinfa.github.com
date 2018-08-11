@@ -19280,7 +19280,7 @@ CMake 并没有解析 ~LDFLAGS~ 中的 ~-L~ 选项。
 
    - [[https://wiki.archlinux.org/index.php/Android#Building][Building - Android - ArchWiki]]
 
-* DONE 使用 NDK 移植 Linux C/C++ 程序到 Android 系统                :android:
+* DONE 使用 NDK 移植 Linux C/C++ 程序到 Android 系统          :android:nginx:
   CLOSED: [2018-08-09 Thu 15:28]
   [2018-08-04 Sat]
 
@@ -19305,45 +19305,192 @@ code, using languages such as C and C++. For certain types of apps, this can
 help you reuse code libraries written in those languages.
 #+end_quote
 
-** NDK 交叉编译工具链适用于使用 GNU Autotools 进行构建的项目
+NDK 提供一系列稳定的 C/C++ API，头文件在 ~sysroot/usr/include~ 下，主要包括 C 标
+准库、C++ 标准库、jni、math、pthread、zlib、OpenGL、Android 相关的库。
 
-NDK 自带完整的交叉编译工具链，可以直接将使用 GNU Autotools 构建的一些开源库移植
-到 Android 平台，这样可以省去自已去写 Android.mk 编译脚本。
+[[https://developer.android.com/ndk/guides/stable_apis][NDK 支持的 API]] 也会随着需求的增加而日趋完善，比如有人提 ISSUE（[[https://github.com/android-ndk/ndk/issues/718][Undefined
+reference to glob and globfree in libc.so · Issue #718 · android-ndk/ndk]] ），然
+后在接下来的版本 ~r17b~ 中就添加了 ~glob~ 的支持，可以期待以后使用 NDK 移植程序
+到 Android 平台会越来越方便。
 
-通常只需要先设置以下环境变量：
+** 移植使用 GNU Autotools 的项目
 
+NDK 提供了创建独立工具链的工具，对于移植使用 GNU Autotools 的项目到 Android 平台
+很有帮助，省去写 ~Android.mk~ 。
+
+- 创建独立工具链
+
+  #+begin_src sh
+    /opt/android-ndk-r16/build/tools/make_standalone_toolchain.py \
+        --arch arm64 --api 28 --stl=libc++ --install-dir /opt/android-toolchain
+  #+end_src
+
+- 环境变量配置
+
+  #+begin_src sh
+    export PATH=$PATH:/opt/android-toolchain/bin
+    export CC=aarch64-linux-android-clang
+    export CXX=aarch64-linux-android-clang++
+    export LD=aarch64-linux-android-ld
+    export AR=aarch64-linux-android-ar
+    export STRIP=aarch64-linux-android-strip
+    export RANLIB=aarch64-linux-android-ranlib
+    export AS=aarch64-linux-android-clang
+    export CFLAGS="-fPIE -fPIC"
+    export LDFLAGS="-pie"
+    export CROSS_COMPILE_HOST=aarch64-linux-android
+    export CROSS_COMPILE_SYS_ROOT=/opt/android-toolchain/sysroot
+  #+end_src
+
+- 交叉编译
+
+  #+begin_src sh
+    ./configure --host=${CROSS_COMPILE_HOST} --prefix=/opt/local
+    make
+    make install
+  #+end_src
+
+** 移植 Nginx 遇到的问题
+
+
+- 交叉编译 OpenSSL
+
+  网上有大量的移植文档，基本上是基于 [[https://wiki.openssl.org/index.php/Android][OpenSSL Android - OpenSSLWiki]] ，最大的问题
+  是使用的 NDK 和 OpenSSL 版本都比较旧，最后主要参考
+  [[https://github.com/couchbaselabs/couchbase-lite-libcrypto][couchbaselabs/couchbase-lite-libcrypto: Pre-built OpenSSL libcrypto static
+  libraries]] 移植成功。OpenSSL 的交叉编译需要完整的 NDK 包，最好新开一个 Shell 来
+  编译 OpenSSL，避免为独立工具链设置的环境变量影响到 OpenSSL 的编译。
+
+  #+begin_src sh
+    # Download
+    wget https://codeload.github.com/openssl/openssl/zip/OpenSSL_1_1_0-stable -O openssl-OpenSSL_1_1_0-stable.zip
+    unzip openssl-OpenSSL_1_1_0-stable.zip
+    wget https://raw.githubusercontent.com/couchbaselabs/couchbase-lite-libcrypto/master/build-android-setenv.sh -O openssl.setenv
+    sed -i -e 's/^_ANDROID_NDK=/#_ANDROID_NDK=/g' openssl.setenv
+
+    # Config
+    export ANDROID_NDK_ROOT=/opt/android-ndk
+    export _ANDROID_TARGET_SELECT=arch-arm64-v8a
+    export _ANDROID_NDK="android-ndk"
+    export ANDROID_EABI_PREFIX=aarch64-linux-android
+    export _ANDROID_EABI="${ANDROID_EABI_PREFIX}-4.9"
+    export _ANDROID_ARCH=arch-arm64
+    export _ANDROID_API="android-28"
+    source openssl.setenv
+
+    # Build
+    cd openssl-OpenSSL_1_1_0-stable
+    ./Configure dist
+    ./Configure no-ssl2 no-ssl3 no-comp no-hw no-engine --openssldir=/opt/local/ --prefix=/opt/local/ linux-generic64 -DB_ENDIAN -B$ANDROID_DEV \
+                -fPIE -fPIC -I${ANDROID_NDK_ROOT}/sysroot/usr/include -I${ANDROID_NDK_ROOT}/sysroot/usr/include/${ANDROID_EABI_PREFIX} \
+                -pie -L${ANDROID_NDK_ROOT}/platforms/${_ANDROID_API}/${_ANDROID_ARCH}/usr/lib
+    ln -s ${SYSROOT}/usr/lib/crtbegin_so.o
+    ln -s ${SYSROOT}/usr/lib/crtend_so.o
+    ln -s ${SYSROOT}/usr/lib/crtbegin_dynamic.o
+    ln -s ${SYSROOT}/usr/lib/crtend_android.o
+    make -j6
+    make install
+  #+end_src
+
+- 交叉编译出的配置检测程序无法直接运行
+
+Nginx 没有使用 GNU Autotools，而是有自已的 Configure 脚本，遇到的第一个问题就是
+Nginx 是通过使用编译器编译一个测试程序来获取配置信息，交叉编译出来的程序肯定是无
+法在编译机上运行的，一个可靠的办法就是修改 Configure 脚本，改为上传到目标设备上
+执行。
+
+下面是我写好的一个远程执行脚本 ~execute~
 #+begin_src sh
-  export PATH=$PATH:/opt/android-toolchain/bin
-  export CC=aarch64-linux-android-clang
-  export CXX=aarch64-linux-android-clang++
-  export LD=aarch64-linux-android-ld
-  export AR=aarch64-linux-android-ar
-  export STRIP=aarch64-linux-android-strip
-  export RANLIB=aarch64-linux-android-ranlib
-  export AS=aarch64-linux-android-clang
-  export CFLAGS="-fPIE -fPIC"
-  export LDFLAGS="-pie"
-  export SYSROOT=/opt/android-toolchain/sysroot
-  export CROSS_COMPILE_HOST=aarch64-linux-android
+  #!/bin/bash
+
+  if [ $# != 2 ] || ([ $1 != "-c" ] && [ $1 != "-f" ]) ; then
+      echo "usage: $0 -<c|f> <cmd|file>" >> /dev/stderr
+      exit 22 #Invalid argument
+  fi
+
+  LOG_FILE=/dev/null
+
+  if [[ "$CROSS_COMPILE_HOST" = *"android"* ]]; then
+      adb connect ${CROSS_COMPILE_DEVICE_IP} >>$LOG_FILE 2>&1
+      timeout 10 adb wait-for-device
+      adb root >>$LOG_FILE 2>&1
+      adb connect ${CROSS_COMPILE_DEVICE_IP} >>$LOG_FILE 2>&1
+      timeout 10 adb wait-for-device
+      adb remount >>$LOG_FILE 2>&1
+      adb connect ${CROSS_COMPILE_DEVICE_IP} >>$LOG_FILE 2>&1
+      timeout 10 adb wait-for-device
+      if [ $1 == "-f" ]; then
+          tempfile=`mktemp -u XXXXXXXX`
+          tempdir=/tmp/cross-compile
+          adb shell mkdir ${tempdir} >>$LOG_FILE 2>&1
+          adb push $2 ${tempdir}/${tempfile} >>$LOG_FILE 2>&1
+          adb shell "find ${tempdir} -mmin +1 -type f -exec rm {} \; >/dev/null 2>&1; cd ${tempdir} && chmod a+x $tempfile && ./$tempfile"
+      else
+          adb shell $2
+      fi
+  else
+      if [ $1 == "-f" ]; then
+          tempfile=`mktemp -u XXXXXXXX`
+          tempdir=/tmp/cross-compile
+          ssh -o StrictHostKeyChecking=no root@${CROSS_COMPILE_DEVICE_IP} mkdir ${tempdir} >>$LOG_FILE 2>&1
+          scp -o StrictHostKeyChecking=no $2 root@${CROSS_COMPILE_DEVICE_IP}:${tempdir}/${tempfile} >>$LOG_FILE 2>&1
+          ssh -o StrictHostKeyChecking=no root@${CROSS_COMPILE_DEVICE_IP} "find ${tempdir} -mmin +1 -type f -exec rm {} \; >/dev/null 2>&1; cd ${tempdir} && chmod a+x $tempfile && ./$tempfile"
+      else
+          ssh -o StrictHostKeyChecking=no root@${CROSS_COMPILE_DEVICE_IP} $2
+      fi
+  fi
 #+end_src
 
-然后在执行 ~./configure~ 时指定 ~--host=${CROSS_COMPILE_HOST}~ 选项即可编译成功。
+修改 ~nginx-1.14.0~ 的配置脚本，将本地运行测试程序的地方改为远程执行
+#+begin_src sh
+  sed -i -e 's/\/bin\/sh -c $NGX_AUTOTEST/\/build\/execute -f $NGX_AUTOTEST/g' `find auto -type f`
+  sed -i -e 's/$NGX_AUTOTEST >\/dev\/null/\/build\/execute -f $NGX_AUTOTEST >\/dev\/null/g' `find auto -type f`
+  sed -i -e 's/`$NGX_AUTOTEST`/`\/build\/execute -f $NGX_AUTOTEST`/g' `find auto -type f`
+#+end_src
+
+运行时需要预先设置环境变量 ~CROSS_COMPILE_DEVICE_IP~ 为目标设备 IP，对于嵌入式
+Linux 设备，需要使用 ~ssh-copy-id~ 命令设置为本机免密码 ssh 登录，对于 Android
+设备需要预先 adb 授权通过。
+
+- 编译时找不到 ~crypt.h~
+
+~crypt.h~ 属于 ~glibc~ ，NDK 没有包括进来，可以将 ~crypt~ 调用替换为 ~DES_crypt~
+#+begin_src sh
+  sed -i -e 's/#include <crypt.h>/#if (NGX_HAVE_CRYPT_H)\n#include <crypt.h>\n#endif\n#include <openssl\/des.h>/g' src/os/unix/ngx_linux_config.h
+  sed -i -e 's/= crypt(/= DES_crypt(/g' src/os/unix/ngx_user.c
+#+end_src
+
+- 链接时找不到 ~glob~ 函数
+
+NDK 工具链是有提供 ~glob.h~ 头文件的，但是链接时却找不到 ~glob~ 函数。网络上有很
+多单独提供 [[https://github.com/tatowilson/Cross-Compile-Nginx-with-RTMP-Module-for-Android/tree/master/glob][glob]] 下载的，但是都无法直接通过编译，因为里面有很多平台相关的特性。
+NDK 有人提了一个 ISSUE （[[https://github.com/android-ndk/ndk/issues/718][Undefined
+reference to glob and globfree in libc.so · Issue #718 · android-ndk/ndk]] ），说
+是已经在 ~r17b~ 版本解决，升级 NDK 到最新的 ~r17-beta2~ 还必须将 ~API Level~ 设
+置为 ~28~ 才能解决这个问题，这就意味着编译出来的程序无法在旧版本的
+Android（<=8.1） 上运行。
+
+- 交叉编译 Nginx
+
+  可使用独立工具链来交叉编译 Nginx，参考前面环境变量配置部分先设置好工具链的环境
+  变量。
+
+  #+begin_src sh
+    CC_TEST_FLAGS="${CFLAGS} ${LDFLAGS}" ./configure --with-ld-opt="${LDFLAGS}" --prefix=/opt/local --crossbuild=`/build/execute -c 'uname -srm' | tr ' ' ':'` --user=root --group=root --with-select_module --with-poll_module --with-file-aio --with-http_ssl_module --without-mail_pop3_module --without-mail_imap_module  --without-mail_smtp_module
+    make
+    make install
+  #+end_src
 
 ** NDK 的局限性
 
-NDK 提供一系列稳定的 C/C++ API，头文件在 ~sysroot/usr/include~ 下，主要包括 C 标
-准库、C++ 标准库、jni、math、pthread、zlib、OpenGL、Android 相关的库。随着时间的推
-移 [[https://developer.android.com/ndk/guides/stable_apis][NDK 支持的 API]] 也在增加。
-
 除了支持 Android 开发之外，NDK 开发环境只是嵌入式 Linux 开发环境的一个子集，这可
-能是因为 Android 安全沙箱需要、GPL 版权限制。
+能是因为 Android 安全沙箱需要或者版权限制。
 
 - 没有使用 ~glibc~
 
 ~glibc~ 是 Linux 下的 C 标准库实现，除了实现 ~ANSI C~ 标准库还有大量方便 Linux
 开发的扩展功能。而 NDK 提供的 C 标准库并非 ~glibc~ 。这导致移植 Nginx 时由于缺少
-~crypt.h~ 头文件而编译不过。如果强行将 ~glibc~ 之类的东西也移植过来我估计后面也
-很难打包成 APK 从而正常地进行安装、升级。
+~crypt.h~ 头文件而编译不过。
 
 NDK 将在未来的版本中移除 ~gcc~ 而只支持 ~clang~ ，已知 Standalone 工具链中使用
 ~gcc~ 会 [[https://github.com/android-ndk/ndk/issues/215][出现编译错误]]：
@@ -19358,8 +19505,9 @@ cstddef:43:25: fatal error: stddef.h: No such file or directory
    移植是可行的，即使是 ~ffmpeg~ 这种大型的库也可以成功移植到 Android。
 
    而对于一些 Linux 下的程序，使用 NDK 直接移植会有很大的失败机率，因为他们可能
-   使用了 NDK 不支持的特性（如 ~glibc~ ），应该采用和 Android 源代码一起编译的方
-   式，这样可以使用 NDK 不支持的特性。
+   使用了 NDK 不支持的特性（如 ~glibc~ ）。
+
+   NDK 一直在改进，以前阻碍我们移植到 Android 的问题很可能会在新版本中解决。
 
 ** 参考
 
@@ -19378,3 +19526,5 @@ cstddef:43:25: fatal error: stddef.h: No such file or directory
    - [[https://blog.csdn.net/minghuang2017/article/details/79000345][cmake使用独立工具链交叉编译可在android中运行的so包 - CSDN博客]]
 
    - [[https://warpedtimes.wordpress.com/2010/02/03/building-open-source-libraries-with-android-ndk/][Building Open Source libraries with Android NDK | Thoughts and Ideas In Warped Times]]
+
+   - [[https://zhangtom.com/2017/07/11/%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91%E5%B8%A6RTMP%E6%A8%A1%E5%9D%97%E7%9A%84Nginx%E5%88%B0Android/][交叉编译带RTMP模块的Nginx到Android | Tom's Blog]]
