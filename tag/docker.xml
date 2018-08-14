@@ -4,7 +4,7 @@
         <title>docker - 看看俺 – KanKanAn.com</title>
         <link>http://blog.kankanan.com/tag/docker.xml</link>
         <description>记我所思，忆我所为。</description>
-        <lastBuildDate>Sat, 11 Aug 2018 12:18:13 GMT</lastBuildDate>
+        <lastBuildDate>Tue, 14 Aug 2018 10:04:23 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <generator>Feed for Node.js</generator>
         <image>
@@ -14,6 +14,117 @@
         </image>
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <category>技术</category>
+        <item>
+            <title><![CDATA[使用 docker 创建 NDK 开发环境]]></title>
+            <link>/article/4f7f7528-docker-521b5efa-ndk-5f0053d173af5883.html</link>
+            <guid>/article/4f7f7528-docker-521b5efa-ndk-5f0053d173af5883.html</guid>
+            <pubDate>Tue, 14 Aug 2018 10:03:00 GMT</pubDate>
+            <content:encoded><![CDATA[<ul class="org-ul">
+<li><p>
+编写 Dockerfile
+</p>
+
+<div class="org-src-container">
+<pre class="src src-dockerfile"><span style="color: #b5bd68;">FROM</span> <span style="color: #81a2be; font-weight: bold;">ubuntu:18.04</span>
+
+<span style="color: #b5bd68;">RUN</span> sed -i <span style="color: #8abeb7;">'s/http:\/\/archive\.ubuntu\.com\/ubuntu\//http:\/\/mirrors\.163\.com</span><span style="color: #8abeb7; text-decoration: underline;">\/ubuntu\//g'</span><span style="text-decoration: underline;"> /etc/apt/sources.list</span>
+<span style="color: #b5bd68;">RUN</span> apt-get -y update
+<span style="color: #b5bd68;">RUN</span> apt-get install -y make wget cmake git autoconf automake libtool file
+<span style="color: #b5bd68;">RUN</span> <span style="color: #f0c674;">DEBIAN_FRONTEND</span>=noninteractive apt-get install -y tzdata
+<span style="color: #b5bd68;">RUN</span> mkdir /build &amp;&amp; <span style="color: #8abeb7;">\</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime &amp;&amp; <span style="color: #8abeb7;">\</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"Asia/Shanghai"</span> &gt; /etc/timezone
+<span style="color: #b5bd68;">RUN</span> apt-get install -y android-tools-adb
+<span style="color: #b5bd68;">RUN</span> apt-get install -y unzip
+<span style="color: #b5bd68;">RUN</span> echo no | dpkg-reconfigure dash
+<span style="color: #b5bd68;">RUN</span> wget -c https://dl.google.com/android/repository/android-ndk-r17-beta2-linux<span style="text-decoration: underline;">-x86_64.zip?</span><span style="color: #f0c674; text-decoration: underline;">hl</span><span style="text-decoration: underline;">=zh-cn -O /build/android-ndk-r17-beta2-linux-x86_64.zip</span>
+<span style="color: #b5bd68;">RUN</span> unzip /build/android-ndk-r17-beta2-linux-x86_64.zip -d /opt/
+<span style="color: #b5bd68;">RUN</span> rm /build/android-ndk-r17-beta2-linux-x86_64.zip
+<span style="color: #b5bd68;">RUN</span> apt-get install -y python
+<span style="color: #b5bd68;">RUN</span> /opt/android-ndk-r17-beta2/build/tools/make_standalone_toolchain.py --arch a<span style="text-decoration: underline;">rm64 --api 24 --</span><span style="color: #f0c674; text-decoration: underline;">stl</span><span style="text-decoration: underline;">=libc++ --install-dir /opt/android-toolchain</span>
+<span style="color: #b5bd68;">RUN</span> echo $<span style="color: #8abeb7;">'export PATH=/opt/android-toolchain/bin:$PATH\n\</span>
+<span style="color: #8abeb7;">export CC=aarch64-linux-android-clang\n\</span>
+<span style="color: #8abeb7;">export CXX=aarch64-linux-android-clang++\n\</span>
+<span style="color: #8abeb7;">export LD=aarch64-linux-android-ld\n\</span>
+<span style="color: #8abeb7;">export AR=aarch64-linux-android-ar\n\</span>
+<span style="color: #8abeb7;">export STRIP=aarch64-linux-android-strip\n\</span>
+<span style="color: #8abeb7;">export RANLIB=aarch64-linux-android-ranlib\n\</span>
+<span style="color: #8abeb7;">export AS=aarch64-linux-android-clang\n\</span>
+<span style="color: #8abeb7;">export CFLAGS="-fPIE"\n\</span>
+<span style="color: #8abeb7;">export CXXFLAGS="$CFLAGS"\n\</span>
+<span style="color: #8abeb7;">export LDFLAGS="-fPIE -pie"\n\</span>
+<span style="color: #8abeb7;">export SYSROOT=/opt/android-toolchain/sysroot\n\</span>
+<span style="color: #8abeb7;">export CROSS_COMPILE_HOST=aarch64-linux-android'</span> &gt; /root/.ndkrc
+
+<span style="color: #b5bd68;">WORKDIR</span> /build
+
+<span style="color: #b5bd68;">ENTRYPOINT</span> [<span style="color: #8abeb7;">"/bin/bash"</span>]
+</pre>
+</div></li>
+
+<li><p>
+构建 docker 镜像
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">docker build -f Dockerfile --network=host -t ndk:r17-beta2 .
+</pre>
+</div></li>
+
+<li><p>
+运行 docker 容器
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">docker run --rm --network=host -v ${<span style="color: #f0c674;">HOME</span>}/.android:/root/.android -it ndk:r17-be<span style="text-decoration: underline;">ta2</span>
+</pre>
+</div>
+
+<p>
+下面的命令全部在 docker 容器中执行。
+</p></li>
+
+<li><p>
+交叉编译程序
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">cat &gt; hello.c &lt;&lt;EOF
+<span style="color: #8abeb7;">#include &lt;stdio.h&gt;</span>
+<span style="color: #8abeb7;">int main() {</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span><span style="color: #8abeb7;">   printf("hello ndk\n");</span>
+<span style="color: #969896; background-color: #22a224a427a7;"> </span><span style="color: #8abeb7;">   return 0;</span>
+<span style="color: #8abeb7;">}</span>
+<span style="color: #8abeb7;">EOF</span>
+<span style="color: #b294bb;">.</span> ~/.ndkrc
+$<span style="color: #f0c674;">CC</span> $<span style="color: #f0c674;">CFLAGS</span> $<span style="color: #f0c674;">LDFLAGS</span> hello.c -o hello
+</pre>
+</div></li>
+
+<li><p>
+在设备上运行程序
+</p>
+
+<p>
+假设设备 IP 为 192.168.1.3
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">adb connect 192.168.1.3
+adb root
+adb connect 192.168.1.3
+adb remount
+adb connect 192.168.1.3
+adb push ./hello /tmp/hello
+adb shell /tmp/hello
+</pre>
+</div>
+
+<p>
+最终将输出结果 <code>hello ndk</code> 。</p></li>
+</ul>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[docker容器数据持久化]]></title>
             <link>/article/docker-5bb956686570636e63014e455316.html</link>
@@ -27,9 +138,9 @@
 其实也可以挂载本地文件目录做为容器的数据卷，但使用数据卷容器更规范一些。
 </p>
 
-<div id="outline-container-orgb1d0375" class="outline-2">
-<h2 id="orgb1d0375">创建数据卷容器</h2>
-<div class="outline-text-2" id="text-orgb1d0375">
+<div id="outline-container-org7c766f3" class="outline-2">
+<h2 id="org7c766f3">创建数据卷容器</h2>
+<div class="outline-text-2" id="text-org7c766f3">
 <div class="org-src-container">
 <pre class="src src-sh">sudo docker run -d -v /usr/local/upload-fiddle/public/files --name upload-fiddle<span style="text-decoration: underline;">-data </span><span style="color: #8abeb7; text-decoration: underline;">'dl.dockerpool.com:5000/ubuntu:14.04'</span><span style="text-decoration: underline;"> echo </span><span style="color: #8abeb7; text-decoration: underline;">'upload-fiddle data container'</span>
 </pre>
@@ -41,9 +152,9 @@
 </div>
 </div>
 
-<div id="outline-container-org2c31571" class="outline-2">
-<h2 id="org2c31571">挂载数据卷容器</h2>
-<div class="outline-text-2" id="text-org2c31571">
+<div id="outline-container-orgfe801de" class="outline-2">
+<h2 id="orgfe801de">挂载数据卷容器</h2>
+<div class="outline-text-2" id="text-orgfe801de">
 <div class="org-src-container">
 <pre class="src src-sh">sudo docker run -idt --name=<span style="color: #8abeb7;">'upload-fiddle'</span> -p 127.0.0.1:80:80 --volumes-from up<span style="text-decoration: underline;">load-fiddle-data </span><span style="color: #8abeb7; text-decoration: underline;">'tangxinfa/upload-fiddle:0.0.1'</span>
 </pre>
@@ -55,9 +166,9 @@
 </div>
 </div>
 
-<div id="outline-container-orgd4af13c" class="outline-2">
-<h2 id="orgd4af13c">数据卷容器数据存储位置</h2>
-<div class="outline-text-2" id="text-orgd4af13c">
+<div id="outline-container-org18c336c" class="outline-2">
+<h2 id="org18c336c">数据卷容器数据存储位置</h2>
+<div class="outline-text-2" id="text-org18c336c">
 <p>
 查看数据卷容器挂载信息
 </p>
@@ -81,9 +192,9 @@
 </div>
 </div>
 
-<div id="outline-container-org5589d56" class="outline-2">
-<h2 id="org5589d56">参考</h2>
-<div class="outline-text-2" id="text-org5589d56">
+<div id="outline-container-org6394526" class="outline-2">
+<h2 id="org6394526">参考</h2>
+<div class="outline-text-2" id="text-org6394526">
 <p>
 《<a href="http://container-solutions.com/understanding-volumes-docker/">Understanding Volumes in Docker - Container Solutions</a>》</p>
 </div>
@@ -100,9 +211,9 @@
 相关代码已提交到 <a href="https://github.com/tangxinfa/upload-fiddle">tangxinfa/upload-fiddle</a> 项目。
 </p>
 
-<div id="outline-container-org0a8707e" class="outline-2">
-<h2 id="org0a8707e">编写 <code>Dockerfile</code></h2>
-<div class="outline-text-2" id="text-org0a8707e">
+<div id="outline-container-org0ef88e4" class="outline-2">
+<h2 id="org0ef88e4">编写 <code>Dockerfile</code></h2>
+<div class="outline-text-2" id="text-org0ef88e4">
 <pre class="example">
 <span id="coderef-dockerpool" class="coderef-off"><span class="linenr"> 1: </span>FROM dl.dockerpool.com:5000/ubuntu:14.04</span>
 <span class="linenr"> 2: </span>
@@ -154,9 +265,9 @@
 </div>
 </div>
 
-<div id="outline-container-orgdc2e5fb" class="outline-2">
-<h2 id="orgdc2e5fb">创建 <code>docker</code> 镜像</h2>
-<div class="outline-text-2" id="text-orgdc2e5fb">
+<div id="outline-container-orge21e5da" class="outline-2">
+<h2 id="orge21e5da">创建 <code>docker</code> 镜像</h2>
+<div class="outline-text-2" id="text-orge21e5da">
 <div class="org-src-container">
 <pre class="src src-sh">sudo docker build -t <span style="color: #8abeb7;">'tangxinfa/upload-fiddle:0.0.1'</span> .
 </pre>
@@ -164,9 +275,9 @@
 </div>
 </div>
 
-<div id="outline-container-org2905b95" class="outline-2">
-<h2 id="org2905b95">运行 <code>docker</code> 容器</h2>
-<div class="outline-text-2" id="text-org2905b95">
+<div id="outline-container-orgc0943d0" class="outline-2">
+<h2 id="orgc0943d0">运行 <code>docker</code> 容器</h2>
+<div class="outline-text-2" id="text-orgc0943d0">
 <div class="org-src-container">
 <pre class="src src-sh">sudo docker run -idt --name=<span style="color: #8abeb7;">'upload-fiddle'</span> -p 127.0.0.1:80:80 <span style="color: #8abeb7;">'tangxinfa/upload</span><span style="color: #8abeb7; text-decoration: underline;">-fiddle:0.0.1'</span>
 </pre>
@@ -178,9 +289,9 @@
 </div>
 </div>
 
-<div id="outline-container-org31dbf46" class="outline-2">
-<h2 id="org31dbf46">查看容器运行日志</h2>
-<div class="outline-text-2" id="text-org31dbf46">
+<div id="outline-container-orgf57fba9" class="outline-2">
+<h2 id="orgf57fba9">查看容器运行日志</h2>
+<div class="outline-text-2" id="text-orgf57fba9">
 <div class="org-src-container">
 <pre class="src src-sh">sudo docker logs upload-fiddle -f
 </pre>
@@ -188,9 +299,9 @@
 </div>
 </div>
 
-<div id="outline-container-org4ff6aeb" class="outline-2">
-<h2 id="org4ff6aeb">打开 <code>docker</code> 容器终端查看进程运行状态</h2>
-<div class="outline-text-2" id="text-org4ff6aeb">
+<div id="outline-container-org3b7a0ce" class="outline-2">
+<h2 id="org3b7a0ce">打开 <code>docker</code> 容器终端查看进程运行状态</h2>
+<div class="outline-text-2" id="text-org3b7a0ce">
 <div class="org-src-container">
 <pre class="src src-sh">sudo docker exec -ti upload-fiddle /bin/bash
 npm run pm2 -- list

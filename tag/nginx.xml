@@ -4,7 +4,7 @@
         <title>nginx - 看看俺 – KanKanAn.com</title>
         <link>http://blog.kankanan.com/tag/nginx.xml</link>
         <description>记我所思，忆我所为。</description>
-        <lastBuildDate>Sat, 11 Aug 2018 12:18:13 GMT</lastBuildDate>
+        <lastBuildDate>Tue, 14 Aug 2018 10:04:23 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <generator>Feed for Node.js</generator>
         <image>
@@ -15,367 +15,14 @@
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <category>技术</category>
         <item>
-            <title><![CDATA[使用 NDK 移植 Linux C/C++ 程序到 Android 系统]]></title>
-            <link>/article/4f7f7528-ndk-79fb690d-linux-c-c-7a0b5e8f5230-android-7cfb7edf.html</link>
-            <guid>/article/4f7f7528-ndk-79fb690d-linux-c-c-7a0b5e8f5230-android-7cfb7edf.html</guid>
-            <pubDate>Thu, 09 Aug 2018 07:28:00 GMT</pubDate>
-            <content:encoded><![CDATA[
-<div id="outline-container-orgaeede20" class="outline-2">
-<h2 id="orgaeede20">区分基础概念：JNI 与 NDK</h2>
-<div class="outline-text-2" id="text-orgaeede20">
-<ul class="org-ul">
-<li>JNI（Java Native Interface）是一种 Java 语言特性</li>
-</ul>
-
-<p>
-用于 Java 程序与 C、C++ 库间的互相调用。
-</p>
-
-<ul class="org-ul">
-<li>NDK（Native Development Kit）是 Google 提供的使用 C/C++ 编写 Android 程序的开
-发工具包</li>
-</ul>
-
-<p>
-它使用 JNI 实现 Java 程序调用 C/C++ 本地代码，允许 C/C++ 本地代码访问 Android
-API，不只是用来开发或移植 C/C++ 库，也可以是 C/C++ 程序。
-</p>
-
-<p>
-引用自 <a href="https://developer.android.com/ndk/">Android NDK  |  Android NDK  |  Android Developers</a>
-</p>
-<blockquote>
-<p>
-Android NDK
-</p>
-
-<p>
-The Android NDK is a toolset that lets you implement parts of your app in native
-code, using languages such as C and C++. For certain types of apps, this can
-help you reuse code libraries written in those languages.
-</p>
-</blockquote>
-
-<p>
-NDK 提供一系列稳定的 C/C++ API，头文件在 <code>sysroot/usr/include</code> 下，主要包括 C 标
-准库、C++ 标准库、jni、math、pthread、zlib、OpenGL、Android 相关的库。
-</p>
-
-<p>
-<a href="https://developer.android.com/ndk/guides/stable_apis">NDK 支持的 API</a> 也会随着需求的增加而日趋完善，比如有人提 ISSUE（<a href="https://github.com/android-ndk/ndk/issues/718">Undefined
-reference to glob and globfree in libc.so · Issue #718 · android-ndk/ndk</a> ），然
-后在接下来的版本 <code>r17b</code> 中就添加了 <code>glob</code> 的支持，可以期待以后使用 NDK 移植程序
-到 Android 平台会越来越方便。
-</p>
-</div>
-</div>
-
-<div id="outline-container-org4088a47" class="outline-2">
-<h2 id="org4088a47">移植使用 GNU Autotools 的项目</h2>
-<div class="outline-text-2" id="text-org4088a47">
-<p>
-NDK 提供了创建独立工具链的工具，对于移植使用 GNU Autotools 的项目到 Android 平台
-很有帮助，省去写 <code>Android.mk</code> 。
-</p>
-
-<ul class="org-ul">
-<li><p>
-创建独立工具链
-</p>
-
-<div class="org-src-container">
-<pre class="src src-sh">/opt/android-ndk-r16/build/tools/make_standalone_toolchain.py <span style="color: #8abeb7;">\</span>
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   --arch arm64 --api 28 --stl=libc++ --install-dir /opt/android-toolchain
-</pre>
-</div></li>
-
-<li><p>
-环境变量配置
-</p>
-
-<div class="org-src-container">
-<pre class="src src-sh"><span style="color: #b294bb;">export</span> <span style="color: #f0c674;">PATH</span>=$<span style="color: #f0c674;">PATH</span>:/opt/android-toolchain/bin
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">CC</span>=aarch64-linux-android-clang
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">CXX</span>=aarch64-linux-android-clang++
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">LD</span>=aarch64-linux-android-ld
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">AR</span>=aarch64-linux-android-ar
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">STRIP</span>=aarch64-linux-android-strip
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">RANLIB</span>=aarch64-linux-android-ranlib
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">AS</span>=aarch64-linux-android-clang
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">CFLAGS</span>=<span style="color: #8abeb7;">"-fPIE -fPIC"</span>
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">LDFLAGS</span>=<span style="color: #8abeb7;">"-pie"</span>
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">CROSS_COMPILE_HOST</span>=aarch64-linux-android
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">CROSS_COMPILE_SYS_ROOT</span>=/opt/android-toolchain/sysroot
-</pre>
-</div></li>
-
-<li><p>
-交叉编译
-</p>
-
-<div class="org-src-container">
-<pre class="src src-sh">./configure --host=${<span style="color: #f0c674;">CROSS_COMPILE_HOST</span>} --prefix=/opt/local
-make
-make install
-</pre>
-</div></li>
-</ul>
-</div>
-</div>
-
-<div id="outline-container-org5ed50fa" class="outline-2">
-<h2 id="org5ed50fa">移植 Nginx 遇到的问题</h2>
-<div class="outline-text-2" id="text-org5ed50fa">
-<ul class="org-ul">
-<li><p>
-交叉编译 OpenSSL
-</p>
-
-<p>
-网上有大量的移植文档，基本上是基于 <a href="https://wiki.openssl.org/index.php/Android">OpenSSL Android - OpenSSLWiki</a> ，最大的问题
-是使用的 NDK 和 OpenSSL 版本都比较旧，最后主要参考
-<a href="https://github.com/couchbaselabs/couchbase-lite-libcrypto">couchbaselabs/couchbase-lite-libcrypto: Pre-built OpenSSL libcrypto static
-libraries</a> 移植成功。OpenSSL 的交叉编译需要完整的 NDK 包，最好新开一个 Shell 来
-编译 OpenSSL，避免为独立工具链设置的环境变量影响到 OpenSSL 的编译。
-</p>
-
-<div class="org-src-container">
-<pre class="src src-sh"><span style="color: #969896; font-style: italic;"># </span><span style="color: #969896; font-style: italic;">Download</span>
-wget https://codeload.github.com/openssl/openssl/zip/OpenSSL_1_1_0-stable -O ope<span style="text-decoration: underline;">nssl-OpenSSL_1_1_0-stable.zip</span>
-unzip openssl-OpenSSL_1_1_0-stable.zip
-wget https://raw.githubusercontent.com/couchbaselabs/couchbase-lite-libcrypto/ma<span style="text-decoration: underline;">ster/build-android-setenv.sh -O openssl.setenv</span>
-sed -i -e <span style="color: #8abeb7;">'s/^_ANDROID_NDK=/#_ANDROID_NDK=/g'</span> openssl.setenv
-
-<span style="color: #969896; font-style: italic;"># </span><span style="color: #969896; font-style: italic;">Config</span>
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">ANDROID_NDK_ROOT</span>=/opt/android-ndk
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">_ANDROID_TARGET_SELECT</span>=arch-arm64-v8a
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">_ANDROID_NDK</span>=<span style="color: #8abeb7;">"android-ndk"</span>
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">ANDROID_EABI_PREFIX</span>=aarch64-linux-android
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">_ANDROID_EABI</span>=<span style="color: #8abeb7;">"${ANDROID_EABI_PREFIX}-4.9"</span>
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">_ANDROID_ARCH</span>=arch-arm64
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">_ANDROID_API</span>=<span style="color: #8abeb7;">"android-28"</span>
-<span style="color: #b294bb;">source</span> openssl.setenv
-
-<span style="color: #969896; font-style: italic;"># </span><span style="color: #969896; font-style: italic;">Build</span>
-<span style="color: #b294bb;">cd</span> openssl-OpenSSL_1_1_0-stable
-./Configure dist
-./Configure no-ssl2 no-ssl3 no-comp no-hw no-engine --openssldir=/opt/local/ --p<span style="text-decoration: underline;">refix=/opt/local/ linux-generic64 -DB_ENDIAN -B$</span><span style="color: #f0c674; text-decoration: underline;">ANDROID_DEV</span><span style="text-decoration: underline;"> </span><span style="color: #8abeb7; text-decoration: underline;">\</span>
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   -fPIE -fPIC -I${<span style="color: #f0c674;">ANDROID_NDK_ROOT</span>}/sysroot/usr/include -I${<span style="color: #f0c674;">ANDROID_ND</span><span style="color: #f0c674; text-decoration: underline;">K_ROOT</span><span style="text-decoration: underline;">}/sysroot/usr/include/${</span><span style="color: #f0c674; text-decoration: underline;">ANDROID_EABI_PREFIX</span><span style="text-decoration: underline;">} </span><span style="color: #8abeb7; text-decoration: underline;">\</span>
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   -pie -L${<span style="color: #f0c674;">ANDROID_NDK_ROOT</span>}/platforms/${<span style="color: #f0c674;">_ANDROID_API</span>}/${<span style="color: #f0c674;">_ANDROID_ARCH</span><span style="text-decoration: underline;">}/usr/lib</span>
-ln -s ${<span style="color: #f0c674;">SYSROOT</span>}/usr/lib/crtbegin_so.o
-ln -s ${<span style="color: #f0c674;">SYSROOT</span>}/usr/lib/crtend_so.o
-ln -s ${<span style="color: #f0c674;">SYSROOT</span>}/usr/lib/crtbegin_dynamic.o
-ln -s ${<span style="color: #f0c674;">SYSROOT</span>}/usr/lib/crtend_android.o
-make -j6
-make install
-</pre>
-</div></li>
-
-<li>交叉编译出的配置检测程序无法直接运行</li>
-</ul>
-
-<p>
-Nginx 没有使用 GNU Autotools，而是有自已的 Configure 脚本，遇到的第一个问题就是
-Nginx 是通过使用编译器编译一个测试程序来获取配置信息，交叉编译出来的程序肯定是无
-法在编译机上运行的，一个可靠的办法就是修改 Configure 脚本，改为上传到目标设备上
-执行。
-</p>
-
-<p>
-下面是我写好的一个远程执行脚本 <code>execute</code>
-</p>
-<div class="org-src-container">
-<pre class="src src-sh"><span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">!/bin/</span><span style="color: #b5bd68;">bash</span>
-
-<span style="color: #b5bd68;">if</span> [ $<span style="color: #f0c674;">#</span> != 2 ] || ([ $<span style="color: #f0c674;">1</span> != <span style="color: #8abeb7;">"-c"</span> ] &amp;&amp; [ $<span style="color: #f0c674;">1</span> != <span style="color: #8abeb7;">"-f"</span> ]) ; <span style="color: #b5bd68;">then</span>
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"usage: $0 -&lt;c|f&gt; &lt;cmd|file&gt;"</span> &gt;&gt; /dev/stderr
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">exit</span> 22 <span style="color: #969896; font-style: italic;">#</span><span style="color: #969896; font-style: italic;">Invalid argument</span>
-<span style="color: #b5bd68;">fi</span>
-
-<span style="color: #f0c674;">LOG_FILE</span>=/dev/null
-
-<span style="color: #b5bd68;">if</span> [[ <span style="color: #8abeb7;">"$CROSS_COMPILE_HOST"</span> = *<span style="color: #8abeb7;">"android"</span>* ]]; <span style="color: #b5bd68;">then</span>
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   adb connect ${<span style="color: #f0c674;">CROSS_COMPILE_DEVICE_IP</span>} &gt;&gt;$<span style="color: #f0c674;">LOG_FILE</span> 2&gt;&amp;1
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   timeout 10 adb wait-for-device
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   adb root &gt;&gt;$<span style="color: #f0c674;">LOG_FILE</span> 2&gt;&amp;1
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   adb connect ${<span style="color: #f0c674;">CROSS_COMPILE_DEVICE_IP</span>} &gt;&gt;$<span style="color: #f0c674;">LOG_FILE</span> 2&gt;&amp;1
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   timeout 10 adb wait-for-device
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   adb remount &gt;&gt;$<span style="color: #f0c674;">LOG_FILE</span> 2&gt;&amp;1
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   adb connect ${<span style="color: #f0c674;">CROSS_COMPILE_DEVICE_IP</span>} &gt;&gt;$<span style="color: #f0c674;">LOG_FILE</span> 2&gt;&amp;1
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   timeout 10 adb wait-for-device
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">if</span> [ $<span style="color: #f0c674;">1</span> == <span style="color: #8abeb7;">"-f"</span> ]; <span style="color: #b5bd68;">then</span>
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #f0c674;">tempfile</span>=<span style="color: #b294bb;">`mktemp -u XXXXXXXX`</span>
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #f0c674;">tempdir</span>=/tmp/cross-compile
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   adb shell mkdir ${<span style="color: #f0c674;">tempdir</span>} &gt;&gt;$<span style="color: #f0c674;">LOG_FILE</span> 2&gt;&amp;1
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   adb push $<span style="color: #f0c674;">2</span> ${<span style="color: #f0c674;">tempdir</span>}/${<span style="color: #f0c674;">tempfile</span>} &gt;&gt;$<span style="color: #f0c674;">LOG_FILE</span> 2&gt;&amp;1
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   adb shell <span style="color: #8abeb7;">"find ${tempdir} -mmin +1 -type f -exec rm {} \; &gt;/dev/null 2&gt;</span><span style="color: #8abeb7; text-decoration: underline;">&amp;1; cd ${tempdir} &amp;&amp; chmod a+x $tempfile &amp;&amp; ./$tempfile"</span>
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">else</span>
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   adb shell $<span style="color: #f0c674;">2</span>
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">fi</span>
-<span style="color: #b5bd68;">else</span>
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">if</span> [ $<span style="color: #f0c674;">1</span> == <span style="color: #8abeb7;">"-f"</span> ]; <span style="color: #b5bd68;">then</span>
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #f0c674;">tempfile</span>=<span style="color: #b294bb;">`mktemp -u XXXXXXXX`</span>
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #f0c674;">tempdir</span>=/tmp/cross-compile
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   ssh -o <span style="color: #f0c674;">StrictHostKeyChecking</span>=no root@${<span style="color: #f0c674;">CROSS_COMPILE_DEVICE_IP</span>} mkdir ${<span style="color: #f0c674; text-decoration: underline;">tempdir</span><span style="text-decoration: underline;">} &gt;&gt;$</span><span style="color: #f0c674; text-decoration: underline;">LOG_FILE</span><span style="text-decoration: underline;"> 2&gt;&amp;1</span>
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   scp -o <span style="color: #f0c674;">StrictHostKeyChecking</span>=no $<span style="color: #f0c674;">2</span> root@${<span style="color: #f0c674;">CROSS_COMPILE_DEVICE_IP</span>}:${<span style="color: #f0c674;">tem</span><span style="color: #f0c674; text-decoration: underline;">pdir</span><span style="text-decoration: underline;">}/${</span><span style="color: #f0c674; text-decoration: underline;">tempfile</span><span style="text-decoration: underline;">} &gt;&gt;$</span><span style="color: #f0c674; text-decoration: underline;">LOG_FILE</span><span style="text-decoration: underline;"> 2&gt;&amp;1</span>
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   ssh -o <span style="color: #f0c674;">StrictHostKeyChecking</span>=no root@${<span style="color: #f0c674;">CROSS_COMPILE_DEVICE_IP</span>} <span style="color: #8abeb7;">"find ${</span><span style="color: #8abeb7; text-decoration: underline;">tempdir} -mmin +1 -type f -exec rm {} \; &gt;/dev/null 2&gt;&amp;1; cd ${tempdir} &amp;&amp; chmod a+x $tempfile &amp;&amp; ./$tempfile"</span>
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">else</span>
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   ssh -o <span style="color: #f0c674;">StrictHostKeyChecking</span>=no root@${<span style="color: #f0c674;">CROSS_COMPILE_DEVICE_IP</span>} $<span style="color: #f0c674;">2</span>
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">fi</span>
-<span style="color: #b5bd68;">fi</span>
-</pre>
-</div>
-
-<p>
-修改 <code>nginx-1.14.0</code> 的配置脚本，将本地运行测试程序的地方改为远程执行
-</p>
-<div class="org-src-container">
-<pre class="src src-sh">sed -i -e <span style="color: #8abeb7;">'s/\/bin\/sh -c $NGX_AUTOTEST/\/build\/execute -f $NGX_AUTOTEST/g'</span> <span style="color: #b294bb;">`fi</span><span style="color: #b294bb; text-decoration: underline;">nd auto -type f`</span>
-sed -i -e <span style="color: #8abeb7;">'s/$NGX_AUTOTEST &gt;\/dev\/null/\/build\/execute -f $NGX_AUTOTEST &gt;\/dev</span><span style="color: #8abeb7; text-decoration: underline;">\/null/g'</span><span style="text-decoration: underline;"> </span><span style="color: #b294bb; text-decoration: underline;">`find auto -type f`</span>
-sed -i -e <span style="color: #8abeb7;">'s/`$NGX_AUTOTEST`/`\/build\/execute -f $NGX_AUTOTEST`/g'</span> <span style="color: #b294bb;">`find auto -</span><span style="color: #b294bb; text-decoration: underline;">type f`</span>
-</pre>
-</div>
-
-<p>
-运行时需要预先设置环境变量 <code>CROSS_COMPILE_DEVICE_IP</code> 为目标设备 IP，对于嵌入式
-Linux 设备，需要使用 <code>ssh-copy-id</code> 命令设置为本机免密码 ssh 登录，对于 Android
-设备需要预先 adb 授权通过。
-</p>
-
-<ul class="org-ul">
-<li>编译时找不到 <code>crypt.h</code></li>
-</ul>
-
-<p>
-<code>crypt.h</code> 属于 <code>glibc</code> ，NDK 没有包括进来，可以将 <code>crypt</code> 调用替换为 <code>DES_crypt</code>
-</p>
-<div class="org-src-container">
-<pre class="src src-sh">sed -i -e <span style="color: #8abeb7;">'s/#include &lt;crypt.h&gt;/#if (NGX_HAVE_CRYPT_H)\n#include &lt;crypt.h&gt;\n#end</span><span style="color: #8abeb7; text-decoration: underline;">if\n#include &lt;openssl\/des.h&gt;/g'</span><span style="text-decoration: underline;"> src/os/unix/ngx_linux_config.h</span>
-sed -i -e <span style="color: #8abeb7;">'s/= crypt(/= DES_crypt(/g'</span> src/os/unix/ngx_user.c
-</pre>
-</div>
-
-<ul class="org-ul">
-<li>链接时找不到 <code>glob</code> 函数</li>
-</ul>
-
-<p>
-NDK 工具链是有提供 <code>glob.h</code> 头文件的，但是链接时却找不到 <code>glob</code> 函数。网络上有很
-多单独提供 <a href="https://github.com/tatowilson/Cross-Compile-Nginx-with-RTMP-Module-for-Android/tree/master/glob">glob</a> 下载的，但是都无法直接通过编译，因为里面有很多平台相关的特性。
-NDK 有人提了一个 ISSUE （<a href="https://github.com/android-ndk/ndk/issues/718">Undefined
-reference to glob and globfree in libc.so · Issue #718 · android-ndk/ndk</a> ），说
-是已经在 <code>r17b</code> 版本解决，升级 NDK 到最新的 <code>r17-beta2</code> 还必须将 <code>API Level</code> 设
-置为 <code>28</code> 才能解决这个问题，这就意味着编译出来的程序无法在旧版本的
-Android（&lt;=8.1） 上运行。
-</p>
-
-<ul class="org-ul">
-<li><p>
-交叉编译 Nginx
-</p>
-
-<p>
-可使用独立工具链来交叉编译 Nginx，参考前面环境变量配置部分先设置好工具链的环境
-变量。
-</p>
-
-<div class="org-src-container">
-<pre class="src src-sh"><span style="color: #f0c674;">CC_TEST_FLAGS</span>=<span style="color: #8abeb7;">"${CFLAGS} ${LDFLAGS}"</span> ./configure --with-ld-opt=<span style="color: #8abeb7;">"${LDFLAGS}"</span> --pr<span style="text-decoration: underline;">efix=/opt/local --crossbuild=</span><span style="color: #b294bb; text-decoration: underline;">`/build/execute -c 'uname -srm' | tr ' ' ':'`</span><span style="text-decoration: underline;"> --user=root --group=root --with-select_module --with-poll_module --with-file-aio --with-http_ssl_module --without-mail_pop3_module --without-mail_imap_module  --without-mail_smtp_module</span>
-make
-make install
-</pre>
-</div></li>
-</ul>
-</div>
-</div>
-
-<div id="outline-container-org218b0bc" class="outline-2">
-<h2 id="org218b0bc">NDK 的局限性</h2>
-<div class="outline-text-2" id="text-org218b0bc">
-<p>
-除了支持 Android 开发之外，NDK 开发环境只是嵌入式 Linux 开发环境的一个子集，这可
-能是因为 Android 安全沙箱需要或者版权限制。
-</p>
-
-<ul class="org-ul">
-<li>没有使用 <code>glibc</code></li>
-</ul>
-
-<p>
-<code>glibc</code> 是 Linux 下的 C 标准库实现，除了实现 <code>ANSI C</code> 标准库还有大量方便 Linux
-开发的扩展功能。而 NDK 提供的 C 标准库并非 <code>glibc</code> 。这导致移植 Nginx 时由于缺少
-<code>crypt.h</code> 头文件而编译不过。
-</p>
-
-<p>
-NDK 将在未来的版本中移除 <code>gcc</code> 而只支持 <code>clang</code> ，已知 Standalone 工具链中使用
-<code>gcc</code> 会 <a href="https://github.com/android-ndk/ndk/issues/215">出现编译错误</a>：
-</p>
-<blockquote>
-<p>
-cstddef:43:25: fatal error: stddef.h: No such file or directory
-</p>
-</blockquote>
-<p>
-初步使用 <code>clang</code> 移植了一些库（如 <a href="https://sourceforge.net/projects/pcre/">pcre</a> ）是没有问题的。
-</p>
-</div>
-</div>
-
-<div id="outline-container-org50de139" class="outline-2">
-<h2 id="org50de139">结论</h2>
-<div class="outline-text-2" id="text-org50de139">
-<p>
-一般的 C/C++ 库通常本身就会注重可移植性，不会生硬地依赖系统底层特性，使用 NDK
-移植是可行的，即使是 <code>ffmpeg</code> 这种大型的库也可以成功移植到 Android。
-</p>
-
-<p>
-而对于一些 Linux 下的程序，使用 NDK 直接移植会有很大的失败机率，因为他们可能
-使用了 NDK 不支持的特性（如 <code>glibc</code> ）。
-</p>
-
-<p>
-NDK 一直在改进，以前阻碍我们移植到 Android 的问题很可能会在新版本中解决。
-</p>
-</div>
-</div>
-
-<div id="outline-container-org93cf207" class="outline-2">
-<h2 id="org93cf207">参考</h2>
-<div class="outline-text-2" id="text-org93cf207">
-<ul class="org-ul">
-<li><a href="https://developer.android.com/ndk/guides/concepts">Concepts  |  Android NDK  |  Android Developers</a></li>
-
-<li><a href="http://www.jkeabc.com/475203.html">Android NDK vs AOSP Build System</a></li>
-
-<li><a href="https://developer.android.com/ndk/guides/stable_apis">Android NDK Native APIs  |  Android NDK  |  Android Developers</a></li>
-
-<li><a href="https://software.intel.com/en-us/articles/building-an-android-command-line-application-using-the-ndk-build-tools">Building an Android* Command-Line Application Using the NDK Build Tools | Intel® Software</a></li>
-
-<li><a href="https://www.jianshu.com/p/6332418b12b1">Android NDK开发扫盲及最新CMake的编译使用 - 简书</a></li>
-
-<li><a href="https://blog.csdn.net/minghuang2017/article/details/78938852">在命令行下用cmake交叉编译可在android中运行的so包 - CSDN博客</a></li>
-
-<li><a href="https://blog.csdn.net/minghuang2017/article/details/79000345">cmake使用独立工具链交叉编译可在android中运行的so包 - CSDN博客</a></li>
-
-<li><a href="https://warpedtimes.wordpress.com/2010/02/03/building-open-source-libraries-with-android-ndk/">Building Open Source libraries with Android NDK | Thoughts and Ideas In Warped Times</a></li>
-
-<li><a href="https://zhangtom.com/2017/07/11/%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91%E5%B8%A6RTMP%E6%A8%A1%E5%9D%97%E7%9A%84Nginx%E5%88%B0Android/">交叉编译带RTMP模块的Nginx到Android | Tom's Blog</a></li>
-</ul>
-</div>
-</div>
-]]></content:encoded>
-        </item>
-        <item>
             <title><![CDATA[Nginx 自动生成并缓存缩略图]]></title>
             <link>/article/nginx-81ea52a8751f62105e767f135b587f29756556fe.html</link>
             <guid>/article/nginx-81ea52a8751f62105e767f135b587f29756556fe.html</guid>
             <pubDate>Wed, 30 Aug 2017 06:35:00 GMT</pubDate>
             <content:encoded><![CDATA[
-<div id="outline-container-org34f5882" class="outline-2">
-<h2 id="org34f5882">配置示例</h2>
-<div class="outline-text-2" id="text-org34f5882">
+<div id="outline-container-org9b7ece6" class="outline-2">
+<h2 id="org9b7ece6">配置示例</h2>
+<div class="outline-text-2" id="text-org9b7ece6">
 <div class="org-src-container">
 <pre class="src src-conf"><span style="color: #969896; font-style: italic;"># </span><span style="color: #969896; font-style: italic;">&#35775;&#38382;&#21407;&#22987;&#22270;&#29255;</span>
 <span style="color: #81a2be;">location /image</span> {
@@ -441,9 +88,9 @@ NDK 一直在改进，以前阻碍我们移植到 Android 的问题很可能会�
 </div>
 </div>
 
-<div id="outline-container-org62d7092" class="outline-2">
-<h2 id="org62d7092">参考</h2>
-<div class="outline-text-2" id="text-org62d7092">
+<div id="outline-container-org4c9fa22" class="outline-2">
+<h2 id="org4c9fa22">参考</h2>
+<div class="outline-text-2" id="text-org4c9fa22">
 <ul class="org-ul">
 <li><a href="http://nginx.org/en/docs/http/ngx_http_image_filter_module.html#image_filter">Module ngx_http_image_filter_module</a></li>
 </ul>
@@ -641,18 +288,18 @@ WantedBy=multi-user.target
             <guid>/article/nginx-comet-57fa4e8e-http-957f8fde63a57684201c670d52a1566863a8201d6280672f.html</guid>
             <pubDate>Fri, 14 Dec 2012 13:09:00 GMT</pubDate>
             <content:encoded><![CDATA[
-<div id="outline-container-org5f45227" class="outline-2">
-<h2 id="org5f45227">简介</h2>
-<div class="outline-text-2" id="text-org5f45227">
+<div id="outline-container-org996b8c1" class="outline-2">
+<h2 id="org996b8c1">简介</h2>
+<div class="outline-text-2" id="text-org996b8c1">
 <p>
 可参考这篇文章：<a href="http://www.ibm.com/developerworks/cn/web/wa-lo-comet/">Comet：基于 HTTP 长连接的“服务器推”技术</a>
 </p>
 </div>
 </div>
 
-<div id="outline-container-org2611095" class="outline-2">
-<h2 id="org2611095"><a href="https://github.com/slact/nginx_http_push_module">nginx_http_push_module</a> （不建议使用）</h2>
-<div class="outline-text-2" id="text-org2611095">
+<div id="outline-container-org70b8e28" class="outline-2">
+<h2 id="org70b8e28"><a href="https://github.com/slact/nginx_http_push_module">nginx_http_push_module</a> （不建议使用）</h2>
+<div class="outline-text-2" id="text-org70b8e28">
 <p>
 这个模块功能上没有问题，网上介绍的文章相对比较多，但是存在严重的内存泄露问题，而且发现使用kill -HUP的方式优雅重启nginx虽会释放一部分内存，但nginx错误日志显示有共享内存锁相关的冲突，我们不得不每小时彻底重启一次nginx。简单说一下就是它使用一个全局的内存池来分配订阅者及响应需要的内存空间，但是从nginx内存池分配的小内存块（&lt; pagesize，4096）是不会释放的也不会归还到池中进行重用，具体可查看nginx源码的ngx_palloc和ngx_pfree函数进行验证。
 </p>
@@ -706,9 +353,9 @@ location ~ ^/activity_jsonp$ {
 </div>
 </div>
 
-<div id="outline-container-org4d50f33" class="outline-2">
-<h2 id="org4d50f33"><a href="https://github.com/wandenberg/nginx-push-stream-module">nginx-push-stream-module</a> （建议使用）</h2>
-<div class="outline-text-2" id="text-org4d50f33">
+<div id="outline-container-org5083e51" class="outline-2">
+<h2 id="org5083e51"><a href="https://github.com/wandenberg/nginx-push-stream-module">nginx-push-stream-module</a> （建议使用）</h2>
+<div class="outline-text-2" id="text-org5083e51">
 <p>
 由于 <a href="https://github.com/slact/nginx_http_push_module">nginx_http_push_module</a> 存在内存泄露问题，同时没有人进行正式的修复，我们决定尝试一下<a href="https://github.com/wandenberg/nginx-push-stream-module">nginx-push-stream-module</a>，这个模块功能更强大同时文档更完整，看起来也更活跃。
 </p>
@@ -776,29 +423,29 @@ server {
             <guid>/article/nginx-4e0b5feb901f642d5efa-php-8fd0884c73af5883.html</guid>
             <pubDate>Sat, 11 Aug 2012 13:09:00 GMT</pubDate>
             <content:encoded><![CDATA[
-<div id="outline-container-org0133250" class="outline-2">
-<h2 id="org0133250">安装</h2>
-<div class="outline-text-2" id="text-org0133250">
+<div id="outline-container-org750a8c0" class="outline-2">
+<h2 id="org750a8c0">安装</h2>
+<div class="outline-text-2" id="text-org750a8c0">
 </div>
-<div id="outline-container-org1a91920" class="outline-3">
-<h3 id="org1a91920">安装nginx</h3>
-<div class="outline-text-3" id="text-org1a91920">
+<div id="outline-container-org6f3ba0f" class="outline-3">
+<h3 id="org6f3ba0f">安装nginx</h3>
+<div class="outline-text-3" id="text-org6f3ba0f">
 <p>
 yaourt -S nginx
 </p>
 </div>
 </div>
-<div id="outline-container-org47552c9" class="outline-3">
-<h3 id="org47552c9">安装php</h3>
-<div class="outline-text-3" id="text-org47552c9">
+<div id="outline-container-org738a4ff" class="outline-3">
+<h3 id="org738a4ff">安装php</h3>
+<div class="outline-text-3" id="text-org738a4ff">
 <p>
 yaourt -S php
 </p>
 </div>
 </div>
-<div id="outline-container-orgf1940e3" class="outline-3">
-<h3 id="orgf1940e3">安装php-fpm</h3>
-<div class="outline-text-3" id="text-orgf1940e3">
+<div id="outline-container-org8ea5793" class="outline-3">
+<h3 id="org8ea5793">安装php-fpm</h3>
+<div class="outline-text-3" id="text-org8ea5793">
 <p>
 yaourt -S php-fpm
 </p>
@@ -806,13 +453,13 @@ yaourt -S php-fpm
 </div>
 </div>
 
-<div id="outline-container-orgaf8aed1" class="outline-2">
-<h2 id="orgaf8aed1">配置</h2>
-<div class="outline-text-2" id="text-orgaf8aed1">
+<div id="outline-container-org9b1342e" class="outline-2">
+<h2 id="org9b1342e">配置</h2>
+<div class="outline-text-2" id="text-org9b1342e">
 </div>
-<div id="outline-container-org6d2cfac" class="outline-3">
-<h3 id="org6d2cfac">配置nginx</h3>
-<div class="outline-text-3" id="text-org6d2cfac">
+<div id="outline-container-org1831698" class="outline-3">
+<h3 id="org1831698">配置nginx</h3>
+<div class="outline-text-3" id="text-org1831698">
 <ul class="org-ul">
 <li><p>
 将nginx.conf中的以下部分：
@@ -837,17 +484,17 @@ location ~ \.php$ {
 </ul>
 </div>
 </div>
-<div id="outline-container-org9ce161c" class="outline-3">
-<h3 id="org9ce161c">配置php</h3>
-<div class="outline-text-3" id="text-org9ce161c">
+<div id="outline-container-orgd3ef07f" class="outline-3">
+<h3 id="orgd3ef07f">配置php</h3>
+<div class="outline-text-3" id="text-orgd3ef07f">
 <p>
 在open_basedir中添加：/usr/share/nginx/html
 </p>
 </div>
 </div>
-<div id="outline-container-org4bf4cdb" class="outline-3">
-<h3 id="org4bf4cdb">配置php-fpm.conf</h3>
-<div class="outline-text-3" id="text-org4bf4cdb">
+<div id="outline-container-org5a7c0cd" class="outline-3">
+<h3 id="org5a7c0cd">配置php-fpm.conf</h3>
+<div class="outline-text-3" id="text-org5a7c0cd">
 <p>
 启用以下listen配置：
 listen = 127.0.0.1:9000
@@ -856,9 +503,9 @@ listen = 127.0.0.1:9000
 </div>
 </div>
 
-<div id="outline-container-org9c7503d" class="outline-2">
-<h2 id="org9c7503d">运行</h2>
-<div class="outline-text-2" id="text-org9c7503d">
+<div id="outline-container-org416dd91" class="outline-2">
+<h2 id="org416dd91">运行</h2>
+<div class="outline-text-2" id="text-org416dd91">
 <ul class="org-ul">
 <li><p>
 重启nginx
