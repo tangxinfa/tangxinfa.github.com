@@ -31,27 +31,27 @@
       
         <div class="article-content">
           
-<div id="outline-container-orgae47def" class="outline-2">
-<h2 id="orgae47def">问题</h2>
-<div class="outline-text-2" id="text-orgae47def">
+<div id="outline-container-org5906c0b" class="outline-2">
+<h2 id="org5906c0b">问题</h2>
+<div class="outline-text-2" id="text-org5906c0b">
 <p>
 在web开发中，以典型的php-fpm为例，对于到外部系统的连接（如：mysql、redis）等都提供了持久连接接口（pconnect），但是受限于多进程模型，事实上是每个php-fpm进程都有单独的一个连接池的（参见：《<a href="http:5f53-php-90474e0a-redis.html">当php遇上redis</a>》），大量空闲连接的存在不仅对系统资源造成了浪费（不单指fd空间，像mysql的每连接一线程会附带大量内存空间：sort_buffer、read_buffer等），而且整个系统将无法横向扩展（如：mysql连接数限制）。如果可以在进程间共享文件描述符，将可以大大提升系统性能，促进多进程模型的应用。
 </p>
 </div>
 </div>
 
-<div id="outline-container-orgc305857" class="outline-2">
-<h2 id="orgc305857">方案</h2>
-<div class="outline-text-2" id="text-orgc305857">
+<div id="outline-container-orgf9579c5" class="outline-2">
+<h2 id="orgf9579c5">方案</h2>
+<div class="outline-text-2" id="text-orgf9579c5">
 <p>
 在linux平台下，sendmsg、recvmsg可以将一个进程的文件描述符传递给另一进程使用，这使得实现系统级的连接池成为可能。
 </p>
 </div>
 </div>
 
-<div id="outline-container-orgbcd9b12" class="outline-2">
-<h2 id="orgbcd9b12">实现</h2>
-<div class="outline-text-2" id="text-orgbcd9b12">
+<div id="outline-container-orgd0e4190" class="outline-2">
+<h2 id="orgd0e4190">实现</h2>
+<div class="outline-text-2" id="text-orgd0e4190">
 <p>
 《The Linux Programming Interface》61.13.3 Passing File Descriptors
 </p>

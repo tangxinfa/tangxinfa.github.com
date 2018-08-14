@@ -42,9 +42,9 @@
 统计了一下 <code>10</code> 万个fd都耗光了，其中 <code>9</code> 万多个为 <code>CLOSE_WAIT</code> 状态，此时服务器已经无法响应请求。
 </p>
 
-<div id="outline-container-org185e838" class="outline-2">
-<h2 id="org185e838">CLOSE_WAIT 状态介绍</h2>
-<div class="outline-text-2" id="text-org185e838">
+<div id="outline-container-orga7366cf" class="outline-2">
+<h2 id="orga7366cf">CLOSE_WAIT 状态介绍</h2>
+<div class="outline-text-2" id="text-orga7366cf">
 <p>
 先看一副TCP连接关闭的状态图（ <a href="http://intronetworks.cs.luc.edu/current/html/tcp.html#index-29">来源</a> ）：
 </p>
@@ -81,9 +81,9 @@
 </div>
 </div>
 
-<div id="outline-container-org839233f" class="outline-2">
-<h2 id="org839233f">内存及CPU占用彪升问题</h2>
-<div class="outline-text-2" id="text-org839233f">
+<div id="outline-container-org28f1588" class="outline-2">
+<h2 id="org28f1588">内存及CPU占用彪升问题</h2>
+<div class="outline-text-2" id="text-org28f1588">
 <p>
 伴随着 CLOSE_WAIT 出现的状况是 node.js 进程内存及CPU占用超高，单node.js进程内存占用达到 1.5G，CPU占用 90% 以上，此时应该会导致 node.js 响应慢，
 来不及关闭连上来的socket。
@@ -100,9 +100,9 @@
 </div>
 </div>
 
-<div id="outline-container-org0058e5f" class="outline-2">
-<h2 id="org0058e5f">一次午夜故障元凶浮出水面</h2>
-<div class="outline-text-2" id="text-org0058e5f">
+<div id="outline-container-orgf7193ee" class="outline-2">
+<h2 id="orgf7193ee">一次午夜故障元凶浮出水面</h2>
+<div class="outline-text-2" id="text-orgf7193ee">
 <p>
 在晚上两点的时候服务出现问题，同样的现象，特别留意了一下redis的统计，请求速度很低，只有1200，平时都是5000。偶然在进程列表中发现了 redis-rdb-bgsave 的身影，
 不断地执行ps看进程列表，发现 redis-rdb-bgsave 进程不断地出现，查看redis的持久化配置如下：
@@ -136,9 +136,9 @@ config set save "900 1"
 </div>
 </div>
 
-<div id="outline-container-org1c3e904" class="outline-2">
-<h2 id="org1c3e904">更多疑问</h2>
-<div class="outline-text-2" id="text-org1c3e904">
+<div id="outline-container-org7a6f036" class="outline-2">
+<h2 id="org7a6f036">更多疑问</h2>
+<div class="outline-text-2" id="text-org7a6f036">
 <ul class="org-ul">
 <li>我们的node.js进程为什么常常会占用很多内存？</li>
 

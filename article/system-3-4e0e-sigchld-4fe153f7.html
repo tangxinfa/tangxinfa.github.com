@@ -104,9 +104,9 @@ system(3) 在执行的命令结束时会发出 SIGCHLD 信号，收到 SIGCHLD �
 </p>
 
 
-<div id="outline-container-orgbb2671e" class="outline-2">
-<h2 id="orgbb2671e">在整个应用中忽略 SIGCHLD 信号会导致获取不到子进程退出码</h2>
-<div class="outline-text-2" id="text-orgbb2671e">
+<div id="outline-container-org2b26c1b" class="outline-2">
+<h2 id="org2b26c1b">在整个应用中忽略 SIGCHLD 信号会导致获取不到子进程退出码</h2>
+<div class="outline-text-2" id="text-org2b26c1b">
 <p>
 在应用程序最开始的时候（main 函数），添加以下语句
 </p>
@@ -172,9 +172,9 @@ system(3) 调用 waitpid(3) 时，子进程已经被系统自动回收，消失�
 </p>
 </div>
 
-<div id="outline-container-org27bc32b" class="outline-3">
-<h3 id="org27bc32b">使用 popen(3)/pclose(3) 来代替 system(3) 通过分析标准输出来判断命令执行是否成功</h3>
-<div class="outline-text-3" id="text-org27bc32b">
+<div id="outline-container-orgfaa097b" class="outline-3">
+<h3 id="orgfaa097b">使用 popen(3)/pclose(3) 来代替 system(3) 通过分析标准输出来判断命令执行是否成功</h3>
+<div class="outline-text-3" id="text-orgfaa097b">
 <div class="org-src-container">
 <pre class="src src-c"><span style="color: #81a2be;">int</span> <span style="color: #de935f;">system2</span>(<span style="color: #b5bd68;">const</span> <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">command</span>, <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">output</span>, <span style="color: #81a2be;">size_t</span> <span style="color: #f0c674;">output_size</span>)
 {
@@ -208,9 +208,9 @@ system(3) 调用 waitpid(3) 时，子进程已经被系统自动回收，消失�
 </div>
 </div>
 
-<div id="outline-container-org04b3eab" class="outline-2">
-<h2 id="org04b3eab">在整个应用中阻塞 SIGCHLD 信号可能导致出现僵尸进程</h2>
-<div class="outline-text-2" id="text-org04b3eab">
+<div id="outline-container-orgb30fe20" class="outline-2">
+<h2 id="orgb30fe20">在整个应用中阻塞 SIGCHLD 信号可能导致出现僵尸进程</h2>
+<div class="outline-text-2" id="text-orgb30fe20">
 <p>
 signal(3) 无法阻塞一个信号，只支持忽略（SIG_IGN）和恢复缺省处理（SIG_DFL）。
 </p>
@@ -253,9 +253,9 @@ system(3) 在替换进程为新程序（execl(3)）之前，会重置为保存�
 </p>
 </div>
 
-<div id="outline-container-orgcd9eafa" class="outline-3">
-<h3 id="orgcd9eafa">在整个应用中阻塞 SIGCHLD 信号会导致一种常用的回收僵尸进程的方法失效</h3>
-<div class="outline-text-3" id="text-orgcd9eafa">
+<div id="outline-container-orgad47dbf" class="outline-3">
+<h3 id="orgad47dbf">在整个应用中阻塞 SIGCHLD 信号会导致一种常用的回收僵尸进程的方法失效</h3>
+<div class="outline-text-3" id="text-orgad47dbf">
 <p>
 <a href="http://www.microhowto.info/howto/reap_zombie_processes_using_a_sigchld_handler.html">Reap zombie processes using a SIGCHLD handler</a> 有详细描述
 </p>
@@ -287,9 +287,9 @@ The method described here has two steps:
 </div>
 </div>
 
-<div id="outline-container-org367843d" class="outline-3">
-<h3 id="org367843d">在调用 system(3) 前暂时取消对 SIGCHLD 的阻塞</h3>
-<div class="outline-text-3" id="text-org367843d">
+<div id="outline-container-org31846af" class="outline-3">
+<h3 id="org31846af">在调用 system(3) 前暂时取消对 SIGCHLD 的阻塞</h3>
+<div class="outline-text-3" id="text-org31846af">
 <div class="org-src-container">
 <pre class="src src-C"><span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">&#23553;&#35013; system(3) &#65292;&#19968;&#26041;&#38754;&#36991;&#20813;&#20013;&#26029;&#31995;&#32479;&#35843;&#29992;&#65292;&#21478;&#19968;&#26041;&#38754;&#36991;&#20813;&#20986;&#29616;&#20725;&#23608;&#23385;&#36827;&#31243;.</span>
 <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">&#35831;&#35760;&#24471;&#20840;&#23616;&#22581;&#22622; SIGCHLD &#20449;&#21495;.</span>
@@ -324,9 +324,9 @@ The method described here has two steps:
 </div>
 </div>
 
-<div id="outline-container-org18ba629" class="outline-2">
-<h2 id="org18ba629">进程的信号处理状态可在 proc 文件系统看到</h2>
-<div class="outline-text-2" id="text-org18ba629">
+<div id="outline-container-org080f10f" class="outline-2">
+<h2 id="org080f10f">进程的信号处理状态可在 proc 文件系统看到</h2>
+<div class="outline-text-2" id="text-org080f10f">
 <p>
 如进程 pid 为 5526 ，获取到的进程忽略的信号发下
 </p>
@@ -351,9 +351,9 @@ $ node -e 'console.log((0x0000000000001004).toString(2))'
 </div>
 </div>
 
-<div id="outline-container-org35204b1" class="outline-2">
-<h2 id="org35204b1">参考</h2>
-<div class="outline-text-2" id="text-org35204b1">
+<div id="outline-container-orgbb3e1d2" class="outline-2">
+<h2 id="orgbb3e1d2">参考</h2>
+<div class="outline-text-2" id="text-orgbb3e1d2">
 <ul class="org-ul">
 <li><a href="http://www.linuxprogrammingblog.com/all-about-linux-signals?page=show">All about Linux signals | Linux Programming Blog</a></li>
 </ul>
