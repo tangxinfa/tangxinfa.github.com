@@ -19510,13 +19510,13 @@ NDK 提供了创建独立工具链的工具，对于移植使用 GNU Autotools �
 
     if [[ "$CROSS_COMPILE_HOST" = *"android"* ]]; then
         adb connect ${CROSS_COMPILE_DEVICE_IP} >>$LOG_FILE 2>&1
-        timeout 10 adb wait-for-device
+        adb wait-for-device
         adb root >>$LOG_FILE 2>&1
         adb connect ${CROSS_COMPILE_DEVICE_IP} >>$LOG_FILE 2>&1
-        timeout 10 adb wait-for-device
+        adb wait-for-device
         adb remount >>$LOG_FILE 2>&1
         adb connect ${CROSS_COMPILE_DEVICE_IP} >>$LOG_FILE 2>&1
-        timeout 10 adb wait-for-device
+        adb wait-for-device
         if [ $1 == "-f" ]; then
             tempfile=`mktemp -u XXXXXXXX`
             tempdir=/tmp/cross-compile
@@ -19541,9 +19541,9 @@ NDK 提供了创建独立工具链的工具，对于移植使用 GNU Autotools �
 
   修改 ~nginx-1.14.0~ 的配置脚本，将本地运行测试程序的地方改为远程执行
   #+begin_src sh
-    sed -i -e 's/\/bin\/sh -c $NGX_AUTOTEST/\/build\/execute -f $NGX_AUTOTEST/g' `find auto -type f`
-    sed -i -e 's/$NGX_AUTOTEST >\/dev\/null/\/build\/execute -f $NGX_AUTOTEST >\/dev\/null/g' `find auto -type f`
-    sed -i -e 's/`$NGX_AUTOTEST`/`\/build\/execute -f $NGX_AUTOTEST`/g' `find auto -type f`
+    sed -i -e 's/\/bin\/sh -c $NGX_AUTOTEST/timeout 10 \/build\/execute -f $NGX_AUTOTEST/g' `find auto -type f`
+    sed -i -e 's/$NGX_AUTOTEST >\/dev\/null/timeout 10 \/build\/execute -f $NGX_AUTOTEST >\/dev\/null/g' `find auto -type f`
+    sed -i -e 's/`$NGX_AUTOTEST`/`timeout 10 \/build\/execute -f $NGX_AUTOTEST`/g' `find auto -type f`
   #+end_src
 
   运行时需要预先设置环境变量 ~CROSS_COMPILE_DEVICE_IP~ 为目标设备 IP，对于嵌入式
@@ -19582,7 +19582,7 @@ NDK 提供了创建独立工具链的工具，对于移植使用 GNU Autotools �
     make install
   #+end_src
 
-- 编译出的 Nginx 无法运行
+- 编译出的 Nginx 无法在低版本的 Android 上运行
 
   之前为了使用最新的 NDK 工具链包含的函数 ~glob~ ，而将 ~API Level~ 设置成 ~28~
   ，这就意味着编译出来的程序无法在低版本的 Android（<=8.1） 上运行，在 Android
@@ -19597,6 +19597,12 @@ NDK 提供了创建独立工具链的工具，对于移植使用 GNU Autotools �
 
   由于 ~-static~ 与 ~-pie~ 是互相冲突的选项，静态编译的程序运行时会报错 ~only
   position independent executables (PIE) are supported.~ 。
+
+- 编译在 Android 5 及以上版本运行的 Nginx
+
+  参考以下项目，通过使用 docker 方便交叉编译 nginx-1.14.0
+
+  [[https://github.com/tangxinfa/android-nginx][tangxinfa/android-nginx: Cross compile nginx with android ndk]]
 
 ** 结论
 

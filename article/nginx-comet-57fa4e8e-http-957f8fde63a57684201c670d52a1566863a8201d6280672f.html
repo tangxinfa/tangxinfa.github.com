@@ -31,18 +31,18 @@
       
         <div class="article-content">
           
-<div id="outline-container-org4ec241c" class="outline-2">
-<h2 id="org4ec241c">简介</h2>
-<div class="outline-text-2" id="text-org4ec241c">
+<div id="outline-container-orgc8aedee" class="outline-2">
+<h2 id="orgc8aedee">简介</h2>
+<div class="outline-text-2" id="text-orgc8aedee">
 <p>
 可参考这篇文章：<a href="http://www.ibm.com/developerworks/cn/web/wa-lo-comet/">Comet：基于 HTTP 长连接的“服务器推”技术</a>
 </p>
 </div>
 </div>
 
-<div id="outline-container-orgcbb4ee0" class="outline-2">
-<h2 id="orgcbb4ee0"><a href="https://github.com/slact/nginx_http_push_module">nginx_http_push_module</a> （不建议使用）</h2>
-<div class="outline-text-2" id="text-orgcbb4ee0">
+<div id="outline-container-org99fe97f" class="outline-2">
+<h2 id="org99fe97f"><a href="https://github.com/slact/nginx_http_push_module">nginx_http_push_module</a> （不建议使用）</h2>
+<div class="outline-text-2" id="text-org99fe97f">
 <p>
 这个模块功能上没有问题，网上介绍的文章相对比较多，但是存在严重的内存泄露问题，而且发现使用kill -HUP的方式优雅重启nginx虽会释放一部分内存，但nginx错误日志显示有共享内存锁相关的冲突，我们不得不每小时彻底重启一次nginx。简单说一下就是它使用一个全局的内存池来分配订阅者及响应需要的内存空间，但是从nginx内存池分配的小内存块（&lt; pagesize，4096）是不会释放的也不会归还到池中进行重用，具体可查看nginx源码的ngx_palloc和ngx_pfree函数进行验证。
 </p>
@@ -96,9 +96,9 @@ location ~ ^/activity_jsonp$ {
 </div>
 </div>
 
-<div id="outline-container-org2985233" class="outline-2">
-<h2 id="org2985233"><a href="https://github.com/wandenberg/nginx-push-stream-module">nginx-push-stream-module</a> （建议使用）</h2>
-<div class="outline-text-2" id="text-org2985233">
+<div id="outline-container-org402594a" class="outline-2">
+<h2 id="org402594a"><a href="https://github.com/wandenberg/nginx-push-stream-module">nginx-push-stream-module</a> （建议使用）</h2>
+<div class="outline-text-2" id="text-org402594a">
 <p>
 由于 <a href="https://github.com/slact/nginx_http_push_module">nginx_http_push_module</a> 存在内存泄露问题，同时没有人进行正式的修复，我们决定尝试一下<a href="https://github.com/wandenberg/nginx-push-stream-module">nginx-push-stream-module</a>，这个模块功能更强大同时文档更完整，看起来也更活跃。
 </p>
