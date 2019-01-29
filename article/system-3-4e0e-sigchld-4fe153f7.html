@@ -104,9 +104,9 @@ system(3) 在执行的命令结束时会发出 SIGCHLD 信号，收到 SIGCHLD �
 </p>
 
 
-<div id="outline-container-org20da010" class="outline-2">
-<h2 id="org20da010">在整个应用中忽略 SIGCHLD 信号会导致获取不到子进程退出码</h2>
-<div class="outline-text-2" id="text-org20da010">
+<div id="outline-container-org4781500" class="outline-2">
+<h2 id="org4781500">在整个应用中忽略 SIGCHLD 信号会导致获取不到子进程退出码</h2>
+<div class="outline-text-2" id="text-org4781500">
 <p>
 在应用程序最开始的时候（main 函数），添加以下语句
 </p>
@@ -157,8 +157,17 @@ or
 
 <p>
 struct sigaction act;
+</p>
+
+<p>
 act.sa_handler = something;
+</p>
+
+<p>
 act.sa_flags = SA_NOCLDWAIT;
+</p>
+
+<p>
 sigaction (SIGCHLD, &amp;act, NULL);
 </p>
 
@@ -172,9 +181,9 @@ system(3) 调用 waitpid(3) 时，子进程已经被系统自动回收，消失�
 </p>
 </div>
 
-<div id="outline-container-org892569a" class="outline-3">
-<h3 id="org892569a">使用 popen(3)/pclose(3) 来代替 system(3) 通过分析标准输出来判断命令执行是否成功</h3>
-<div class="outline-text-3" id="text-org892569a">
+<div id="outline-container-orgd15ad53" class="outline-3">
+<h3 id="orgd15ad53">使用 popen(3)/pclose(3) 来代替 system(3) 通过分析标准输出来判断命令执行是否成功</h3>
+<div class="outline-text-3" id="text-orgd15ad53">
 <div class="org-src-container">
 <pre class="src src-c"><span style="color: #81a2be;">int</span> <span style="color: #de935f;">system2</span>(<span style="color: #b5bd68;">const</span> <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">command</span>, <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">output</span>, <span style="color: #81a2be;">size_t</span> <span style="color: #f0c674;">output_size</span>)
 {
@@ -208,9 +217,9 @@ system(3) 调用 waitpid(3) 时，子进程已经被系统自动回收，消失�
 </div>
 </div>
 
-<div id="outline-container-orgfc7d358" class="outline-2">
-<h2 id="orgfc7d358">在整个应用中阻塞 SIGCHLD 信号可能导致出现僵尸进程</h2>
-<div class="outline-text-2" id="text-orgfc7d358">
+<div id="outline-container-orgf22069c" class="outline-2">
+<h2 id="orgf22069c">在整个应用中阻塞 SIGCHLD 信号可能导致出现僵尸进程</h2>
+<div class="outline-text-2" id="text-orgf22069c">
 <p>
 signal(3) 无法阻塞一个信号，只支持忽略（SIG_IGN）和恢复缺省处理（SIG_DFL）。
 </p>
@@ -253,9 +262,9 @@ system(3) 在替换进程为新程序（execl(3)）之前，会重置为保存�
 </p>
 </div>
 
-<div id="outline-container-orgdfa1c49" class="outline-3">
-<h3 id="orgdfa1c49">在整个应用中阻塞 SIGCHLD 信号会导致一种常用的回收僵尸进程的方法失效</h3>
-<div class="outline-text-3" id="text-orgdfa1c49">
+<div id="outline-container-orgb3cdb50" class="outline-3">
+<h3 id="orgb3cdb50">在整个应用中阻塞 SIGCHLD 信号会导致一种常用的回收僵尸进程的方法失效</h3>
+<div class="outline-text-3" id="text-orgb3cdb50">
 <p>
 <a href="http://www.microhowto.info/howto/reap_zombie_processes_using_a_sigchld_handler.html">Reap zombie processes using a SIGCHLD handler</a> 有详细描述
 </p>
@@ -287,9 +296,9 @@ The method described here has two steps:
 </div>
 </div>
 
-<div id="outline-container-orgc347c0a" class="outline-3">
-<h3 id="orgc347c0a">在调用 system(3) 前暂时取消对 SIGCHLD 的阻塞</h3>
-<div class="outline-text-3" id="text-orgc347c0a">
+<div id="outline-container-orgac6f582" class="outline-3">
+<h3 id="orgac6f582">在调用 system(3) 前暂时取消对 SIGCHLD 的阻塞</h3>
+<div class="outline-text-3" id="text-orgac6f582">
 <div class="org-src-container">
 <pre class="src src-C"><span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">&#23553;&#35013; system(3) &#65292;&#19968;&#26041;&#38754;&#36991;&#20813;&#20013;&#26029;&#31995;&#32479;&#35843;&#29992;&#65292;&#21478;&#19968;&#26041;&#38754;&#36991;&#20813;&#20986;&#29616;&#20725;&#23608;&#23385;&#36827;&#31243;.</span>
 <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">&#35831;&#35760;&#24471;&#20840;&#23616;&#22581;&#22622; SIGCHLD &#20449;&#21495;.</span>
@@ -324,9 +333,9 @@ The method described here has two steps:
 </div>
 </div>
 
-<div id="outline-container-org354be89" class="outline-2">
-<h2 id="org354be89">进程的信号处理状态可在 proc 文件系统看到</h2>
-<div class="outline-text-2" id="text-org354be89">
+<div id="outline-container-orgec3194b" class="outline-2">
+<h2 id="orgec3194b">进程的信号处理状态可在 proc 文件系统看到</h2>
+<div class="outline-text-2" id="text-orgec3194b">
 <p>
 如进程 pid 为 5526 ，获取到的进程忽略的信号发下
 </p>
@@ -351,9 +360,9 @@ $ node -e 'console.log((0x0000000000001004).toString(2))'
 </div>
 </div>
 
-<div id="outline-container-orga3d6387" class="outline-2">
-<h2 id="orga3d6387">参考</h2>
-<div class="outline-text-2" id="text-orga3d6387">
+<div id="outline-container-orgf737636" class="outline-2">
+<h2 id="orgf737636">参考</h2>
+<div class="outline-text-2" id="text-orgf737636">
 <ul class="org-ul">
 <li><a href="http://www.linuxprogrammingblog.com/all-about-linux-signals?page=show">All about Linux signals | Linux Programming Blog</a></li>
 </ul>

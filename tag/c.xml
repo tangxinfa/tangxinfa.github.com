@@ -4,7 +4,7 @@
         <title>c - 看看俺 – KanKanAn.com</title>
         <link>http://blog.kankanan.com/tag/c.xml</link>
         <description>记我所思，忆我所为。</description>
-        <lastBuildDate>Thu, 23 Aug 2018 13:25:14 GMT</lastBuildDate>
+        <lastBuildDate>Mon, 28 Jan 2019 08:38:18 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <generator>Feed for Node.js</generator>
         <image>
@@ -14,6 +14,54 @@
         </image>
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <category>技术</category>
+        <item>
+            <title><![CDATA[使用 deprecated 声明防止开发人员使用危险的系统函数]]></title>
+            <link>/article/4f7f7528-deprecated-58f0660e96326b625f0053d14eba54584f7f75285371966976847cfb7edf51fd6570.html</link>
+            <guid>/article/4f7f7528-deprecated-58f0660e96326b625f0053d14eba54584f7f75285371966976847cfb7edf51fd6570.html</guid>
+            <pubDate>Mon, 28 Jan 2019 07:19:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+在 linux 下开发时有一些系统函数初看起来很易用，其实却非常危险，比如 <code>dirname</code> 和
+<code>basename</code> ，其中 <code>dirname</code> 用来获取路径除去文件名的部分， <code>basename</code> 用来获取文
+件名部分，函数原型定义如下：
+</p>
+
+<div class="org-src-container">
+<pre class="src src-c"><span style="color: #81a2be;">char</span> *<span style="color: #de935f;">dirname</span>(<span style="color: #81a2be;">char</span> *<span style="color: #f0c674;">path</span>);
+<span style="color: #81a2be;">char</span> *<span style="color: #de935f;">basename</span>(<span style="color: #81a2be;">char</span> *<span style="color: #f0c674;">path</span>);
+</pre>
+</div>
+
+<p>
+从原型可以初步看出，很难有安全的实现方式，要么直接修改参数 <code>path</code> ，要么返回一个
+新的 buffer 存放获取到的文件路径部分，没有标准来明确应该使用哪种实现方式。
+</p>
+
+<p>
+也就是说这两个函数是有负作用的，并没有想像中的那么易用。而开发人员在开发过程中很
+容易就忽略了它的负作用，导致未定义的行为。
+</p>
+
+<p>
+对于一个有大量开发人员参与的项目，很难防止开发人员误用这些系统函数，加强对开发人
+员的教育以及代码 review 可以减少危险，但是无法从根本上解决问题。
+</p>
+
+<p>
+一个比较好的方式添加 deprecated 声明，项目代码中一旦用到这些函数则报编译告警。以
+<code>basename</code> 为例，在项目通用的头文件中添加 deprecated 声明：
+</p>
+
+<div class="org-src-container">
+<pre class="src src-c"><span style="color: #969896; background-color: #22a224a427a7;"> </span><span style="color: #b5bd68;">__attribute__</span> ((<span style="color: #81a2be;">deprecated</span>))
+<span style="color: #81a2be;">char</span> *<span style="color: #de935f;">dirname</span>(<span style="color: #81a2be;">char</span> *<span style="color: #f0c674;">path</span>);
+</pre>
+</div>
+
+<p>
+所有用到 <code>dirname</code> 的地方都会编译告警，开发人员通过使用安全版本的系统函数（如：
+<code>dirname_r</code> ）来修复编译告警。</p>
+]]></content:encoded>
+        </item>
         <item>
             <title><![CDATA[system(3) 与 SIGCHLD 信号]]></title>
             <link>/article/system-3-4e0e-sigchld-4fe153f7.html</link>
@@ -93,9 +141,9 @@ system(3) 在执行的命令结束时会发出 SIGCHLD 信号，收到 SIGCHLD �
 </p>
 
 
-<div id="outline-container-org20da010" class="outline-2">
-<h2 id="org20da010">在整个应用中忽略 SIGCHLD 信号会导致获取不到子进程退出码</h2>
-<div class="outline-text-2" id="text-org20da010">
+<div id="outline-container-org4781500" class="outline-2">
+<h2 id="org4781500">在整个应用中忽略 SIGCHLD 信号会导致获取不到子进程退出码</h2>
+<div class="outline-text-2" id="text-org4781500">
 <p>
 在应用程序最开始的时候（main 函数），添加以下语句
 </p>
@@ -146,8 +194,17 @@ or
 
 <p>
 struct sigaction act;
+</p>
+
+<p>
 act.sa_handler = something;
+</p>
+
+<p>
 act.sa_flags = SA_NOCLDWAIT;
+</p>
+
+<p>
 sigaction (SIGCHLD, &amp;act, NULL);
 </p>
 
@@ -161,9 +218,9 @@ system(3) 调用 waitpid(3) 时，子进程已经被系统自动回收，消失�
 </p>
 </div>
 
-<div id="outline-container-org892569a" class="outline-3">
-<h3 id="org892569a">使用 popen(3)/pclose(3) 来代替 system(3) 通过分析标准输出来判断命令执行是否成功</h3>
-<div class="outline-text-3" id="text-org892569a">
+<div id="outline-container-orgd15ad53" class="outline-3">
+<h3 id="orgd15ad53">使用 popen(3)/pclose(3) 来代替 system(3) 通过分析标准输出来判断命令执行是否成功</h3>
+<div class="outline-text-3" id="text-orgd15ad53">
 <div class="org-src-container">
 <pre class="src src-c"><span style="color: #81a2be;">int</span> <span style="color: #de935f;">system2</span>(<span style="color: #b5bd68;">const</span> <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">command</span>, <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">output</span>, <span style="color: #81a2be;">size_t</span> <span style="color: #f0c674;">output_size</span>)
 {
@@ -197,9 +254,9 @@ system(3) 调用 waitpid(3) 时，子进程已经被系统自动回收，消失�
 </div>
 </div>
 
-<div id="outline-container-orgfc7d358" class="outline-2">
-<h2 id="orgfc7d358">在整个应用中阻塞 SIGCHLD 信号可能导致出现僵尸进程</h2>
-<div class="outline-text-2" id="text-orgfc7d358">
+<div id="outline-container-orgf22069c" class="outline-2">
+<h2 id="orgf22069c">在整个应用中阻塞 SIGCHLD 信号可能导致出现僵尸进程</h2>
+<div class="outline-text-2" id="text-orgf22069c">
 <p>
 signal(3) 无法阻塞一个信号，只支持忽略（SIG_IGN）和恢复缺省处理（SIG_DFL）。
 </p>
@@ -242,9 +299,9 @@ system(3) 在替换进程为新程序（execl(3)）之前，会重置为保存�
 </p>
 </div>
 
-<div id="outline-container-orgdfa1c49" class="outline-3">
-<h3 id="orgdfa1c49">在整个应用中阻塞 SIGCHLD 信号会导致一种常用的回收僵尸进程的方法失效</h3>
-<div class="outline-text-3" id="text-orgdfa1c49">
+<div id="outline-container-orgb3cdb50" class="outline-3">
+<h3 id="orgb3cdb50">在整个应用中阻塞 SIGCHLD 信号会导致一种常用的回收僵尸进程的方法失效</h3>
+<div class="outline-text-3" id="text-orgb3cdb50">
 <p>
 <a href="http://www.microhowto.info/howto/reap_zombie_processes_using_a_sigchld_handler.html">Reap zombie processes using a SIGCHLD handler</a> 有详细描述
 </p>
@@ -276,9 +333,9 @@ The method described here has two steps:
 </div>
 </div>
 
-<div id="outline-container-orgc347c0a" class="outline-3">
-<h3 id="orgc347c0a">在调用 system(3) 前暂时取消对 SIGCHLD 的阻塞</h3>
-<div class="outline-text-3" id="text-orgc347c0a">
+<div id="outline-container-orgac6f582" class="outline-3">
+<h3 id="orgac6f582">在调用 system(3) 前暂时取消对 SIGCHLD 的阻塞</h3>
+<div class="outline-text-3" id="text-orgac6f582">
 <div class="org-src-container">
 <pre class="src src-C"><span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">&#23553;&#35013; system(3) &#65292;&#19968;&#26041;&#38754;&#36991;&#20813;&#20013;&#26029;&#31995;&#32479;&#35843;&#29992;&#65292;&#21478;&#19968;&#26041;&#38754;&#36991;&#20813;&#20986;&#29616;&#20725;&#23608;&#23385;&#36827;&#31243;.</span>
 <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">&#35831;&#35760;&#24471;&#20840;&#23616;&#22581;&#22622; SIGCHLD &#20449;&#21495;.</span>
@@ -313,9 +370,9 @@ The method described here has two steps:
 </div>
 </div>
 
-<div id="outline-container-org354be89" class="outline-2">
-<h2 id="org354be89">进程的信号处理状态可在 proc 文件系统看到</h2>
-<div class="outline-text-2" id="text-org354be89">
+<div id="outline-container-orgec3194b" class="outline-2">
+<h2 id="orgec3194b">进程的信号处理状态可在 proc 文件系统看到</h2>
+<div class="outline-text-2" id="text-orgec3194b">
 <p>
 如进程 pid 为 5526 ，获取到的进程忽略的信号发下
 </p>
@@ -340,9 +397,9 @@ $ node -e 'console.log((0x0000000000001004).toString(2))'
 </div>
 </div>
 
-<div id="outline-container-orga3d6387" class="outline-2">
-<h2 id="orga3d6387">参考</h2>
-<div class="outline-text-2" id="text-orga3d6387">
+<div id="outline-container-orgf737636" class="outline-2">
+<h2 id="orgf737636">参考</h2>
+<div class="outline-text-2" id="text-orgf737636">
 <ul class="org-ul">
 <li><a href="http://www.linuxprogrammingblog.com/all-about-linux-signals?page=show">All about Linux signals | Linux Programming Blog</a></li>
 </ul>
@@ -373,9 +430,9 @@ Q: <code>snprintf</code> 返回的是实际写入到缓冲区的字符数吗？
 A: 错。当缓冲区空间不足时会返回比缓存区空间大的值。
 </p>
 
-<div id="outline-container-org91de4a6" class="outline-2">
-<h2 id="org91de4a6">man 3 snprintf</h2>
-<div class="outline-text-2" id="text-org91de4a6">
+<div id="outline-container-orga23ba78" class="outline-2">
+<h2 id="orga23ba78">man 3 snprintf</h2>
+<div class="outline-text-2" id="text-orga23ba78">
 <p>
 摘录关键部分
 </p>
@@ -444,9 +501,9 @@ If an output error is encountered, a negative value is returned.
 </div>
 </div>
 
-<div id="outline-container-org0596876" class="outline-2">
-<h2 id="org0596876">了解 snprintf</h2>
-<div class="outline-text-2" id="text-org0596876">
+<div id="outline-container-org4739abe" class="outline-2">
+<h2 id="org4739abe">了解 snprintf</h2>
+<div class="outline-text-2" id="text-org4739abe">
 <p>
 sprintf 输出到缓冲区，提供的缓存区空间不足时，引发臭名昭著的 <code>缓存区溢出</code> 漏洞，snprintf 通过指定缓存区空间大小解决了这个问题。
 </p>
@@ -491,9 +548,9 @@ snprintf 常用于字符串格式化（如：拼接 SQL 或 shell 命令），�
 </div>
 </div>
 
-<div id="outline-container-org727f6f5" class="outline-2">
-<h2 id="org727f6f5">使用 snprintf 的正确姿势</h2>
-<div class="outline-text-2" id="text-org727f6f5">
+<div id="outline-container-org2d99249" class="outline-2">
+<h2 id="org2d99249">使用 snprintf 的正确姿势</h2>
+<div class="outline-text-2" id="text-org2d99249">
 <div class="org-src-container">
 <pre class="src src-c"><span style="color: #81a2be;">int</span> <span style="color: #f0c674;">pos</span> = 0;
 <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">n</span> = snprintf(buffer + pos, <span style="color: #b5bd68;">sizeof</span>(buffer) - pos, <span style="color: #8abeb7;">"%s"</span>, <span style="color: #8abeb7;">"hello"</span>);
@@ -502,7 +559,7 @@ snprintf 常用于字符串格式化（如：拼接 SQL 或 shell 命令），�
 <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> fprintf(stderr, <span style="color: #8abeb7;">"error: buffer size not enough\n"</span>);
 <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #b5bd68;">return</span>;
 }
-n += pos;
+pos += n;
 
 n = snprintf(buffer + pos, <span style="color: #b5bd68;">sizeof</span>(buffer) - pos, <span style="color: #8abeb7;">"%s"</span>, <span style="color: #8abeb7;">" snprintf"</span>);
 <span style="color: #b5bd68;">if</span> (n &gt;= <span style="color: #b5bd68;">sizeof</span>(buffer) - pos) {
@@ -510,7 +567,7 @@ n = snprintf(buffer + pos, <span style="color: #b5bd68;">sizeof</span>(buffer) -
 <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> fprintf(stderr, <span style="color: #8abeb7;">"error: buffer size not enough\n"</span>);
 <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #b5bd68;">return</span>;
 }
-n += pos;
+pos += n;
 </pre>
 </div>
 
@@ -821,9 +878,9 @@ cc1: all warnings being treated as errors
 </p></li>
 </ul>
 
-<div id="outline-container-org4db9313" class="outline-2">
-<h2 id="org4db9313">通过预分配空间方式安全写文件算法</h2>
-<div class="outline-text-2" id="text-org4db9313">
+<div id="outline-container-org19608bf" class="outline-2">
+<h2 id="org19608bf">通过预分配空间方式安全写文件算法</h2>
+<div class="outline-text-2" id="text-org19608bf">
 <ul class="org-ul">
 <li>如果当前文件过小（不足以容纳新内容），在文件尾部通过追加占位字符（\0）直到文件大小合适</li>
 
@@ -838,13 +895,13 @@ cc1: all warnings being treated as errors
 </div>
 </div>
 
-<div id="outline-container-orge19d362" class="outline-2">
-<h2 id="orge19d362">测试</h2>
-<div class="outline-text-2" id="text-orge19d362">
+<div id="outline-container-org594020f" class="outline-2">
+<h2 id="org594020f">测试</h2>
+<div class="outline-text-2" id="text-org594020f">
 </div>
-<div id="outline-container-org4496660" class="outline-3">
-<h3 id="org4496660">创建模拟磁盘目录 /mnt/disk</h3>
-<div class="outline-text-3" id="text-org4496660">
+<div id="outline-container-orgd51802f" class="outline-3">
+<h3 id="orgd51802f">创建模拟磁盘目录 /mnt/disk</h3>
+<div class="outline-text-3" id="text-orgd51802f">
 <p>
 先确保存在 <code>/dev/loop*</code> 设备，如果不存在先尝试挂载 <code>loop</code> 内核模块
 </p>
@@ -894,9 +951,9 @@ $ sudo mount /dev/loop0p1 /mnt/disk
 </div>
 </div>
 
-<div id="outline-container-org8625a64" class="outline-3">
-<h3 id="org8625a64">修复前</h3>
-<div class="outline-text-3" id="text-org8625a64">
+<div id="outline-container-orgad029df" class="outline-3">
+<h3 id="orgad029df">修复前</h3>
+<div class="outline-text-3" id="text-orgad029df">
 <p>
 磁盘空间不足写配置导致配置文件被损坏
 </p>
@@ -923,9 +980,9 @@ config: get items(name,,,,,) from config file(/mnt/disk/test.json) failed
 </div>
 </div>
 
-<div id="outline-container-org4fa30f5" class="outline-3">
-<h3 id="org4fa30f5">修复后</h3>
-<div class="outline-text-3" id="text-org4fa30f5">
+<div id="outline-container-org134404c" class="outline-3">
+<h3 id="org134404c">修复后</h3>
+<div class="outline-text-3" id="text-org134404c">
 <p>
 磁盘空间不足写配置不会对配置文件造成实质影响
 </p>
@@ -948,9 +1005,9 @@ name: libconfig
 </div>
 </div>
 
-<div id="outline-container-orge068e10" class="outline-3">
-<h3 id="orge068e10">清除测试环境</h3>
-<div class="outline-text-3" id="text-orge068e10">
+<div id="outline-container-org62b480e" class="outline-3">
+<h3 id="org62b480e">清除测试环境</h3>
+<div class="outline-text-3" id="text-org62b480e">
 <div class="org-src-container">
 <pre class="src src-sh">sudo umount /dev/loop0p1
 sudo losetup -d /dev/loop0
@@ -962,9 +1019,9 @@ sudo rm ~/Examples/disk.img
 </div>
 </div>
 
-<div id="outline-container-orgbba171e" class="outline-2">
-<h2 id="orgbba171e">参考</h2>
-<div class="outline-text-2" id="text-orgbba171e">
+<div id="outline-container-org1ad5744" class="outline-2">
+<h2 id="org1ad5744">参考</h2>
+<div class="outline-text-2" id="text-org1ad5744">
 <p>
 《<a href="http://www.oschina.net/translate/reliable-file-updates-with-python">使用 Python 进行稳定可靠的文件操作</a>》</p>
 </div>
@@ -1056,9 +1113,9 @@ tv.tv_usec = 0;
 </div></li>
 </ul>
 
-<div id="outline-container-org9179607" class="outline-2">
-<h2 id="org9179607">ssl 客户端示例代码</h2>
-<div class="outline-text-2" id="text-org9179607">
+<div id="outline-container-orgd9e9d87" class="outline-2">
+<h2 id="orgd9e9d87">ssl 客户端示例代码</h2>
+<div class="outline-text-2" id="text-orgd9e9d87">
 <p>
 这个示例包括建立连接、读、写，以及超时设置、服务器证书验证。
 </p>

@@ -4,7 +4,7 @@
         <title>linux - 看看俺 – KanKanAn.com</title>
         <link>http://blog.kankanan.com/tag/linux.xml</link>
         <description>记我所思，忆我所为。</description>
-        <lastBuildDate>Thu, 23 Aug 2018 13:25:14 GMT</lastBuildDate>
+        <lastBuildDate>Mon, 28 Jan 2019 08:38:18 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <generator>Feed for Node.js</generator>
         <image>
@@ -15,14 +15,141 @@
         <copyright>版权所有 © 2011-2015 看看俺 – KanKanAn.com</copyright>
         <category>技术</category>
         <item>
+            <title><![CDATA[使用 deprecated 声明防止开发人员使用危险的系统函数]]></title>
+            <link>/article/4f7f7528-deprecated-58f0660e96326b625f0053d14eba54584f7f75285371966976847cfb7edf51fd6570.html</link>
+            <guid>/article/4f7f7528-deprecated-58f0660e96326b625f0053d14eba54584f7f75285371966976847cfb7edf51fd6570.html</guid>
+            <pubDate>Mon, 28 Jan 2019 07:19:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+在 linux 下开发时有一些系统函数初看起来很易用，其实却非常危险，比如 <code>dirname</code> 和
+<code>basename</code> ，其中 <code>dirname</code> 用来获取路径除去文件名的部分， <code>basename</code> 用来获取文
+件名部分，函数原型定义如下：
+</p>
+
+<div class="org-src-container">
+<pre class="src src-c"><span style="color: #81a2be;">char</span> *<span style="color: #de935f;">dirname</span>(<span style="color: #81a2be;">char</span> *<span style="color: #f0c674;">path</span>);
+<span style="color: #81a2be;">char</span> *<span style="color: #de935f;">basename</span>(<span style="color: #81a2be;">char</span> *<span style="color: #f0c674;">path</span>);
+</pre>
+</div>
+
+<p>
+从原型可以初步看出，很难有安全的实现方式，要么直接修改参数 <code>path</code> ，要么返回一个
+新的 buffer 存放获取到的文件路径部分，没有标准来明确应该使用哪种实现方式。
+</p>
+
+<p>
+也就是说这两个函数是有负作用的，并没有想像中的那么易用。而开发人员在开发过程中很
+容易就忽略了它的负作用，导致未定义的行为。
+</p>
+
+<p>
+对于一个有大量开发人员参与的项目，很难防止开发人员误用这些系统函数，加强对开发人
+员的教育以及代码 review 可以减少危险，但是无法从根本上解决问题。
+</p>
+
+<p>
+一个比较好的方式添加 deprecated 声明，项目代码中一旦用到这些函数则报编译告警。以
+<code>basename</code> 为例，在项目通用的头文件中添加 deprecated 声明：
+</p>
+
+<div class="org-src-container">
+<pre class="src src-c"><span style="color: #969896; background-color: #22a224a427a7;"> </span><span style="color: #b5bd68;">__attribute__</span> ((<span style="color: #81a2be;">deprecated</span>))
+<span style="color: #81a2be;">char</span> *<span style="color: #de935f;">dirname</span>(<span style="color: #81a2be;">char</span> *<span style="color: #f0c674;">path</span>);
+</pre>
+</div>
+
+<p>
+所有用到 <code>dirname</code> 的地方都会编译告警，开发人员通过使用安全版本的系统函数（如：
+<code>dirname_r</code> ）来修复编译告警。</p>
+]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Archlinux 手工安装 AUR 包]]></title>
+            <link>/article/archlinux-624b5de55b8988c5-aur-5305.html</link>
+            <guid>/article/archlinux-624b5de55b8988c5-aur-5305.html</guid>
+            <pubDate>Mon, 28 Jan 2019 07:19:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+以 `libfprint-git` 包为例。
+</p>
+
+<ul class="org-ul">
+<li><p>
+下载包信息
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">yaourt -G libfprint-git
+<span style="color: #b294bb;">cd</span> libfprint-git
+</pre>
+</div></li>
+
+<li><p>
+修改包信息
+</p>
+
+<p>
+可编辑 <code>PKGBUILD</code> 文件，如 <code>source</code> 指定 <code>branch</code>
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh"><span style="color: #f0c674;">source</span>=(<span style="color: #8abeb7;">"git+https://gitlab.freedesktop.org/libfprint/libfprint.git"</span>)
+</pre>
+</div>
+
+<p>
+改为
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh"><span style="color: #f0c674;">source</span>=(<span style="color: #8abeb7;">"git+https://gitlab.freedesktop.org/libfprint/libfprint.git#branch=wip/h</span><span style="color: #8abeb7; text-decoration: underline;">adess/too-many-minutiae"</span><span style="text-decoration: underline;">)</span>
+</pre>
+</div></li>
+
+<li>下载包源代码</li>
+</ul>
+
+<div class="org-src-container">
+<pre class="src src-sh">makepkg -sr --nobuild
+</pre>
+</div>
+
+<ul class="org-ul">
+<li>修改源代码</li>
+
+<li><p>
+编译安装修改后的包
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">makepkg -ei
+</pre>
+</div></li>
+
+<li><p>
+参考
+</p>
+
+<p>
+<a href="https://wiki.archlinux.org/index.php/Makepkg">makepkg - ArchWiki</a>
+</p>
+
+<p>
+<a href="https://jlk.fjfi.cvut.cz/arch/manpages/man/PKGBUILD.5">PKGBUILD(5) — Arch manual pages</a>
+</p>
+
+<p>
+<a href="https://linuxtoy.org/archives/archlinux-pkgbuild-aur-and-abs.html">Archlinux 的灵魂──PKGBUILD、AUR 和 ABS (1) · LinuxTOY</a></p></li>
+</ul>
+]]></content:encoded>
+        </item>
+        <item>
             <title><![CDATA[Archlinux 下编译 Android]]></title>
             <link>/article/archlinux-4e0b7f168bd1-android.html</link>
             <guid>/article/archlinux-4e0b7f168bd1-android.html</guid>
             <pubDate>Thu, 09 Aug 2018 07:26:00 GMT</pubDate>
             <content:encoded><![CDATA[
-<div id="outline-container-org70f5afe" class="outline-2">
-<h2 id="org70f5afe">安装 openjdk</h2>
-<div class="outline-text-2" id="text-org70f5afe">
+<div id="outline-container-org9f5a7f1" class="outline-2">
+<h2 id="org9f5a7f1">安装 openjdk</h2>
+<div class="outline-text-2" id="text-org9f5a7f1">
 <p>
 根据 Android 版本选择 <code>openjdk</code> 版本进行安装
 </p>
@@ -38,9 +165,9 @@
 </div>
 </div>
 
-<div id="outline-container-org29ed34e" class="outline-2">
-<h2 id="org29ed34e">安装 repo</h2>
-<div class="outline-text-2" id="text-org29ed34e">
+<div id="outline-container-org783d48c" class="outline-2">
+<h2 id="org783d48c">安装 repo</h2>
+<div class="outline-text-2" id="text-org783d48c">
 <p>
 <a href="https://android.googlesource.com/tools/repo">repo</a> 是用来从多个 <code>Git</code> 仓库构建 <code>Android</code> 的工具。
 </p>
@@ -58,9 +185,9 @@ sudo mv ~/repo /usr/local/bin/
 </div>
 </div>
 
-<div id="outline-container-org5ac6513" class="outline-2">
-<h2 id="org5ac6513">设置编译环境</h2>
-<div class="outline-text-2" id="text-org5ac6513">
+<div id="outline-container-orgabe65e8" class="outline-2">
+<h2 id="orgabe65e8">设置编译环境</h2>
+<div class="outline-text-2" id="text-orgabe65e8">
 <div class="org-src-container">
 <pre class="src src-sh">mkdir -p ~/Opensource/android
 <span style="color: #b294bb;">cd</span> ~/Opensource/android
@@ -75,9 +202,9 @@ virtualenv2 venv
 </div>
 </div>
 
-<div id="outline-container-orgf11f512" class="outline-2">
-<h2 id="orgf11f512">下载源代码</h2>
-<div class="outline-text-2" id="text-orgf11f512">
+<div id="outline-container-orgd9b2d00" class="outline-2">
+<h2 id="orgd9b2d00">下载源代码</h2>
+<div class="outline-text-2" id="text-orgd9b2d00">
 <div class="org-src-container">
 <pre class="src src-sh">repo init -u https://android.googlesource.com/platform/manifest -b master
 repo sync -j4
@@ -108,9 +235,9 @@ repo sync -j4
 </div>
 </div>
 
-<div id="outline-container-org7e227b7" class="outline-2">
-<h2 id="org7e227b7">编译</h2>
-<div class="outline-text-2" id="text-org7e227b7">
+<div id="outline-container-orgd410bee" class="outline-2">
+<h2 id="orgd410bee">编译</h2>
+<div class="outline-text-2" id="text-orgd410bee">
 <div class="org-src-container">
 <pre class="src src-sh"><span style="color: #b294bb;">source</span> build/envsetup.sh
 lunch full-eng
@@ -120,9 +247,9 @@ make -j4
 </div>
 </div>
 
-<div id="outline-container-org0b48786" class="outline-2">
-<h2 id="org0b48786">测试</h2>
-<div class="outline-text-2" id="text-org0b48786">
+<div id="outline-container-orgf64c805" class="outline-2">
+<h2 id="orgf64c805">测试</h2>
+<div class="outline-text-2" id="text-orgf64c805">
 <div class="org-src-container">
 <pre class="src src-sh">emulator
 </pre>
@@ -130,9 +257,9 @@ make -j4
 </div>
 </div>
 
-<div id="outline-container-orgbf5b892" class="outline-2">
-<h2 id="orgbf5b892">参考</h2>
-<div class="outline-text-2" id="text-orgbf5b892">
+<div id="outline-container-org40f87f3" class="outline-2">
+<h2 id="org40f87f3">参考</h2>
+<div class="outline-text-2" id="text-org40f87f3">
 <ul class="org-ul">
 <li><a href="https://wiki.archlinux.org/index.php/Android#Building">Building - Android - ArchWiki</a></li>
 </ul>
@@ -264,9 +391,9 @@ make install
             <guid>/article/linux-4e0b8c038bd5526553bb8c038bd54fe1606f76847a0b5e8f5d296e83.html</guid>
             <pubDate>Tue, 14 Nov 2017 10:18:00 GMT</pubDate>
             <content:encoded><![CDATA[
-<div id="outline-container-orgfd10b56" class="outline-2">
-<h2 id="orgfd10b56">为什么要剥去调试信息</h2>
-<div class="outline-text-2" id="text-orgfd10b56">
+<div id="outline-container-orgaed01fe" class="outline-2">
+<h2 id="orgaed01fe">为什么要剥去调试信息</h2>
+<div class="outline-text-2" id="text-orgaed01fe">
 <ul class="org-ul">
 <li><p>
 减少程序文件尺寸
@@ -287,18 +414,18 @@ make install
 </div>
 </div>
 
-<div id="outline-container-org4f59004" class="outline-2">
-<h2 id="org4f59004">如何添加调试信息</h2>
-<div class="outline-text-2" id="text-org4f59004">
+<div id="outline-container-org6ce9cee" class="outline-2">
+<h2 id="org6ce9cee">如何添加调试信息</h2>
+<div class="outline-text-2" id="text-org6ce9cee">
 <p>
 <code>gcc</code> 编译程序时指定 <code>-g</code> 选项。
 </p>
 </div>
 </div>
 
-<div id="outline-container-org396597c" class="outline-2">
-<h2 id="org396597c">如何剥去调试信息</h2>
-<div class="outline-text-2" id="text-org396597c">
+<div id="outline-container-org9e7e16c" class="outline-2">
+<h2 id="org9e7e16c">如何剥去调试信息</h2>
+<div class="outline-text-2" id="text-org9e7e16c">
 <div class="org-src-container">
 <pre class="src src-sh">strip /path/to/app
 </pre>
@@ -306,9 +433,9 @@ make install
 </div>
 </div>
 
-<div id="outline-container-org8720995" class="outline-2">
-<h2 id="org8720995">从程序崩溃后产生的 core 文件定位源代码行</h2>
-<div class="outline-text-2" id="text-org8720995">
+<div id="outline-container-org00c3a17" class="outline-2">
+<h2 id="org00c3a17">从程序崩溃后产生的 core 文件定位源代码行</h2>
+<div class="outline-text-2" id="text-org00c3a17">
 <ul class="org-ul">
 <li><p>
 示例程序
@@ -660,9 +787,9 @@ core 文件。
 </div>
 </div>
 
-<div id="outline-container-orgef65dd3" class="outline-2">
-<h2 id="orgef65dd3">从程序崩溃后输出的调用栈定位崩溃对应的代码行</h2>
-<div class="outline-text-2" id="text-orgef65dd3">
+<div id="outline-container-org2c93aeb" class="outline-2">
+<h2 id="org2c93aeb">从程序崩溃后输出的调用栈定位崩溃对应的代码行</h2>
+<div class="outline-text-2" id="text-org2c93aeb">
 <blockquote>
 <p>
 libSegFault     The segmentation fault signal handler, used by catchsegv 
@@ -825,9 +952,9 @@ $ grep -E '^Backtrace:$' -A 10 app.log | grep -E '^\./app' | sed -r ':a;s/.\/app
 </div>
 </div>
 
-<div id="outline-container-org7cdd3bb" class="outline-2">
-<h2 id="org7cdd3bb">使用 MAP 文件</h2>
-<div class="outline-text-2" id="text-org7cdd3bb">
+<div id="outline-container-org494b2fa" class="outline-2">
+<h2 id="org494b2fa">使用 MAP 文件</h2>
+<div class="outline-text-2" id="text-org494b2fa">
 <p>
 一开始有调研过使用 Map 文件，试验失败，看了一下 Map 文件的内容，其中记载了函
 数的地址，但没有详细的代码行地址，理论上是实现不了从崩溃地址获取源代码行地址
@@ -1017,9 +1144,9 @@ ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0 [vsyscall]
 </div>
 </div>
 
-<div id="outline-container-orgf08f5ac" class="outline-2">
-<h2 id="orgf08f5ac">总结</h2>
-<div class="outline-text-2" id="text-orgf08f5ac">
+<div id="outline-container-org710b1e4" class="outline-2">
+<h2 id="org710b1e4">总结</h2>
+<div class="outline-text-2" id="text-org710b1e4">
 <p>
 三种方案都可以获得同样的结果。
 </p>
@@ -1045,9 +1172,9 @@ ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0 [vsyscall]
 </div>
 </div>
 
-<div id="outline-container-org0261c41" class="outline-2">
-<h2 id="org0261c41">参考</h2>
-<div class="outline-text-2" id="text-org0261c41">
+<div id="outline-container-orgf0b8844" class="outline-2">
+<h2 id="orgf0b8844">参考</h2>
+<div class="outline-text-2" id="text-orgf0b8844">
 <ul class="org-ul">
 <li><a href="https://stackoverflow.com/questions/7556045/how-to-map-function-address-to-function-in-so-files">c - How to map function address to function in *.so files - Stack Overflow</a></li>
 
@@ -1071,9 +1198,9 @@ ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0 [vsyscall]
             <guid>/article/archlinux-4e0b-i3-684c9762542f52a8.html</guid>
             <pubDate>Wed, 30 Aug 2017 06:11:00 GMT</pubDate>
             <content:encoded><![CDATA[
-<div id="outline-container-org902b147" class="outline-2">
-<h2 id="org902b147">不使用 gdm</h2>
-<div class="outline-text-2" id="text-org902b147">
+<div id="outline-container-orgc4e7ab1" class="outline-2">
+<h2 id="orgc4e7ab1">不使用 gdm</h2>
+<div class="outline-text-2" id="text-orgc4e7ab1">
 <ul class="org-ul">
 <li><p>
 设置 archlinux 为文本模式启动
@@ -1117,9 +1244,9 @@ ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0 [vsyscall]
 </div>
 </div>
 
-<div id="outline-container-org9003e88" class="outline-2">
-<h2 id="org9003e88">恢复为使用 gdm</h2>
-<div class="outline-text-2" id="text-org9003e88">
+<div id="outline-container-org2e6c56b" class="outline-2">
+<h2 id="org2e6c56b">恢复为使用 gdm</h2>
+<div class="outline-text-2" id="text-org2e6c56b">
 <ul class="org-ul">
 <li><p>
 设置 archlinux 为图形模式启动
@@ -1669,9 +1796,9 @@ system(3) 在执行的命令结束时会发出 SIGCHLD 信号，收到 SIGCHLD �
 </p>
 
 
-<div id="outline-container-org20da010" class="outline-2">
-<h2 id="org20da010">在整个应用中忽略 SIGCHLD 信号会导致获取不到子进程退出码</h2>
-<div class="outline-text-2" id="text-org20da010">
+<div id="outline-container-org4781500" class="outline-2">
+<h2 id="org4781500">在整个应用中忽略 SIGCHLD 信号会导致获取不到子进程退出码</h2>
+<div class="outline-text-2" id="text-org4781500">
 <p>
 在应用程序最开始的时候（main 函数），添加以下语句
 </p>
@@ -1722,8 +1849,17 @@ or
 
 <p>
 struct sigaction act;
+</p>
+
+<p>
 act.sa_handler = something;
+</p>
+
+<p>
 act.sa_flags = SA_NOCLDWAIT;
+</p>
+
+<p>
 sigaction (SIGCHLD, &amp;act, NULL);
 </p>
 
@@ -1737,9 +1873,9 @@ system(3) 调用 waitpid(3) 时，子进程已经被系统自动回收，消失�
 </p>
 </div>
 
-<div id="outline-container-org892569a" class="outline-3">
-<h3 id="org892569a">使用 popen(3)/pclose(3) 来代替 system(3) 通过分析标准输出来判断命令执行是否成功</h3>
-<div class="outline-text-3" id="text-org892569a">
+<div id="outline-container-orgd15ad53" class="outline-3">
+<h3 id="orgd15ad53">使用 popen(3)/pclose(3) 来代替 system(3) 通过分析标准输出来判断命令执行是否成功</h3>
+<div class="outline-text-3" id="text-orgd15ad53">
 <div class="org-src-container">
 <pre class="src src-c"><span style="color: #81a2be;">int</span> <span style="color: #de935f;">system2</span>(<span style="color: #b5bd68;">const</span> <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">command</span>, <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">output</span>, <span style="color: #81a2be;">size_t</span> <span style="color: #f0c674;">output_size</span>)
 {
@@ -1773,9 +1909,9 @@ system(3) 调用 waitpid(3) 时，子进程已经被系统自动回收，消失�
 </div>
 </div>
 
-<div id="outline-container-orgfc7d358" class="outline-2">
-<h2 id="orgfc7d358">在整个应用中阻塞 SIGCHLD 信号可能导致出现僵尸进程</h2>
-<div class="outline-text-2" id="text-orgfc7d358">
+<div id="outline-container-orgf22069c" class="outline-2">
+<h2 id="orgf22069c">在整个应用中阻塞 SIGCHLD 信号可能导致出现僵尸进程</h2>
+<div class="outline-text-2" id="text-orgf22069c">
 <p>
 signal(3) 无法阻塞一个信号，只支持忽略（SIG_IGN）和恢复缺省处理（SIG_DFL）。
 </p>
@@ -1818,9 +1954,9 @@ system(3) 在替换进程为新程序（execl(3)）之前，会重置为保存�
 </p>
 </div>
 
-<div id="outline-container-orgdfa1c49" class="outline-3">
-<h3 id="orgdfa1c49">在整个应用中阻塞 SIGCHLD 信号会导致一种常用的回收僵尸进程的方法失效</h3>
-<div class="outline-text-3" id="text-orgdfa1c49">
+<div id="outline-container-orgb3cdb50" class="outline-3">
+<h3 id="orgb3cdb50">在整个应用中阻塞 SIGCHLD 信号会导致一种常用的回收僵尸进程的方法失效</h3>
+<div class="outline-text-3" id="text-orgb3cdb50">
 <p>
 <a href="http://www.microhowto.info/howto/reap_zombie_processes_using_a_sigchld_handler.html">Reap zombie processes using a SIGCHLD handler</a> 有详细描述
 </p>
@@ -1852,9 +1988,9 @@ The method described here has two steps:
 </div>
 </div>
 
-<div id="outline-container-orgc347c0a" class="outline-3">
-<h3 id="orgc347c0a">在调用 system(3) 前暂时取消对 SIGCHLD 的阻塞</h3>
-<div class="outline-text-3" id="text-orgc347c0a">
+<div id="outline-container-orgac6f582" class="outline-3">
+<h3 id="orgac6f582">在调用 system(3) 前暂时取消对 SIGCHLD 的阻塞</h3>
+<div class="outline-text-3" id="text-orgac6f582">
 <div class="org-src-container">
 <pre class="src src-C"><span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">&#23553;&#35013; system(3) &#65292;&#19968;&#26041;&#38754;&#36991;&#20813;&#20013;&#26029;&#31995;&#32479;&#35843;&#29992;&#65292;&#21478;&#19968;&#26041;&#38754;&#36991;&#20813;&#20986;&#29616;&#20725;&#23608;&#23385;&#36827;&#31243;.</span>
 <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">&#35831;&#35760;&#24471;&#20840;&#23616;&#22581;&#22622; SIGCHLD &#20449;&#21495;.</span>
@@ -1889,9 +2025,9 @@ The method described here has two steps:
 </div>
 </div>
 
-<div id="outline-container-org354be89" class="outline-2">
-<h2 id="org354be89">进程的信号处理状态可在 proc 文件系统看到</h2>
-<div class="outline-text-2" id="text-org354be89">
+<div id="outline-container-orgec3194b" class="outline-2">
+<h2 id="orgec3194b">进程的信号处理状态可在 proc 文件系统看到</h2>
+<div class="outline-text-2" id="text-orgec3194b">
 <p>
 如进程 pid 为 5526 ，获取到的进程忽略的信号发下
 </p>
@@ -1916,9 +2052,9 @@ $ node -e 'console.log((0x0000000000001004).toString(2))'
 </div>
 </div>
 
-<div id="outline-container-orga3d6387" class="outline-2">
-<h2 id="orga3d6387">参考</h2>
-<div class="outline-text-2" id="text-orga3d6387">
+<div id="outline-container-orgf737636" class="outline-2">
+<h2 id="orgf737636">参考</h2>
+<div class="outline-text-2" id="text-orgf737636">
 <ul class="org-ul">
 <li><a href="http://www.linuxprogrammingblog.com/all-about-linux-signals?page=show">All about Linux signals | Linux Programming Blog</a></li>
 </ul>
@@ -2136,13 +2272,13 @@ node.js 应用使用 pm2 进行管理，采用 cluster 模式，每台服务器�
 TLS 长连接上最多 45 秒会有一次心跳（发送 80 多字节，接收 400 多字节）。
 </p>
 
-<div id="outline-container-org1e1c2c1" class="outline-2">
-<h2 id="org1e1c2c1">系统信息</h2>
-<div class="outline-text-2" id="text-org1e1c2c1">
+<div id="outline-container-orgfb76122" class="outline-2">
+<h2 id="orgfb76122">系统信息</h2>
+<div class="outline-text-2" id="text-orgfb76122">
 </div>
-<div id="outline-container-org026b513" class="outline-3">
-<h3 id="org026b513"><code>CPU</code></h3>
-<div class="outline-text-3" id="text-org026b513">
+<div id="outline-container-org9a98d0c" class="outline-3">
+<h3 id="org9a98d0c"><code>CPU</code></h3>
+<div class="outline-text-3" id="text-org9a98d0c">
 <ul class="org-ul">
 <li><p>
 逻辑 CPU 数：24 
@@ -2203,9 +2339,9 @@ TLS 长连接上最多 45 秒会有一次心跳（发送 80 多字节，接收 4
 </div>
 </div>
 
-<div id="outline-container-org6702a83" class="outline-3">
-<h3 id="org6702a83"><code>内存</code></h3>
-<div class="outline-text-3" id="text-org6702a83">
+<div id="outline-container-org11bfcdf" class="outline-3">
+<h3 id="org11bfcdf"><code>内存</code></h3>
+<div class="outline-text-3" id="text-org11bfcdf">
 <p>
 <code>64G</code> 内存， <code>37.8G</code> 空闲内存
 </p>
@@ -2260,9 +2396,9 @@ DirectMap1G:    65011712 kB
 </div>
 </div>
 
-<div id="outline-container-org7c60abe" class="outline-2">
-<h2 id="org7c60abe">系统状态</h2>
-<div class="outline-text-2" id="text-org7c60abe">
+<div id="outline-container-org57eae10" class="outline-2">
+<h2 id="org57eae10">系统状态</h2>
+<div class="outline-text-2" id="text-org57eae10">
 <p>
 <code>top</code>
 </p>
@@ -2335,9 +2471,9 @@ Swap: 20971512k total,        0k used, 20971512k free,  7614508k cached
 </div>
 </div>
 
-<div id="outline-container-org3536336" class="outline-2">
-<h2 id="org3536336">应用状态</h2>
-<div class="outline-text-2" id="text-org3536336">
+<div id="outline-container-orgc03f59e" class="outline-2">
+<h2 id="orgc03f59e">应用状态</h2>
+<div class="outline-text-2" id="text-orgc03f59e">
 <p>
 <code>ps</code>
 </p>
@@ -2386,22 +2522,22 @@ nobody   196001 57.3  1.5 1930348 1004912 ?     Rl   Apr20 11408:17 node /usr/lo
 </div>
 </div>
 
-<div id="outline-container-org84a59ad" class="outline-2">
-<h2 id="org84a59ad">分析</h2>
-<div class="outline-text-2" id="text-org84a59ad">
+<div id="outline-container-orgafc085a" class="outline-2">
+<h2 id="orgafc085a">分析</h2>
+<div class="outline-text-2" id="text-orgafc085a">
 </div>
-<div id="outline-container-org51af83f" class="outline-3">
-<h3 id="org51af83f">系统负荷正常</h3>
-<div class="outline-text-3" id="text-org51af83f">
+<div id="outline-container-orge77cdee" class="outline-3">
+<h3 id="orge77cdee">系统负荷正常</h3>
+<div class="outline-text-3" id="text-orge77cdee">
 <p>
 <code>top</code> 的 <code>load average</code> 值远小于 CPU 核数，系统的 CPU 使用率为 25%，还有足够的空闲 CPU 资源。
 </p>
 </div>
 </div>
 
-<div id="outline-container-orgb10f724" class="outline-3">
-<h3 id="orgb10f724">node.js 的 CPU 占用过高</h3>
-<div class="outline-text-3" id="text-orgb10f724">
+<div id="outline-container-org6e94261" class="outline-3">
+<h3 id="org6e94261">node.js 的 CPU 占用过高</h3>
+<div class="outline-text-3" id="text-org6e94261">
 <ul class="org-ul">
 <li><p>
 运行和等待 CPU 时间片的进程数偏高
@@ -2487,9 +2623,9 @@ node.js 进程 CPU 占用过高
 </div>
 </div>
 
-<div id="outline-container-org25f73ef" class="outline-3">
-<h3 id="org25f73ef">网络带宽占用正常</h3>
-<div class="outline-text-3" id="text-org25f73ef">
+<div id="outline-container-orgca1105b" class="outline-3">
+<h3 id="orgca1105b">网络带宽占用正常</h3>
+<div class="outline-text-3" id="text-orgca1105b">
 <ul class="org-ul">
 <li><p>
 对外的网卡
@@ -2518,18 +2654,18 @@ node.js 进程 CPU 占用过高
 </div>
 </div>
 
-<div id="outline-container-orgf3bdbe0" class="outline-3">
-<h3 id="orgf3bdbe0">磁盘访问较少</h3>
-<div class="outline-text-3" id="text-orgf3bdbe0">
+<div id="outline-container-orgf501cd7" class="outline-3">
+<h3 id="orgf501cd7">磁盘访问较少</h3>
+<div class="outline-text-3" id="text-orgf501cd7">
 <p>
 应用除了写少量日志外不访问磁盘。
 </p>
 </div>
 </div>
 
-<div id="outline-container-orge098b99" class="outline-3">
-<h3 id="orge098b99">结论</h3>
-<div class="outline-text-3" id="text-orge098b99">
+<div id="outline-container-orgac6394d" class="outline-3">
+<h3 id="orgac6394d">结论</h3>
+<div class="outline-text-3" id="text-orgac6394d">
 <ul class="org-ul">
 <li>系统资源不存在瓶颈</li>
 
@@ -2547,9 +2683,9 @@ node.js 应用的 CPU 占用偏高
 </div>
 </div>
 
-<div id="outline-container-org426cafc" class="outline-2">
-<h2 id="org426cafc">node.js 应用性能分析</h2>
-<div class="outline-text-2" id="text-org426cafc">
+<div id="outline-container-org68390ad" class="outline-2">
+<h2 id="org68390ad">node.js 应用性能分析</h2>
+<div class="outline-text-2" id="text-org68390ad">
 <p>
 node.js 从 4.4.0 版本开始内置了 profiler， <code>--prof</code> 命令选项运行应用会在当前目录生成性能日志文件。
 </p>
@@ -2651,9 +2787,9 @@ getTimestamp._timestamp = 0;
 </div>
 </div>
 
-<div id="outline-container-orgeb75a18" class="outline-2">
-<h2 id="orgeb75a18">参考</h2>
-<div class="outline-text-2" id="text-orgeb75a18">
+<div id="outline-container-org9df0d96" class="outline-2">
+<h2 id="org9df0d96">参考</h2>
+<div class="outline-text-2" id="text-org9df0d96">
 <p>
 <a href="http://www.ruanyifeng.com/blog/2011/07/linux_load_average_explained.html">理解Linux系统负荷 - 阮一峰的网络日志</a>
 </p>
@@ -2685,9 +2821,9 @@ getTimestamp._timestamp = 0;
 要使收集的统计信息显示正常、易于使用，则需要对上报的数据有充分的理解。
 </p>
 
-<div id="outline-container-orgb37054e" class="outline-2">
-<h2 id="orgb37054e">数据的标识</h2>
-<div class="outline-text-2" id="text-orgb37054e">
+<div id="outline-container-orged9b37b" class="outline-2">
+<h2 id="orged9b37b">数据的标识</h2>
+<div class="outline-text-2" id="text-orged9b37b">
 <p>
 引用自 <a href="https://collectd.org/documentation/manpages/collectd-exec.5.shtml">man 5 collectd-exec</a>
 </p>
@@ -2795,9 +2931,9 @@ memory          free:GAUGE:0:281474976710656, buffered:GAUGE:0:281474976710656, 
 </div>
 
 
-<div id="outline-container-org29525ff" class="outline-2">
-<h2 id="org29525ff">数据的展示</h2>
-<div class="outline-text-2" id="text-org29525ff">
+<div id="outline-container-orga7de609" class="outline-2">
+<h2 id="orga7de609">数据的展示</h2>
+<div class="outline-text-2" id="text-orga7de609">
 <p>
 数据由上到下分级展示。
 </p>
@@ -2851,9 +2987,9 @@ memory          free:GAUGE:0:281474976710656, buffered:GAUGE:0:281474976710656, 
 </div>
 </div>
 
-<div id="outline-container-org500de10" class="outline-2">
-<h2 id="org500de10">标识的使用</h2>
-<div class="outline-text-2" id="text-org500de10">
+<div id="outline-container-org08e66e2" class="outline-2">
+<h2 id="org08e66e2">标识的使用</h2>
+<div class="outline-text-2" id="text-org08e66e2">
 <p>
 上报数据时，我们拥有极大的自由性，而 collectd 会宽容地接受并展示结果，但是为了让最终的结果有用、易用，我们需要正确地指定上报的信息项。
 </p>
@@ -2913,9 +3049,9 @@ memory          free:GAUGE:0:281474976710656, buffered:GAUGE:0:281474976710656, 
 </div>
 </div>
 
-<div id="outline-container-orgeec63e0" class="outline-2">
-<h2 id="orgeec63e0">突破 root 帐号限制</h2>
-<div class="outline-text-2" id="text-orgeec63e0">
+<div id="outline-container-org1bcd91f" class="outline-2">
+<h2 id="org1bcd91f">突破 root 帐号限制</h2>
+<div class="outline-text-2" id="text-org1bcd91f">
 <p>
 引用自 <a href="https://collectd.org/documentation/manpages/collectd-exec.5.shtml">man 5 collectd-exec</a>
 </p>
@@ -3303,9 +3439,9 @@ Archlinux 下使用 <code>pacman</code> 安装的 <code>collectd</code> 没有 r
 所以我们需要从源代码编译安装 <code>collectd</code> 软件包。
 </p>
 
-<div id="outline-container-orge0f868e" class="outline-2">
-<h2 id="orge0f868e">安装 ABS</h2>
-<div class="outline-text-2" id="text-orge0f868e">
+<div id="outline-container-orgb64e1d6" class="outline-2">
+<h2 id="orgb64e1d6">安装 ABS</h2>
+<div class="outline-text-2" id="text-orgb64e1d6">
 <blockquote>
 <p>
 What is the Arch Build System?
@@ -3327,9 +3463,9 @@ sudo abs
 </div>
 </div>
 
-<div id="outline-container-org40ab8ac" class="outline-2">
-<h2 id="org40ab8ac">编译安装 collectd</h2>
-<div class="outline-text-2" id="text-org40ab8ac">
+<div id="outline-container-orgb9f7add" class="outline-2">
+<h2 id="orgb9f7add">编译安装 collectd</h2>
+<div class="outline-text-2" id="text-orgb9f7add">
 <div class="org-src-container">
 <pre class="src src-sh"><span class="linenr">1: </span>yaourt -S hiredis
 <span class="linenr">2: </span>cp -R /var/abs/community/collectd ~/
@@ -3345,9 +3481,9 @@ sudo abs
 </div>
 </div>
 
-<div id="outline-container-org066fcc3" class="outline-2">
-<h2 id="org066fcc3">使用以前的 collectd 配置</h2>
-<div class="outline-text-2" id="text-org066fcc3">
+<div id="outline-container-org4449ba6" class="outline-2">
+<h2 id="org4449ba6">使用以前的 collectd 配置</h2>
+<div class="outline-text-2" id="text-org4449ba6">
 <p>
 重新安装 collectd 后，以前的配置保存在 <code>/etc/collectd.conf.pacsave</code> ，恢复一下
 </p>
@@ -3358,9 +3494,9 @@ sudo abs
 </div>
 </div>
 
-<div id="outline-container-org92823d3" class="outline-2">
-<h2 id="org92823d3">启用 collectd 插件</h2>
-<div class="outline-text-2" id="text-org92823d3">
+<div id="outline-container-org37d3a23" class="outline-2">
+<h2 id="org37d3a23">启用 collectd 插件</h2>
+<div class="outline-text-2" id="text-org37d3a23">
 <p>
 修改 collectd 配置文件 <code>/etc/collectd.conf</code> 
 </p>
@@ -3382,9 +3518,9 @@ LoadPlugin redis
 </div>
 </div>
 
-<div id="outline-container-org4554617" class="outline-2">
-<h2 id="org4554617">参考</h2>
-<div class="outline-text-2" id="text-org4554617">
+<div id="outline-container-org308085f" class="outline-2">
+<h2 id="org308085f">参考</h2>
+<div class="outline-text-2" id="text-org308085f">
 <ul class="org-ul">
 <li><a href="http://arch.acgtyrant.com/2013/12/26/soul/">Arch Linux 的靈魂：PKGBUILD、AUR 和 ABS | Tyrant's Arch Linux</a></li>
 </ul>
@@ -3401,9 +3537,9 @@ LoadPlugin redis
 collectd 的官网 <a href="https://collectd.org/">collectd.org</a> 。
 </p>
 
-<div id="outline-container-org1733ed9" class="outline-2">
-<h2 id="org1733ed9">collectd 服务</h2>
-<div class="outline-text-2" id="text-org1733ed9">
+<div id="outline-container-orgb5949a8" class="outline-2">
+<h2 id="orgb5949a8">collectd 服务</h2>
+<div class="outline-text-2" id="text-orgb5949a8">
 <ul class="org-ul">
 <li><p>
 安装
@@ -3427,17 +3563,17 @@ sudo systemctl start collectd
 </div>
 </div>
 
-<div id="outline-container-org2c33c5a" class="outline-2">
-<h2 id="org2c33c5a">collectd 界面</h2>
-<div class="outline-text-2" id="text-org2c33c5a">
+<div id="outline-container-orgeac1ba5" class="outline-2">
+<h2 id="orgeac1ba5">collectd 界面</h2>
+<div class="outline-text-2" id="text-orgeac1ba5">
 </div>
-<div id="outline-container-org7b85acd" class="outline-3">
-<h3 id="org7b85acd"><a href="http://blog.kankanan.com/article/nginx-4e0b5feb901f642d5efa-php-8fd0884c73af5883.html">nginx下快速搭建php运行环境</a></h3>
+<div id="outline-container-orgddce922" class="outline-3">
+<h3 id="orgddce922"><a href="http://blog.kankanan.com/article/nginx-4e0b5feb901f642d5efa-php-8fd0884c73af5883.html">nginx下快速搭建php运行环境</a></h3>
 </div>
 
-<div id="outline-container-orgf346333" class="outline-3">
-<h3 id="orgf346333">安装 rrdtool</h3>
-<div class="outline-text-3" id="text-orgf346333">
+<div id="outline-container-orga608e2e" class="outline-3">
+<h3 id="orga608e2e">安装 rrdtool</h3>
+<div class="outline-text-3" id="text-orga608e2e">
 <div class="org-src-container">
 <pre class="src src-sh">yaourt -S rrdtool
 </pre>
@@ -3445,9 +3581,9 @@ sudo systemctl start collectd
 </div>
 </div>
 
-<div id="outline-container-org0714ffc" class="outline-3">
-<h3 id="org0714ffc">下载 GCP</h3>
-<div class="outline-text-3" id="text-org0714ffc">
+<div id="outline-container-orgf1fcdf8" class="outline-3">
+<h3 id="orgf1fcdf8">下载 GCP</h3>
+<div class="outline-text-3" id="text-orgf1fcdf8">
 <div class="org-src-container">
 <pre class="src src-sh"><span style="color: #b294bb;">cd</span> /usr/share/nginx/html/
 sudo git clone https://github.com/pommi/CGP.git
@@ -3456,9 +3592,9 @@ sudo git clone https://github.com/pommi/CGP.git
 </div>
 </div>
 
-<div id="outline-container-org8340f8b" class="outline-3">
-<h3 id="org8340f8b">配置 GCP</h3>
-<div class="outline-text-3" id="text-org8340f8b">
+<div id="outline-container-orgdd62643" class="outline-3">
+<h3 id="orgdd62643">配置 GCP</h3>
+<div class="outline-text-3" id="text-orgdd62643">
 <p>
 修改配置文件 /usr/share/nginx/html/CGP/conf/config.php
 </p>
@@ -3476,9 +3612,9 @@ $CONFIG['datadir'] = '/var/lib/collectd';
 </div>
 </div>
 
-<div id="outline-container-org5bed0c1" class="outline-3">
-<h3 id="org5bed0c1">打开界面</h3>
-<div class="outline-text-3" id="text-org5bed0c1">
+<div id="outline-container-org2bc0182" class="outline-3">
+<h3 id="org2bc0182">打开界面</h3>
+<div class="outline-text-3" id="text-org2bc0182">
 <p>
 浏览器打开页面 <a href="http://localhost/CGP/index.php">http://localhost/CGP/index.php</a> ，可以看到服务器自身的监控信息。
 </p>
@@ -3486,9 +3622,9 @@ $CONFIG['datadir'] = '/var/lib/collectd';
 </div>
 </div>
 
-<div id="outline-container-org909095e" class="outline-2">
-<h2 id="org909095e">collectd 插件</h2>
-<div class="outline-text-2" id="text-org909095e">
+<div id="outline-container-org0c8a5a4" class="outline-2">
+<h2 id="org0c8a5a4">collectd 插件</h2>
+<div class="outline-text-2" id="text-org0c8a5a4">
 <p>
 collectd 支持很多 <a href="https://collectd.org/wiki/index.php/Table_of_Plugins">插件</a> ，使用 c 语言开发插件请参考 <a href="https://collectd.org/wiki/index.php/Plugin_architecture">Plugin architecture - collectd Wiki</a>。
 </p>
@@ -3502,9 +3638,9 @@ collectd 支持很多 <a href="https://collectd.org/wiki/index.php/Table_of_Plug
 </p>
 </div>
 
-<div id="outline-container-org263b899" class="outline-3">
-<h3 id="org263b899">启用 Exec 插件</h3>
-<div class="outline-text-3" id="text-org263b899">
+<div id="outline-container-orgd560efe" class="outline-3">
+<h3 id="orgd560efe">启用 Exec 插件</h3>
+<div class="outline-text-3" id="text-orgd560efe">
 <p>
 修改 collectd 配置文件 /etc/collectd.conf
 </p>
@@ -3517,9 +3653,9 @@ LoadPlugin exec
 </div>
 </div>
 
-<div id="outline-container-orgadedb42" class="outline-3">
-<h3 id="orgadedb42">监控笔记本电量脚本</h3>
-<div class="outline-text-3" id="text-orgadedb42">
+<div id="outline-container-org8cb96d6" class="outline-3">
+<h3 id="org8cb96d6">监控笔记本电量脚本</h3>
+<div class="outline-text-3" id="text-org8cb96d6">
 <p>
 <code>/usr/bin/power-capacity</code>
 </p>
@@ -3546,9 +3682,9 @@ LoadPlugin exec
 </div>
 </div>
 
-<div id="outline-container-orgdb36b72" class="outline-3">
-<h3 id="orgdb36b72">重启 collectd 生效插件</h3>
-<div class="outline-text-3" id="text-orgdb36b72">
+<div id="outline-container-orgfcf1949" class="outline-3">
+<h3 id="orgfcf1949">重启 collectd 生效插件</h3>
+<div class="outline-text-3" id="text-orgfcf1949">
 <div class="org-src-container">
 <pre class="src src-sh">sudo systemctl restart collectd
 </pre>
@@ -3561,9 +3697,9 @@ LoadPlugin exec
 </div>
 </div>
 
-<div id="outline-container-org3c77eb8" class="outline-2">
-<h2 id="org3c77eb8">collectd 多机器监控</h2>
-<div class="outline-text-2" id="text-org3c77eb8">
+<div id="outline-container-org3bdbf9c" class="outline-2">
+<h2 id="org3bdbf9c">collectd 多机器监控</h2>
+<div class="outline-text-2" id="text-org3bdbf9c">
 <p>
 监控本机没有什么用处，通过 network 插件，可以将 collectd 配置为服务器或客户端。
 </p>
@@ -3587,9 +3723,9 @@ collectd 客户端
 </ul>
 </div>
 
-<div id="outline-container-org3533e5e" class="outline-3">
-<h3 id="org3533e5e">本机配置为 collectd 服务器</h3>
-<div class="outline-text-3" id="text-org3533e5e">
+<div id="outline-container-org93dd6cc" class="outline-3">
+<h3 id="org93dd6cc">本机配置为 collectd 服务器</h3>
+<div class="outline-text-3" id="text-org93dd6cc">
 <p>
 通过 <a href="https://collectd.org/documentation/manpages/collectd.conf.5.shtml#plugin_network">network</a> 插件配置为 server 端。
 </p>
@@ -3623,11 +3759,11 @@ user1: bar
 </div>
 </div>
 
-<div id="outline-container-org7f504eb" class="outline-3">
-<h3 id="org7f504eb">其它机器配置为 collectd 客户端</h3>
-<div class="outline-text-3" id="text-org7f504eb">
+<div id="outline-container-orgcf0c8f2" class="outline-3">
+<h3 id="orgcf0c8f2">其它机器配置为 collectd 客户端</h3>
+<div class="outline-text-3" id="text-orgcf0c8f2">
 <p>
-参考前面的 <a href="#org1733ed9">collectd 服务</a> 一节安装 collectd。
+参考前面的 <a href="#orgb5949a8">collectd 服务</a> 一节安装 collectd。
 </p>
 
 <p>
@@ -3659,9 +3795,9 @@ LoadPlugin network
 </div>
 </div>
 
-<div id="outline-container-org597d832" class="outline-2">
-<h2 id="org597d832">参考</h2>
-<div class="outline-text-2" id="text-org597d832">
+<div id="outline-container-org4d902b9" class="outline-2">
+<h2 id="org4d902b9">参考</h2>
+<div class="outline-text-2" id="text-org4d902b9">
 <ul class="org-ul">
 <li><a href="https://github.com/pommi/CGP/blob/master/README.md">CGP/README.md at master · pommi/CGP</a></li>
 
@@ -3720,9 +3856,9 @@ git checkout next; git pull
             <guid>/article/4fee590d-offlineimap-65e06cd5653690ae4ef6768495ee9898.html</guid>
             <pubDate>Fri, 18 Mar 2016 02:44:00 GMT</pubDate>
             <content:encoded><![CDATA[
-<div id="outline-container-org6212a54" class="outline-2">
-<h2 id="org6212a54">不使用 ssl</h2>
-<div class="outline-text-2" id="text-org6212a54">
+<div id="outline-container-org36953b3" class="outline-2">
+<h2 id="org36953b3">不使用 ssl</h2>
+<div class="outline-text-2" id="text-org36953b3">
 <p>
 .offlineimaprc 配置
 </p>
@@ -3828,9 +3964,9 @@ starttls = no
 </div>
 </div>
 
-<div id="outline-container-orgb2a6572" class="outline-2">
-<h2 id="orgb2a6572">使用 ssl</h2>
-<div class="outline-text-2" id="text-orgb2a6572">
+<div id="outline-container-org79b679b" class="outline-2">
+<h2 id="org79b679b">使用 ssl</h2>
+<div class="outline-text-2" id="text-org79b679b">
 <p>
 .offlineimaprc 配置
 </p>
@@ -3972,18 +4108,18 @@ pacman -Qqm &gt; Packages.aur
 <li><a href="https://wiki.archlinux.org/index.php/migrate_installation_to_new_hardware">Migrate installation to new hardware - ArchWiki</a></li>
 </ul>
 
-<div id="outline-container-orgf866531" class="outline-2">
-<h2 id="orgf866531">下载 ISO</h2>
-<div class="outline-text-2" id="text-orgf866531">
+<div id="outline-container-org7ab0440" class="outline-2">
+<h2 id="org7ab0440">下载 ISO</h2>
+<div class="outline-text-2" id="text-org7ab0440">
 <p>
 从 <a href="https://www.archlinux.org">Archlinux 官网</a> 下载最新的安装包 <a href="https://www.archlinux.org/download/">archlinux-2016.03.01-dual.iso</a>
 </p>
 </div>
 </div>
 
-<div id="outline-container-org5f1d329" class="outline-2">
-<h2 id="org5f1d329">创建安装盘</h2>
-<div class="outline-text-2" id="text-org5f1d329">
+<div id="outline-container-orgaa8b61e" class="outline-2">
+<h2 id="orgaa8b61e">创建安装盘</h2>
+<div class="outline-text-2" id="text-orgaa8b61e">
 <p>
 通过 dd 将 ISO 写入 U 盘创建安装盘。
 </p>
@@ -3998,19 +4134,19 @@ pacman -Qqm &gt; Packages.aur
 </div>
 </div>
 
-<div id="outline-container-org003e94b" class="outline-2">
-<h2 id="org003e94b">BIOS 启用 UEFI</h2>
+<div id="outline-container-org0ea7230" class="outline-2">
+<h2 id="org0ea7230">BIOS 启用 UEFI</h2>
 </div>
 
-<div id="outline-container-org832495b" class="outline-2">
-<h2 id="org832495b">开始安装</h2>
-<div class="outline-text-2" id="text-org832495b">
+<div id="outline-container-org346f668" class="outline-2">
+<h2 id="org346f668">开始安装</h2>
+<div class="outline-text-2" id="text-org346f668">
 <p>
 按照 <a href="https://wiki.archlinux.org/index.php/Beginners'_guide">Beginners' guide - ArchWiki</a> 一步步安装到 <a href="https://wiki.archlinux.org/index.php/Beginners'_guide#Initramfs">Initramfs</a> ，分区分案选 <a href="https://wiki.archlinux.org/index.php/Beginners'_guide#UEFI.2FGPT_examples">UEFI/GPT</a>。
 </p>
 
 <p>
-<a href="https://wiki.archlinux.org/index.php/Beginners'_guide#Install_a_boot_loader">Install a boot loader</a> 这一步改成 <a href="#orgf5af406">使用 UEFI 做为启动管理器</a> 。
+<a href="https://wiki.archlinux.org/index.php/Beginners'_guide#Install_a_boot_loader">Install a boot loader</a> 这一步改成 <a href="#org64add27">使用 UEFI 做为启动管理器</a> 。
 </p>
 
 
@@ -4045,9 +4181,9 @@ discard 启动 trim
 </div>
 </div>
 
-<div id="outline-container-orgf5af406" class="outline-2">
-<h2 id="orgf5af406">使用 UEFI 做为启动管理器</h2>
-<div class="outline-text-2" id="text-orgf5af406">
+<div id="outline-container-org64add27" class="outline-2">
+<h2 id="org64add27">使用 UEFI 做为启动管理器</h2>
+<div class="outline-text-2" id="text-org64add27">
 <p>
 由于主板直接支持 UEFI 启动，使用 `efibootmgr` 来创建 Boot Loader 不但更简单，而且系统启动更快。
 </p>
@@ -4063,9 +4199,9 @@ discard 启动 trim
 </ul>
 </div>
 
-<div id="outline-container-orgff3498f" class="outline-3">
-<h3 id="orgff3498f">支持休眠</h3>
-<div class="outline-text-3" id="text-orgff3498f">
+<div id="outline-container-org6b189b4" class="outline-3">
+<h3 id="org6b189b4">支持休眠</h3>
+<div class="outline-text-3" id="text-org6b189b4">
 <p>
 在 `efibootmgr` 命令中添加 `resume=/dev/sdaX` 选项，其中 `/dev/sdaX` 为
 具体的 `swap` 分区。
@@ -4110,9 +4246,9 @@ HandleLidSwitch=hibernate
 </div>
 </div>
 
-<div id="outline-container-org246398f" class="outline-2">
-<h2 id="org246398f">开通 sudo 权限组</h2>
-<div class="outline-text-2" id="text-org246398f">
+<div id="outline-container-orgbdea36e" class="outline-2">
+<h2 id="orgbdea36e">开通 sudo 权限组</h2>
+<div class="outline-text-2" id="text-orgbdea36e">
 <p>
 运行 visudo，修改如下
 </p>
@@ -4128,9 +4264,9 @@ HandleLidSwitch=hibernate
 </div>
 </div>
 
-<div id="outline-container-org850008e" class="outline-2">
-<h2 id="org850008e">创建个人帐号</h2>
-<div class="outline-text-2" id="text-org850008e">
+<div id="outline-container-orgcbfaee7" class="outline-2">
+<h2 id="orgcbfaee7">创建个人帐号</h2>
+<div class="outline-text-2" id="text-orgcbfaee7">
 <p>
 加入 sudo 权限组
 </p>
@@ -4160,9 +4296,9 @@ HandleLidSwitch=hibernate
 </div>
 </div>
 
-<div id="outline-container-org980f1c5" class="outline-2">
-<h2 id="org980f1c5">安装 gnome 桌面</h2>
-<div class="outline-text-2" id="text-org980f1c5">
+<div id="outline-container-org52e9300" class="outline-2">
+<h2 id="org52e9300">安装 gnome 桌面</h2>
+<div class="outline-text-2" id="text-org52e9300">
 <div class="org-src-container">
 <pre class="src src-sh">sudo pacman -S gnome gnome-extra gdm
 sudo systemctl enable gdm
@@ -4183,9 +4319,9 @@ sudo systemctl enable NetworkManager
 </div>
 </div>
 
-<div id="outline-container-org55a265e" class="outline-2">
-<h2 id="org55a265e">安装 fcitx 输入法</h2>
-<div class="outline-text-2" id="text-org55a265e">
+<div id="outline-container-orgbb1c185" class="outline-2">
+<h2 id="orgbb1c185">安装 fcitx 输入法</h2>
+<div class="outline-text-2" id="text-orgbb1c185">
 <p>
 参考
 </p>
@@ -4198,9 +4334,9 @@ sudo systemctl enable NetworkManager
 </div>
 </div>
 
-<div id="outline-container-orgb22f2f1" class="outline-2">
-<h2 id="orgb22f2f1">安装 yaourt</h2>
-<div class="outline-text-2" id="text-orgb22f2f1">
+<div id="outline-container-orgeb13eab" class="outline-2">
+<h2 id="orgeb13eab">安装 yaourt</h2>
+<div class="outline-text-2" id="text-orgeb13eab">
 <dl class="org-dl">
 <dt>yaourt</dt><dd>Yet AnOther User Repository Tool</dd>
 </dl>
@@ -4237,9 +4373,9 @@ Server = http://repo.archlinux.fr/$arch
 </div>
 </div>
 
-<div id="outline-container-orgcf509f6" class="outline-2">
-<h2 id="orgcf509f6">触摸板</h2>
-<div class="outline-text-2" id="text-orgcf509f6">
+<div id="outline-container-org07f0a08" class="outline-2">
+<h2 id="org07f0a08">触摸板</h2>
+<div class="outline-text-2" id="text-org07f0a08">
 <div class="org-src-container">
 <pre class="src src-sh">yaourt -S xf86-input-synaptics
 </pre>
@@ -4311,9 +4447,9 @@ $ sudo evtest /dev/input/event15
 </div>
 </div>
 
-<div id="outline-container-org4fc3647" class="outline-2">
-<h2 id="org4fc3647">指纹识别</h2>
-<div class="outline-text-2" id="text-org4fc3647">
+<div id="outline-container-org87bd080" class="outline-2">
+<h2 id="org87bd080">指纹识别</h2>
+<div class="outline-text-2" id="text-org87bd080">
 <p>
 安装指纹识别模块
 </p>
@@ -4360,9 +4496,9 @@ $ sudo evtest /dev/input/event15
 </div>
 </div>
 
-<div id="outline-container-orga50c16f" class="outline-2">
-<h2 id="orga50c16f">定制 gnome3</h2>
-<div class="outline-text-2" id="text-orga50c16f">
+<div id="outline-container-orgb038eb9" class="outline-2">
+<h2 id="orgb038eb9">定制 gnome3</h2>
+<div class="outline-text-2" id="text-orgb038eb9">
 <p>
 安装扩展
 </p>
@@ -4417,18 +4553,18 @@ $ sudo evtest /dev/input/event15
 </div>
 </div>
 
-<div id="outline-container-org483f101" class="outline-2">
-<h2 id="org483f101">避免启动后总是静音</h2>
-<div class="outline-text-2" id="text-org483f101">
+<div id="outline-container-orgb9a107e" class="outline-2">
+<h2 id="orgb9a107e">避免启动后总是静音</h2>
+<div class="outline-text-2" id="text-orgb9a107e">
 <p>
 安装 alsa-utils，保存音量设置。
 </p>
 </div>
 </div>
 
-<div id="outline-container-org3b8f961" class="outline-2">
-<h2 id="org3b8f961">显卡驱动</h2>
-<div class="outline-text-2" id="text-org3b8f961">
+<div id="outline-container-org441cc7e" class="outline-2">
+<h2 id="org441cc7e">显卡驱动</h2>
+<div class="outline-text-2" id="text-org441cc7e">
 <p>
 机器是双显卡，一块 Intel 的集显加上 Nvida 的独显。
 默认的开源显卡驱动也够用，使用 Nvida 的独显效果更好。
@@ -4444,9 +4580,9 @@ $ sudo evtest /dev/input/event15
 </div>
 </div>
 
-<div id="outline-container-org9611ccb" class="outline-2">
-<h2 id="org9611ccb">蓝牙耳机</h2>
-<div class="outline-text-2" id="text-org9611ccb">
+<div id="outline-container-orgf0568fa" class="outline-2">
+<h2 id="orgf0568fa">蓝牙耳机</h2>
+<div class="outline-text-2" id="text-orgf0568fa">
 <p>
 安装相关软件包
 </p>
@@ -4483,9 +4619,9 @@ sudo systemctl start bluetooth
 <dt>ntp</dt><dd>Network Time Protocol，即网络时间同步协议。</dd>
 </dl>
 
-<div id="outline-container-orgd0f6969" class="outline-2">
-<h2 id="orgd0f6969">安装 ntp</h2>
-<div class="outline-text-2" id="text-orgd0f6969">
+<div id="outline-container-orga80ae1d" class="outline-2">
+<h2 id="orga80ae1d">安装 ntp</h2>
+<div class="outline-text-2" id="text-orga80ae1d">
 <p>
 ntpdate 和 ntpd 通常包含在 ntp 软件包里，但有的系统是单独打包。
 </p>
@@ -4505,17 +4641,17 @@ ntpd 服务用于平滑同步时间。
 </div>
 </div>
 
-<div id="outline-container-orgd27db2c" class="outline-2">
-<h2 id="orgd27db2c">使用 ntpdate 命令同步时间</h2>
-<div class="outline-text-2" id="text-orgd27db2c">
+<div id="outline-container-org6800b98" class="outline-2">
+<h2 id="org6800b98">使用 ntpdate 命令同步时间</h2>
+<div class="outline-text-2" id="text-org6800b98">
 <p>
 ntpdate 命令用于强制性的将系统时间设置为 ntp 服务器时间，导致时钟跃变，可能会引起系统不稳定。
 </p>
 </div>
 
-<div id="outline-container-org4c940c0" class="outline-3">
-<h3 id="org4c940c0">手工同步一次</h3>
-<div class="outline-text-3" id="text-org4c940c0">
+<div id="outline-container-orgccfe7ae" class="outline-3">
+<h3 id="orgccfe7ae">手工同步一次</h3>
+<div class="outline-text-3" id="text-orgccfe7ae">
 <p>
 带 -d 选项，调试运行，不修改本地时间
 </p>
@@ -4565,9 +4701,9 @@ ntpdate s1a.time.edu.cn
 </div>
 </div>
 
-<div id="outline-container-org7ccd9d2" class="outline-3">
-<h3 id="org7ccd9d2">定期自动同步时间</h3>
-<div class="outline-text-3" id="text-org7ccd9d2">
+<div id="outline-container-org8c60af3" class="outline-3">
+<h3 id="org8c60af3">定期自动同步时间</h3>
+<div class="outline-text-3" id="text-org8c60af3">
 <p>
 长时间运行的系统，会与标准时间产生偏差，通过 crontab 每日运行一次
 </p>
@@ -4589,9 +4725,9 @@ ntpdate s1a.time.edu.cn
 </div>
 </div>
 
-<div id="outline-container-orgf6a4f16" class="outline-2">
-<h2 id="orgf6a4f16">使用 ntpd 服务同步时间</h2>
-<div class="outline-text-2" id="text-orgf6a4f16">
+<div id="outline-container-org78558a2" class="outline-2">
+<h2 id="org78558a2">使用 ntpd 服务同步时间</h2>
+<div class="outline-text-2" id="text-org78558a2">
 <dl class="org-dl">
 <dt>ntpd</dt><dd>Network Time Protocol (NTP) Daemon
 The ntpd program is an operating system daemon that synchronizes the system clock to remote NTP time servers or local reference clocks.</dd>
@@ -4740,9 +4876,9 @@ ntpd 如果时间偏差过大（默认 1000 秒钟），ntpd 会输出错误到�
 </ul>
 </div>
 
-<div id="outline-container-orgc9bec59" class="outline-3">
-<h3 id="orgc9bec59">手工同步一次</h3>
-<div class="outline-text-3" id="text-orgc9bec59">
+<div id="outline-container-orgbae6a05" class="outline-3">
+<h3 id="orgbae6a05">手工同步一次</h3>
+<div class="outline-text-3" id="text-orgbae6a05">
 <p>
 通过 ntpd 的命令行选项可以更好地完成 ntpdate 的功能。
 </p>
@@ -4763,9 +4899,9 @@ ntpd 如果时间偏差过大（默认 1000 秒钟），ntpd 会输出错误到�
 </div>
 </div>
 
-<div id="outline-container-org9529405" class="outline-2">
-<h2 id="org9529405">参考</h2>
-<div class="outline-text-2" id="text-org9529405">
+<div id="outline-container-org09fb30c" class="outline-2">
+<h2 id="org09fb30c">参考</h2>
+<div class="outline-text-2" id="text-org09fb30c">
 <ul class="org-ul">
 <li><a href="http://blog.csdn.net/suer0101/article/details/7868813">使用ntpdate更新系统时间</a></li>
 
@@ -4908,6 +5044,99 @@ tar xJvf node-v4.3.1-linux-x64.tar.xz --no-same-owner --exclude CHANGELOG.md --e
 ]]></content:encoded>
         </item>
         <item>
+            <title><![CDATA[CentOS 6.4 上安装 ruby 1.9.3]]></title>
+            <link>/article/centos-6.4-4e0a5b8988c5-ruby-1.9.3.html</link>
+            <guid>/article/centos-6.4-4e0a5b8988c5-ruby-1.9.3.html</guid>
+            <pubDate>Fri, 22 Jan 2016 13:12:00 GMT</pubDate>
+            <content:encoded><![CDATA[<p>
+CentOS 6.4 上仓库中的 Ruby 版本为 1.8.7 太旧了，<a href="https://github.com/yaauie/redis-copy">redis-copy</a> 要求 Ruby 版本至少为 1.9.3。
+</p>
+
+<ul class="org-ul">
+<li><p>
+安装 rvm
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">curl -L get.rvm.io | bash -s stable
+</pre>
+</div></li>
+
+<li><p>
+安装 Ruby 1.9.3
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">/usr/local/rvm/bin/rvm install 1.9.3
+</pre>
+</div>
+
+<ul class="org-ul">
+<li><p>
+启用 Ruby 1.9.3
+</p>
+
+<div class="org-src-container">
+<pre class="src src-js">source /usr/local/rvm/scripts/rvm
+rvm use 1.9.3
+</pre>
+</div></li>
+
+<li><p>
+安装 RubyGems
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">rvm rubygems current
+</pre>
+</div></li>
+
+<li><p>
+RubyGems 官方源国内访问不稳定，换成淘宝的镜像
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">gem sources --remove https://rubygems.org/
+gem sources -a https://ruby.taobao.org/
+</pre>
+</div></li>
+
+<li><p>
+安装 <a href="https://github.com/yaauie/redis-copy">redis-copy</a>
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">gem install redis-copy
+</pre>
+</div>
+
+<p>
+安装后程序路径为 /usr/local/rvm/gems/ruby-1.9.3-p551/bin/redis-copy
+</p>
+
+<p>
+启用 Ruby 1.9.3 后，redis-copy 可以直接运行。
+</p></li>
+</ul></li>
+
+<li><p>
+参考
+</p>
+
+<p>
+<a href="https://www.digitalocean.com/community/tutorials/how-to-install-ruby-on-rails-on-centos-6-with-rvm">How To Install Ruby on Rails on CentOS 6 with RVM | DigitalOcean</a>
+</p>
+
+<p>
+<a href="https://ruby-china.org/topics/3705">手把手安装RVM以及为什么RVM is not a function » Topics » Ruby China</a>
+</p>
+
+<p>
+<a href="http://www.jb51.net/article/49079.htm">淘宝网提供的国内RubyGems镜像简介和使用方法_ruby专题_脚本之家</a></p></li>
+</ul>
+]]></content:encoded>
+        </item>
+        <item>
             <title><![CDATA[CentOS 6.4 上编译安装 gcc 5.2.0]]></title>
             <link>/article/centos-6.4-4e0a7f168bd15b8988c5-gcc-5.2.0.html</link>
             <guid>/article/centos-6.4-4e0a7f168bd15b8988c5-gcc-5.2.0.html</guid>
@@ -5019,99 +5248,6 @@ make install
 ]]></content:encoded>
         </item>
         <item>
-            <title><![CDATA[CentOS 6.4 上安装 ruby 1.9.3]]></title>
-            <link>/article/centos-6.4-4e0a5b8988c5-ruby-1.9.3.html</link>
-            <guid>/article/centos-6.4-4e0a5b8988c5-ruby-1.9.3.html</guid>
-            <pubDate>Fri, 22 Jan 2016 13:12:00 GMT</pubDate>
-            <content:encoded><![CDATA[<p>
-CentOS 6.4 上仓库中的 Ruby 版本为 1.8.7 太旧了，<a href="https://github.com/yaauie/redis-copy">redis-copy</a> 要求 Ruby 版本至少为 1.9.3。
-</p>
-
-<ul class="org-ul">
-<li><p>
-安装 rvm
-</p>
-
-<div class="org-src-container">
-<pre class="src src-sh">curl -L get.rvm.io | bash -s stable
-</pre>
-</div></li>
-
-<li><p>
-安装 Ruby 1.9.3
-</p>
-
-<div class="org-src-container">
-<pre class="src src-sh">/usr/local/rvm/bin/rvm install 1.9.3
-</pre>
-</div>
-
-<ul class="org-ul">
-<li><p>
-启用 Ruby 1.9.3
-</p>
-
-<div class="org-src-container">
-<pre class="src src-js">source /usr/local/rvm/scripts/rvm
-rvm use 1.9.3
-</pre>
-</div></li>
-
-<li><p>
-安装 RubyGems
-</p>
-
-<div class="org-src-container">
-<pre class="src src-sh">rvm rubygems current
-</pre>
-</div></li>
-
-<li><p>
-RubyGems 官方源国内访问不稳定，换成淘宝的镜像
-</p>
-
-<div class="org-src-container">
-<pre class="src src-sh">gem sources --remove https://rubygems.org/
-gem sources -a https://ruby.taobao.org/
-</pre>
-</div></li>
-
-<li><p>
-安装 <a href="https://github.com/yaauie/redis-copy">redis-copy</a>
-</p>
-
-<div class="org-src-container">
-<pre class="src src-sh">gem install redis-copy
-</pre>
-</div>
-
-<p>
-安装后程序路径为 /usr/local/rvm/gems/ruby-1.9.3-p551/bin/redis-copy
-</p>
-
-<p>
-启用 Ruby 1.9.3 后，redis-copy 可以直接运行。
-</p></li>
-</ul></li>
-
-<li><p>
-参考
-</p>
-
-<p>
-<a href="https://www.digitalocean.com/community/tutorials/how-to-install-ruby-on-rails-on-centos-6-with-rvm">How To Install Ruby on Rails on CentOS 6 with RVM | DigitalOcean</a>
-</p>
-
-<p>
-<a href="https://ruby-china.org/topics/3705">手把手安装RVM以及为什么RVM is not a function » Topics » Ruby China</a>
-</p>
-
-<p>
-<a href="http://www.jb51.net/article/49079.htm">淘宝网提供的国内RubyGems镜像简介和使用方法_ruby专题_脚本之家</a></p></li>
-</ul>
-]]></content:encoded>
-        </item>
-        <item>
             <title><![CDATA[Archlinux下解决上网慢问题]]></title>
             <link>/article/archlinux-4e0b89e351b34e0a7f51616295ee9898.html</link>
             <guid>/article/archlinux-4e0b89e351b34e0a7f51616295ee9898.html</guid>
@@ -5148,9 +5284,9 @@ name_servers=8.8.8.8
 很多的网络管理工具都会去改动 <code>/etc/resolv.conf</code> 文件，如 <code>pdnsd</code> <code>dnsmasq</code> <code>NetworkManager</code> 。
 </p>
 
-<div id="outline-container-org9096d4d" class="outline-2">
-<h2 id="org9096d4d">禁止 <code>NetworkManager</code> 改动 <code>/etc/resolv.conf</code></h2>
-<div class="outline-text-2" id="text-org9096d4d">
+<div id="outline-container-org57fdddb" class="outline-2">
+<h2 id="org57fdddb">禁止 <code>NetworkManager</code> 改动 <code>/etc/resolv.conf</code></h2>
+<div class="outline-text-2" id="text-org57fdddb">
 <ul class="org-ul">
 <li><p>
 修改 <code>/etc/NetworkManager/NetworkManager.conf</code> 配置
@@ -5200,9 +5336,9 @@ nameserver 8.8.8.8
 </div>
 </div>
 
-<div id="outline-container-org54c0f62" class="outline-2">
-<h2 id="org54c0f62">使用DHCP分配的本地DNS</h2>
-<div class="outline-text-2" id="text-org54c0f62">
+<div id="outline-container-org29fc000" class="outline-2">
+<h2 id="org29fc000">使用DHCP分配的本地DNS</h2>
+<div class="outline-text-2" id="text-org29fc000">
 <ul class="org-ul">
 <li><p>
 撤销之前对 <code>/etc/NetworkManager/NetworkManager.conf</code> 的修改
@@ -5272,9 +5408,9 @@ nameserver 192.168.111.1
 </div>
 </div>
 
-<div id="outline-container-orgf3343ab" class="outline-2">
-<h2 id="orgf3343ab">参考</h2>
-<div class="outline-text-2" id="text-orgf3343ab">
+<div id="outline-container-orgdeac785" class="outline-2">
+<h2 id="orgdeac785">参考</h2>
+<div class="outline-text-2" id="text-orgdeac785">
 <p>
 <a href="https://wiki.archlinux.org/index.php/Resolv.conf#Preserve_DNS_settings">resolv.conf - ArchWiki</a></p>
 </div>
@@ -5474,9 +5610,9 @@ passwd: can't update password file /etc/passwd
 # 
 </pre>
 
-<div id="outline-container-org628c101" class="outline-2">
-<h2 id="org628c101">根据 <a href="https://svn.mcs.anl.gov/repos/ZeptoOS/trunk/BGP/packages/busybox/src/libbb/update_passwd.c">update_passwd.c</a> 可以获得以下信息</h2>
-<div class="outline-text-2" id="text-org628c101">
+<div id="outline-container-orga14f71a" class="outline-2">
+<h2 id="orga14f71a">根据 <a href="https://svn.mcs.anl.gov/repos/ZeptoOS/trunk/BGP/packages/busybox/src/libbb/update_passwd.c">update_passwd.c</a> 可以获得以下信息</h2>
+<div class="outline-text-2" id="text-orga14f71a">
 <ul class="org-ul">
 <li><code>/etc/passwd</code> 用户帐号配置文件</li>
 
@@ -5507,9 +5643,9 @@ passwd: can't update password file /etc/passwd
 </div>
 </div>
 
-<div id="outline-container-orgd1b2010" class="outline-2">
-<h2 id="orgd1b2010">经验法则</h2>
-<div class="outline-text-2" id="text-orgd1b2010">
+<div id="outline-container-org0ec0a26" class="outline-2">
+<h2 id="org0ec0a26">经验法则</h2>
+<div class="outline-text-2" id="text-org0ec0a26">
 <ul class="org-ul">
 <li><code>/etc/passwd</code> 文件损坏时，使用备份文件 <code>/etc/passwd-</code> 还原</li>
 
@@ -5593,9 +5729,9 @@ passwd: can't update password file /etc/passwd
 统计了一下 <code>10</code> 万个fd都耗光了，其中 <code>9</code> 万多个为 <code>CLOSE_WAIT</code> 状态，此时服务器已经无法响应请求。
 </p>
 
-<div id="outline-container-org56b8073" class="outline-2">
-<h2 id="org56b8073">CLOSE_WAIT 状态介绍</h2>
-<div class="outline-text-2" id="text-org56b8073">
+<div id="outline-container-org0bba808" class="outline-2">
+<h2 id="org0bba808">CLOSE_WAIT 状态介绍</h2>
+<div class="outline-text-2" id="text-org0bba808">
 <p>
 先看一副TCP连接关闭的状态图（ <a href="http://intronetworks.cs.luc.edu/current/html/tcp.html#index-29">来源</a> ）：
 </p>
@@ -5632,9 +5768,9 @@ passwd: can't update password file /etc/passwd
 </div>
 </div>
 
-<div id="outline-container-orgf9fe3d0" class="outline-2">
-<h2 id="orgf9fe3d0">内存及CPU占用彪升问题</h2>
-<div class="outline-text-2" id="text-orgf9fe3d0">
+<div id="outline-container-orgb400196" class="outline-2">
+<h2 id="orgb400196">内存及CPU占用彪升问题</h2>
+<div class="outline-text-2" id="text-orgb400196">
 <p>
 伴随着 CLOSE_WAIT 出现的状况是 node.js 进程内存及CPU占用超高，单node.js进程内存占用达到 1.5G，CPU占用 90% 以上，此时应该会导致 node.js 响应慢，
 来不及关闭连上来的socket。
@@ -5651,9 +5787,9 @@ passwd: can't update password file /etc/passwd
 </div>
 </div>
 
-<div id="outline-container-org8c67138" class="outline-2">
-<h2 id="org8c67138">一次午夜故障元凶浮出水面</h2>
-<div class="outline-text-2" id="text-org8c67138">
+<div id="outline-container-org725d144" class="outline-2">
+<h2 id="org725d144">一次午夜故障元凶浮出水面</h2>
+<div class="outline-text-2" id="text-org725d144">
 <p>
 在晚上两点的时候服务出现问题，同样的现象，特别留意了一下redis的统计，请求速度很低，只有1200，平时都是5000。偶然在进程列表中发现了 redis-rdb-bgsave 的身影，
 不断地执行ps看进程列表，发现 redis-rdb-bgsave 进程不断地出现，查看redis的持久化配置如下：
@@ -5687,9 +5823,9 @@ config set save "900 1"
 </div>
 </div>
 
-<div id="outline-container-orgae46a30" class="outline-2">
-<h2 id="orgae46a30">更多疑问</h2>
-<div class="outline-text-2" id="text-orgae46a30">
+<div id="outline-container-org8d6a397" class="outline-2">
+<h2 id="org8d6a397">更多疑问</h2>
+<div class="outline-text-2" id="text-org8d6a397">
 <ul class="org-ul">
 <li>我们的node.js进程为什么常常会占用很多内存？</li>
 
@@ -5734,9 +5870,9 @@ config set save "900 1"
 </p></li>
 </ul>
 
-<div id="outline-container-org4db9313" class="outline-2">
-<h2 id="org4db9313">通过预分配空间方式安全写文件算法</h2>
-<div class="outline-text-2" id="text-org4db9313">
+<div id="outline-container-org19608bf" class="outline-2">
+<h2 id="org19608bf">通过预分配空间方式安全写文件算法</h2>
+<div class="outline-text-2" id="text-org19608bf">
 <ul class="org-ul">
 <li>如果当前文件过小（不足以容纳新内容），在文件尾部通过追加占位字符（\0）直到文件大小合适</li>
 
@@ -5751,13 +5887,13 @@ config set save "900 1"
 </div>
 </div>
 
-<div id="outline-container-orge19d362" class="outline-2">
-<h2 id="orge19d362">测试</h2>
-<div class="outline-text-2" id="text-orge19d362">
+<div id="outline-container-org594020f" class="outline-2">
+<h2 id="org594020f">测试</h2>
+<div class="outline-text-2" id="text-org594020f">
 </div>
-<div id="outline-container-org4496660" class="outline-3">
-<h3 id="org4496660">创建模拟磁盘目录 /mnt/disk</h3>
-<div class="outline-text-3" id="text-org4496660">
+<div id="outline-container-orgd51802f" class="outline-3">
+<h3 id="orgd51802f">创建模拟磁盘目录 /mnt/disk</h3>
+<div class="outline-text-3" id="text-orgd51802f">
 <p>
 先确保存在 <code>/dev/loop*</code> 设备，如果不存在先尝试挂载 <code>loop</code> 内核模块
 </p>
@@ -5807,9 +5943,9 @@ $ sudo mount /dev/loop0p1 /mnt/disk
 </div>
 </div>
 
-<div id="outline-container-org8625a64" class="outline-3">
-<h3 id="org8625a64">修复前</h3>
-<div class="outline-text-3" id="text-org8625a64">
+<div id="outline-container-orgad029df" class="outline-3">
+<h3 id="orgad029df">修复前</h3>
+<div class="outline-text-3" id="text-orgad029df">
 <p>
 磁盘空间不足写配置导致配置文件被损坏
 </p>
@@ -5836,9 +5972,9 @@ config: get items(name,,,,,) from config file(/mnt/disk/test.json) failed
 </div>
 </div>
 
-<div id="outline-container-org4fa30f5" class="outline-3">
-<h3 id="org4fa30f5">修复后</h3>
-<div class="outline-text-3" id="text-org4fa30f5">
+<div id="outline-container-org134404c" class="outline-3">
+<h3 id="org134404c">修复后</h3>
+<div class="outline-text-3" id="text-org134404c">
 <p>
 磁盘空间不足写配置不会对配置文件造成实质影响
 </p>
@@ -5861,9 +5997,9 @@ name: libconfig
 </div>
 </div>
 
-<div id="outline-container-orge068e10" class="outline-3">
-<h3 id="orge068e10">清除测试环境</h3>
-<div class="outline-text-3" id="text-orge068e10">
+<div id="outline-container-org62b480e" class="outline-3">
+<h3 id="org62b480e">清除测试环境</h3>
+<div class="outline-text-3" id="text-org62b480e">
 <div class="org-src-container">
 <pre class="src src-sh">sudo umount /dev/loop0p1
 sudo losetup -d /dev/loop0
@@ -5875,9 +6011,9 @@ sudo rm ~/Examples/disk.img
 </div>
 </div>
 
-<div id="outline-container-orgbba171e" class="outline-2">
-<h2 id="orgbba171e">参考</h2>
-<div class="outline-text-2" id="text-orgbba171e">
+<div id="outline-container-org1ad5744" class="outline-2">
+<h2 id="org1ad5744">参考</h2>
+<div class="outline-text-2" id="text-org1ad5744">
 <p>
 《<a href="http://www.oschina.net/translate/reliable-file-updates-with-python">使用 Python 进行稳定可靠的文件操作</a>》</p>
 </div>
@@ -6159,9 +6295,9 @@ linux 系统的密码编码（不可逆）后存储在 /etc/shadow（以前是 /
 目标系统为单SSD+多HDD，将多HDD创建为RAID5逻辑盘，然后使用FlashCache将SSD做为RAID5逻辑盘的缓存。
 </p>
 
-<div id="outline-container-orga654f9a" class="outline-2">
-<h2 id="orga654f9a">系统信息</h2>
-<div class="outline-text-2" id="text-orga654f9a">
+<div id="outline-container-orgf79a0c7" class="outline-2">
+<h2 id="orgf79a0c7">系统信息</h2>
+<div class="outline-text-2" id="text-orgf79a0c7">
 <ul class="org-ul">
 <li><p>
 OS
@@ -6230,9 +6366,9 @@ INTEL SSDSC2BB30 300GB
 </div>
 </div>
 
-<div id="outline-container-org89c9b7b" class="outline-2">
-<h2 id="org89c9b7b">卸载HDD及SSD盘</h2>
-<div class="outline-text-2" id="text-org89c9b7b">
+<div id="outline-container-org4b02f00" class="outline-2">
+<h2 id="org4b02f00">卸载HDD及SSD盘</h2>
+<div class="outline-text-2" id="text-org4b02f00">
 <div class="org-src-container">
 <pre class="src src-sh">umount /dev/sdc /dev/sdd /dev/sde /dev/sdf /dev/sdb
 </pre>
@@ -6244,9 +6380,9 @@ INTEL SSDSC2BB30 300GB
 </div>
 </div>
 
-<div id="outline-container-orgdcc0746" class="outline-2">
-<h2 id="orgdcc0746">将多HDD创建为RAID5逻辑盘</h2>
-<div class="outline-text-2" id="text-orgdcc0746">
+<div id="outline-container-orgd145c6e" class="outline-2">
+<h2 id="orgd145c6e">将多HDD创建为RAID5逻辑盘</h2>
+<div class="outline-text-2" id="text-orgd145c6e">
 <ul class="org-ul">
 <li><p>
 格式化HDD盘
@@ -6296,9 +6432,9 @@ parted /dev/md0
 </div>
 </div>
 
-<div id="outline-container-org10c5ffe" class="outline-2">
-<h2 id="org10c5ffe">安装Flashcache</h2>
-<div class="outline-text-2" id="text-org10c5ffe">
+<div id="outline-container-org3c93df9" class="outline-2">
+<h2 id="org3c93df9">安装Flashcache</h2>
+<div class="outline-text-2" id="text-org3c93df9">
 <div class="org-src-container">
 <pre class="src src-sh">wget https://github.com/facebook/flashcache/archive/stable_v3.1.3.zip -O flashca<span style="text-decoration: underline;">che_stable_v3.1.3.zip</span>
 unzip flashcache_stable_v3.1.3.zip
@@ -6311,9 +6447,9 @@ modprobe flashcache
 </div>
 </div>
 
-<div id="outline-container-org62a0c4c" class="outline-2">
-<h2 id="org62a0c4c">创建Flashcache混合设备</h2>
-<div class="outline-text-2" id="text-org62a0c4c">
+<div id="outline-container-org3a858a5" class="outline-2">
+<h2 id="org3a858a5">创建Flashcache混合设备</h2>
+<div class="outline-text-2" id="text-org3a858a5">
 <div class="org-src-container">
 <pre class="src src-sh">flashcache_create -p around cachedev /dev/sdb /dev/md0p1
 mkfs.ext4 /dev/mapper/cachedev
@@ -6322,9 +6458,9 @@ mkfs.ext4 /dev/mapper/cachedev
 </div>
 </div>
 
-<div id="outline-container-orga0fecdc" class="outline-2">
-<h2 id="orga0fecdc">挂载Flashcache混合设备</h2>
-<div class="outline-text-2" id="text-orga0fecdc">
+<div id="outline-container-org15a015d" class="outline-2">
+<h2 id="org15a015d">挂载Flashcache混合设备</h2>
+<div class="outline-text-2" id="text-org15a015d">
 <div class="org-src-container">
 <pre class="src src-sh">mkdir /data
 mount /dev/mapper/cachedev /data
@@ -6333,9 +6469,9 @@ mount /dev/mapper/cachedev /data
 </div>
 </div>
 
-<div id="outline-container-orga36464a" class="outline-2">
-<h2 id="orga36464a">系统重启后需要重新创建并挂载Flashcache设备</h2>
-<div class="outline-text-2" id="text-orga36464a">
+<div id="outline-container-org711f4c8" class="outline-2">
+<h2 id="org711f4c8">系统重启后需要重新创建并挂载Flashcache设备</h2>
+<div class="outline-text-2" id="text-org711f4c8">
 <div class="org-src-container">
 <pre class="src src-sh">flashcache_create -p around cachedev /dev/sdb /dev/md0p1
 mount /dev/mapper/cachedev /data
@@ -6348,18 +6484,18 @@ mount /dev/mapper/cachedev /data
 </div>
 </div>
 
-<div id="outline-container-orgc675a08" class="outline-2">
-<h2 id="orgc675a08">写入速度测试</h2>
-<div class="outline-text-2" id="text-orgc675a08">
+<div id="outline-container-org8184bbc" class="outline-2">
+<h2 id="org8184bbc">写入速度测试</h2>
+<div class="outline-text-2" id="text-org8184bbc">
 <p>
 循环创建60MiB大小的文件，测得的磁盘写入速度为 <b>35.6MiB</b> ，磁盘读取速度为 <b>2.1MiB</b> 。
 </p>
 </div>
 </div>
 
-<div id="outline-container-orge6c3490" class="outline-2">
-<h2 id="orge6c3490">读取速度测试</h2>
-<div class="outline-text-2" id="text-orge6c3490">
+<div id="outline-container-org9b02729" class="outline-2">
+<h2 id="org9b02729">读取速度测试</h2>
+<div class="outline-text-2" id="text-org9b02729">
 <ul class="org-ul">
 <li>500并发120G文件每次读取32KB顺序读取
 
@@ -6484,9 +6620,9 @@ mount /dev/mapper/cachedev /data
 </div>
 </div>
 
-<div id="outline-container-org12791e3" class="outline-2">
-<h2 id="org12791e3">注意事项</h2>
-<div class="outline-text-2" id="text-org12791e3">
+<div id="outline-container-org6d9e27b" class="outline-2">
+<h2 id="org6d9e27b">注意事项</h2>
+<div class="outline-text-2" id="text-org6d9e27b">
 <ul class="org-ul">
 <li><p>
 重建（rebuild）
@@ -6500,9 +6636,9 @@ mount /dev/mapper/cachedev /data
 </div>
 </div>
 
-<div id="outline-container-org0c057bc" class="outline-2">
-<h2 id="org0c057bc">潜在的优化选项</h2>
-<div class="outline-text-2" id="text-org0c057bc">
+<div id="outline-container-org3cf9f08" class="outline-2">
+<h2 id="org3cf9f08">潜在的优化选项</h2>
+<div class="outline-text-2" id="text-org3cf9f08">
 <ul class="org-ul">
 <li>开启SSD写Cache</li>
 
@@ -6527,9 +6663,9 @@ noatime,nodiratime
 </div>
 
 
-<div id="outline-container-orgca43c66" class="outline-2">
-<h2 id="orgca43c66">卸载Flashcache设备</h2>
-<div class="outline-text-2" id="text-orgca43c66">
+<div id="outline-container-orgfa1cde8" class="outline-2">
+<h2 id="orgfa1cde8">卸载Flashcache设备</h2>
+<div class="outline-text-2" id="text-orgfa1cde8">
 <div class="org-src-container">
 <pre class="src src-sh">umount /dev/mapper/cachedev
 dmsetup remove cachedev
@@ -6538,9 +6674,9 @@ dmsetup remove cachedev
 </div>
 </div>
 
-<div id="outline-container-org0fb5836" class="outline-2">
-<h2 id="org0fb5836">Q&amp;A</h2>
-<div class="outline-text-2" id="text-org0fb5836">
+<div id="outline-container-orga47ff79" class="outline-2">
+<h2 id="orga47ff79">Q&amp;A</h2>
+<div class="outline-text-2" id="text-orga47ff79">
 <ul class="org-ul">
 <li><p>
 重新调整 Flashcache 选项会不会删除数据？
@@ -6553,9 +6689,9 @@ dmsetup remove cachedev
 </div>
 </div>
 
-<div id="outline-container-org075c61e" class="outline-2">
-<h2 id="org075c61e">相关参考</h2>
-<div class="outline-text-2" id="text-org075c61e">
+<div id="outline-container-orgc531f1b" class="outline-2">
+<h2 id="orgc531f1b">相关参考</h2>
+<div class="outline-text-2" id="text-orgc531f1b">
 <dl class="org-dl">
 <dt>《<a href="http://lzw.me/a/linux-lvm.html">Linux LVM逻辑卷管理详细介绍</a>》</dt><dd>非常好的LVM入门文章</dd>
 
@@ -6586,9 +6722,9 @@ dmsetup remove cachedev
 <a href="https://github.com/facebook/flashcache/">Flashcache</a> 位于磁盘驱动层与文件系统层之间，是一个 <code>linux</code> 内核模块。
 </p>
 
-<div id="outline-container-orgc30cf8c" class="outline-2">
-<h2 id="orgc30cf8c">编译安装</h2>
-<div class="outline-text-2" id="text-orgc30cf8c">
+<div id="outline-container-org80d1f41" class="outline-2">
+<h2 id="org80d1f41">编译安装</h2>
+<div class="outline-text-2" id="text-org80d1f41">
 <p>
 由于Archlinux总是使用最新的linux内核，最好从最新的 <a href="https://github.com/facebook/flashcache/">Flashcache</a> 源代码进行编译安装。
 </p>
@@ -6603,9 +6739,9 @@ sudo make install
 </div>
 </div>
 
-<div id="outline-container-org0c74dfe" class="outline-2">
-<h2 id="org0c74dfe">挂载模块</h2>
-<div class="outline-text-2" id="text-org0c74dfe">
+<div id="outline-container-orga3777bb" class="outline-2">
+<h2 id="orga3777bb">挂载模块</h2>
+<div class="outline-text-2" id="text-orga3777bb">
 <div class="org-src-container">
 <pre class="src src-sh">sudo insmod /lib/modules/<span style="color: #b294bb;">`uname -r`</span>/extra/flashcache/flashcache.ko
 </pre>
@@ -6659,9 +6795,9 @@ sudo insmod /lib/modules/<span style="color: #b294bb;">`uname -r`</span>/extra/f
 </div>
 </div>
 
-<div id="outline-container-org34fa1db" class="outline-2">
-<h2 id="org34fa1db">模拟实验</h2>
-<div class="outline-text-2" id="text-org34fa1db">
+<div id="outline-container-org5bd14f7" class="outline-2">
+<h2 id="org5bd14f7">模拟实验</h2>
+<div class="outline-text-2" id="text-org5bd14f7">
 <p>
 参考：<a href="http://my.oschina.net/renguijiayi/blog/303747">flashcache的实现与用法</a>
 </p>
@@ -6892,9 +7028,9 @@ sudo rmdir /data
             <guid>/article/archlinux-5b8988c56587672c8bed97f354086210ff08-tts-ff09.html</guid>
             <pubDate>Wed, 15 Apr 2015 12:21:00 GMT</pubDate>
             <content:encoded><![CDATA[
-<div id="outline-container-org5c499dd" class="outline-2">
-<h2 id="org5c499dd">安装 <code>festival</code></h2>
-<div class="outline-text-2" id="text-org5c499dd">
+<div id="outline-container-org1b5482c" class="outline-2">
+<h2 id="org1b5482c">安装 <code>festival</code></h2>
+<div class="outline-text-2" id="text-org1b5482c">
 <div class="org-src-container">
 <pre class="src src-sh">yaourt -S festival festival-english festival-us
 </pre>
@@ -6902,9 +7038,9 @@ sudo rmdir /data
 </div>
 </div>
 
-<div id="outline-container-orgd3129ff" class="outline-2">
-<h2 id="orgd3129ff">测试运行</h2>
-<div class="outline-text-2" id="text-orgd3129ff">
+<div id="outline-container-org8b5c0da" class="outline-2">
+<h2 id="org8b5c0da">测试运行</h2>
+<div class="outline-text-2" id="text-org8b5c0da">
 <div class="org-src-container">
 <pre class="src src-sh"><span style="color: #b294bb;">echo</span> <span style="color: #8abeb7;">"This is an example. Arch is the best."</span> | festival --tts
 </pre>
@@ -6926,9 +7062,9 @@ sudo rmdir /data
 </div>
 </div>
 
-<div id="outline-container-orgd8b9788" class="outline-2">
-<h2 id="orgd8b9788">参考</h2>
-<div class="outline-text-2" id="text-orgd8b9788">
+<div id="outline-container-org793015f" class="outline-2">
+<h2 id="org793015f">参考</h2>
+<div class="outline-text-2" id="text-org793015f">
 <p>
 <a href="https://wiki.archlinux.org/index.php/Festival">https://wiki.archlinux.org/index.php/Festival</a>
 </p>
@@ -7190,9 +7326,9 @@ address1=192.168.90.74/24,192.168.90.2
 本文为CentOS 6.4下安装redmine-2.5.0的笔记，按照 <a href="http://www.redmine.org/projects/redmine/wiki/RedmineInstall">官方文档</a> 进行安装。
 </p>
 
-<div id="outline-container-org74ea1be" class="outline-2">
-<h2 id="org74ea1be">安装 <code>ruby</code></h2>
-<div class="outline-text-2" id="text-org74ea1be">
+<div id="outline-container-org012867a" class="outline-2">
+<h2 id="org012867a">安装 <code>ruby</code></h2>
+<div class="outline-text-2" id="text-org012867a">
 <div class="org-src-container">
 <pre class="src src-sh">yum install ruby
 yum install ruby-devel
@@ -7202,9 +7338,9 @@ yum install rubygems
 </div>
 </div>
 
-<div id="outline-container-org7c35e28" class="outline-2">
-<h2 id="org7c35e28">安装 <code>redmine</code></h2>
-<div class="outline-text-2" id="text-org7c35e28">
+<div id="outline-container-org167b636" class="outline-2">
+<h2 id="org167b636">安装 <code>redmine</code></h2>
+<div class="outline-text-2" id="text-org167b636">
 <div class="org-src-container">
 <pre class="src src-sh">wget <span style="color: #8abeb7;">'http://www.redmine.org/releases/redmine-2.5.0.tar.gz'</span>
 tar xzvf redmine-2.5.0.tar.gz
@@ -7217,9 +7353,9 @@ bundle install --without development test<span style="color: #373b41; background
 </div>
 </div>
 
-<div id="outline-container-org160f3d6" class="outline-2">
-<h2 id="org160f3d6">配置 <code>redmine</code></h2>
-<div class="outline-text-2" id="text-org160f3d6">
+<div id="outline-container-orgf0ab6ad" class="outline-2">
+<h2 id="orgf0ab6ad">配置 <code>redmine</code></h2>
+<div class="outline-text-2" id="text-orgf0ab6ad">
 <ul class="org-ul">
 <li><p>
 以 root 用户登录 <code>mysql</code>
@@ -7340,9 +7476,9 @@ sudo chmod -R 755 files log tmp public/plugin_assets
 </div>
 </div>
 
-<div id="outline-container-org71144bd" class="outline-2">
-<h2 id="org71144bd">试运行 <code>redmine</code></h2>
-<div class="outline-text-2" id="text-org71144bd">
+<div id="outline-container-org85acc0f" class="outline-2">
+<h2 id="org85acc0f">试运行 <code>redmine</code></h2>
+<div class="outline-text-2" id="text-org85acc0f">
 <div class="org-src-container">
 <pre class="src src-sh">ruby script/rails server webrick -e production
 </pre>
@@ -7373,18 +7509,18 @@ sudo chmod -R 755 files log tmp public/plugin_assets
 </div>
 </div>
 
-<div id="outline-container-orgaaa52a5" class="outline-2">
-<h2 id="orgaaa52a5">配置 <code>redmine</code></h2>
-<div class="outline-text-2" id="text-orgaaa52a5">
+<div id="outline-container-org3720657" class="outline-2">
+<h2 id="org3720657">配置 <code>redmine</code></h2>
+<div class="outline-text-2" id="text-org3720657">
 <ul class="org-ul">
 <li>修改 <code>config/settings.yml</code></li>
 </ul>
 </div>
 </div>
 
-<div id="outline-container-org5b35950" class="outline-2">
-<h2 id="org5b35950">使用 <code>Nginx</code> 和 <code>passenger</code></h2>
-<div class="outline-text-2" id="text-org5b35950">
+<div id="outline-container-org31a2f17" class="outline-2">
+<h2 id="org31a2f17">使用 <code>Nginx</code> 和 <code>passenger</code></h2>
+<div class="outline-text-2" id="text-org31a2f17">
 <div class="org-src-container">
 <pre class="src src-sh">wget <span style="color: #8abeb7;">'http://nginx.org/download/nginx-1.4.6.tar.gz'</span>
 tar xzvf nginx-1.4.6.tar.gz
@@ -7469,9 +7605,9 @@ server {
 </div>
 </div>
 
-<div id="outline-container-org7f2896d" class="outline-2">
-<h2 id="org7f2896d">支持 <code>OpenID</code> 第三方帐号登录</h2>
-<div class="outline-text-2" id="text-org7f2896d">
+<div id="outline-container-org3f5099f" class="outline-2">
+<h2 id="org3f5099f">支持 <code>OpenID</code> 第三方帐号登录</h2>
+<div class="outline-text-2" id="text-org3f5099f">
 <ul class="org-ul">
 <li><p>
 安装 <code>openid</code> 库
@@ -7550,9 +7686,9 @@ touch tmp/restart.txt
 </div>
 </div>
 
-<div id="outline-container-orgcf84f83" class="outline-2">
-<h2 id="orgcf84f83">样式美化</h2>
-<div class="outline-text-2" id="text-orgcf84f83">
+<div id="outline-container-org6ad63ed" class="outline-2">
+<h2 id="org6ad63ed">样式美化</h2>
+<div class="outline-text-2" id="text-org6ad63ed">
 <div class="org-src-container">
 <pre class="src src-sh">git clone git://github.com/pixel-cookers/redmine-theme.git public/themes/pixel-c<span style="text-decoration: underline;">ookers</span>
 touch tmp/restart.txt
@@ -7619,9 +7755,9 @@ touch tmp/restart.txt
 今天往 bitbucket.org push 时才发现 bitbucket 被 GFW 了。我的仓库为 Mercurial hg，hg 项目根目录下的 <code>.hg/hgrc</code> 配置文件中可指定 http_proxy，试了一下不支持 socks 代理（我的浏览器用它来翻墙），最终使用 tsocks 或 proxychains 实现翻墙访问 bitbucket.org 仓库。
 </p>
 
-<div id="outline-container-org5a7e801" class="outline-2">
-<h2 id="org5a7e801">使用 ssh 服务代理网络访问</h2>
-<div class="outline-text-2" id="text-org5a7e801">
+<div id="outline-container-org1c4dc35" class="outline-2">
+<h2 id="org1c4dc35">使用 ssh 服务代理网络访问</h2>
+<div class="outline-text-2" id="text-org1c4dc35">
 <p>
 创建本地 socks 代理的脚本 <code>ssh_proxy.sh</code>
 </p>
@@ -7663,9 +7799,9 @@ touch tmp/restart.txt
 </div>
 </div>
 
-<div id="outline-container-org311b183" class="outline-2">
-<h2 id="org311b183">使用 shadowsocks 服务代理网络访问</h2>
-<div class="outline-text-2" id="text-org311b183">
+<div id="outline-container-org47ea63d" class="outline-2">
+<h2 id="org47ea63d">使用 shadowsocks 服务代理网络访问</h2>
+<div class="outline-text-2" id="text-org47ea63d">
 <p>
 vps 上安装并启动 shadowsocks 服务器（ss-server），配置文件 <code>/etc/shadowsocks.json</code> 内容如下
 </p>
@@ -7709,17 +7845,17 @@ pc 上安装并启动 shadowsocks 客户端（ss-local），配置文件 <code>/
 </div>
 </div>
 
-<div id="outline-container-orga61d4dc" class="outline-2">
-<h2 id="orga61d4dc">透明代理</h2>
-<div class="outline-text-2" id="text-orga61d4dc">
+<div id="outline-container-org68cfd23" class="outline-2">
+<h2 id="org68cfd23">透明代理</h2>
+<div class="outline-text-2" id="text-org68cfd23">
 <p>
 firefox 可以配置为通过 socks 代理联网，但绝大多数应用是不支持的，而透明代理（Transparent Proxy）可以使这些应用也使用代理联网。
 </p>
 </div>
 
-<div id="outline-container-org6d6e8b4" class="outline-3">
-<h3 id="org6d6e8b4">ss-redir</h3>
-<div class="outline-text-3" id="text-org6d6e8b4">
+<div id="outline-container-orgb40576b" class="outline-3">
+<h3 id="orgb40576b">ss-redir</h3>
+<div class="outline-text-3" id="text-orgb40576b">
 <p>
 shadowsocks 自带的本地透明代理客户端，可以使整个系统都使用代理访问网络。
 </p>
@@ -7730,9 +7866,9 @@ shadowsocks 自带的本地透明代理客户端，可以使整个系统都使�
 </div>
 </div>
 
-<div id="outline-container-org1f5b850" class="outline-3">
-<h3 id="org1f5b850">tsocks</h3>
-<div class="outline-text-3" id="text-org1f5b850">
+<div id="outline-container-org6ec0f07" class="outline-3">
+<h3 id="org6ec0f07">tsocks</h3>
+<div class="outline-text-3" id="text-org6ec0f07">
 <ul class="org-ul">
 <li><p>
 安装
@@ -7784,9 +7920,9 @@ tsocks 看起来很通用，应该也可以让 git 等进行 socks 代理访问�
 </div>
 </div>
 
-<div id="outline-container-orga37cdc1" class="outline-3">
-<h3 id="orga37cdc1">proxychains</h3>
-<div class="outline-text-3" id="text-orga37cdc1">
+<div id="outline-container-orgf3fcc69" class="outline-3">
+<h3 id="orgf3fcc69">proxychains</h3>
+<div class="outline-text-3" id="text-orgf3fcc69">
 <p>
 tsocks 不支持代理访问 https
 </p>
@@ -7823,9 +7959,9 @@ proxychains 的安装配置请参考：<a href="https://sites.google.com/a/pickd
 </p>
 </div>
 
-<div id="outline-container-org1646241" class="outline-4">
-<h4 id="org1646241">将 socks 代理转换为 http 代理</h4>
-<div class="outline-text-4" id="text-org1646241">
+<div id="outline-container-org02697b0" class="outline-4">
+<h4 id="org02697b0">将 socks 代理转换为 http 代理</h4>
+<div class="outline-text-4" id="text-org02697b0">
 <p>
 go get 不支持 proxychains（应该是 go 是静态链接的原因），可以使用 <code>privoxy</code>
 将 socks 代理转换为 http 代理。
@@ -7936,27 +8072,27 @@ Note: Adding nomodeset to the kernel boot line might prevent GNOME 3's gnome-she
             <guid>/article/linux-4e0b8de88fdb7a0b4f20901265874ef663cf8ff07b26.html</guid>
             <pubDate>Sat, 09 Mar 2013 07:11:00 GMT</pubDate>
             <content:encoded><![CDATA[
-<div id="outline-container-org91a01e5" class="outline-2">
-<h2 id="org91a01e5">问题</h2>
-<div class="outline-text-2" id="text-org91a01e5">
+<div id="outline-container-org19d0ba2" class="outline-2">
+<h2 id="org19d0ba2">问题</h2>
+<div class="outline-text-2" id="text-org19d0ba2">
 <p>
 在web开发中，以典型的php-fpm为例，对于到外部系统的连接（如：mysql、redis）等都提供了持久连接接口（pconnect），但是受限于多进程模型，事实上是每个php-fpm进程都有单独的一个连接池的（参见：《<a href="http:5f53-php-90474e0a-redis.html">当php遇上redis</a>》），大量空闲连接的存在不仅对系统资源造成了浪费（不单指fd空间，像mysql的每连接一线程会附带大量内存空间：sort_buffer、read_buffer等），而且整个系统将无法横向扩展（如：mysql连接数限制）。如果可以在进程间共享文件描述符，将可以大大提升系统性能，促进多进程模型的应用。
 </p>
 </div>
 </div>
 
-<div id="outline-container-orgc1a405e" class="outline-2">
-<h2 id="orgc1a405e">方案</h2>
-<div class="outline-text-2" id="text-orgc1a405e">
+<div id="outline-container-orgb910a08" class="outline-2">
+<h2 id="orgb910a08">方案</h2>
+<div class="outline-text-2" id="text-orgb910a08">
 <p>
 在linux平台下，sendmsg、recvmsg可以将一个进程的文件描述符传递给另一进程使用，这使得实现系统级的连接池成为可能。
 </p>
 </div>
 </div>
 
-<div id="outline-container-org144bc96" class="outline-2">
-<h2 id="org144bc96">实现</h2>
-<div class="outline-text-2" id="text-org144bc96">
+<div id="outline-container-orgc6389f6" class="outline-2">
+<h2 id="orgc6389f6">实现</h2>
+<div class="outline-text-2" id="text-orgc6389f6">
 <p>
 《The Linux Programming Interface》61.13.3 Passing File Descriptors
 </p>
@@ -7970,20 +8106,20 @@ Note: Adding nomodeset to the kernel boot line might prevent GNOME 3's gnome-she
             <guid>/article/archlinux-4e0b5b8988c5-fcitx-8f9351656cd5.html</guid>
             <pubDate>Sat, 15 Dec 2012 13:56:00 GMT</pubDate>
             <content:encoded><![CDATA[
-<div id="outline-container-org6032235" class="outline-2">
-<h2 id="org6032235">安装</h2>
-<div class="outline-text-2" id="text-org6032235">
+<div id="outline-container-orgafca9ce" class="outline-2">
+<h2 id="orgafca9ce">安装</h2>
+<div class="outline-text-2" id="text-orgafca9ce">
 <div class="org-src-container">
-<pre class="src src-sh">sudo yaourt -S fcitx-im
+<pre class="src src-sh">yaourt -S fcitx-im fcitx-configtool
 ln -s /etc/xdg/autostart/fcitx-autostart.desktop  ~/.config/autostart/
 </pre>
 </div>
 </div>
 </div>
 
-<div id="outline-container-org656643b" class="outline-2">
-<h2 id="org656643b">配置</h2>
-<div class="outline-text-2" id="text-org656643b">
+<div id="outline-container-org6a00561" class="outline-2">
+<h2 id="org6a00561">配置</h2>
+<div class="outline-text-2" id="text-org6a00561">
 <p>
 在配置文件~/.xprofile中添加以下内容：
 </p>
@@ -8031,6 +8167,29 @@ fcitx-configtool GUI 工具不能将全局快捷键置空，
 <p>
 这是因为 fcitx 的配置如果为默认值，则直接注释掉，重启 fcitx 生效配置。
 </p>
+
+<p>
+禁用 <code>Clipboard</code> 扩展，已知该插件会导致在 Emacs 中全选以及拷贝大量内容时卡死，
+见 <a href="https://emacs-china.org/t/topic/4557/66">linux gnome 下 全选整个大于1万行的buffer 卡死 - Emacs-general - Emacs China</a>
+</p>
+</div>
+</div>
+
+<div id="outline-container-org86611d7" class="outline-2">
+<h2 id="org86611d7">重装</h2>
+<div class="outline-text-2" id="text-org86611d7">
+<p>
+万一 <code>fcitx</code> 无论如何都用不了，则先卸载 <code>fcitx</code> 并清除配置文件
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">yaourt --remove fcitx-configtool fcitx-im
+rm -rf ~/.config/fcitx
+</pre>
+</div>
+
+<p>
+然后再安装设置 <code>fcitx</code> 。</p>
 </div>
 </div>
 ]]></content:encoded>
@@ -8041,9 +8200,9 @@ fcitx-configtool GUI 工具不能将全局快捷键置空，
             <guid>/article/89e351b3-archlinux-4e0b-ati-663e5361-3d-786c4ef652a0901f59316548768495ee9898.html</guid>
             <pubDate>Wed, 05 Sep 2012 15:52:00 GMT</pubDate>
             <content:encoded><![CDATA[
-<div id="outline-container-orgf4faf0f" class="outline-2">
-<h2 id="orgf4faf0f">问题描述</h2>
-<div class="outline-text-2" id="text-orgf4faf0f">
+<div id="outline-container-org1ae0f9f" class="outline-2">
+<h2 id="org1ae0f9f">问题描述</h2>
+<div class="outline-text-2" id="text-org1ae0f9f">
 <ul class="org-ul">
 <li><p>
 症状
@@ -8064,9 +8223,9 @@ radeon 0000:01:00.0: Disabling GPU acceleration
 </ul>
 </div>
 </div>
-<div id="outline-container-org3cd1d52" class="outline-2">
-<h2 id="org3cd1d52">解决办法</h2>
-<div class="outline-text-2" id="text-org3cd1d52">
+<div id="outline-container-orgf5e8783" class="outline-2">
+<h2 id="orgf5e8783">解决办法</h2>
+<div class="outline-text-2" id="text-orgf5e8783">
 <div class="org-src-container">
 <pre class="src src-sh">sudo ln -s /usr/lib/firmware /lib/
 sudo reboot
@@ -8074,9 +8233,9 @@ sudo reboot
 </div>
 </div>
 </div>
-<div id="outline-container-org40be809" class="outline-2">
-<h2 id="org40be809">经验总结</h2>
-<div class="outline-text-2" id="text-org40be809">
+<div id="outline-container-org7be0288" class="outline-2">
+<h2 id="org7be0288">经验总结</h2>
+<div class="outline-text-2" id="text-org7be0288">
 <p>
 出现问题时网上不一定能找到你要的答案，像这个问题，网上的论坛里有无数个建议，一个一个试下去其实很浪费时间，
 试几次之后还没能解决就应该尝试主动分析解决，像这里稍微留意到括号里的-2，就能发现其实它是个错误码，
@@ -8086,9 +8245,9 @@ perror一下就知道意思是“找不到文件或目录”，联想到最近�
 </div>
 </div>
 
-<div id="outline-container-orga5a765c" class="outline-2">
-<h2 id="orga5a765c">备注</h2>
-<div class="outline-text-2" id="text-orga5a765c">
+<div id="outline-container-orgd7dd743" class="outline-2">
+<h2 id="orgd7dd743">备注</h2>
+<div class="outline-text-2" id="text-orgd7dd743">
 <p>
 这个问题应该是由于之前glibc升级时未全部完成引起的，archlinux现在把/lib改为/usr/lib的软链接了，可以手工进行设置为软链接这一步骤来修复。</p>
 </div>

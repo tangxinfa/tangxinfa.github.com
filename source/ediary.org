@@ -25,9 +25,9 @@
 ** 安装
    
    #+BEGIN_SRC sh
-     sudo yaourt -S fcitx-im
+     yaourt -S fcitx-im fcitx-configtool
      ln -s /etc/xdg/autostart/fcitx-autostart.desktop  ~/.config/autostart/
-   #+END_SRC  
+   #+END_SRC
 
 ** 配置
 
@@ -61,7 +61,21 @@
      SwitchPreedit=
    #+end_src
    这是因为 fcitx 的配置如果为默认值，则直接注释掉，重启 fcitx 生效配置。
-  
+
+   禁用 =Clipboard= 扩展，已知该插件会导致在 Emacs 中全选以及拷贝大量内容时卡死，
+   见 [[https://emacs-china.org/t/topic/4557/66][linux gnome 下 全选整个大于1万行的buffer 卡死 - Emacs-general - Emacs China]]
+
+** 重装
+
+   万一 =fcitx= 无论如何都用不了，则先卸载 =fcitx= 并清除配置文件
+
+   #+begin_src sh
+     yaourt --remove fcitx-configtool fcitx-im
+     rm -rf ~/.config/fcitx
+   #+end_src
+
+   然后再安装设置 =fcitx= 。
+
 * DONE Archlinux下安装cups打印系统                                :linux:
    CLOSED: <2013-03-27 三 21:56>
 
@@ -13940,7 +13954,7 @@ class RedisShard {
          fprintf(stderr, "error: buffer size not enough\n");
          return;
      }
-     n += pos;
+     pos += n;
 
      n = snprintf(buffer + pos, sizeof(buffer) - pos, "%s", " snprintf");
      if (n >= sizeof(buffer) - pos) {
@@ -13948,7 +13962,7 @@ class RedisShard {
          fprintf(stderr, "error: buffer size not enough\n");
          return;
      }
-     n += pos;
+     pos += n;
    #+end_src
 
    下次在代码里，当你看到有人用 snprintf 进行”漂亮“的拼接，相信你会从”哇“改口为”操“了。
@@ -14551,11 +14565,14 @@ class RedisShard {
    or
 
     struct sigaction act;
+
     act.sa_handler = something;
+
     act.sa_flags = SA_NOCLDWAIT;
+
     sigaction (SIGCHLD, &act, NULL);
 
-and as a result it will not hear about deceased children, and children will not be transformed into zombies. Note that the default action for SIGCHLD is to ignore this signal; nevertheless signal(SIGCHLD, SIG_IGN) has effect, namely that of preventing the transformation of children into zombies. In this situation, if the parent does a wait(), this call will return only when all children have exited, and then returns -1 with errno set to ECHILD.
+   and as a result it will not hear about deceased children, and children will not be transformed into zombies. Note that the default action for SIGCHLD is to ignore this signal; nevertheless signal(SIGCHLD, SIG_IGN) has effect, namely that of preventing the transformation of children into zombies. In this situation, if the parent does a wait(), this call will return only when all children have exited, and then returns -1 with errno set to ECHILD.
    #+end_quote
 
    system(3) 调用 waitpid(3) 时，子进程已经被系统自动回收，消失得无影无踪，也就取不到子进程的返回值。
@@ -19638,3 +19655,126 @@ NDK 提供了创建独立工具链的工具，对于移植使用 GNU Autotools �
    - [[https://stackoverflow.com/questions/10380422/android-static-linking-vs-dynamic-linking-against-glibc][Android Static Linking vs Dynamic Linking against glibc - Stack Overflow]]
 
    - [[https://stackoverflow.com/questions/27082959/gcc-static-and-pie-are-incompatible-for-x86][android 5.0 lollipop - GCC: -static and -pie are incompatible for x86? - Stack Overflow]]
+
+* DONE Archlinux 手工安装 AUR 包                                      :linux:
+  CLOSED: [2019-01-28 Mon 15:19]
+
+以 ~libfprint-git~ 包为例。
+
+- 下载包信息
+
+  #+begin_src sh
+    yaourt -G libfprint-git
+    cd libfprint-git
+  #+end_src
+
+- 修改包信息
+
+  可编辑 ~PKGBUILD~ 文件，如 ~source~ 指定 ~branch~
+
+  #+begin_src sh
+    source=("git+https://gitlab.freedesktop.org/libfprint/libfprint.git")
+  #+end_src
+
+  改为
+
+  #+begin_src sh
+    source=("git+https://gitlab.freedesktop.org/libfprint/libfprint.git#branch=wip/hadess/too-many-minutiae")
+  #+end_src
+
+- 下载包源代码
+
+#+begin_src sh
+    makepkg -sr --nobuild
+#+end_src
+
+- 修改源代码
+
+- 编译安装修改后的包
+
+  #+begin_src sh
+    makepkg -ei
+  #+end_src
+
+- 参考
+
+  [[https://wiki.archlinux.org/index.php/Makepkg][makepkg - ArchWiki]]
+
+  [[https://jlk.fjfi.cvut.cz/arch/manpages/man/PKGBUILD.5][PKGBUILD(5) — Arch manual pages]]
+
+  [[https://linuxtoy.org/archives/archlinux-pkgbuild-aur-and-abs.html][Archlinux 的灵魂──PKGBUILD、AUR 和 ABS (1) · LinuxTOY]]
+
+* DONE 程序员的书单                                                 :reading:
+  CLOSED: [2019-01-28 Mon 15:18]
+
+虽然下面所列的部分书籍中文译本的质量也非常高，有兴趣可以尝试阅读英文原版，因为最
+新的技术资料基本上都是英文的，培养英文阅读能力至关重要。
+
+** 编程开发基础
+
+- 《代码大全》
+
+如果你不清楚什么代码是好的，而只是一味只知道模仿同事的代码，那就一定不要错过代码
+大全。
+
+** 系统开发基础
+
+- 《UNIX 环境高级编程》
+
+世界在变，而 C 和 UNIX（LINUX）却一直是软件世界的基石。
+
+** 应用开发语言
+
+精通一门应用开发语言。
+
+*** Go
+
+- 《The Go Programming Language》
+
+- 《Concurrency in Go》
+
+*** Node.js
+
+- 《[[https://nodejs.org/api/all.html][Node.js Documentation]]》
+
+*** Rust
+
+- 《[[https://doc.rust-lang.org/rust-by-example/index.html][Rust by Example]]》
+
+*** C++
+
+- 《Effective C++》
+
+- 《Effective Modern C++》
+
+* DONE 使用 deprecated 声明防止开发人员使用危险的系统函数           :linux:c:
+  CLOSED: [2019-01-28 Mon 15:19]
+
+在 linux 下开发时有一些系统函数初看起来很易用，其实却非常危险，比如 ~dirname~ 和
+~basename~ ，其中 ~dirname~ 用来获取路径除去文件名的部分， ~basename~ 用来获取文
+件名部分，函数原型定义如下：
+
+#+begin_src c
+  char *dirname(char *path);
+  char *basename(char *path);
+#+end_src
+
+从原型可以初步看出，很难有安全的实现方式，要么直接修改参数 ~path~ ，要么返回一个
+新的 buffer 存放获取到的文件路径部分，没有标准来明确应该使用哪种实现方式。
+
+也就是说这两个函数是有负作用的，并没有想像中的那么易用。而开发人员在开发过程中很
+容易就忽略了它的负作用，导致未定义的行为。
+
+对于一个有大量开发人员参与的项目，很难防止开发人员误用这些系统函数，加强对开发人
+员的教育以及代码 review 可以减少危险，但是无法从根本上解决问题。
+
+一个比较好的方式添加 deprecated 声明，项目代码中一旦用到这些函数则报编译告警。以
+~basename~ 为例，在项目通用的头文件中添加 deprecated 声明：
+
+#+begin_src c
+ __attribute__ ((deprecated))
+char *dirname(char *path);
+#+end_src
+
+所有用到 ~dirname~ 的地方都会编译告警，开发人员通过使用安全版本的系统函数（如：
+~dirname_r~ ）来修复编译告警。

@@ -31,9 +31,9 @@
       
         <div class="article-content">
           
-<div id="outline-container-orga9c88c0" class="outline-2">
-<h2 id="orga9c88c0">跨机房 redis 访问性能堪忧</h2>
-<div class="outline-text-2" id="text-orga9c88c0">
+<div id="outline-container-orgaf5ce92" class="outline-2">
+<h2 id="orgaf5ce92">跨机房 redis 访问性能堪忧</h2>
+<div class="outline-text-2" id="text-orgaf5ce92">
 <p>
 线上服务运行结果显示跨机房相对不跨机房，一个 redis 长连接上的 QPS 会低一个数量级： <code>50</code> vs <code>640</code> 。
 这是因为 Redis 的请求-响应是串行的，网络时延会对 QPS 造成巨大的响应。
@@ -42,9 +42,9 @@
 </div>
 </div>
 
-<div id="outline-container-orga9531f8" class="outline-2">
-<h2 id="orga9531f8"><a href="https://github.com/luin/ioredis/">ioredis</a> 支持按角色（Role）进行连接</h2>
-<div class="outline-text-2" id="text-orga9531f8">
+<div id="outline-container-orgb2baa12" class="outline-2">
+<h2 id="orgb2baa12"><a href="https://github.com/luin/ioredis/">ioredis</a> 支持按角色（Role）进行连接</h2>
+<div class="outline-text-2" id="text-orgb2baa12">
 <p>
 引用自 <a href="https://github.com/luin/ioredis/">ioredis</a>
 </p>
@@ -68,9 +68,9 @@ It's possible to connect to a slave instead of a master by specifying the option
 </div>
 </div>
 
-<div id="outline-container-org857f301" class="outline-2">
-<h2 id="org857f301"><a href="https://github.com/luin/ioredis/">ioredis</a> 会随机选择一个 Slave</h2>
-<div class="outline-text-2" id="text-org857f301">
+<div id="outline-container-org8f35809" class="outline-2">
+<h2 id="org8f35809"><a href="https://github.com/luin/ioredis/">ioredis</a> 会随机选择一个 Slave</h2>
+<div class="outline-text-2" id="text-org8f35809">
 <p>
 引用自 ioredis/lib/connectors/sentinel_connector.js
 </p>
@@ -100,9 +100,9 @@ It's possible to connect to a slave instead of a master by specifying the option
 </div>
 </div>
 
-<div id="outline-container-org8aa4506" class="outline-2">
-<h2 id="org8aa4506">判断本地还是异地的算法</h2>
-<div class="outline-text-2" id="text-org8aa4506">
+<div id="outline-container-org956404c" class="outline-2">
+<h2 id="org956404c">判断本地还是异地的算法</h2>
+<div class="outline-text-2" id="text-org956404c">
 <p>
 按 IP 地址进行推断，前 N 段一样则认为是本地。
 </p>
@@ -113,9 +113,9 @@ It's possible to connect to a slave instead of a master by specifying the option
 </div>
 </div>
 
-<div id="outline-container-org9d254a6" class="outline-2">
-<h2 id="org9d254a6">redis 至少要求 2.8.12</h2>
-<div class="outline-text-2" id="text-org9d254a6">
+<div id="outline-container-orgad4b96d" class="outline-2">
+<h2 id="orgad4b96d">redis 至少要求 2.8.12</h2>
+<div class="outline-text-2" id="text-orgad4b96d">
 <p>
 redis 2.8.12 实现了一个特性：当 failover （redis 角色变化）后，断开所有 client 的连接。
 </p>
@@ -134,9 +134,9 @@ redis 2.8.12 实现了一个特性：当 failover （redis 角色变化）后，
 </div>
 </div>
 
-<div id="outline-container-org3d9e7b4" class="outline-2">
-<h2 id="org3d9e7b4">在 &lt;2.4.0 的 ioredis 上实现优先选择本地 Slave</h2>
-<div class="outline-text-2" id="text-org3d9e7b4">
+<div id="outline-container-orgd9924dc" class="outline-2">
+<h2 id="orgd9924dc">在 &lt;2.4.0 的 ioredis 上实现优先选择本地 Slave</h2>
+<div class="outline-text-2" id="text-orgd9924dc">
 <p>
 相关讨论
 </p>
@@ -279,9 +279,9 @@ preferredSlaves 选项已经在 2.4.0 版实现，下面的代码在旧版本 io
 </div>
 </div>
 
-<div id="outline-container-orgb21678a" class="outline-2">
-<h2 id="orgb21678a">在 &lt;2.4.0 的 ioredis 上实现优先选择本地结点</h2>
-<div class="outline-text-2" id="text-orgb21678a">
+<div id="outline-container-org8fb827a" class="outline-2">
+<h2 id="org8fb827a">在 &lt;2.4.0 的 ioredis 上实现优先选择本地结点</h2>
+<div class="outline-text-2" id="text-org8fb827a">
 <p>
 假设 redis 是以 1 Master + 1 Slave 方式进行跨机房部署，那么我们希望实现优先连接本地结点（忽略其角色），
 连接成功后该连接可能是 Master 也可能是 Slave，我们把它当 Slave 用准没错。
@@ -456,9 +456,9 @@ preferredSlaves 选项已经在 2.4.0 版实现，下面的代码依赖之前的
 </div>
 </div>
 
-<div id="outline-container-org77eee99" class="outline-2">
-<h2 id="org77eee99">在 2.4.x 的 ioredis 上实现优先选择本地结点（使用 preferredSlaves）</h2>
-<div class="outline-text-2" id="text-org77eee99">
+<div id="outline-container-org66ea29d" class="outline-2">
+<h2 id="org66ea29d">在 2.4.x 的 ioredis 上实现优先选择本地结点（使用 preferredSlaves）</h2>
+<div class="outline-text-2" id="text-org66ea29d">
 <p>
 具体实现以及用法请参考 gist <a href="https://gist.github.com/tangxinfa/3361a11acf2270e8388b43bfcb25ce0e">Connect redis with Minimum Distance First(MDF) algorithm</a> ，使用 preferredSlaves 选项实现，要求 ioredis 版本至少为 2.4.0 。在 ioredis 上做了一层封装，使用 ioredis 的方式需要改变，没有侵入 ioredis 的代码。
 </p>
@@ -488,9 +488,9 @@ preferredSlaves 选项已经在 2.4.0 版实现，下面的代码依赖之前的
 </div>
 </div>
 
-<div id="outline-container-org26959c0" class="outline-2">
-<h2 id="org26959c0">在 2.4.x 的 ioredis 上实现优先选择本地结点（不使用 preferredSlaves）</h2>
-<div class="outline-text-2" id="text-org26959c0">
+<div id="outline-container-orgcdbb61a" class="outline-2">
+<h2 id="orgcdbb61a">在 2.4.x 的 ioredis 上实现优先选择本地结点（不使用 preferredSlaves）</h2>
+<div class="outline-text-2" id="text-orgcdbb61a">
 <p>
 具体实现以及用法请参考 github 仓库 <a href="https://github.com/tangxinfa/ioredis_sentinel_connector">https://github.com/tangxinfa/ioredis_sentinel_connector</a> ，要求 ioredis 版本为 2.4.x。
 </p>
