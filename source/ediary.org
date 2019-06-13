@@ -19690,10 +19690,18 @@ NDK 提供了创建独立工具链的工具，对于移植使用 GNU Autotools �
 
 - 修改源代码
 
+  修改 ~src/libfprint~ 下的项目源代码文件
+
 - 编译安装修改后的包
 
   #+begin_src sh
     makepkg -ei
+  #+end_src
+
+  如果之前有编译出包，需要将它删除，否则不会重新编译而是安装之前的包
+
+  #+begin_src sh
+    rm libfprint-git-*-x86_64.pkg.tar.xz
   #+end_src
 
 - 参考
@@ -19747,6 +19755,12 @@ NDK 提供了创建独立工具链的工具，对于移植使用 GNU Autotools �
 
 - 《Effective Modern C++》
 
+** 业务开发之道
+
+- 《领域驱动设计》
+
+- 《实现领域驱动设计》
+
 * DONE 使用 deprecated 声明防止开发人员使用危险的系统函数           :linux:c:
   CLOSED: [2019-01-28 Mon 15:19]
 
@@ -19778,3 +19792,188 @@ char *dirname(char *path);
 
 所有用到 ~dirname~ 的地方都会编译告警，开发人员通过使用安全版本的系统函数（如：
 ~dirname_r~ ）来修复编译告警。
+
+* DONE 在 PHP 使用 Protobuf Buffers 有性能问题                 :protobuf:php:
+  CLOSED: [2019-06-11 Tue 19:41]
+  [2019-06-11 Tue]
+
+  [[https://github.com/protocolbuffers/protobuf/][Protocol Buffers]] 是一种应用广泛的数据交换格式，内部服务间通信时常常用它做为数
+  据传输格式，主要是因为较之 Json 它具有更好的性能（体现在空间占用更少、编解码更
+  快）、数据结构定义更规范。
+　
+  然而在 PHP 中使用 [[https://github.com/protocolbuffers/protobuf/][Protocol Buffers]] 却是一场灾难。
+
+** [[https://github.com/protocolbuffers/protobuf/][Protocol Buffers]] 初始化是很慢的
+
+   通过 ~protoc~ 编译出来的骨架代码本质上只是将 ~proto~ 文件编译成方便解析的中间
+   文件格式，建立 PHP 层对应的类型系统，大部分工作在运行时。
+
+   参考 [[https://github.com/protocolbuffers/protobuf/issues/4227][php performance problem · Issue #4227 · protocolbuffers/protobuf]]
+
+   使用 [[https://github.com/phacility/xhprof][XHProf]] 分析实际的请求，发现 ~40%~ 的时间（133 毫秒）花在了初始化上
+
+   使用的是 [[https://github.com/protocolbuffers/protobuf/][Protocol Buffers]] 的 PHP 实现，耗时的调用栈如下
+
+   #+BEGIN_EXAMPLE
+     PaymentEvent::__construct
+       GPBMetadata\PaymentEvent::initOnce
+         Google\Protobuf\Internal\DescriptorPool::internalAddGeneratedFile
+   #+END_EXAMPLE
+
+   使用本文末尾的测试项目对 C 扩展和 PHP 实现进行性能对比可以确认 C 扩展的性能是
+   PHP 实现的 ~10~ 倍以上。
+
+   但是无论是 C 扩展和 PHP 实现，耗时都是毫秒级别，主要的时间都花在了纯 CPU 计算
+   代码部分 ~internalAddGeneratedFile~ ，而且很可能会随着 ~Proto~ 数的增加而线性
+   增长，CPU 占用会很高。
+
+** [[https://github.com/protocolbuffers/protobuf/][Protocol Buffers]] 的 C 扩展不稳定
+
+   线上系统跑久了 php-fpm 进程的内存和 CPU 占用会升高，估计是有 C 扩展有内存泄露。
+
+** [[https://github.com/protocolbuffers/protobuf/][Protocol Buffers]] 性能问题对 PHP 应用的影响是巨大的
+
+   其它语言(如：Go、C++)程序是常驻内存运行的，初始化 Protocol Buffers 的开销只付
+   出一次，所以往往意识不到这个问题。
+
+   PHP 采用 ~FastCGI~ 模型，每次请求都要承担 Protocol Buffers 的开销，很快就会发
+   现采用 Protocol Buffers 后接口响应时间变长，系统的吞吐率下降。
+
+** PHP 实现与 C 扩展的性能对比
+
+- Protocol Buffers C 扩展的安装 
+
+  #+BEGIN_SRC sh
+    sudo pecl install protobuf-3.7.0
+  #+END_SRC
+
+- Protocol Buffers C 扩展的启用与禁用
+
+  在 ~php.ini~ 加入以下配置项启用 C 扩展
+  
+  #+BEGIN_SRC sh
+    extension=protobuf.so
+  #+END_SRC
+
+  注释掉上面的配置项禁用 C 扩展。
+
+- 创建性能测试 PHP 项目
+
+  进入项目目录
+
+  创建 ~composer.json~ 文件，内容如下
+
+  #+BEGIN_SRC json
+    {
+        "require": {
+            "google/protobuf": "3.7.0"
+        }
+    }
+  #+END_SRC
+  
+  创建 ~index.php~ 文件，内容如下
+
+  #+BEGIN_SRC php
+    <?php
+    $startTime = microtime(true);
+
+    require __DIR__ . '/vendor/autoload.php';
+    require __DIR__ . '/generated/GPBMetadata/Addressbook.php';
+    require __DIR__ . '/generated/Tutorial/AddressBook.php';
+    require __DIR__ . '/generated/Tutorial/Person.php';
+    require __DIR__ . '/generated/Tutorial/Person/PhoneType.php';
+    require __DIR__ . '/generated/Tutorial/Person/PhoneNumber.php';
+
+    $addressBook = new Tutorial\AddressBook();
+
+    $person = new Tutorial\Person();
+    $person->setId(1);
+    $person->setName("user1");
+    $person->setEmail("user1@example.com");
+    $phone = new Tutorial\Person\PhoneNumber();
+    $phone->setType(Tutorial\Person\PhoneType::HOME);
+    $phone->setNumber("1000001");
+    $person->getPhones()[] = $phone;
+    $addressBook->getPeople()[] = $person;
+
+    $person = new Tutorial\Person();
+    $person->setId(2);
+    $person->setName("user2");
+    $person->setEmail("user2@example.com");
+    $phone = new Tutorial\Person\PhoneNumber();
+    $phone->setType(Tutorial\Person\PhoneType::HOME);
+    $phone->setNumber("2000002");
+    $person->getPhones()[] = $phone;
+    $addressBook->getPeople()[] = $person;
+
+    $person = new Tutorial\Person();
+    $person->setId(3);
+    $person->setName("user3");
+    $person->setEmail("user3@example.com");
+    $phone = new Tutorial\Person\PhoneNumber();
+    $phone->setType(Tutorial\Person\PhoneType::HOME);
+    $phone->setNumber("3000003");
+    $person->getPhones()[] = $phone;
+    $addressBook->getPeople()[] = $person;
+
+    $data = $addressBook->serializeToString();
+
+    $endTime = microtime(true);
+    $runTime = ($endTime-$startTime)*1000 . ' ms';
+
+    $class = new ReflectionClass('Google\Protobuf\Internal\DescriptorPool');
+    if ($class->getFileName()) {
+        echo "protobuf-php $runTime\n";
+    } else {
+        echo "protobuf-c   $runTime\n";
+    }
+  #+END_SRC
+
+  创建 ~Makefile~ 内容如下
+
+  #+BEGIN_SRC makefile
+    all: install generate benchmark
+
+    install: vendor
+
+    vendor: composer.json
+        composer install
+
+    generate: generated/GPBMetadata
+
+    generated/GPBMetadata: addressbook.proto
+        -mkdir generated
+        protoc --php_out=generated addressbook.proto
+
+    benchmark:
+        php index.php | tee -a ./benchmark.log
+
+    addressbook.proto:
+        wget https://raw.githubusercontent.com/protocolbuffers/protobuf/master/examples/addressbook.proto -O ${CURDIR}/addressbook.proto
+
+    clean:
+        -rm -rf ${CURDIR}/vendor ${CURDIR}/generated
+  #+END_SRC
+
+- 运行性能测试
+
+  #+BEGIN_SRC sh
+    make
+  #+END_SRC
+
+  交替启用禁用 C 扩展的运行结果
+
+  #+BEGIN_EXAMPLE
+    protobuf-c   2.335 ms
+    protobuf-php 29.14 ms
+    protobuf-c   2.443 ms
+    protobuf-php 27.962 ms
+    protobuf-c   2.238 ms
+    protobuf-php 14.957 ms
+    protobuf-c   2.221 ms
+    protobuf-php 29.814 ms
+    protobuf-c   2.295 ms
+    protobuf-php 29.304 ms
+    protobuf-c   2.435 ms
+    protobuf-php 37.493 ms
+  #+END_EXAMPLE

@@ -31,16 +31,12 @@
       
         <div class="article-content">
           <p>
-在web页面通过iframe跨域登录访问服务的情况下，是不方便取cookie中的sessionid的，于是想到将sessionid直接放到响应体中，
-这就需要在node.js中直接获取connect.sid这个cookie值，一开始想当然地以为系统（使用的是passport.js）会在登录认证通过后
-执行res.cookie('connect.sid', &#x2026;)进行设置，就想直接从res的Set-Cookie头解析出设置的值，结果发现这个cookie压根不存在，
-甚至在库代码中搜索cookie都不管用，着实急得人直抓头。最后dump出res后确在req中见到了connect.sid值的影子：req.sessionID，
-然后在 <a href="http://stackoverflow.com/questions/13693101/express-sessionid-differs-from-sessionid-in-cookie">《Express SessionID differs from SessionID in Cookie》</a> 中找到了从req.sessionID计算出connect.sid的方法：
+在web页面通过iframe跨域登录访问服务的情况下，是不方便取cookie中的sessionid的，于是想到将sessionid直接放到响应体中，这就需要在node.js中直接获取connect.sid这个cookie值，一开始想当然地以为系统（使用的是passport.js）会在登录认证通过后执行res.cookie('connect.sid', &#x2026;)进行设置，就想直接从res的Set-Cookie头解析出设置的值，结果发现这个cookie压根不存在，甚至在库代码中搜索cookie都不管用，着实急得人直抓头。最后dump出res后确在req中见到了connect.sid值的影子：req.sessionID，然后在 <a href="http://stackoverflow.com/questions/13693101/express-sessionid-differs-from-sessionid-in-cookie">《Express SessionID differs from SessionID in Cookie》</a> 中找到了从req.sessionID计算出connect.sid的方法：
 </p>
 
 <div class="org-src-container">
-<pre class="src src-js"><span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">signature</span> = require(<span style="color: #8abeb7;">'express/node_modules/cookie-signature'</span>);
-<span style="color: #b5bd68;">var</span> <span style="color: #f0c674;">connectSid</span> = <span style="color: #8abeb7;">'s:'</span> + signature.sign(req.sessionID, sessionOptions.secret);
+<pre class="src src-js"><span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">signature</span> = require(<span style="color: #4E9A06;">'express/node_modules/cookie-signature'</span>);
+<span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">connectSid</span> = <span style="color: #4E9A06;">'s:'</span> + signature.sign(req.sessionID, sessionOptions.secret);
 </pre>
 </div>
 

@@ -42,9 +42,9 @@
 统计了一下 <code>10</code> 万个fd都耗光了，其中 <code>9</code> 万多个为 <code>CLOSE_WAIT</code> 状态，此时服务器已经无法响应请求。
 </p>
 
-<div id="outline-container-org0bba808" class="outline-2">
-<h2 id="org0bba808">CLOSE_WAIT 状态介绍</h2>
-<div class="outline-text-2" id="text-org0bba808">
+<div id="outline-container-org7f30bc1" class="outline-2">
+<h2 id="org7f30bc1">CLOSE_WAIT 状态介绍</h2>
+<div class="outline-text-2" id="text-org7f30bc1">
 <p>
 先看一副TCP连接关闭的状态图（ <a href="http://intronetworks.cs.luc.edu/current/html/tcp.html#index-29">来源</a> ）：
 </p>
@@ -81,12 +81,11 @@
 </div>
 </div>
 
-<div id="outline-container-orgb400196" class="outline-2">
-<h2 id="orgb400196">内存及CPU占用彪升问题</h2>
-<div class="outline-text-2" id="text-orgb400196">
+<div id="outline-container-org3ecf32b" class="outline-2">
+<h2 id="org3ecf32b">内存及CPU占用彪升问题</h2>
+<div class="outline-text-2" id="text-org3ecf32b">
 <p>
-伴随着 CLOSE_WAIT 出现的状况是 node.js 进程内存及CPU占用超高，单node.js进程内存占用达到 1.5G，CPU占用 90% 以上，此时应该会导致 node.js 响应慢，
-来不及关闭连上来的socket。
+伴随着 CLOSE_WAIT 出现的状况是 node.js 进程内存及CPU占用超高，单node.js进程内存占用达到 1.5G，CPU占用 90% 以上，此时应该会导致 node.js 响应慢，来不及关闭连上来的socket。
 </p>
 
 <p>
@@ -94,18 +93,16 @@
 </p>
 
 <p>
-想到的可能是redis负载过高引起，从运维监控图上可以看出一些蹊跷，node.js出问题时redis的连接数也同样彪升，而出问题的机器上刚好就是跑redis的机器，
-另一台服务器一直相安无事，没有跑redis。
+想到的可能是redis负载过高引起，从运维监控图上可以看出一些蹊跷，node.js出问题时redis的连接数也同样彪升，而出问题的机器上刚好就是跑redis的机器，另一台服务器一直相安无事，没有跑redis。
 </p>
 </div>
 </div>
 
-<div id="outline-container-org725d144" class="outline-2">
-<h2 id="org725d144">一次午夜故障元凶浮出水面</h2>
-<div class="outline-text-2" id="text-org725d144">
+<div id="outline-container-org2286701" class="outline-2">
+<h2 id="org2286701">一次午夜故障元凶浮出水面</h2>
+<div class="outline-text-2" id="text-org2286701">
 <p>
-在晚上两点的时候服务出现问题，同样的现象，特别留意了一下redis的统计，请求速度很低，只有1200，平时都是5000。偶然在进程列表中发现了 redis-rdb-bgsave 的身影，
-不断地执行ps看进程列表，发现 redis-rdb-bgsave 进程不断地出现，查看redis的持久化配置如下：
+在晚上两点的时候服务出现问题，同样的现象，特别留意了一下redis的统计，请求速度很低，只有1200，平时都是5000。偶然在进程列表中发现了 redis-rdb-bgsave 的身影，不断地执行ps看进程列表，发现 redis-rdb-bgsave 进程不断地出现，查看redis的持久化配置如下：
 </p>
 
 <pre class="example">
@@ -136,9 +133,9 @@ config set save "900 1"
 </div>
 </div>
 
-<div id="outline-container-org8d6a397" class="outline-2">
-<h2 id="org8d6a397">更多疑问</h2>
-<div class="outline-text-2" id="text-org8d6a397">
+<div id="outline-container-org810653f" class="outline-2">
+<h2 id="org810653f">更多疑问</h2>
+<div class="outline-text-2" id="text-org810653f">
 <ul class="org-ul">
 <li>我们的node.js进程为什么常常会占用很多内存？</li>
 

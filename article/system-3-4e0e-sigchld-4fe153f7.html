@@ -35,15 +35,15 @@ system(3) 常用于执行 shell 命令
 </p>
 
 <div class="org-src-container">
-<pre class="src src-c"><span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;stdlib.h&gt;</span>
-<span style="color: #b294bb;">#include</span> <span style="color: #8abeb7;">&lt;stdio.h&gt;</span>
+<pre class="src src-c"><span style="color: #A020F0;">#include</span> <span style="color: #4E9A06;">&lt;stdlib.h&gt;</span>
+<span style="color: #A020F0;">#include</span> <span style="color: #4E9A06;">&lt;stdio.h&gt;</span>
 
 
-<span style="color: #81a2be;">int</span> <span style="color: #de935f;">main</span>(<span style="color: #81a2be;">int</span> <span style="color: #f0c674;">argc</span>, <span style="color: #81a2be;">char</span> *<span style="color: #f0c674;">argv</span>[])
+<span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #00578E; font-weight: bold;">main</span>(<span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #0084C8; font-weight: bold;">argc</span>, <span style="color: #2F8B58; font-weight: bold;">char</span> *<span style="color: #0084C8; font-weight: bold;">argv</span>[])
 {
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">ret</span> = system(<span style="color: #8abeb7;">"ls -la"</span>);
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> printf(<span style="color: #8abeb7;">"ret: %d\n"</span>, ret);
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #b5bd68;">return</span> ret;
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #0084C8; font-weight: bold;">ret</span> = system(<span style="color: #4E9A06;">"ls -la"</span>);
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> printf(<span style="color: #4E9A06;">"ret: %d\n"</span>, ret);
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">return</span> ret;
 }
 </pre>
 </div>
@@ -104,22 +104,21 @@ system(3) 在执行的命令结束时会发出 SIGCHLD 信号，收到 SIGCHLD �
 </p>
 
 
-<div id="outline-container-org4781500" class="outline-2">
-<h2 id="org4781500">在整个应用中忽略 SIGCHLD 信号会导致获取不到子进程退出码</h2>
-<div class="outline-text-2" id="text-org4781500">
+<div id="outline-container-org033d170" class="outline-2">
+<h2 id="org033d170">在整个应用中忽略 SIGCHLD 信号会导致获取不到子进程退出码</h2>
+<div class="outline-text-2" id="text-org033d170">
 <p>
 在应用程序最开始的时候（main 函数），添加以下语句
 </p>
 
 <div class="org-src-container">
-<pre class="src src-c"><span style="color: #de935f;">signal</span>(<span style="color: #81a2be;">SIGCHLD</span>, <span style="color: #81a2be;">SIG_IGN</span>);
+<pre class="src src-c"><span style="color: #00578E; font-weight: bold;">signal</span>(<span style="color: #2F8B58; font-weight: bold;">SIGCHLD</span>, <span style="color: #2F8B58; font-weight: bold;">SIG_IGN</span>);
 </pre>
 </div>
 
 <p>
 子线程会继承主线程的信号处理，也就不会导致系统调用被中断。
-signal(3) 设置的是整个进程的信号处理，由所有线程共享，千万不要以为子线程继承设置后就跟主线程没有关系了，
-只有程序中有代码动了 SIGCHLD 的处置方式，所有线程都会受影响。
+signal(3) 设置的是整个进程的信号处理，由所有线程共享，千万不要以为子线程继承设置后就跟主线程没有关系了，只有程序中有代码动了 SIGCHLD 的处置方式，所有线程都会受影响。
 </p>
 
 <p>
@@ -181,21 +180,21 @@ system(3) 调用 waitpid(3) 时，子进程已经被系统自动回收，消失�
 </p>
 </div>
 
-<div id="outline-container-orgd15ad53" class="outline-3">
-<h3 id="orgd15ad53">使用 popen(3)/pclose(3) 来代替 system(3) 通过分析标准输出来判断命令执行是否成功</h3>
-<div class="outline-text-3" id="text-orgd15ad53">
+<div id="outline-container-orgc2cefc0" class="outline-3">
+<h3 id="orgc2cefc0">使用 popen(3)/pclose(3) 来代替 system(3) 通过分析标准输出来判断命令执行是否成功</h3>
+<div class="outline-text-3" id="text-orgc2cefc0">
 <div class="org-src-container">
-<pre class="src src-c"><span style="color: #81a2be;">int</span> <span style="color: #de935f;">system2</span>(<span style="color: #b5bd68;">const</span> <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">command</span>, <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">output</span>, <span style="color: #81a2be;">size_t</span> <span style="color: #f0c674;">output_size</span>)
+<pre class="src src-c"><span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #00578E; font-weight: bold;">system2</span>(<span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #2F8B58; font-weight: bold;">char</span>* <span style="color: #0084C8; font-weight: bold;">command</span>, <span style="color: #2F8B58; font-weight: bold;">char</span>* <span style="color: #0084C8; font-weight: bold;">output</span>, <span style="color: #2F8B58; font-weight: bold;">size_t</span> <span style="color: #0084C8; font-weight: bold;">output_size</span>)
 {
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #81a2be;">FILE</span>* <span style="color: #f0c674;">p</span> = popen(command, <span style="color: #8abeb7;">"r"</span>);
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #b5bd68;">if</span> (p) {
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> memset(output, <span style="color: #8abeb7;">'\0'</span>, output_size);
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> fread(output, output_size - 1, 1, p);
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> pclose(p);
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #b5bd68;">return</span> 0;
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> }
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #2F8B58; font-weight: bold;">FILE</span>* <span style="color: #0084C8; font-weight: bold;">p</span> = popen(command, <span style="color: #4E9A06;">"r"</span>);
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">if</span> (p) {
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> memset(output, <span style="color: #4E9A06;">'\0'</span>, output_size);
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> fread(output, output_size - 1, 1, p);
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> pclose(p);
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">return</span> 0;
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> }
 
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #b5bd68;">return</span> -1;
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">return</span> -1;
 }
 </pre>
 </div>
@@ -205,11 +204,11 @@ system(3) 调用 waitpid(3) 时，子进程已经被系统自动回收，消失�
 </p>
 
 <div class="org-src-container">
-<pre class="src src-C"><span style="color: #81a2be;">char</span> <span style="color: #f0c674;">output</span>[255];
-<span style="color: #b5bd68;">if</span> (0 == system2(<span style="color: #8abeb7;">"mkdir /test; echo ret=$?"</span>, output, <span style="color: #b5bd68;">sizeof</span>(output)) &amp;&amp; strstr(o<span style="text-decoration: underline;">utput, </span><span style="color: #8abeb7; text-decoration: underline;">"ret=0"</span><span style="text-decoration: underline;">)) {</span>
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> printf(<span style="color: #8abeb7;">"mkdir /test successed"</span>);
-} <span style="color: #b5bd68;">else</span> {
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> printf(<span style="color: #8abeb7;">"mkdir /test failed"</span>);
+<pre class="src src-C"><span style="color: #2F8B58; font-weight: bold;">char</span> <span style="color: #0084C8; font-weight: bold;">output</span>[255];
+<span style="color: #A52A2A; font-weight: bold;">if</span> (0 == system2(<span style="color: #4E9A06;">"mkdir /test; echo ret=$?"</span>, output, <span style="color: #A52A2A; font-weight: bold;">sizeof</span>(output)) &amp;&amp; strstr(o<span style="text-decoration: underline;">utput, </span><span style="color: #4E9A06; text-decoration: underline;">"ret=0"</span><span style="text-decoration: underline;">)) {</span>
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> printf(<span style="color: #4E9A06;">"mkdir /test successed"</span>);
+} <span style="color: #A52A2A; font-weight: bold;">else</span> {
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> printf(<span style="color: #4E9A06;">"mkdir /test failed"</span>);
 }
 </pre>
 </div>
@@ -217,9 +216,9 @@ system(3) 调用 waitpid(3) 时，子进程已经被系统自动回收，消失�
 </div>
 </div>
 
-<div id="outline-container-orgf22069c" class="outline-2">
-<h2 id="orgf22069c">在整个应用中阻塞 SIGCHLD 信号可能导致出现僵尸进程</h2>
-<div class="outline-text-2" id="text-orgf22069c">
+<div id="outline-container-org0799177" class="outline-2">
+<h2 id="org0799177">在整个应用中阻塞 SIGCHLD 信号可能导致出现僵尸进程</h2>
+<div class="outline-text-2" id="text-org0799177">
 <p>
 signal(3) 无法阻塞一个信号，只支持忽略（SIG_IGN）和恢复缺省处理（SIG_DFL）。
 </p>
@@ -233,10 +232,10 @@ signal(3) 无法阻塞一个信号，只支持忽略（SIG_IGN）和恢复缺省
 </p>
 
 <div class="org-src-container">
-<pre class="src src-c"><span style="color: #81a2be;">sigset_t</span> <span style="color: #f0c674;">set</span>;
+<pre class="src src-c"><span style="color: #2F8B58; font-weight: bold;">sigset_t</span> <span style="color: #0084C8; font-weight: bold;">set</span>;
 sigemptyset(&amp;set);
 sigaddset(&amp;set, SIGCHLD);
-<span style="color: #de935f;">pthread_sigmask</span>(<span style="color: #81a2be;">SIG_BLOCK</span>, &amp;set, <span style="color: #81a2be;">NULL</span>);
+<span style="color: #00578E; font-weight: bold;">pthread_sigmask</span>(<span style="color: #2F8B58; font-weight: bold;">SIG_BLOCK</span>, &amp;set, <span style="color: #F5666D;">NULL</span>);
 </pre>
 </div>
 
@@ -262,9 +261,9 @@ system(3) 在替换进程为新程序（execl(3)）之前，会重置为保存�
 </p>
 </div>
 
-<div id="outline-container-orgb3cdb50" class="outline-3">
-<h3 id="orgb3cdb50">在整个应用中阻塞 SIGCHLD 信号会导致一种常用的回收僵尸进程的方法失效</h3>
-<div class="outline-text-3" id="text-orgb3cdb50">
+<div id="outline-container-org9cfd371" class="outline-3">
+<h3 id="org9cfd371">在整个应用中阻塞 SIGCHLD 信号会导致一种常用的回收僵尸进程的方法失效</h3>
+<div class="outline-text-3" id="text-org9cfd371">
 <p>
 <a href="http://www.microhowto.info/howto/reap_zombie_processes_using_a_sigchld_handler.html">Reap zombie processes using a SIGCHLD handler</a> 有详细描述
 </p>
@@ -296,28 +295,28 @@ The method described here has two steps:
 </div>
 </div>
 
-<div id="outline-container-orgac6f582" class="outline-3">
-<h3 id="orgac6f582">在调用 system(3) 前暂时取消对 SIGCHLD 的阻塞</h3>
-<div class="outline-text-3" id="text-orgac6f582">
+<div id="outline-container-org054039b" class="outline-3">
+<h3 id="org054039b">在调用 system(3) 前暂时取消对 SIGCHLD 的阻塞</h3>
+<div class="outline-text-3" id="text-org054039b">
 <div class="org-src-container">
-<pre class="src src-C"><span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">&#23553;&#35013; system(3) &#65292;&#19968;&#26041;&#38754;&#36991;&#20813;&#20013;&#26029;&#31995;&#32479;&#35843;&#29992;&#65292;&#21478;&#19968;&#26041;&#38754;&#36991;&#20813;&#20986;&#29616;&#20725;&#23608;&#23385;&#36827;&#31243;.</span>
-<span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">&#35831;&#35760;&#24471;&#20840;&#23616;&#22581;&#22622; SIGCHLD &#20449;&#21495;.</span>
-<span style="color: #81a2be;">int</span> <span style="color: #de935f;">system2</span>(<span style="color: #b5bd68;">const</span> <span style="color: #81a2be;">char</span>* <span style="color: #f0c674;">command</span>)
+<pre class="src src-C"><span style="color: #204A87;">// </span><span style="color: #204A87;">&#23553;&#35013; system(3) &#65292;&#19968;&#26041;&#38754;&#36991;&#20813;&#20013;&#26029;&#31995;&#32479;&#35843;&#29992;&#65292;&#21478;&#19968;&#26041;&#38754;&#36991;&#20813;&#20986;&#29616;&#20725;&#23608;&#23385;&#36827;&#31243;.</span>
+<span style="color: #204A87;">// </span><span style="color: #204A87;">&#35831;&#35760;&#24471;&#20840;&#23616;&#22581;&#22622; SIGCHLD &#20449;&#21495;.</span>
+<span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #00578E; font-weight: bold;">system2</span>(<span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #2F8B58; font-weight: bold;">char</span>* <span style="color: #0084C8; font-weight: bold;">command</span>)
 {
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">&#35843;&#29992; system(3) &#21069;&#21462;&#28040;&#23545; SIGCHLD &#30340;&#38459;&#22622;</span>
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #81a2be;">sigset_t</span> <span style="color: #f0c674;">set</span>;
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> sigemptyset(&amp;set);
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> sigaddset(&amp;set, SIGCHLD);
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> pthread_sigmask(SIG_UNBLOCK, &amp;set, <span style="color: #81a2be;">NULL</span>);
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #204A87;">// </span><span style="color: #204A87;">&#35843;&#29992; system(3) &#21069;&#21462;&#28040;&#23545; SIGCHLD &#30340;&#38459;&#22622;</span>
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #2F8B58; font-weight: bold;">sigset_t</span> <span style="color: #0084C8; font-weight: bold;">set</span>;
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> sigemptyset(&amp;set);
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> sigaddset(&amp;set, SIGCHLD);
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> pthread_sigmask(SIG_UNBLOCK, &amp;set, <span style="color: #F5666D;">NULL</span>);
 
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #81a2be;">int</span> <span style="color: #f0c674;">code</span> = system(command);
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #0084C8; font-weight: bold;">code</span> = system(command);
 
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">&#35843;&#29992; system(3) &#21518;&#24674;&#22797;&#23545; SIGCHLD &#30340;&#38459;&#22622;</span>
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> sigemptyset(&amp;set);
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> sigaddset(&amp;set, SIGCHLD);
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> pthread_sigmask(SIG_BLOCK, &amp;set, <span style="color: #81a2be;">NULL</span>);
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #204A87;">// </span><span style="color: #204A87;">&#35843;&#29992; system(3) &#21518;&#24674;&#22797;&#23545; SIGCHLD &#30340;&#38459;&#22622;</span>
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> sigemptyset(&amp;set);
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> sigaddset(&amp;set, SIGCHLD);
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> pthread_sigmask(SIG_BLOCK, &amp;set, <span style="color: #F5666D;">NULL</span>);
 
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #b5bd68;">return</span> code;
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">return</span> code;
 }
 </pre>
 </div>
@@ -333,9 +332,9 @@ The method described here has two steps:
 </div>
 </div>
 
-<div id="outline-container-orgec3194b" class="outline-2">
-<h2 id="orgec3194b">进程的信号处理状态可在 proc 文件系统看到</h2>
-<div class="outline-text-2" id="text-orgec3194b">
+<div id="outline-container-orgf3b56f1" class="outline-2">
+<h2 id="orgf3b56f1">进程的信号处理状态可在 proc 文件系统看到</h2>
+<div class="outline-text-2" id="text-orgf3b56f1">
 <p>
 如进程 pid 为 5526 ，获取到的进程忽略的信号发下
 </p>
@@ -360,9 +359,9 @@ $ node -e 'console.log((0x0000000000001004).toString(2))'
 </div>
 </div>
 
-<div id="outline-container-orgf737636" class="outline-2">
-<h2 id="orgf737636">参考</h2>
-<div class="outline-text-2" id="text-orgf737636">
+<div id="outline-container-orgb1a13a2" class="outline-2">
+<h2 id="orgb1a13a2">参考</h2>
+<div class="outline-text-2" id="text-orgb1a13a2">
 <ul class="org-ul">
 <li><a href="http://www.linuxprogrammingblog.com/all-about-linux-signals?page=show">All about Linux signals | Linux Programming Blog</a></li>
 </ul>

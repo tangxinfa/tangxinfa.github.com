@@ -4,7 +4,7 @@
         <title>kafka - 看看俺 – KanKanAn.com</title>
         <link>http://blog.kankanan.com/tag/kafka.xml</link>
         <description>记我所思，忆我所为。</description>
-        <lastBuildDate>Mon, 28 Jan 2019 08:38:18 GMT</lastBuildDate>
+        <lastBuildDate>Thu, 13 Jun 2019 03:59:30 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <generator>Feed for Node.js</generator>
         <image>
@@ -20,9 +20,9 @@
             <guid>/article/57fa4e8e-kafka-76846d88606f63a890017cfb7edf8bbe8ba1.html</guid>
             <pubDate>Tue, 19 Sep 2017 07:02:00 GMT</pubDate>
             <content:encoded><![CDATA[
-<div id="outline-container-orgd5ad54b" class="outline-2">
-<h2 id="orgd5ad54b">适用于消息推送系统的 Kafka 特性</h2>
-<div class="outline-text-2" id="text-orgd5ad54b">
+<div id="outline-container-org07977c4" class="outline-2">
+<h2 id="org07977c4">适用于消息推送系统的 Kafka 特性</h2>
+<div class="outline-text-2" id="text-org07977c4">
 <ul class="org-ul">
 <li><p>
 高可用性
@@ -58,18 +58,16 @@ QPS 轻松上万。
 </div>
 
 
-<div id="outline-container-org844f79d" class="outline-2">
-<h2 id="org844f79d">不适用于消息推送系统的 Kafka 特性</h2>
-<div class="outline-text-2" id="text-org844f79d">
+<div id="outline-container-orga9c8660" class="outline-2">
+<h2 id="orga9c8660">不适用于消息推送系统的 Kafka 特性</h2>
+<div class="outline-text-2" id="text-orga9c8660">
 <ul class="org-ul">
 <li><p>
 有限的 Partition 数量
 </p>
 
 <p>
-Partition 是 Kafka 并发的基本单位，创建上万的 Partition 会影响可用性，见
-《<a href="https://www.confluent.io/blog/how-to-choose-the-number-of-topicspartitions-in-a-kafka-cluster/">How to choose the number of topics/partitions in a Kafka cluster? - Confluent</a>》，
-消息推送系统往往用户量巨大（百万＋），意味着不能通过每用户一 Partition 将 Kafka 做为消息的主要存储层。
+Partition 是 Kafka 并发的基本单位，创建上万的 Partition 会影响可用性，见《<a href="https://www.confluent.io/blog/how-to-choose-the-number-of-topicspartitions-in-a-kafka-cluster/">How to choose the number of topics/partitions in a Kafka cluster? - Confluent</a>》，消息推送系统往往用户量巨大（百万＋），意味着不能通过每用户一 Partition 将 Kafka 做为消息的主要存储层。
 </p></li>
 </ul>
 
@@ -80,9 +78,7 @@ Partition 是 Kafka 并发的基本单位，创建上万的 Partition 会影响�
 </p>
 
 <p>
-Kafka 主要用于离线数据处理，数据没有太强的时效要求。
-推送的消息往往有时效性，过期就失去意义了，消息队列堵塞后，
-系统需要将队列中的数据消费掉，才好继续提供服务。
+Kafka 主要用于离线数据处理，数据没有太强的时效要求。推送的消息往往有时效性，过期就失去意义了，消息队列堵塞后，系统需要将队列中的数据消费掉，才好继续提供服务。
 </p></li>
 </ul>
 
@@ -93,9 +89,7 @@ Kafka 主要用于离线数据处理，数据没有太强的时效要求。
 </p>
 
 <p>
-如果一条消息通过消息队列传输到另一个模块进行处理，就很难将处理结果同步地传回调用方。
-使用消息队列就意味着为了知道处理结果，调用方要异步地接收结果通知，也就意味着要唯一地标识请求消息以便与通知进行配对。
-需要反馈的情形更适合使用 RPC 调用，可以考虑在 Kafka 之上封装 RPC 调用。
+如果一条消息通过消息队列传输到另一个模块进行处理，就很难将处理结果同步地传回调用方。使用消息队列就意味着为了知道处理结果，调用方要异步地接收结果通知，也就意味着要唯一地标识请求消息以便与通知进行配对。需要反馈的情形更适合使用 RPC 调用，可以考虑在 Kafka 之上封装 RPC 调用。
 </p></li>
 </ul>
 
@@ -106,9 +100,7 @@ Kafka 主要用于内部系统间通信
 </p>
 
 <p>
-消费者和生产者一般要求是固定且7x24小时在线，通常为后台服务程序。
-而消息推送系统的客户端一般是在线不稳定，接入点不固定，需要支持离线消息。
-内部的稳定性与外部的不稳定性会带来冲突，这两者的交接处需要进行复杂的处理。
+消费者和生产者一般要求是固定且7x24小时在线，通常为后台服务程序。而消息推送系统的客户端一般是在线不稳定，接入点不固定，需要支持离线消息。内部的稳定性与外部的不稳定性会带来冲突，这两者的交接处需要进行复杂的处理。
 </p></li>
 </ul>
 
@@ -119,17 +111,16 @@ Kafka 主要用于内部系统间通信
 </p>
 
 <p>
-消息可能滞留在某个 Kafka 、MySQL、内存中，因此会很难实现用户级、业务级、系统级的流控，
-业务服务器或客户端如果投递了过量的消息，会影响整个系统。
+消息可能滞留在某个 Kafka 、MySQL、内存中，因此会很难实现用户级、业务级、系统级的流控，业务服务器或客户端如果投递了过量的消息，会影响整个系统。
 </p></li>
 </ul>
 </div>
 </div>
 
 
-<div id="outline-container-orgc6fc592" class="outline-2">
-<h2 id="orgc6fc592">如何基于 Kafka 构建消息推送系统</h2>
-<div class="outline-text-2" id="text-orgc6fc592">
+<div id="outline-container-org91886a6" class="outline-2">
+<h2 id="org91886a6">如何基于 Kafka 构建消息推送系统</h2>
+<div class="outline-text-2" id="text-org91886a6">
 <ul class="org-ul">
 <li><p>
 分而治之
@@ -177,8 +168,7 @@ Kafka 是一种可靠的数据存储设施，可以认为它是只能进行顺�
 </p>
 
 <p>
-一个消息通过 MQ 发往 MySQL 进行存储，然后往用户发送该消息，收到用户发回的确认消息后，
-通过 MQ 往 MySQL 要求删除该消息，此时无法保证该消息已经写入 MySQL。
+一个消息通过 MQ 发往 MySQL 进行存储，然后往用户发送该消息，收到用户发回的确认消息后，通过 MQ 往 MySQL 要求删除该消息，此时无法保证该消息已经写入 MySQL。
 </p>
 
 <p>
@@ -208,9 +198,7 @@ Kafka 是一种可靠的数据存储设施，可以认为它是只能进行顺�
 </p>
 
 <p>
-队列堵塞会导致消息处理不及时，消息可能已经无效，需要进行处理。
-而使用消息队列意味着不允许失败，必须在承诺的期限内给出可预期的结果，
-也就是说无法为特定用户提供定制化的投递超时设置。</p></li>
+队列堵塞会导致消息处理不及时，消息可能已经无效，需要进行处理。而使用消息队列意味着不允许失败，必须在承诺的期限内给出可预期的结果，也就是说无法为特定用户提供定制化的投递超时设置。</p></li>
 </ul>
 </div>
 </div>

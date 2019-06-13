@@ -35,13 +35,13 @@
 </p>
 
 <div class="org-src-container">
-<pre class="src src-c++"><span style="color: #b5bd68;">class</span> <span style="color: #81a2be;">Chicken</span> : <span style="color: #b5bd68;">public</span> <span style="color: #81a2be;">enable_shared_from_this</span>&lt;<span style="color: #81a2be;">Chicken</span>&gt;
+<pre class="src src-c++"><span style="color: #A52A2A; font-weight: bold;">class</span> <span style="color: #2F8B58; font-weight: bold;">Chicken</span> : <span style="color: #A52A2A; font-weight: bold;">public</span> <span style="color: #2F8B58; font-weight: bold;">enable_shared_from_this</span>&lt;<span style="color: #2F8B58; font-weight: bold;">Chicken</span>&gt;
 {
-<span style="color: #b5bd68;">public</span>:
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #de935f;">Chicken</span>()
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> {
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #81a2be;">shared_ptr</span>&lt;<span style="color: #81a2be;">Chicken</span>&gt; <span style="color: #f0c674;">chicken_ptr</span> = shared_from_this();    <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">throw std::ba</span><span style="color: #969896; font-style: italic; text-decoration: underline;">d_weak_ptr</span>
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> }
+<span style="color: #A52A2A; font-weight: bold;">public</span>:
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #00578E; font-weight: bold;">Chicken</span>()
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> {
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #2F8B58; font-weight: bold;">shared_ptr</span>&lt;<span style="color: #2F8B58; font-weight: bold;">Chicken</span>&gt; <span style="color: #0084C8; font-weight: bold;">chicken_ptr</span> = shared_from_this();    <span style="color: #204A87;">//</span><span style="color: #204A87;">throw std::ba</span><span style="color: #204A87; text-decoration: underline;">d_weak_ptr</span>
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> }
 };
 </pre>
 </div>
@@ -50,7 +50,7 @@
 再看shared_from_this()的行为：
 </p>
 <div class="org-src-container">
-<pre class="src src-c++"><span style="color: #b5bd68;">return</span> _weak_ptr-&gt;lock();
+<pre class="src src-c++"><span style="color: #A52A2A; font-weight: bold;">return</span> _weak_ptr-&gt;lock();
 </pre>
 </div>
 
@@ -62,8 +62,8 @@
 其实 <code>_weak_ptr</code> 成员变量是在 <code>shared_ptr</code> 的构造函数中延迟初始化的，不只是在构造函数中不能调用 <code>shared_from_this</code> ，像下面的使用方式同样不行：
 </p>
 <div class="org-src-container">
-<pre class="src src-c++"><span style="color: #81a2be;">Chicken</span>* <span style="color: #f0c674;">chicken</span> = <span style="color: #b5bd68;">new</span> <span style="color: #81a2be;">Chicken</span>();
-<span style="color: #81a2be;">shared_ptr</span>&lt;<span style="color: #81a2be;">Chicken</span>&gt; <span style="color: #f0c674;">chicken_ptr</span> = chicken-&gt;shared_from_this();  <span style="color: #969896; font-style: italic;">//</span><span style="color: #969896; font-style: italic;">throw std::bad</span><span style="color: #969896; font-style: italic; text-decoration: underline;">_weak_ptr</span>
+<pre class="src src-c++"><span style="color: #2F8B58; font-weight: bold;">Chicken</span>* <span style="color: #0084C8; font-weight: bold;">chicken</span> = <span style="color: #A52A2A; font-weight: bold;">new</span> <span style="color: #2F8B58; font-weight: bold;">Chicken</span>();
+<span style="color: #2F8B58; font-weight: bold;">shared_ptr</span>&lt;<span style="color: #2F8B58; font-weight: bold;">Chicken</span>&gt; <span style="color: #0084C8; font-weight: bold;">chicken_ptr</span> = chicken-&gt;shared_from_this();  <span style="color: #204A87;">//</span><span style="color: #204A87;">throw std::bad</span><span style="color: #204A87; text-decoration: underline;">_weak_ptr</span>
 </pre>
 </div>
 
@@ -79,20 +79,20 @@
 你应该像下面这样用：
 </p>
 <div class="org-src-container">
-<pre class="src src-c++"><span style="color: #b5bd68;">class</span> <span style="color: #81a2be;">Chicken</span> : <span style="color: #b5bd68;">public</span> <span style="color: #81a2be;">enable_shared_from_this</span>&lt;<span style="color: #81a2be;">Chicken</span>&gt;
+<pre class="src src-c++"><span style="color: #A52A2A; font-weight: bold;">class</span> <span style="color: #2F8B58; font-weight: bold;">Chicken</span> : <span style="color: #A52A2A; font-weight: bold;">public</span> <span style="color: #2F8B58; font-weight: bold;">enable_shared_from_this</span>&lt;<span style="color: #2F8B58; font-weight: bold;">Chicken</span>&gt;
 {
-<span style="color: #b5bd68;">public</span>:
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #de935f;">Chicken</span>()
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> {
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> }
+<span style="color: #A52A2A; font-weight: bold;">public</span>:
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #00578E; font-weight: bold;">Chicken</span>()
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> {
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> }
 
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #81a2be;">void</span> <span style="color: #de935f;">use</span>()
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> {
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #81a2be;">shared_ptr</span>&lt;<span style="color: #81a2be;">Chicken</span>&gt; <span style="color: #f0c674;">chicken_ptr</span> = shared_from_this();
-<span style="color: #969896; background-color: #22a224a427a7;"> </span> <span style="color: #969896; background-color: #22a224a427a7;"> </span> }
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #2F8B58; font-weight: bold;">void</span> <span style="color: #00578E; font-weight: bold;">use</span>()
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> {
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #2F8B58; font-weight: bold;">shared_ptr</span>&lt;<span style="color: #2F8B58; font-weight: bold;">Chicken</span>&gt; <span style="color: #0084C8; font-weight: bold;">chicken_ptr</span> = shared_from_this();
+<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> }
 };
 
-<span style="color: #81a2be;">shared_ptr</span>&lt;<span style="color: #81a2be;">Chicken</span>&gt; <span style="color: #f0c674;">chicken_ptr</span>(<span style="color: #b5bd68;">new</span> <span style="color: #81a2be;">Chicken</span>);
+<span style="color: #2F8B58; font-weight: bold;">shared_ptr</span>&lt;<span style="color: #2F8B58; font-weight: bold;">Chicken</span>&gt; <span style="color: #0084C8; font-weight: bold;">chicken_ptr</span>(<span style="color: #A52A2A; font-weight: bold;">new</span> <span style="color: #2F8B58; font-weight: bold;">Chicken</span>);
 chicken_ptr-&gt;use();
 </pre>
 </div>

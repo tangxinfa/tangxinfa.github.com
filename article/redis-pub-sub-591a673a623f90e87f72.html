@@ -31,9 +31,9 @@
       
         <div class="article-content">
           
-<div id="outline-container-org72c4679" class="outline-2">
-<h2 id="org72c4679">由于 Master 上 Publish 的消息会自动同步到所有 Slaves，Redis Pub/Sub 很容易扩展</h2>
-<div class="outline-text-2" id="text-org72c4679">
+<div id="outline-container-org2497005" class="outline-2">
+<h2 id="org2497005">由于 Master 上 Publish 的消息会自动同步到所有 Slaves，Redis Pub/Sub 很容易扩展</h2>
+<div class="outline-text-2" id="text-org2497005">
 <blockquote>
 <p>
 Redis PubSub scales really easily since the Master/Slave replication automatically publishes to all slaves.
@@ -45,9 +45,9 @@ Redis PubSub scales really easily since the Master/Slave replication automatical
 </div>
 </div>
 
-<div id="outline-container-org10d7f54" class="outline-2">
-<h2 id="org10d7f54">可以在 Master 上 Publish 消息，然后在 Slave 上 Subscribe 消息，反之不行</h2>
-<div class="outline-text-2" id="text-org10d7f54">
+<div id="outline-container-org137a81e" class="outline-2">
+<h2 id="org137a81e">可以在 Master 上 Publish 消息，然后在 Slave 上 Subscribe 消息，反之不行</h2>
+<div class="outline-text-2" id="text-org137a81e">
 <blockquote>
 <p>
 With replication in-place the  publisher can publish in the master host and the subscribers can subscribe to the slave host.
@@ -70,29 +70,26 @@ The conclusion is simple: Two ways pub/sub channels across servers require at le
 </p>
 
 <p>
-需要注意的是，Slave 虽然不可写（Readonly），但是照样可以 Pub/Sub，
-只是 Publish 的消息不会同步到 Master，所以不会被 Master 上的 Subscriber 接收到，
-但是 Slave 自身的 Subscriber 仍工作正常。
+需要注意的是，Slave 虽然不可写（Readonly），但是照样可以 Pub/Sub，只是 Publish 的消息不会同步到 Master，所以不会被 Master 上的 Subscriber 接收到，但是 Slave 自身的 Subscriber 仍工作正常。
 </p>
 </div>
 </div>
 
-<div id="outline-container-org00d4295" class="outline-2">
-<h2 id="org00d4295">多机房部署的情况下，2 个 Redis 实例可实现双向通讯</h2>
-<div class="outline-text-2" id="text-org00d4295">
+<div id="outline-container-org104151d" class="outline-2">
+<h2 id="org104151d">多机房部署的情况下，2 个 Redis 实例可实现双向通讯</h2>
+<div class="outline-text-2" id="text-org104151d">
 <p>
 <img src="../static/redis-pub_sub_multi_datacenter-2.png" alt="redis-pub_sub_multi_datacenter-2.png" />
 但是比较低效，Master 所在机房 Publish 的消息会在机房间传输一次（Sync 一次），
-Slave 所在机房 Publish 的消息会在机房间传输两次（Send、Sync 各一次），
-而且 Slave 机房部署的应用需要跨机房直接连接到 Master 才能进行 Publish。
+Slave 所在机房 Publish 的消息会在机房间传输两次（Send、Sync 各一次），而且 Slave 机房部署的应用需要跨机房直接连接到 Master 才能进行 Publish。
 </p>
 </div>
 </div>
 
 
-<div id="outline-container-org71c9153" class="outline-2">
-<h2 id="org71c9153">多机房部署的情况下，4 个 Redis 实例可以实现高效的双向通讯</h2>
-<div class="outline-text-2" id="text-org71c9153">
+<div id="outline-container-org824dd9d" class="outline-2">
+<h2 id="org824dd9d">多机房部署的情况下，4 个 Redis 实例可以实现高效的双向通讯</h2>
+<div class="outline-text-2" id="text-org824dd9d">
 <p>
 <img src="../static/redis-pub_sub_multi_datacenter-4.png" alt="redis-pub_sub_multi_datacenter-4.png" />
 每一次 Publish 的消息会在机房间传输一次，机房间只有 Master/Slave 同步流量。
@@ -100,13 +97,13 @@ Slave 所在机房 Publish 的消息会在机房间传输两次（Send、Sync �
 </div>
 </div>
 
-<div id="outline-container-orgc485269" class="outline-2">
-<h2 id="orgc485269">Pub/Sub 跨机房部署带来的问题</h2>
-<div class="outline-text-2" id="text-orgc485269">
+<div id="outline-container-orgdc776e4" class="outline-2">
+<h2 id="orgdc776e4">Pub/Sub 跨机房部署带来的问题</h2>
+<div class="outline-text-2" id="text-orgdc776e4">
 </div>
-<div id="outline-container-org628c6d4" class="outline-3">
-<h3 id="org628c6d4">从 Slave Subscribe 消息后，消息 Publish 一方无法获知 Subscriber 数量</h3>
-<div class="outline-text-3" id="text-org628c6d4">
+<div id="outline-container-orgb0555b6" class="outline-3">
+<h3 id="orgb0555b6">从 Slave Subscribe 消息后，消息 Publish 一方无法获知 Subscriber 数量</h3>
+<div class="outline-text-3" id="text-orgb0555b6">
 <pre class="example">
 <span class="linenr"> 1: </span># Publish to master, subscribe from master.
 <span class="linenr"> 2: </span>$ redis-cli -h master.local subscribe test &amp;

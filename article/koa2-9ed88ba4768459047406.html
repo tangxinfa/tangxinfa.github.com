@@ -34,9 +34,9 @@
 koa2 简单易用，代码量少且易读，代码实现中有大量“经验法则”，了解这些才能用好它。
 </p>
 
-<div id="outline-container-org9d17cc2" class="outline-2">
-<h2 id="org9d17cc2">默认的响应处理</h2>
-<div class="outline-text-2" id="text-org9d17cc2">
+<div id="outline-container-orgafc0ed2" class="outline-2">
+<h2 id="orgafc0ed2">默认的响应处理</h2>
+<div class="outline-text-2" id="text-orgafc0ed2">
 <ul class="org-ul">
 <li><code>req.statusCode</code> 默认值为 404</li>
 </ul>
@@ -72,9 +72,9 @@ koa2 简单易用，代码量少且易读，代码实现中有大量“经验法
 </div>
 
 
-<div id="outline-container-org9666c22" class="outline-2">
-<h2 id="org9666c22">默认的异常处理</h2>
-<div class="outline-text-2" id="text-org9666c22">
+<div id="outline-container-org06baeeb" class="outline-2">
+<h2 id="org06baeeb">默认的异常处理</h2>
+<div class="outline-text-2" id="text-org06baeeb">
 <p>
 koa2 在中间件的最外层会捕获异常，将它转化为合适的 HTTP 错误响应：
 </p>
@@ -99,9 +99,9 @@ koa2 在中间件的最外层会捕获异常，将它转化为合适的 HTTP 错
 </div>
 </div>
 
-<div id="outline-container-org35a7d9f" class="outline-2">
-<h2 id="org35a7d9f">自定义异常处理</h2>
-<div class="outline-text-2" id="text-org35a7d9f">
+<div id="outline-container-org1294b08" class="outline-2">
+<h2 id="org1294b08">自定义异常处理</h2>
+<div class="outline-text-2" id="text-org1294b08">
 <ul class="org-ul">
 <li><p>
 自定义日志输出
@@ -112,11 +112,11 @@ koa2 在中间件的最外层会捕获异常，将它转化为合适的 HTTP 错
 </p>
 
 <div class="org-src-container">
-<pre class="src src-js">app.on(<span style="color: #8abeb7;">'error'</span>, <span style="color: #b5bd68;">function</span>(<span style="color: #f0c674;">err</span>, <span style="color: #f0c674;">ctx</span>) {
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   logger.error({
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   stack: err.stack,
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   ctx: ctx
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   }, <span style="color: #8abeb7;">"service error"</span>);
+<pre class="src src-js">app.on(<span style="color: #4E9A06;">'error'</span>, <span style="color: #A52A2A; font-weight: bold;">function</span>(<span style="color: #0084C8; font-weight: bold;">err</span>, <span style="color: #0084C8; font-weight: bold;">ctx</span>) {
+<span style="background-color: #E6E6E6;"> </span>   logger.error({
+<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   stack: err.stack,
+<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   ctx: ctx
+<span style="background-color: #E6E6E6;"> </span>   }, <span style="color: #4E9A06;">"service error"</span>);
 });
 </pre>
 </div></li>
@@ -130,27 +130,27 @@ koa2 在中间件的最外层会捕获异常，将它转化为合适的 HTTP 错
 </p>
 
 <div class="org-src-container">
-<pre class="src src-js">app.use(<span style="color: #b5bd68;">async</span> (ctx, next) =&gt; {
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">try</span> {
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">await</span> next();
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   } <span style="color: #b5bd68;">catch</span> ( err ) {
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   ctx.app.emit(<span style="color: #8abeb7;">'error'</span>, err, ctx);
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   ctx.status = err.status || 500;
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   ctx.body = {
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   message: err.expose ? err.message : ctx.message
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   };
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">return</span>;
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   }
+<pre class="src src-js">app.use(<span style="color: #A52A2A; font-weight: bold;">async</span> (ctx, next) =&gt; {
+<span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">try</span> {
+<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">await</span> next();
+<span style="background-color: #E6E6E6;"> </span>   } <span style="color: #A52A2A; font-weight: bold;">catch</span> ( err ) {
+<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   ctx.app.emit(<span style="color: #4E9A06;">'error'</span>, err, ctx);
+<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   ctx.status = err.status || 500;
+<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   ctx.body = {
+<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   message: err.expose ? err.message : ctx.message
+<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   };
+<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">return</span>;
+<span style="background-color: #E6E6E6;"> </span>   }
 
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">if</span> (ctx.status == 404) {
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #b5bd68;">if</span> (!ctx.body || !ctx.body.message) {
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; font-style: italic;">// </span><span style="color: #969896; font-style: italic;">explicitly set status, avoid revert to 200 when assign body.</span>
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   ctx.status = 404;
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   ctx.body = {
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   message: ctx.message
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   };
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   <span style="color: #969896; background-color: #22a224a427a7;"> </span>   }
-<span style="color: #969896; background-color: #22a224a427a7;"> </span>   }
+<span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">if</span> (ctx.status == 404) {
+<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">if</span> (!ctx.body || !ctx.body.message) {
+<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #204A87;">// </span><span style="color: #204A87;">explicitly set status, avoid revert to 200 when assign body.</span>
+<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   ctx.status = 404;
+<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   ctx.body = {
+<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   message: ctx.message
+<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   };
+<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   }
+<span style="background-color: #E6E6E6;"> </span>   }
 })
 </pre>
 </div></li>

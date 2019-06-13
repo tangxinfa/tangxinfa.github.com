@@ -31,9 +31,9 @@
       
         <div class="article-content">
           
-<div id="outline-container-orga1515c0" class="outline-2">
-<h2 id="orga1515c0">示例 socket.io 项目</h2>
-<div class="outline-text-2" id="text-orga1515c0">
+<div id="outline-container-org9dd141a" class="outline-2">
+<h2 id="org9dd141a">示例 socket.io 项目</h2>
+<div class="outline-text-2" id="text-org9dd141a">
 <ul class="org-ul">
 <li><p>
 编译
@@ -41,7 +41,7 @@
 
 <div class="org-src-container">
 <pre class="src src-sh">go get github.com/tangxinfa/envoy-socket.io-example
-<span style="color: #b294bb;">cd</span> $<span style="color: #f0c674;">GOPATH</span>/src/github.com/tangxinfa/envoy-socket.io-example
+<span style="color: #A020F0;">cd</span> $<span style="color: #0084C8; font-weight: bold;">GOPATH</span>/src/github.com/tangxinfa/envoy-socket.io-example
 glide install
 go build
 </pre>
@@ -61,16 +61,15 @@ go build
 </p>
 
 <p>
-正常情况下，会收到 <code>welcome</code> 消息，表示 <code>socket.io</code> 连接成功，可以在下方的编辑框输入内容，服务器会 echo 回来。
-这是客户端直接 socket.io 服务，接下来将展示使用 Envoy 做为前端代理来访问后端的 socket.io 服务。
+正常情况下，会收到 <code>welcome</code> 消息，表示 <code>socket.io</code> 连接成功，可以在下方的编辑框输入内容，服务器会 echo 回来。这是客户端直接 socket.io 服务，接下来将展示使用 Envoy 做为前端代理来访问后端的 socket.io 服务。
 </p></li>
 </ul>
 </div>
 </div>
 
-<div id="outline-container-orga7e1974" class="outline-2">
-<h2 id="orga7e1974">修复 Envoy 的 Websocket 相关 Bug</h2>
-<div class="outline-text-2" id="text-orga7e1974">
+<div id="outline-container-org25c7440" class="outline-2">
+<h2 id="org25c7440">修复 Envoy 的 Websocket 相关 Bug</h2>
+<div class="outline-text-2" id="text-org25c7440">
 <p>
 之前的 Envoy 版本为
 </p>
@@ -116,9 +115,9 @@ Envoy 向 Upstream 发起的 Websocket 请求多了一个 <code>transfer-encodin
 </div>
 </div>
 
-<div id="outline-container-org9b9b5b0" class="outline-2">
-<h2 id="org9b9b5b0">将 Envoy 做为 socket.io 服务前端代理</h2>
-<div class="outline-text-2" id="text-org9b9b5b0">
+<div id="outline-container-orgc931224" class="outline-2">
+<h2 id="orgc931224">将 Envoy 做为 socket.io 服务前端代理</h2>
+<div class="outline-text-2" id="text-orgc931224">
 <ul class="org-ul">
 <li><p>
 启动 Envoy
@@ -147,13 +146,11 @@ Envoy 向 Upstream 发起的 Websocket 请求多了一个 <code>transfer-encodin
 </div>
 </div>
 
-<div id="outline-container-org8a03808" class="outline-2">
-<h2 id="org8a03808">将 Envoy 做为 socket.io 服务集群前端代理</h2>
-<div class="outline-text-2" id="text-org8a03808">
+<div id="outline-container-orgf539715" class="outline-2">
+<h2 id="orgf539715">将 Envoy 做为 socket.io 服务集群前端代理</h2>
+<div class="outline-text-2" id="text-orgf539715">
 <p>
-在后台服务为集群的情况下，Envoy 会通过负载均衡将请求调度到所有服务结点，
-对于无状态服务，不管 Envoy 使用什么样的负载均衡策略都可以正常工作，
-但是对于有状态的服务，则要求将一个用户的请求总是调度到同一个服务结点。
+在后台服务为集群的情况下，Envoy 会通过负载均衡将请求调度到所有服务结点，对于无状态服务，不管 Envoy 使用什么样的负载均衡策略都可以正常工作，但是对于有状态的服务，则要求将一个用户的请求总是调度到同一个服务结点。
 </p>
 
 <blockquote>
@@ -166,10 +163,7 @@ Socket.IO never assumes that WebSocket will just work, because in practice there
 </p>
 
 <p>
-socket.io 的 <code>transports</code> 选项默认值为 <code>['polling', 'websocket']</code> ，
-也就是说首先发一个 HTTP 轮询请求，根据响应决定是否升级到使用 <code>websocket</code> ，
-这样在 Websocket 可用的情况下，会有两次 HTTP 交互，需确保两次 HTTP 交互
-调度到同一个服务结点，socket.io 连接才能建立成功。
+socket.io 的 <code>transports</code> 选项默认值为 <code>['polling', 'websocket']</code> ，也就是说首先发一个 HTTP 轮询请求，根据响应决定是否升级到使用 <code>websocket</code> ，这样在 Websocket 可用的情况下，会有两次 HTTP 交互，需确保两次 HTTP 交互调度到同一个服务结点，socket.io 连接才能建立成功。
 </p>
 
 <p>
@@ -187,33 +181,25 @@ The ring/modulo hash load balancer implements consistent hashing to upstream hos
 </blockquote>
 
 <p>
-遗憾的是 Envoy 的 Websocket 实现过于简陋，当检测到 <code>Websocket</code> 升级请求时，
-它以 <code>TcpProxy</code> 的方式连接上游服务器，检测到非 <code>Websocket</code> 升级请求时，
-会正常地做为 HTTP 请求进行处理。由于 <code>TcpProxy</code> 只支持随机 Hash 算法选择上游服务结点，
-会导致默认情况下 socket.io 连接无法建立。
+遗憾的是 Envoy 的 Websocket 实现过于简陋，当检测到 <code>Websocket</code> 升级请求时，它以 <code>TcpProxy</code> 的方式连接上游服务器，检测到非 <code>Websocket</code> 升级请求时，会正常地做为 HTTP 请求进行处理。由于 <code>TcpProxy</code> 只支持随机 Hash 算法选择上游服务结点，会导致默认情况下 socket.io 连接无法建立。
 </p>
 
 <p>
-通过指定 socket.io 的 <code>transports</code> 选项值为 <code>['websocket', 'polling']</code> ，
-也就是首先尝试建立 <code>websocket</code> 连接，失败时再降级为 <code>polling</code> ，能够解决这个问题。
+通过指定 socket.io 的 <code>transports</code> 选项值为 <code>['websocket', 'polling']</code> ，也就是首先尝试建立 <code>websocket</code> 连接，失败时再降级为 <code>polling</code> ，能够解决这个问题。
 </p>
 
 <p>
 Envoy 的 <code>Ring hash</code> 是根据配置的请求头来计算 Hash 值的，刚刚有一个按特定 Cookie 计算 Hash 值的
-Pull Request <a href="https://github.com/envoyproxy/envoy/pull/1766">Implement cookie hashing for v2 API #1766</a> 已经合并到 master 分支，官方文档方面还没有更新，
-本文暂不采用。
+Pull Request <a href="https://github.com/envoyproxy/envoy/pull/1766">Implement cookie hashing for v2 API #1766</a> 已经合并到 master 分支，官方文档方面还没有更新，本文暂不采用。
 </p>
 
 <p>
 一般 Web 前端都是通过自定义请求头或者 Cookie 中的特定字段来标识一个用户，由于 Cookie
-可能会在交互过程中发生变化，因此不适合用于计算 Hash 值，而 Websocket 升级请求又不支持自定义请求头，
-因此这两种常用的方式失效了。
+可能会在交互过程中发生变化，因此不适合用于计算 Hash 值，而 Websocket 升级请求又不支持自定义请求头，因此这两种常用的方式失效了。
 </p>
 
 <p>
-另一个合理的选择是通过 <code>Referer</code> 请求头来计算 Hash，这是客户端网页的地址，不会在交互过程中变化，
-只要想办法将用户的标识（如 ID）附在 URL 上，如：<a href="http://www.example.com/chat?uid=1234">http://www.example.com/chat?uid=1234</a> ，
-就可以保证用户请求能够均衡地分布到所有服务结点上，同一用户的请求也会调度到同一个服务结点。
+另一个合理的选择是通过 <code>Referer</code> 请求头来计算 Hash，这是客户端网页的地址，不会在交互过程中变化，只要想办法将用户的标识（如 ID）附在 URL 上，如：<a href="http://www.example.com/chat?uid=1234">http://www.example.com/chat?uid=1234</a> ，就可以保证用户请求能够均衡地分布到所有服务结点上，同一用户的请求也会调度到同一个服务结点。
 </p>
 
 <p>

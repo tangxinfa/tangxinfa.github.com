@@ -4,7 +4,7 @@
         <title>go - 看看俺 – KanKanAn.com</title>
         <link>http://blog.kankanan.com/tag/go.xml</link>
         <description>记我所思，忆我所为。</description>
-        <lastBuildDate>Mon, 28 Jan 2019 08:38:18 GMT</lastBuildDate>
+        <lastBuildDate>Thu, 13 Jun 2019 03:59:30 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <generator>Feed for Node.js</generator>
         <image>
@@ -26,7 +26,7 @@
 
 <div class="org-src-container">
 <pre class="src src-sh">git clone https://github.com/google/protobuf.git
-<span style="color: #b294bb;">cd</span> protobuf
+<span style="color: #A020F0;">cd</span> protobuf
 git checkout v3.4.1 -b v3.4.1
 ./autogen.sh
 ./configure
@@ -48,13 +48,12 @@ make install
 在 <code>~/.profile</code> 中将 <code>protoc-gen-go</code> 所在路径加到 <code>PATH</code> 环境变量中
 </p>
 <div class="org-src-container">
-<pre class="src src-sh"><span style="color: #f0c674;">PATH</span>=<span style="color: #8abeb7;">"`go env GOPATH`/bin:$PATH"</span>
+<pre class="src src-sh"><span style="color: #0084C8; font-weight: bold;">PATH</span>=<span style="color: #4E9A06;">"`go env GOPATH`/bin:$PATH"</span>
 </pre>
 </div>
 
 <p>
-最新版本的 <code>protoc-gen-go</code> 默认生成的 protobuf 4.x 的代码，我们的项目目前还
-是使用 protobuf 3.x，这会导致生成的代码无法通过编译，错误信息
+最新版本的 <code>protoc-gen-go</code> 默认生成的 protobuf 4.x 的代码，我们的项目目前还是使用 protobuf 3.x，这会导致生成的代码无法通过编译，错误信息
 </p>
 <pre class="example">
 xxx.pb.go:2799:21: c.cc.NewStream undefined (type *grpc.ClientConn has no field or method NewStream)
@@ -66,14 +65,14 @@ xxx.pb.go:2831:13: c.cc.Invoke undefined (type *grpc.ClientConn has no field or 
 <code>github.com/golang/protobuf/protoc-gen-go/grpc/grpc.go</code>
 </p>
 <div class="org-src-container">
-<pre class="src src-go"><span style="color: #b5bd68;">const</span> generatedCodeVersion = 4
+<pre class="src src-go"><span style="color: #A52A2A; font-weight: bold;">const</span> generatedCodeVersion = 4
 </pre>
 </div>
 <p>
 改为 
 </p>
 <div class="org-src-container">
-<pre class="src src-go"><span style="color: #b5bd68;">const</span> generatedCodeVersion = 3
+<pre class="src src-go"><span style="color: #A52A2A; font-weight: bold;">const</span> generatedCodeVersion = 3
 </pre>
 </div>
 
@@ -81,7 +80,7 @@ xxx.pb.go:2831:13: c.cc.Invoke undefined (type *grpc.ClientConn has no field or 
 重新编译安装 <code>protoc-gen-go</code>
 </p>
 <div class="org-src-container">
-<pre class="src src-sh"><span style="color: #b294bb;">cd</span> github.com/golang/protobuf
+<pre class="src src-sh"><span style="color: #A020F0;">cd</span> github.com/golang/protobuf
 make install
 </pre>
 </div></li>
@@ -132,8 +131,7 @@ make install
 
 <p>
 将 <code>gitlab</code> 的 <code>GIT_STRATEGY</code> 变量配置为 <code>fetch</code> ，它会在拉取代码后执行 <code>git
-    clean</code> 将未知的文件删除，如果我们将移动后的代码放在原来的位置下就可以做到自
-动清除没有负作用了。
+    clean</code> 将未知的文件删除，如果我们将移动后的代码放在原来的位置下就可以做到自动清除没有负作用了。
 </p></li>
 
 <li><p>
@@ -142,10 +140,8 @@ make install
 
 <p>
 <code>glide update</code> 会更新 Go 项目依赖，比较耗时，构建有 <code>build</code> <code>test</code> <code>deploy</code>
-等多个阶段，缓存 <code>vendor</code> 目录能够会快很多。这些阶段会依次执行，同阶段的多个
-任务是并行的，可以将 <code>build</code> 阶段的工作目录状态保留到其它阶段，可以用
-<code>cache</code> 来实现，也可以将除了 <code>build</code> 阶段以外的其它阶段的 <code>GIT_STRATEGY</code> 置
-为 <code>none</code> 来实现。
+等多个阶段，缓存 <code>vendor</code> 目录能够会快很多。这些阶段会依次执行，同阶段的多个任务是并行的，可以将 <code>build</code> 阶段的工作目录状态保留到其它阶段，可以用
+<code>cache</code> 来实现，也可以将除了 <code>build</code> 阶段以外的其它阶段的 <code>GIT_STRATEGY</code> 置为 <code>none</code> 来实现。
 </p></li>
 
 <li><p>
@@ -153,8 +149,7 @@ make install
 </p>
 
 <p>
-安装完 <code>gitlab-runner</code> 后要将 <code>gitlab-runner</code> 用户加入到 <code>docker</code> 用户组，这
-样才可调用 <code>docker</code> 工具。
+安装完 <code>gitlab-runner</code> 后要将 <code>gitlab-runner</code> 用户加入到 <code>docker</code> 用户组，这样才可调用 <code>docker</code> 工具。
 </p>
 
 <div class="org-src-container">
@@ -167,9 +162,9 @@ make install
 <code>~gitlab-runner/.bashrc</code> 中设置环境变量
 </p>
 <div class="org-src-container">
-<pre class="src src-sh"><span style="color: #b294bb;">export</span> <span style="color: #f0c674;">DOCKER_REGISTRY</span>=gitlab.xxxxxx.com
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">DOCKER_USER</span>=xxx@xxxxxx.com
-<span style="color: #b294bb;">export</span> <span style="color: #f0c674;">DOCKER_PASSWORD</span>=xxxxxxxx
+<pre class="src src-sh"><span style="color: #A020F0;">export</span> <span style="color: #0084C8; font-weight: bold;">DOCKER_REGISTRY</span>=gitlab.xxxxxx.com
+<span style="color: #A020F0;">export</span> <span style="color: #0084C8; font-weight: bold;">DOCKER_USER</span>=xxx@xxxxxx.com
+<span style="color: #A020F0;">export</span> <span style="color: #0084C8; font-weight: bold;">DOCKER_PASSWORD</span>=xxxxxxxx
 </pre>
 </div>
 
@@ -183,8 +178,7 @@ git 打 tag 时打一个镜像，做为发布镜像
 </p>
 
 <p>
-之前一直想实现仅当 <code>master</code> 分支打 <code>tag</code> 时才创建镜像，但是实现起来会很麻
-烦，因为 git 的 tag 只是 commit 的引用，与具体的 branch 无关，tags 和
+之前一直想实现仅当 <code>master</code> 分支打 <code>tag</code> 时才创建镜像，但是实现起来会很麻烦，因为 git 的 tag 只是 commit 的引用，与具体的 branch 无关，tags 和
 branchs 是平级的概念。
 </p>
 
@@ -196,70 +190,70 @@ branchs 是平级的概念。
 </ul></li>
 </ul>
 
-<div id="outline-container-orgd8303bf" class="outline-2">
-<h2 id="orgd8303bf">示例配置：</h2>
-<div class="outline-text-2" id="text-orgd8303bf">
+<div id="outline-container-org54cda5d" class="outline-2">
+<h2 id="org54cda5d">示例配置：</h2>
+<div class="outline-text-2" id="text-org54cda5d">
 <p>
 <code>.gitlab-ci.yml</code>
 </p>
 <div class="org-src-container">
-<pre class="src src-yaml"><span style="color: #f0c674;">variables</span>:
-  <span style="color: #f0c674;">REPO_NAME</span>: gitlab.example.com/mygroup/myproject
-  <span style="color: #f0c674;">BIN_NAME</span>: mygroup.myproject
+<pre class="src src-yaml"><span style="color: #0084C8; font-weight: bold;">variables</span>:
+  <span style="color: #0084C8; font-weight: bold;">REPO_NAME</span>: gitlab.example.com/mygroup/myproject
+  <span style="color: #0084C8; font-weight: bold;">BIN_NAME</span>: mygroup.myproject
 
-<span style="color: #f0c674;">before_script</span>:
+<span style="color: #0084C8; font-weight: bold;">before_script</span>:
   - go version
   - protoc --version
   - echo $CI_BUILD_REF
   - echo $CI_PROJECT_DIR
-  - if [ ! -d <span style="color: #8abeb7;">"${CI_PROJECT_DIR}/src/$REPO_NAME"</span> ];
+  - if [ ! -d <span style="color: #4E9A06;">"${CI_PROJECT_DIR}/src/$REPO_NAME"</span> ];
     then
       mkdir -p ${CI_PROJECT_DIR}.src.tmp/$REPO_NAME;
       shopt -s dotglob;
       mv $CI_PROJECT_DIR/* ${CI_PROJECT_DIR}.src.tmp/$REPO_NAME/;
       mv ${CI_PROJECT_DIR}.src.tmp ${CI_PROJECT_DIR}/src;
-      echo <span style="color: #8abeb7;">"${CI_PROJECT_DIR}/src/$REPO_NAME created"</span>;
+      echo <span style="color: #4E9A06;">"${CI_PROJECT_DIR}/src/$REPO_NAME created"</span>;
     fi
   - export GOPATH=$CI_PROJECT_DIR
   - cd $GOPATH/src/$REPO_NAME
 
-<span style="color: #f0c674;">build</span>:
-  <span style="color: #f0c674;">stage</span>: build
-  <span style="color: #f0c674;">variables</span>:
-    <span style="color: #f0c674;">GIT_STRATEGY</span>: fetch
-  <span style="color: #f0c674;">script</span>:
+<span style="color: #0084C8; font-weight: bold;">build</span>:
+  <span style="color: #0084C8; font-weight: bold;">stage</span>: build
+  <span style="color: #0084C8; font-weight: bold;">variables</span>:
+    <span style="color: #0084C8; font-weight: bold;">GIT_STRATEGY</span>: fetch
+  <span style="color: #0084C8; font-weight: bold;">script</span>:
     - make
 
-<span style="color: #f0c674;">test</span>:
-  <span style="color: #f0c674;">stage</span>: test
-  <span style="color: #f0c674;">variables</span>:
-    <span style="color: #f0c674;">GIT_STRATEGY</span>: none
-  <span style="color: #f0c674;">script</span>:
+<span style="color: #0084C8; font-weight: bold;">test</span>:
+  <span style="color: #0084C8; font-weight: bold;">stage</span>: test
+  <span style="color: #0084C8; font-weight: bold;">variables</span>:
+    <span style="color: #0084C8; font-weight: bold;">GIT_STRATEGY</span>: none
+  <span style="color: #0084C8; font-weight: bold;">script</span>:
     - go test -v
 
-<span style="color: #969896; font-style: italic;"># </span><span style="color: #969896; font-style: italic;">Build docker image for development when any branch named begin with "dev"</span>
-<span style="color: #f0c674;">deploy-dev</span>:
-  <span style="color: #f0c674;">stage</span>: deploy
-  <span style="color: #f0c674;">variables</span>:
-    <span style="color: #f0c674;">GIT_STRATEGY</span>: none
-  <span style="color: #f0c674;">only</span>:
+<span style="color: #204A87;"># </span><span style="color: #204A87;">Build docker image for development when any branch named begin with "dev"</span>
+<span style="color: #0084C8; font-weight: bold;">deploy-dev</span>:
+  <span style="color: #0084C8; font-weight: bold;">stage</span>: deploy
+  <span style="color: #0084C8; font-weight: bold;">variables</span>:
+    <span style="color: #0084C8; font-weight: bold;">GIT_STRATEGY</span>: none
+  <span style="color: #0084C8; font-weight: bold;">only</span>:
     - /^dev.*/@mygroup/myproject
-  <span style="color: #f0c674;">except</span>:
+  <span style="color: #0084C8; font-weight: bold;">except</span>:
     - tags
-  <span style="color: #f0c674;">script</span>:
+  <span style="color: #0084C8; font-weight: bold;">script</span>:
     - VERSION=${CI_COMMIT_REF_NAME} make
     - docker build ./ -t ${REPO_NAME}/${BIN_NAME}:${CI_COMMIT_REF_NAME}
     - docker login ${DOCKER_REGISTRY} -u ${DOCKER_USER} -p ${DOCKER_PASSWORD}
     - docker push ${REPO_NAME}/${BIN_NAME}:${CI_COMMIT_REF_NAME}
 
-<span style="color: #969896; font-style: italic;"># </span><span style="color: #969896; font-style: italic;">Build docker image for production when pushed a tag</span>
-<span style="color: #f0c674;">deploy</span>:
-  <span style="color: #f0c674;">stage</span>: deploy
-  <span style="color: #f0c674;">variables</span>:
-    <span style="color: #f0c674;">GIT_STRATEGY</span>: none
-  <span style="color: #f0c674;">only</span>:
+<span style="color: #204A87;"># </span><span style="color: #204A87;">Build docker image for production when pushed a tag</span>
+<span style="color: #0084C8; font-weight: bold;">deploy</span>:
+  <span style="color: #0084C8; font-weight: bold;">stage</span>: deploy
+  <span style="color: #0084C8; font-weight: bold;">variables</span>:
+    <span style="color: #0084C8; font-weight: bold;">GIT_STRATEGY</span>: none
+  <span style="color: #0084C8; font-weight: bold;">only</span>:
     - tags@mygroup/myproject
-  <span style="color: #f0c674;">script</span>:
+  <span style="color: #0084C8; font-weight: bold;">script</span>:
     - VERSION=${CI_COMMIT_REF_NAME} make
     - docker build ./ -t ${REPO_NAME}/${BIN_NAME}:${CI_COMMIT_REF_NAME}
     - docker login ${DOCKER_REGISTRY} -u ${DOCKER_USER} -p ${DOCKER_PASSWORD}
@@ -286,9 +280,7 @@ Failed to checkout packages: Cannot detect VCS
 </blockquote>
 
 <p>
-研究了一下 glide 的源代码，定位到 <code>vcs_remote_lookup.go</code> 中 <code>detectVcsFromRemote</code> 函数，
-当我们使用 <code>glide get golang.org/x/net</code> 时，会下载 "<a href="https://golang.org/x/net">https://golang.org/x/net</a>" 页面，并从中解析出代码所在的确切位置，
-如果 <code>golang.org</code> 被墙或网络不稳定就会报这个错，可以使用 <code>curl</code> 进行验证。
+研究了一下 glide 的源代码，定位到 <code>vcs_remote_lookup.go</code> 中 <code>detectVcsFromRemote</code> 函数，当我们使用 <code>glide get golang.org/x/net</code> 时，会下载 "<a href="https://golang.org/x/net">https://golang.org/x/net</a>" 页面，并从中解析出代码所在的确切位置，如果 <code>golang.org</code> 被墙或网络不稳定就会报这个错，可以使用 <code>curl</code> 进行验证。
 </p>
 
 <p>
@@ -319,8 +311,7 @@ curl: (7) Failed to connect to golang.org port 443: Connection timed out
 </pre>
 
 <p>
-对于这种问题只能是等待网站恢复正常访问，紧急情况下，可以修改 <code>glide.yaml</code> ，
-在相应 package 下手工指定 <code>repo</code> 为具体的代码仓库地址，如：
+对于这种问题只能是等待网站恢复正常访问，紧急情况下，可以修改 <code>glide.yaml</code> ，在相应 package 下手工指定 <code>repo</code> 为具体的代码仓库地址，如：
 </p>
 <pre class="example">
 - package: golang.org/x/net

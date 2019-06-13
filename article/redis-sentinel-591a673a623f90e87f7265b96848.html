@@ -31,9 +31,9 @@
       
         <div class="article-content">
           
-<div id="outline-container-org2c26bdf" class="outline-2">
-<h2 id="org2c26bdf">减少或避免跨机房 Redis 访问的好处</h2>
-<div class="outline-text-2" id="text-org2c26bdf">
+<div id="outline-container-orgd58b035" class="outline-2">
+<h2 id="orgd58b035">减少或避免跨机房 Redis 访问的好处</h2>
+<div class="outline-text-2" id="text-orgd58b035">
 <ul class="org-ul">
 <li><p>
 减少跨机房网络流量
@@ -62,31 +62,31 @@ Redis 本身的安全机制很薄弱，目前只支持明文密码验证，依�
 </div>
 </div>
 
-<div id="outline-container-org651cbda" class="outline-2">
-<h2 id="org651cbda">如何减少或避免应用的跨机房访问</h2>
-<div class="outline-text-2" id="text-org651cbda">
+<div id="outline-container-orgda64a36" class="outline-2">
+<h2 id="orgda64a36">如何减少或避免应用的跨机房访问</h2>
+<div class="outline-text-2" id="text-orgda64a36">
 </div>
-<div id="outline-container-org8c9e960" class="outline-3">
-<h3 id="org8c9e960">单维的数据模型</h3>
-<div class="outline-text-3" id="text-org8c9e960">
+<div id="outline-container-org3cf30e7" class="outline-3">
+<h3 id="org3cf30e7">单维的数据模型</h3>
+<div class="outline-text-3" id="text-org3cf30e7">
 <p>
 如果整个应用的数据集是单维度的，即基于同一主键，按主键进行数据分片（Sharding）后，同一主键所属的数据会处于同一分片（Shard），按主键访问时是无共享（shared-nothing）的，可以水平无限扩容。
 </p>
 </div>
 </div>
 
-<div id="outline-container-org7d5a56e" class="outline-3">
-<h3 id="org7d5a56e">多维的数据模型</h3>
-<div class="outline-text-3" id="text-org7d5a56e">
+<div id="outline-container-org06deb9b" class="outline-3">
+<h3 id="org06deb9b">多维的数据模型</h3>
+<div class="outline-text-3" id="text-org06deb9b">
 <p>
 如果整个应用的数据集是多维度的，按一个维度进行数据分片（Sharding）后，按另一维度获取数据时，需要同时访问多个分片（Shard）。
 </p>
 </div>
 </div>
 
-<div id="outline-container-org161313e" class="outline-3">
-<h3 id="org161313e">以博客应用为例</h3>
-<div class="outline-text-3" id="text-org161313e">
+<div id="outline-container-org7a781db" class="outline-3">
+<h3 id="org7a781db">以博客应用为例</h3>
+<div class="outline-text-3" id="text-org7a781db">
 <p>
 文章的模型定义如下
 </p>
@@ -129,9 +129,7 @@ Redis 本身的安全机制很薄弱，目前只支持明文密码验证，依�
 </table>
 
 <p>
-按 id 进行数据分片（Sharding），id 为寄数保存到 Shard 1，id 为 偶数保存到 Shard 2，
-按 id 访问文章时，计算 id 对应的分片（Shard），从分片获得文章数据。
-还可以在模型中添加冗余字段（如：author_name），方便显示作者名称，省去一次关联查询。
+按 id 进行数据分片（Sharding），id 为寄数保存到 Shard 1，id 为 偶数保存到 Shard 2，按 id 访问文章时，计算 id 对应的分片（Shard），从分片获得文章数据。还可以在模型中添加冗余字段（如：author_name），方便显示作者名称，省去一次关联查询。
 </p>
 
 
@@ -172,8 +170,7 @@ Redis 本身的安全机制很薄弱，目前只支持明文密码验证，依�
 </table>
 
 <p>
-按 id 进行数据分片（Sharding），id 为寄数保存到 Shard 1，id 为 偶数保存到 Shard 2，
-按 id 访问作者时，计算 id 对应的分片（Shard），从分片获得作者数据。
+按 id 进行数据分片（Sharding），id 为寄数保存到 Shard 1，id 为 偶数保存到 Shard 2，按 id 访问作者时，计算 id 对应的分片（Shard），从分片获得作者数据。
 </p>
 
 
@@ -192,9 +189,9 @@ Redis 本身的安全机制很薄弱，目前只支持明文密码验证，依�
 </div>
 </div>
 
-<div id="outline-container-orgc61c1dc" class="outline-3">
-<h3 id="orgc61c1dc">跨机房交互形式</h3>
-<div class="outline-text-3" id="text-orgc61c1dc">
+<div id="outline-container-org8d7ded7" class="outline-3">
+<h3 id="org8d7ded7">跨机房交互形式</h3>
+<div class="outline-text-3" id="text-org8d7ded7">
 <ul class="org-ul">
 <li><p>
 管它跨不跨机房
@@ -212,8 +209,7 @@ Redis 本身的安全机制很薄弱，目前只支持明文密码验证，依�
 </p>
 
 <p>
-如通过 HTTP 302 指示客户端（通常是浏览器）跳转到数据所属机房的域名（或 IP）。
-会增加客户端开发的复杂性，很多逻辑需要放在客户端来完成，能够将机房外网流量尽量减少。
+如通过 HTTP 302 指示客户端（通常是浏览器）跳转到数据所属机房的域名（或 IP）。会增加客户端开发的复杂性，很多逻辑需要放在客户端来完成，能够将机房外网流量尽量减少。
 </p></li>
 </ul>
 
@@ -224,8 +220,7 @@ Redis 本身的安全机制很薄弱，目前只支持明文密码验证，依�
 </p>
 
 <p>
-如代理发起 HTTP 请求（或内部通信机制，如：消息队列）到所属机房的域名（或 IP），并转发响应给客户端。
-会增加后台应用开发的复杂性，如果应用有内置的内部通信机制（如：消息队列）复杂性还是可以接受的，会增加机房的外网流量，只能算是一种过渡方案。
+如代理发起 HTTP 请求（或内部通信机制，如：消息队列）到所属机房的域名（或 IP），并转发响应给客户端。会增加后台应用开发的复杂性，如果应用有内置的内部通信机制（如：消息队列）复杂性还是可以接受的，会增加机房的外网流量，只能算是一种过渡方案。
 </p></li>
 </ul>
 
@@ -243,9 +238,9 @@ Redis 本身的安全机制很薄弱，目前只支持明文密码验证，依�
 </div>
 </div>
 
-<div id="outline-container-orgad2ab45" class="outline-2">
-<h2 id="orgad2ab45">协调访问数据分片</h2>
-<div class="outline-text-2" id="text-orgad2ab45">
+<div id="outline-container-orga151337" class="outline-2">
+<h2 id="orga151337">协调访问数据分片</h2>
+<div class="outline-text-2" id="text-orga151337">
 <p>
 假设数据按照主键的 hash 值进行取模分片（Sharding），数据与分片（Shard）的对应关系对应如下：
 </p>
@@ -272,8 +267,7 @@ shard = hash(key) % count(shards)
 </p>
 
 <p>
-Redis Sentinel 以星状组织 Redis 结点拓扑，对于多数据中心部署的 Redis 集群，结点超过 2 个时可能会导致机房间流量暴涨（如：需要从一个机房的 Master 同步多份数据到另一个机房的多个 Slave）。
-所以，最好把数据集切分得更细一些，直到一组 Redis 实例（即 1 Master + 1 Slave）即可容纳并可满足客户端请求。
+Redis Sentinel 以星状组织 Redis 结点拓扑，对于多数据中心部署的 Redis 集群，结点超过 2 个时可能会导致机房间流量暴涨（如：需要从一个机房的 Master 同步多份数据到另一个机房的多个 Slave）。所以，最好把数据集切分得更细一些，直到一组 Redis 实例（即 1 Master + 1 Slave）即可容纳并可满足客户端请求。
 </p>
 
 <p>
@@ -308,8 +302,7 @@ Redis Sentinel 以星状组织 Redis 结点拓扑，对于多数据中心部署�
 </p>
 
 <p>
-完成请求需要与另一机房的服务交互，如通过调用服务接口（如：Restful API）的形式，完成整个业务逻辑处理。
-也可以将客户端的请求转发到另一机房服务，并将响应发回客户端，相当于是内置了服务代理（Proxy）功能。
+完成请求需要与另一机房的服务交互，如通过调用服务接口（如：Restful API）的形式，完成整个业务逻辑处理。也可以将客户端的请求转发到另一机房服务，并将响应发回客户端，相当于是内置了服务代理（Proxy）功能。
 </p></li>
 </ul>
 
@@ -329,14 +322,11 @@ Redis Group 1 存储主要或高频次的数据，Redis Group 2 存储次要或�
 </p>
 
 <p>
-客户端通过 DataCenter 1 访问本地的 Redis Group 1 属于合理的访问。
-业务逻辑可能需要访问 Redis Group 2，读操作可以发往本地的 Redis Group 2 Slave，写操作要跨机房访问 DataCenter 2 中的 Redis Group 2 Master（应该尽量减少）。
+客户端通过 DataCenter 1 访问本地的 Redis Group 1 属于合理的访问。业务逻辑可能需要访问 Redis Group 2，读操作可以发往本地的 Redis Group 2 Slave，写操作要跨机房访问 DataCenter 2 中的 Redis Group 2 Master（应该尽量减少）。
 </p>
 
 <p>
-客户端通过 DataCenter 2 访问本地的 Redis Group 2 属于合理的访问。
-业务逻辑主要需要访问 Redis Group 1，读操作可以发往本地的 Redis Group 1 Slave，写操作需要跨机房访问 DataCenter 1 中的 Redis Group 1 Master，
-这是不合理的，因此在发给客户端的响应中指示客户端下次将请求发往 Redis Group 1 Master 所在的 DataCenter 1。</p>
+客户端通过 DataCenter 2 访问本地的 Redis Group 2 属于合理的访问。业务逻辑主要需要访问 Redis Group 1，读操作可以发往本地的 Redis Group 1 Slave，写操作需要跨机房访问 DataCenter 1 中的 Redis Group 1 Master，这是不合理的，因此在发给客户端的响应中指示客户端下次将请求发往 Redis Group 1 Master 所在的 DataCenter 1。</p>
 </div>
 </div>
 
