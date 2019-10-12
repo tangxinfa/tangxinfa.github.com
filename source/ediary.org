@@ -11689,6 +11689,11 @@ class RedisShard {
      pacman -S yaourt
    #+end_src
 
+   yaourt 临时目录默认为 =/tmp= 很容易空间不足，创建 =~/.yaourtrc= 文件，内容如下
+   #+BEGIN_EXAMPLE
+     TMPDIR="$HOME/.cache"
+   #+END_EXAMPLE
+
    参考
 
    - [[http://bashell.nodemedia.cn/archives/install-yaourt.html][Yaourt的安装及使用 | 贝壳博客]]
@@ -19977,3 +19982,175 @@ char *dirname(char *path);
     protobuf-c   2.435 ms
     protobuf-php 37.493 ms
   #+END_EXAMPLE
+
+* DONE mlterm-fb 与 fbterm 的比较                                     :linux:
+  CLOSED: [2019-10-12 Sat 18:35]
+
+  [[https://sourceforge.net/projects/mlterm/][mlterm-fb]] 是跟 [[https://code.google.com/archive/p/fbterm/][fbterm]]  类似，是 linux 下支持中文的基于 framebuffer 的终端模拟
+  器，基于使用体验对它们做一下比较。
+
+** 维护活跃度
+
+   [[https://sourceforge.net/projects/mlterm/][mlterm-fb]] > [[https://code.google.com/archive/p/fbterm/][fbterm]]
+
+- [[https://code.google.com/archive/p/fbterm/][fbterm]] 
+
+  开发已经停止，目前处于维护状态。
+
+- [[https://sourceforge.net/projects/mlterm/][mlterm-fb]]
+
+  做为 [[https://sourceforge.net/projects/mlterm/][mlterm]] 支持的一个环境目前仍然在继续开发。
+
+** 成熟度
+
+  [[https://code.google.com/archive/p/fbterm/][fbterm]] > [[https://sourceforge.net/projects/mlterm/][mlterm-fb]]
+
+- [[https://code.google.com/archive/p/fbterm/][fbterm]] 
+
+  相对比较成熟，网上相关资料比较丰富。
+
+- [[https://sourceforge.net/projects/mlterm/][mlterm-fb]] 
+
+  很不成熟，网上相关资料很少。
+
+** 显示稳定性
+
+   [[https://code.google.com/archive/p/fbterm/][fbterm]] > [[https://sourceforge.net/projects/mlterm/][mlterm-fb]]
+
+- [[https://code.google.com/archive/p/fbterm/][fbterm]] 
+
+  界面很少出现坏块。
+
+- [[https://sourceforge.net/projects/mlterm/][mlterm-fb]]
+
+  从其它 TTY 切回来后显示黑屏，需要手工刷新一次屏幕。
+
+  界面经常出现坏块，光标处文字容易显示错位。
+
+  有可能是我的 [[https://sourceforge.net/projects/mlterm/][mlterm-fb]] 配置问题引起，跟 [[https://code.google.com/archive/p/fbterm/][fbterm]] 开启 ~ambiguous-wide=yes~ 配置
+  项后遇到特殊字符（Unicode 图标）时出现的问题比较类似。
+
+** 重绘速度
+
+   [[https://code.google.com/archive/p/fbterm/][fbterm]] > [[https://sourceforge.net/projects/mlterm/][mlterm-fb]]
+
+- [[https://code.google.com/archive/p/fbterm/][fbterm]] 
+
+  重绘快速，应该是采用 Double-Buffer 的结果。
+
+- [[https://sourceforge.net/projects/mlterm/][mlterm-fb]] 
+
+  重绘很慢，应该是没有采用 Double-Buffer 的结果。
+
+** 颜色支持nnnnnppxo
+
+   [[https://sourceforge.net/projects/mlterm/][mlterm-fb]] > [[https://code.google.com/archive/p/fbterm/][fbterm]]
+
+- [[https://code.google.com/archive/p/fbterm/][fbterm]] 
+
+  支持 256 色。
+
+- [[https://sourceforge.net/projects/mlterm/][mlterm-fb]]
+
+  支持 24 位真彩色。
+
+** 字体显示效果
+
+   [[https://sourceforge.net/projects/mlterm/][mlterm-fb]] > [[https://code.google.com/archive/p/fbterm/][fbterm]]
+
+- [[https://code.google.com/archive/p/fbterm/][fbterm]] 
+
+  需要谨慎选择及微调字体，显示效果一般。
+
+- [[https://sourceforge.net/projects/mlterm/][mlterm-fb]] 
+
+  开箱即用，显示效果好。
+
+** 键盘支持
+
+   [[https://code.google.com/archive/p/fbterm/][fbterm]] > [[https://sourceforge.net/projects/mlterm/][mlterm-fb]]
+
+- [[https://code.google.com/archive/p/fbterm/][fbterm]]
+
+  开箱即用，不需要配置。
+
+- [[https://sourceforge.net/projects/mlterm/][mlterm-fb]] 
+
+  只支持一个键盘。
+
+  可通过环境变量 ~KBD_INPUT_NUM~ 明确指定键盘设备编号，指定设备编号为 ~-1~ 表面
+  上是支持多个键盘了，但是 Alt 键会失效。
+
+  详见文档 [[https://bitbucket.org/arakiken/mlterm/src/tip/doc/en/README.fb][arakiken / mlterm / doc / en / README.fb — Bitbucket]]
+
+* DONE query processing would load too many samples into memory in query execution :prometheus:
+  CLOSED: [2019-10-12 Sat 18:34]
+  [2019-10-08 Tue]
+
+在 Grafana 中有的 dashboard 只要时间范围选择稍微长一些，dashboard 就展示就会失败
+
+#+BEGIN_QUOTE
+query processing would load too many samples into memory in query execution
+#+END_QUOTE
+
+[[../static/promethues-query-too-many-samples.png]]
+
+由于 PromQL 语句可能会载入大量的 metrics 数据，导致 Prometheus 内存以及 CPU 消耗
+超标，所以 Prometheus 提供了相关命令行参数，防止复杂的查询耗光资源
+
+#+BEGIN_QUOTE
+--query.timeout=2m
+
+  Maximum time a query may take before being aborted.
+
+--query.max-concurrency=20
+
+  Maximum number of queries executed concurrently.
+
+--query.max-samples=50000000
+
+  Maximum number of samples a single query can load into memory. Note that
+
+  queries will fail if they try to load more samples than this into memory,
+
+  so this also limits the number of samples a query can return.
+#+END_QUOTE
+
+Prometheus 时序数据模型参见 [[https://prometheus.io/docs/concepts/data_model/][Data model | Prometheus]]
+#+BEGIN_QUOTE
+  Prometheus fundamentally stores all data as time series:
+
+    streams of timestamped values belonging to the same metric and
+
+    the same set of labeled dimensions.
+#+END_QUOTE
+
+每 ~<metric name>{<label name>=<label value>, ...}~ 值对应一 ~time series~ 。
+
+如下两条 ~metric~ 由于 ~user_agent~ label 值不一样，从而属于两个 ~time series~
+
+#+BEGIN_QUOTE
+  nginx_http_response_count_total{request_uri="/index.html",method="GET",status="200",user_agent="Dalvik/1.6.0"}
+
+  nginx_http_response_count_total{request_uri="/index.html",method="GET",status="200",user_agent="Dalvik/2.1.0"}
+#+END_QUOTE
+
+当某些 label 取值较多的情况下，会导致 ~time series~ 过多，导致无法展示。
+
+可以打开 ~http://prometheus.yourcompany.com/graph~ 实际执行一下查询语句，看一下
+查询性能， ~time series~ 过多时查询最近一个小时
+
+#+BEGIN_QUOTE
+  Load time: 21119ms
+
+  Resolution: 14s
+
+  Total time series: 18435
+#+END_QUOTE
+
+做一个简单的计算（采用默认的 ~scrape_interval~ 值 ~15s~ ）
+#+BEGIN_QUOTE
+  60*60/15*18435=4424400
+#+END_QUOTE
+
+假设 ~time series~ 数不变，最多只支持查询 ~11.3（50000000/4424400）~ 小时数据。

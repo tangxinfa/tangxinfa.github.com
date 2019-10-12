@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+  <head>
+    <meta charset="utf-8"/>
+    <title>query processing would load too many samples into memory in query execution | 看看俺 – KanKanAn.com</title>
+    <link rel="shortcut icon" href="/static/favicon.ico" />
+    <link rel="stylesheet" type="text/css" href="/style/ediary.css"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="generator" content="o-blog"/>
+  </head>
+  <body>
+    <div class="navbar navbar-fixed-top" id="header">
+      <div class="navbar-inner">
+        <a class="brand" href="/" style="line-height:100%;">看看俺 – KanKanAn.com</a>
+        <ul class="navbar-links">
+          <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
+          
+          <li><a href="/index.html"><i class="icon-folder-close icon-white"></i> 技术</a></li>
+          <li><a href="/category/life/0.html"><i class="icon-folder-close icon-white"></i> 生活</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="container container-fluid" id="page">
+      <div class="push-header"></div>
+
+      <div class="article">
+        <header class="article-header">
+          <h1>query processing would load too many samples into memory in query execution</h1>
+        </header>
+      
+        <div class="article-content">
+          <p>
+在 Grafana 中有的 dashboard 只要时间范围选择稍微长一些，dashboard 就展示就会失败
+</p>
+
+<blockquote>
+<p>
+query processing would load too many samples into memory in query execution
+</p>
+</blockquote>
+
+
+<div class="figure">
+<p><img src="../static/promethues-query-too-many-samples.png" alt="promethues-query-too-many-samples.png" />
+</p>
+</div>
+
+<p>
+由于 PromQL 语句可能会载入大量的 metrics 数据，导致 Prometheus 内存以及 CPU 消耗超标，所以 Prometheus 提供了相关命令行参数，防止复杂的查询耗光资源
+</p>
+
+<blockquote>
+<p>
+&#x2013;query.timeout=2m
+</p>
+
+<p>
+Maximum time a query may take before being aborted.
+</p>
+
+<p>
+&#x2013;query.max-concurrency=20
+</p>
+
+<p>
+Maximum number of queries executed concurrently.
+</p>
+
+<p>
+&#x2013;query.max-samples=50000000
+</p>
+
+<p>
+Maximum number of samples a single query can load into memory. Note that
+</p>
+
+<p>
+queries will fail if they try to load more samples than this into memory,
+</p>
+
+<p>
+so this also limits the number of samples a query can return.
+</p>
+</blockquote>
+
+<p>
+Prometheus 时序数据模型参见 <a href="https://prometheus.io/docs/concepts/data_model/">Data model | Prometheus</a>
+</p>
+<blockquote>
+<p>
+Prometheus fundamentally stores all data as time series:
+</p>
+
+<p>
+streams of timestamped values belonging to the same metric and
+</p>
+
+<p>
+the same set of labeled dimensions.
+</p>
+</blockquote>
+
+<p>
+每 <code>&lt;metric name&gt;{&lt;label name&gt;=&lt;label value&gt;, ...}</code> 值对应一 <code>time series</code> 。
+</p>
+
+<p>
+如下两条 <code>metric</code> 由于 <code>user_agent</code> label 值不一样，从而属于两个 <code>time series</code>
+</p>
+
+<blockquote>
+<p>
+nginx_http_response_count_total{request_uri="/index.html",method="GET",status="200",user_agent="Dalvik/1.6.0"}
+</p>
+
+<p>
+nginx_http_response_count_total{request_uri="/index.html",method="GET",status="200",user_agent="Dalvik/2.1.0"}
+</p>
+</blockquote>
+
+<p>
+当某些 label 取值较多的情况下，会导致 <code>time series</code> 过多，导致无法展示。
+</p>
+
+<p>
+可以打开 <code>http://prometheus.yourcompany.com/graph</code> 实际执行一下查询语句，看一下查询性能， <code>time series</code> 过多时查询最近一个小时
+</p>
+
+<blockquote>
+<p>
+Load time: 21119ms
+</p>
+
+<p>
+Resolution: 14s
+</p>
+
+<p>
+Total time series: 18435
+</p>
+</blockquote>
+
+<p>
+做一个简单的计算（采用默认的 <code>scrape_interval</code> 值 <code>15s</code> ）
+</p>
+<blockquote>
+<p>
+60*60/15*18435=4424400
+</p>
+</blockquote>
+
+<p>
+假设 <code>time series</code> 数不变，最多只支持查询 <code>11.3（50000000/4424400）</code> 小时数据。</p>
+
+        </div>
+        <br />
+        <footer class="article-footer">
+          <span class="muted">
+            <i class="icon-time icon-white"></i> <time datetime="2019-10-12T18:34:00+0800">2019年10月12日 18时</time>
+          </span>
+          <a class="tag" href="/tag/prometheus/0.html"><i class="icon-tag icon-white"></i> prometheus</a>
+        </footer>
+      </div>
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+  /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+  var disqus_shortname = 'kankananblog';
+
+  /* * * DON'T EDIT BELOW THIS LINE * * */
+  (function() {
+  var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+  dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+      <div class="push-footer"></div>
+    </div>
+
+    <div id="footer">
+  	  <div class="copyright" style="text-align: center;">
+  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
+  	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
+  	  </div>
+    </div>
+  </body>
+</html>
