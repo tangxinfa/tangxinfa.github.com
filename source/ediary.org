@@ -20042,7 +20042,7 @@ char *dirname(char *path);
 
   重绘很慢，应该是没有采用 Double-Buffer 的结果。
 
-** 颜色支持nnnnnppxo
+** 颜色支持
 
    [[https://sourceforge.net/projects/mlterm/][mlterm-fb]] > [[https://code.google.com/archive/p/fbterm/][fbterm]]
 
@@ -20154,3 +20154,253 @@ Prometheus 时序数据模型参见 [[https://prometheus.io/docs/concepts/data_m
 #+END_QUOTE
 
 假设 ~time series~ 数不变，最多只支持查询 ~11.3（50000000/4424400）~ 小时数据。
+
+* TODO envoy 的熔断解决方案                                           :envoy:
+
+  envoy 的弹性特性（Resiliency Features）包括
+
+  - Timeouts
+
+    网络调用的耗时是不可控的，必须设置超时时间。
+
+  - Retries
+
+    通过重试来消除服务抖动造成的影响。
+
+  - [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/circuit_breaking#arch-overview-circuit-break][Circuit breaking]]
+
+  - [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/health_checking#arch-overview-health-checking][Health checking]]
+
+  - [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/outlier][Outlier detection]]
+
+  - [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/other_features/global_rate_limiting#arch-overview-rate-limit][Rate limiting]]
+
+  - [[https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/fault_filter][Fault Injection]]
+
+** 参考
+
+   - [[https://www.envoyproxy.io/docs/envoy/latest/faq/load_balancing/transient_failures.html?highlight=retry][How do I handle transient failures? — envoy 1.13.0-dev-6d816a documentation]]
+
+
+   - [[https://blog.christianposta.com/microservices/comparing-envoy-and-istio-circuit-breaking-with-netflix-hystrix/][Comparing Envoy and Istio Circuit Breaking With Netflix OSS Hystrix – Software Blog]]
+
+
+   - [[https://developers.redhat.com/blog/2017/05/16/it-takes-more-than-a-circuit-breaker-to-create-a-resilient-application/][It takes more than a Circuit Breaker to create a resilient application -
+     Red Hat Developer]]
+
+
+   - [[https://dzone.com/articles/istio-circuit-breaker-with-outlier-detection][Istio Circuit Breaker With Outlier Detection - DZone Microservices]]
+
+
+   - [[https://dzone.com/articles/resilient-microservices-with-istio-circuit-breaker?fromrel=true][Resilient Microservices With Istio Circuit Breaker - DZone Microservices]]
+
+
+   - [[https://blog.christianposta.com/microservices/02-microservices-patterns-with-envoy-proxy-part-ii-timeouts-and-retries/][Microservices Patterns With Envoy Proxy, Part II: Timeouts and Retries – Software Blog]]
+
+
+* TODO envoy 熔断与限流                                               :envoy:
+  [2019-11-21 Thu]
+
+** 雪崩效应
+
+   微服务架构下，服务间会有依赖关系，一次请求的处理涉及一条调用链
+
+   #+begin_quote
+   A -> B -> C -> D
+   #+end_quote
+
+   当 ~D~ 服务响应慢会导致调用链上的 ~A~ ~B~ ~C~ 服务相关资源被占用，最终导致业
+   务系统崩溃，形同雪崩效应。
+
+   解决雪崩效应的方案主要有以下三种： ~熔断~ ~隔离~ ~限流~
+
+** 熔断
+
+   熔断（circuit break）是一种出错后的容错处理机制。
+
+*** 运作原理
+
+    熔断（circuit break）是站在调用方的立场上，如果调用的服务抖动、临时不可用，
+    会拖慢自已，一旦发现这种状况，对该服务的后继请求不再发起，而是直接返回快速释
+    放资源，情况好转则恢复调用。
+
+*** Envoy 对熔断的支持
+
+    envoy 的 [[https://www.envoyproxy.io/docs/envoy/v1.5.0/intro/arch_overview/circuit_breaking#arch-overview-circuit-break][Circuit breaking]] 支持以下阈值，超过阈值后的新请求将被熔断
+
+    - HTTP/1.1 最大连接数 :: envoy 到后端的连接数
+
+
+    - HTTP/1.1 待处理最大请求数 :: 后端连接池满后 envoy 收到的待处理请求数
+
+
+    - HTTP/2 最大请求数 :: 后端正在处理的请求数
+
+
+    - 最大重试数 :: 后端正在重试的请求数，这里的熔断是指不重试失败的请求
+
+** 限流
+
+   限流（rate limit）是一种事前预防机制。
+
+*** 运作机制
+
+   限流（rate limit）是站在服务方的立场上，某一客户抽风发起超量请求，其它客户也
+   会受影响，通过为客户设置请求速度限制，来保障服务的可用性。
+
+*** Envoy 支持的限流方式
+
+   Envoy 的 [[https://www.envoyproxy.io/docs/envoy/v1.5.0/intro/arch_overview/global_rate_limiting#arch-overview-rate-limit][Global rate limiting]] 特性
+
+   - [[https://www.envoyproxy.io/docs/envoy/v1.5.0/configuration/network_filters/rate_limit_filter][网络层限速]] :: 收到新连接后询问限速服务是否放行，最终会影响到每秒连接数
+
+
+   - [[https://www.envoyproxy.io/docs/envoy/v1.5.0/configuration/http_filters/rate_limit_filter][HTTP 层限速]] :: 收到新请求后询问限速服务是否继续处理，最终会影响到每秒请求数
+
+
+   前者主要根据客户端 IP，后者主要根据 HTTP 请求头判定是否限速。
+
+*** Envoy 限流的运作原理
+
+    Envoy 收到新的连接时或 HTTP 请求时，Grpc 调用限流服务，根据响应结果决定是继
+    续处理还是中断请求。当限流服务本身不可用时，不影响业务处理。
+
+*** Envoy 支持的限流协议
+
+   限流协议
+
+   - api/envoy/service/ratelimit/v2/rls.proto :: ratelimit v2 协议
+
+     Envoy 从 ~v1.8.0~ 开始支持。
+
+   - source/common/ratelimit/ratelimit.proto :: ratelimit v1 协议
+
+     Envoy 从 ~v1.1.0~ 开始支持， ~v1.8.0~ 宣布废弃， ~v1.9.0~ 进行移除。
+
+*** Envoy 限流相关项目
+
+- [[https://github.com/lyft/ratelimit][lyft/ratelimit]] :: lyft 提供的 ratelimit 服务参考实现
+
+
+- [[https://github.com/jbarratt/envoy_ratelimit_example][jbarratt/envoy_ratelimit_example]] :: [[https://github.com/lyft/ratelimit][lyft/ratelimit]] 示例项目
+
+
+提供 ratelimit v2 协议限流示例。
+
+
+*** Envoy 限流潜在的问题
+
+- 调用限流服务本身是有一定开销的
+
+  每一次判定是否需要限流 Envoy 都会往 ~ratelimit~ 服务发起一次 Grpc 调用，限流服
+  务会往 Redis 服务发起一次请求。
+
+  ~ratelimit~ 服务及其依赖的 ~Redis~ 服务也需要做到高可用。
+
+** 参考
+
+- [[https://www.cnblogs.com/raoshaoquan/articles/6636067.html][熔断，限流，降级 - 阿里路亚的技术博客 - 博客园]]
+
+- [[https://blog.csdn.net/mcgwinds/article/details/51166796][(1条消息)微服务熔断与隔离 - mcgwinds的博客 - CSDN博客]]
+
+- [[https://blog.christianposta.com/microservices/comparing-envoy-and-istio-circuit-breaking-with-netflix-hystrix/][Comparing Envoy and Istio Circuit Breaking With Netflix OSS Hystrix – Software Blog]]
+
+* DONE 编译 envoy 生成 compile_commands.json                          :envoy:
+  CLOSED: [2019-12-19 Thu 20:28]
+  [2019-12-06 Fri]
+
+  前面的文章 [[http://blog.kankanan.com/article/5b8c7f8e7684-c-987976ee4ee378015b9a4e498df38f6c.html][完美的 c++ 项目代码定义跳转]] 介绍了对使用 [[https://bazel.build/][Bazel]] 进行构建的项目生成
+  ~compile_commands.json~ 。[[https://github.com/envoyproxy/envoy/][envoy]] 是使用 [[https://bazel.build/][Bazel]] 进行构建的大型 c++ 开源项目，使用
+  [[https://github.com/Andersbakken/rtags][rtags]] 的代码跳转功能可以方便地调试、阅读 [[https://github.com/envoyproxy/envoy/][envoy]] 源代码。
+
+  最新的 [[https://github.com/envoyproxy/envoy/][envoy]] 已包含创建 ~compile_commands.json~ 相关脚本，但是缺乏相关使用文档，
+  这里我们选择为 ~envoy 1.7.0~ 手工创建 ~compile_commands.json~ 。
+
+** 下载 envoy 1.7.0 源代码
+
+   #+BEGIN_SRC sh
+     git clone https://github.com/envoyproxy/envoy.git -b v1.7.0
+   #+END_SRC
+
+** 安装 Bazel
+
+   参考 [[https://github.com/envoyproxy/envoy/blob/master/bazel/README.md][envoy/README.md]] 安装 [[https://github.com/bazelbuild/bazelisk][Bazelisk]] 以支持使用任意 [[https://bazel.build/][Bazel]] 版本
+
+   #+BEGIN_SRC sh
+     sudo mkdir -p /opt/local/bin
+     sudo wget -O /opt/local/bin/bazel https://github.com/bazelbuild/bazelisk/releases/download/v0.0.8/bazelisk-linux-amd64
+     sudo chmod +x /opt/local/bin/bazel
+     export PATH=/opt/local/bin/:$PATH
+   #+END_SRC
+
+** 下载 Bazel_and_CompileCommands
+
+   使用 [[https://github.com/vincent-picaud/Bazel_and_CompileCommands][vincent-picaud/Bazel_and_CompileCommands]] 的 fork 版本，以支持传入构建参数
+
+   #+begin_src sh
+     git clone git@github.com:tangxinfa/Bazel_and_CompileCommands.git -b tangxinfa:fix-build-arguments
+   #+end_src
+
+** 指定 Bazel 版本
+
+   Envoy 最新版本通过 ~.bazelversion~ 文件指明使用的 Bazel 版本，envoy v1.7.0 需
+   要手工设置。运行命令 ~ci/run_envoy_docker.sh "bazel version"~ 得知 envoy
+   v1.7.0 需要 bazel 0.13.0。
+
+   #+BEGIN_SRC sh
+     export USE_BAZEL_VERSION=0.13.0
+   #+END_SRC
+
+** 指定 Python 版本
+
+   Archlinux 默认的 Python 版本为 python3，需要使用 python2
+
+   #+BEGIN_SRC sh
+     alias python=python2
+   #+END_SRC
+
+** 安装 gcc5
+
+   Envoy v1.7.0 使用最新版本的 gcc 进行编译会有大量的编译错误，改用 gcc5
+
+   #+BEGIN_SRC sh
+     yaourt -S gcc5
+   #+END_SRC
+
+** 修复 tclap 项目地址错误
+
+  tclap 项目已从 http://github.com/eile/tclap 迁到 https://github.com/mirror/tclap
+
+  替换 ~bazel/repositories.bzl~ ~bazel/repository_locations.bzl~ 中的 ~eile~ 为 ~mirror~
+
+** 修复 gettid 重复定义的错误
+
+   编译过程中有几处 ~gettid~ 定义错误，如
+
+   #+begin_example
+     In file included from /usr/include/unistd.h:1170:0,
+                      from external/com_github_grpc_grpc/src/core/lib/gpr/log_linux.cc:41:
+     /usr/include/bits/unistd_ext.h:34:16: note: old declaration '__pid_t gettid()'
+      extern __pid_t gettid (void) __THROW;
+                     ^
+   #+end_example
+
+   #+begin_example
+     external/com_github_grpc_grpc/src/core/lib/iomgr/ev_epollex_linux.cc: In function 'long int gettid()':
+     external/com_github_grpc_grpc/src/core/lib/iomgr/ev_epollex_linux.cc:989:24: error: ambiguating new declaration of 'long int gettid()'
+      static long gettid(void) { return syscall(__NR_gettid); }
+                             ^
+   #+end_example
+
+   在 .cache/bazel 目录下找到对应的文件，并删除 ~gettid~ 函数定义
+
+** 编译 Envoy 生成 compile_commands.json
+
+   #+BEGIN_SRC sh
+     ~/Opensource/Bazel_and_CompileCommands/setup_compile_commands.sh
+     ~/Opensource/Bazel_and_CompileCommands/create_compile_commands.sh \
+       --action_env CC=/usr/bin/gcc-5 \
+       --action_env CPP=/usr/bin/cpp-5 \
+       --action_env CXX=/usr/bin/c++-5 \
+       --verbose_failures //source/exe:envoy-static
+   #+END_SRC

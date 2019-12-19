@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+  <head>
+    <meta charset="utf-8"/>
+    <title>编译 envoy 生成 compile_commands.json | 看看俺 – KanKanAn.com</title>
+    <link rel="shortcut icon" href="/static/favicon.ico" />
+    <link rel="stylesheet" type="text/css" href="/style/ediary.css"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="generator" content="o-blog"/>
+  </head>
+  <body>
+    <div class="navbar navbar-fixed-top" id="header">
+      <div class="navbar-inner">
+        <a class="brand" href="/" style="line-height:100%;">看看俺 – KanKanAn.com</a>
+        <ul class="navbar-links">
+          <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
+          
+          <li><a href="/index.html"><i class="icon-folder-close icon-white"></i> 技术</a></li>
+          <li><a href="/category/life/0.html"><i class="icon-folder-close icon-white"></i> 生活</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="container container-fluid" id="page">
+      <div class="push-header"></div>
+
+      <div class="article">
+        <header class="article-header">
+          <h1>编译 envoy 生成 compile_commands.json</h1>
+        </header>
+      
+        <div class="article-content">
+          <p>
+前面的文章 <a href="http://blog.kankanan.com/article/5b8c7f8e7684-c-987976ee4ee378015b9a4e498df38f6c.html">完美的 c++ 项目代码定义跳转</a> 介绍了对使用 <a href="https://bazel.build/">Bazel</a> 进行构建的项目生成
+<code>compile_commands.json</code> 。<a href="https://github.com/envoyproxy/envoy/">envoy</a> 是使用 <a href="https://bazel.build/">Bazel</a> 进行构建的大型 c++ 开源项目，使用
+<a href="https://github.com/Andersbakken/rtags">rtags</a> 的代码跳转功能可以方便地调试、阅读 <a href="https://github.com/envoyproxy/envoy/">envoy</a> 源代码。
+</p>
+
+<p>
+最新的 <a href="https://github.com/envoyproxy/envoy/">envoy</a> 已包含创建 <code>compile_commands.json</code> 相关脚本，但是缺乏相关使用文档，这里我们选择为 <code>envoy 1.7.0</code> 手工创建 <code>compile_commands.json</code> 。
+</p>
+
+<div id="outline-container-orgc545e1e" class="outline-2">
+<h2 id="orgc545e1e">下载 envoy 1.7.0 源代码</h2>
+<div class="outline-text-2" id="text-orgc545e1e">
+<div class="org-src-container">
+<pre class="src src-sh">git clone https://github.com/envoyproxy/envoy.git -b v1.7.0
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org09eeb2d" class="outline-2">
+<h2 id="org09eeb2d">安装 Bazel</h2>
+<div class="outline-text-2" id="text-org09eeb2d">
+<p>
+参考 <a href="https://github.com/envoyproxy/envoy/blob/master/bazel/README.md">envoy/README.md</a> 安装 <a href="https://github.com/bazelbuild/bazelisk">Bazelisk</a> 以支持使用任意 <a href="https://bazel.build/">Bazel</a> 版本
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">sudo mkdir -p /opt/local/bin
+sudo wget -O /opt/local/bin/bazel https://github.com/bazelbuild/bazelisk/release<span style="text-decoration: underline;">s/download/v0.0.8/bazelisk-linux-amd64</span>
+sudo chmod +x /opt/local/bin/bazel
+<span style="color: #A020F0;">export</span> <span style="color: #0084C8; font-weight: bold;">PATH</span>=/opt/local/bin/:$<span style="color: #0084C8; font-weight: bold;">PATH</span>
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org2bef2db" class="outline-2">
+<h2 id="org2bef2db">下载 Bazel_and_CompileCommands</h2>
+<div class="outline-text-2" id="text-org2bef2db">
+<p>
+使用 <a href="https://github.com/vincent-picaud/Bazel_and_CompileCommands">vincent-picaud/Bazel_and_CompileCommands</a> 的 fork 版本，以支持传入构建参数
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">git clone git@github.com:tangxinfa/Bazel_and_CompileCommands.git -b tangxinfa:fi<span style="text-decoration: underline;">x-build-arguments</span>
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgb9586cf" class="outline-2">
+<h2 id="orgb9586cf">指定 Bazel 版本</h2>
+<div class="outline-text-2" id="text-orgb9586cf">
+<p>
+Envoy 最新版本通过 <code>.bazelversion</code> 文件指明使用的 Bazel 版本，envoy v1.7.0 需要手工设置。运行命令 <code>ci/run_envoy_docker.sh "bazel version"</code> 得知 envoy
+v1.7.0 需要 bazel 0.13.0。
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh"><span style="color: #A020F0;">export</span> <span style="color: #0084C8; font-weight: bold;">USE_BAZEL_VERSION</span>=0.13.0
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgb108e97" class="outline-2">
+<h2 id="orgb108e97">指定 Python 版本</h2>
+<div class="outline-text-2" id="text-orgb108e97">
+<p>
+Archlinux 默认的 Python 版本为 python3，需要使用 python2
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh"><span style="color: #A020F0;">alias</span> <span style="color: #0084C8; font-weight: bold;">python</span>=python2
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgca0f780" class="outline-2">
+<h2 id="orgca0f780">安装 gcc5</h2>
+<div class="outline-text-2" id="text-orgca0f780">
+<p>
+Envoy v1.7.0 使用最新版本的 gcc 进行编译会有大量的编译错误，改用 gcc5
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">yaourt -S gcc5
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org4535c37" class="outline-2">
+<h2 id="org4535c37">修复 tclap 项目地址错误</h2>
+<div class="outline-text-2" id="text-org4535c37">
+<p>
+tclap 项目已从 <a href="http://github.com/eile/tclap">http://github.com/eile/tclap</a> 迁到 <a href="https://github.com/mirror/tclap">https://github.com/mirror/tclap</a>
+</p>
+
+<p>
+替换 <code>bazel/repositories.bzl</code> <code>bazel/repository_locations.bzl</code> 中的 <code>eile</code> 为 <code>mirror</code>
+</p>
+</div>
+</div>
+
+<div id="outline-container-org4be2df5" class="outline-2">
+<h2 id="org4be2df5">修复 gettid 重复定义的错误</h2>
+<div class="outline-text-2" id="text-org4be2df5">
+<p>
+编译过程中有几处 <code>gettid</code> 定义错误，如
+</p>
+
+<pre class="example">
+In file included from /usr/include/unistd.h:1170:0,
+                 from external/com_github_grpc_grpc/src/core/lib/gpr/log_linux.cc:41:
+/usr/include/bits/unistd_ext.h:34:16: note: old declaration '__pid_t gettid()'
+ extern __pid_t gettid (void) __THROW;
+                ^
+</pre>
+
+<pre class="example">
+external/com_github_grpc_grpc/src/core/lib/iomgr/ev_epollex_linux.cc: In function 'long int gettid()':
+external/com_github_grpc_grpc/src/core/lib/iomgr/ev_epollex_linux.cc:989:24: error: ambiguating new declaration of 'long int gettid()'
+ static long gettid(void) { return syscall(__NR_gettid); }
+                        ^
+</pre>
+
+<p>
+在 .cache/bazel 目录下找到对应的文件，并删除 <code>gettid</code> 函数定义
+</p>
+</div>
+</div>
+
+<div id="outline-container-orged072ea" class="outline-2">
+<h2 id="orged072ea">编译 Envoy 生成 compile_commands.json</h2>
+<div class="outline-text-2" id="text-orged072ea">
+<div class="org-src-container">
+<pre class="src src-sh">~/Opensource/Bazel_and_CompileCommands/setup_compile_commands.sh
+~/Opensource/Bazel_and_CompileCommands/create_compile_commands.sh <span style="color: #4E9A06;">\</span>
+<span style="background-color: #E6E6E6;"> </span> --action_env <span style="color: #0084C8; font-weight: bold;">CC</span>=/usr/bin/gcc-5 <span style="color: #4E9A06;">\</span>
+<span style="background-color: #E6E6E6;"> </span> --action_env <span style="color: #0084C8; font-weight: bold;">CPP</span>=/usr/bin/cpp-5 <span style="color: #4E9A06;">\</span>
+<span style="background-color: #E6E6E6;"> </span> --action_env <span style="color: #0084C8; font-weight: bold;">CXX</span>=/usr/bin/c++-5 <span style="color: #4E9A06;">\</span>
+<span style="background-color: #E6E6E6;"> </span> --verbose_failures //source/exe:envoy-static
+</pre>
+</div>
+</div>
+</div>
+
+        </div>
+        <br />
+        <footer class="article-footer">
+          <span class="muted">
+            <i class="icon-time icon-white"></i> <time datetime="2019-12-19T20:28:00+0800">2019年12月19日 20时</time>
+          </span>
+          <a class="tag" href="/tag/envoy/0.html"><i class="icon-tag icon-white"></i> envoy</a>
+        </footer>
+      </div>
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+  /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+  var disqus_shortname = 'kankananblog';
+
+  /* * * DON'T EDIT BELOW THIS LINE * * */
+  (function() {
+  var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+  dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+      <div class="push-footer"></div>
+    </div>
+
+    <div id="footer">
+  	  <div class="copyright" style="text-align: center;">
+  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
+  	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
+  	  </div>
+    </div>
+  </body>
+</html>
