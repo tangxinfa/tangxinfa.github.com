@@ -20155,27 +20155,159 @@ Prometheus 时序数据模型参见 [[https://prometheus.io/docs/concepts/data_m
 
 假设 ~time series~ 数不变，最多只支持查询 ~11.3（50000000/4424400）~ 小时数据。
 
-* TODO envoy 的熔断解决方案                                           :envoy:
+* DONE Envoy 如何保障服务的稳定运行                                   :envoy:
+  CLOSED: [2019-12-25 Wed 15:46]
 
-  envoy 的弹性特性（Resiliency Features）包括
+** Envoy 的运作原理
 
-  - Timeouts
+   Envoy 本质上就是一个 3/4/7 层代理，收到下游（Downstream）的请求，转发到通过
+   负载均衡算法选择的一个上游（Upstream）服务主机（Host），将上游响应传回下游。
 
-    网络调用的耗时是不可控的，必须设置超时时间。
+   Envoy 通过避免将请求转发到不健康的上游服务主机（Host）来保障服务的稳定性。
 
-  - Retries
+   通常用于服务间通信，典型的 Envoy 运行方式就是 [[https://www.microservices.com/talks/lyfts-envoy-monolith-service-mesh-matt-klein/?__hstc=118178582.e39f84eaf2e95e988ac6883afe0f55ae.1576669893909.1576669893909.1577260665636.2&__hssc=118178582.1.1577260665636&__hsfp=1650107011][服务网格]]：
 
-    通过重试来消除服务抖动造成的影响。
+   https://image.slidesharecdn.com/microservicessummit-170208170654/95/lyfts-envoy-from-monolith-to-service-mesh-matt-klein-lyft-13-1024.jpg
 
-  - [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/circuit_breaking#arch-overview-circuit-break][Circuit breaking]]
+** Envoy 的 Resiliency Features
 
-  - [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/health_checking#arch-overview-health-checking][Health checking]]
+   Resiliency Features:
 
-  - [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/outlier][Outlier detection]]
+   - [[https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v1/route_config/route#config-http-conn-man-route-table-route-timeout][Timeouts]] :: 请求处理时间超过阈值后取消请求
 
-  - [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/other_features/global_rate_limiting#arch-overview-rate-limit][Rate limiting]]
+   - [[https://www.envoyproxy.io/docs/envoy/v1.7.0/intro/arch_overview/http_routing#retry-semantics][Retries]] :: 重试处理出错的请求
 
-  - [[https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/fault_filter][Fault Injection]]
+   - [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/circuit_breaking#arch-overview-circuit-break][Circuit Breaking]] :: 限制到上游集群（Upstream Cluster）的并发连接、请求数
+
+   - [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/other_features/global_rate_limiting#arch-overview-rate-limit][Rate Limiting]] :: 限制下游（Downstream）的请求速率
+
+   - [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/health_checking#arch-overview-health-checking][Health Checking]] :: 主动检查上游集群（Upstream Cluster）的康健度
+
+   - [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/outlier][Outlier Detection]] :: 被动检查上游集群（Upstream Cluster）的康健度
+
+   - [[https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/fault_filter][Fault Injection]] :: 通过注入故障来测试服务的稳定性
+
+
+   其中
+
+*** [[https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v1/route_config/route#config-http-conn-man-route-table-route-timeout][Timeouts]] 、[[https://www.envoyproxy.io/docs/envoy/v1.7.0/intro/arch_overview/http_routing#retry-semantics][Retries]]
+
+    最基本的保障服务稳定性的特性，主要是为了保护 Envoy 自身，避免跟着被拖垮。
+
+*** [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/circuit_breaking#arch-overview-circuit-break][Circuit Breaking]]
+
+    静态地为上游服务的处理能力设定上限，丢弃超过上游服务的处理能力的请求。
+
+*** [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/health_checking#arch-overview-health-checking][Health Checking]] 、[[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/outlier][Outlier Detection]]
+
+    动态地检测服务主机（Host）的健康状况，通过将不健康的服务主机（Host）驱逐一段时间来复原系统。
+
+*** [[https://www.envoyproxy.io/docs/envoy/v1.7.1/configuration/http_filters/fault_filter][Fault Injection]]
+
+    通过模拟请求失败或变慢来测试系统的复原能力。
+
+** Envoy 怎样实现熔断
+
+   当调用的上游（Upstream）服务运行状态良好时，请求失败是非常偶然的，通过运用
+   ~Retries pattern~ 来重试失败的请求，可以提高服务的容错性、健壮性。
+
+   当调用的上游（Upstream）服务运行状态异常时，请求失败会大量出现，通过运用
+   ~Circuit Breaker pattern~ 来避免发起有很大机率失败的请求，可以释放系统压力、
+   避免“雪崩效应”。
+
+   熔断的核心是一个状态机
+
+   [[https://docs.microsoft.com/en-us/azure/architecture/patterns/_images/circuit-breaker-diagram.png]]
+
+   包含以下状态：
+
+   - Closed :: 熔断器关闭状态
+
+               一段时间内，调用失败次数积累到了阈值（或一定比例）则打开熔断器
+
+   - Open :: 熔断器打开状态
+
+             此时对上游（Upstream）的调用都内部直接返回错误，不会真的发起调用，
+             同时开启一个定时器，时长通常为平均故障处理时间（ ~MTTR~ ），定时器
+             触发后进入半熔断状态
+
+   - Half-Open :: 半熔断状态
+
+                  允许定量的服务请求通过，调用成功次数积累到了阈值（或一定比例）
+                  则关闭熔断器，否则回到熔断器打开状态。
+
+   Envoy 的 [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/circuit_breaking#arch-overview-circuit-break][Circuit Breaking]] 跟熔断完全是两码事，Envoy 主要是通过 [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/outlier][Outlier
+   Detection]] 来实现熔断的。
+
+   一方面，通过合理的配置 Envy 的 [[https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v1/route_config/route#config-http-conn-man-route-table-route-timeout][Timeouts]] 、[[https://www.envoyproxy.io/docs/envoy/v1.7.0/intro/arch_overview/http_routing#retry-semantics][Retries]] 、[[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/circuit_breaking#arch-overview-circuit-break][Circuit Breaking]]、[[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/other_features/global_rate_limiting#arch-overview-rate-limit][Rate
+   Limiting]] 来尽量保障上游（Upstream）服务的稳定运行，另一方面，一旦通过 [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/health_checking#arch-overview-health-checking][Health
+   Checking]] [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/outlier][Outlier Detection]] 检测到上游（Upstream）服务主机（Host）异常，就会进
+   入熔断状态。
+
+   上游（Upstream）服务主机（Host）进入熔断状态后，一段时间内 Envoy 不会往它调度
+   请求，可以减少它对整体服务质量的影响，手动或自动修复故障后重新加入到集群
+   （Cluster）中来，继续提供服务。
+
+** Envoy 配置要点
+
+- [[https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v1/route_config/route#config-http-conn-man-route-table-route-timeout][Timeouts]]
+
+  调用链越深，其超时值必须越小。
+
+  其值应该处于统计出的 99.x 分位值与调用方最大容忍时间之间。
+
+  接口响应延迟差异太大的情况下，应该按接口路由分别设置超时值。
+
+
+- [[https://www.envoyproxy.io/docs/envoy/v1.7.0/intro/arch_overview/http_routing#retry-semantics][Retries]]
+
+  在 Timeouts（超时）时间内可能会发生多次 Retries （重试）。
+
+  =冥等性= 的接口才应该进行 [[https://www.envoyproxy.io/docs/envoy/v1.7.0/intro/arch_overview/http_routing#retry-semantics][Retries]] 。
+
+  不应该重试熔断的请求，即要从出可重试错误码中排除熔断错误码。
+
+  通过 [[https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v1/cluster_manager/cluster_circuit_breakers#config-cluster-manager-cluster-circuit-breakers-max-retries][Circuit breakers 的 max_retries]] 来限制到该集群（Cluster）的最大并发重试数。
+
+- [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/circuit_breaking#arch-overview-circuit-break][Circuit Breaking]]
+
+  它不是我们常识中的熔断。
+
+  它限制当前 Envoy 往 Cluster 发起的最大并发连接、请求、重试数。
+
+  设置超过物理上限的值是没有意义的，相当于禁用了 [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/circuit_breaking#arch-overview-circuit-break][Circuit Breaking]] 。
+
+  最好是根据统计出的高峰期往 Cluster 发起的并发连接、请求数进行设置。
+
+- [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/other_features/global_rate_limiting#arch-overview-rate-limit][Rate Limiting]]
+
+  一般根据请求发起方（Downstream）的特征模式来设定限速值，如：IP、HTTP 头。
+
+  对于需要限速的请求会同步发起一次到限速服务的 Grpc 调用。
+
+  停掉限速服务即可关闭限速功能，可以做为一种服务降级手段。
+
+- [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/health_checking#arch-overview-health-checking][Health Checking]]
+
+  它是主动健康检查（Active health checking），可以和 [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/outlier][被动健康检查]] 同时启用。
+
+  一般跟服务发现（[[https://www.envoyproxy.io/docs/envoy/v1.7.0/intro/arch_overview/service_discovery#arch-overview-service-discovery][Service Discovery]]）一起用。
+
+  可用于实现服务（Service）主机（Host）的优雅退出（Gracefully Shutdown）。
+
+  [[https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v1/cluster_manager/cluster_hc#config-cluster-manager-cluster-hc-interval][健康检测间隔]] 应该适当设置大一些，以免发起的健康检查请求过多。
+
+- [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/outlier][Outlier Detection]]
+
+  实现被动健康检查（Passive health checking），可以和 [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/health_checking#arch-overview-health-checking][主动健康检查]] 同时启用。
+
+  它才是真正的熔断。
+
+  [[https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v1/cluster_manager/cluster_outlier_detection#config-cluster-manager-cluster-outlier-detection-consecutive-5xx][默认 5 个连续的 5XX 错误就会触发熔断]]，应该根据服务的请求量来确实合适的值。
+
+  [[https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v1/cluster_manager/cluster_outlier_detection#config-cluster-manager-cluster-outlier-detection-max-ejection-percent][默认最多驱逐 ~10%~ 的主机，至少 ~1~ 台主机]] 。
+
+  [[https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v1/cluster_manager/cluster_outlier_detection#config-cluster-manager-cluster-outlier-detection-base-ejection-time-ms][驱逐时间默认为 30 秒]]，最好设置为服务的平均故障处理时间（ ~MTTR~ ）。
 
 ** 参考
 
@@ -20185,8 +20317,7 @@ Prometheus 时序数据模型参见 [[https://prometheus.io/docs/concepts/data_m
    - [[https://blog.christianposta.com/microservices/comparing-envoy-and-istio-circuit-breaking-with-netflix-hystrix/][Comparing Envoy and Istio Circuit Breaking With Netflix OSS Hystrix – Software Blog]]
 
 
-   - [[https://developers.redhat.com/blog/2017/05/16/it-takes-more-than-a-circuit-breaker-to-create-a-resilient-application/][It takes more than a Circuit Breaker to create a resilient application -
-     Red Hat Developer]]
+   - [[https://developers.redhat.com/blog/2017/05/16/it-takes-more-than-a-circuit-breaker-to-create-a-resilient-application/][It takes more than a Circuit Breaker to create a resilient application - Red Hat Developer]]
 
 
    - [[https://dzone.com/articles/istio-circuit-breaker-with-outlier-detection][Istio Circuit Breaker With Outlier Detection - DZone Microservices]]
@@ -20196,6 +20327,12 @@ Prometheus 时序数据模型参见 [[https://prometheus.io/docs/concepts/data_m
 
 
    - [[https://blog.christianposta.com/microservices/02-microservices-patterns-with-envoy-proxy-part-ii-timeouts-and-retries/][Microservices Patterns With Envoy Proxy, Part II: Timeouts and Retries – Software Blog]]
+
+
+   - [[https://www.envoyproxy.io/learn/health-check.html][Envoy Proxy - Healthy Hosts in Envoy]]
+
+
+   - [[https://blog.csdn.net/guwei9111986/article/details/51649240][谈谈我对服务熔断、服务降级的理解_微服务,服务熔断,netflix_guwei9111986的博客-CSDN博客]]
 
 
 * TODO envoy 熔断与限流                                               :envoy:
@@ -20338,7 +20475,8 @@ Prometheus 时序数据模型参见 [[https://prometheus.io/docs/concepts/data_m
    使用 [[https://github.com/vincent-picaud/Bazel_and_CompileCommands][vincent-picaud/Bazel_and_CompileCommands]] 的 fork 版本，以支持传入构建参数
 
    #+begin_src sh
-     git clone git@github.com:tangxinfa/Bazel_and_CompileCommands.git -b tangxinfa:fix-build-arguments
+     cd ~/Opensource/
+     git clone git@github.com:tangxinfa/Bazel_and_CompileCommands.git -b fix-build-arguments
    #+end_src
 
 ** 指定 Bazel 版本
@@ -20392,7 +20530,7 @@ Prometheus 时序数据模型参见 [[https://prometheus.io/docs/concepts/data_m
                              ^
    #+end_example
 
-   在 .cache/bazel 目录下找到对应的文件，并删除 ~gettid~ 函数定义
+   在 =~.cache/bazel= 目录下找到对应的文件，并删除 ~gettid~ 函数定义
 
 ** 编译 Envoy 生成 compile_commands.json
 

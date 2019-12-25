@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+  <head>
+    <meta charset="utf-8"/>
+    <title>Envoy 如何保障服务的稳定运行 | 看看俺 – KanKanAn.com</title>
+    <link rel="shortcut icon" href="/static/favicon.ico" />
+    <link rel="stylesheet" type="text/css" href="/style/ediary.css"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="generator" content="o-blog"/>
+  </head>
+  <body>
+    <div class="navbar navbar-fixed-top" id="header">
+      <div class="navbar-inner">
+        <a class="brand" href="/" style="line-height:100%;">看看俺 – KanKanAn.com</a>
+        <ul class="navbar-links">
+          <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
+          
+          <li><a href="/index.html"><i class="icon-folder-close icon-white"></i> 技术</a></li>
+          <li><a href="/category/life/0.html"><i class="icon-folder-close icon-white"></i> 生活</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="container container-fluid" id="page">
+      <div class="push-header"></div>
+
+      <div class="article">
+        <header class="article-header">
+          <h1>Envoy 如何保障服务的稳定运行</h1>
+        </header>
+      
+        <div class="article-content">
+          
+<div id="outline-container-orgdce8fc3" class="outline-2">
+<h2 id="orgdce8fc3">Envoy 的运作原理</h2>
+<div class="outline-text-2" id="text-orgdce8fc3">
+<p>
+Envoy 本质上就是一个 3/4/7 层代理，收到下游（Downstream）的请求，转发到通过负载均衡算法选择的一个上游（Upstream）服务主机（Host），将上游响应传回下游。
+</p>
+
+<p>
+Envoy 通过避免将请求转发到不健康的上游服务主机（Host）来保障服务的稳定性。
+</p>
+
+<p>
+通常用于服务间通信，典型的 Envoy 运行方式就是 <a href="https://www.microservices.com/talks/lyfts-envoy-monolith-service-mesh-matt-klein/?__hstc=118178582.e39f84eaf2e95e988ac6883afe0f55ae.1576669893909.1576669893909.1577260665636.2&amp;__hssc=118178582.1.1577260665636&amp;__hsfp=1650107011">服务网格</a>：
+</p>
+
+
+<div class="figure">
+<p><img src="https://image.slidesharecdn.com/microservicessummit-170208170654/95/lyfts-envoy-from-monolith-to-service-mesh-matt-klein-lyft-13-1024.jpg" alt="lyfts-envoy-from-monolith-to-service-mesh-matt-klein-lyft-13-1024.jpg" />
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgb7801b1" class="outline-2">
+<h2 id="orgb7801b1">Envoy 的 Resiliency Features</h2>
+<div class="outline-text-2" id="text-orgb7801b1">
+<p>
+Resiliency Features:
+</p>
+
+<dl class="org-dl">
+<dt><a href="https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v1/route_config/route#config-http-conn-man-route-table-route-timeout">Timeouts</a></dt><dd>请求处理时间超过阈值后取消请求</dd>
+
+<dt><a href="https://www.envoyproxy.io/docs/envoy/v1.7.0/intro/arch_overview/http_routing#retry-semantics">Retries</a></dt><dd>重试处理出错的请求</dd>
+
+<dt><a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/circuit_breaking#arch-overview-circuit-break">Circuit Breaking</a></dt><dd>限制到上游集群（Upstream Cluster）的并发连接、请求数</dd>
+
+<dt><a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/other_features/global_rate_limiting#arch-overview-rate-limit">Rate Limiting</a></dt><dd>限制下游（Downstream）的请求速率</dd>
+
+<dt><a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/health_checking#arch-overview-health-checking">Health Checking</a></dt><dd>主动检查上游集群（Upstream Cluster）的康健度</dd>
+
+<dt><a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/outlier">Outlier Detection</a></dt><dd>被动检查上游集群（Upstream Cluster）的康健度</dd>
+
+<dt><a href="https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/fault_filter">Fault Injection</a></dt><dd>通过注入故障来测试服务的稳定性</dd>
+</dl>
+
+
+<p>
+其中
+</p>
+</div>
+
+<div id="outline-container-org7f06240" class="outline-3">
+<h3 id="org7f06240"><a href="https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v1/route_config/route#config-http-conn-man-route-table-route-timeout">Timeouts</a> 、<a href="https://www.envoyproxy.io/docs/envoy/v1.7.0/intro/arch_overview/http_routing#retry-semantics">Retries</a></h3>
+<div class="outline-text-3" id="text-org7f06240">
+<p>
+最基本的保障服务稳定性的特性，主要是为了保护 Envoy 自身，避免跟着被拖垮。
+</p>
+</div>
+</div>
+
+<div id="outline-container-org6e211c7" class="outline-3">
+<h3 id="org6e211c7"><a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/circuit_breaking#arch-overview-circuit-break">Circuit Breaking</a></h3>
+<div class="outline-text-3" id="text-org6e211c7">
+<p>
+静态地为上游服务的处理能力设定上限，丢弃超过上游服务的处理能力的请求。
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgd8becf7" class="outline-3">
+<h3 id="orgd8becf7"><a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/health_checking#arch-overview-health-checking">Health Checking</a> 、<a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/outlier">Outlier Detection</a></h3>
+<div class="outline-text-3" id="text-orgd8becf7">
+<p>
+动态地检测服务主机（Host）的健康状况，通过将不健康的服务主机（Host）驱逐一段时间来复原系统。
+</p>
+</div>
+</div>
+
+<div id="outline-container-orge9ab60a" class="outline-3">
+<h3 id="orge9ab60a"><a href="https://www.envoyproxy.io/docs/envoy/v1.7.1/configuration/http_filters/fault_filter">Fault Injection</a></h3>
+<div class="outline-text-3" id="text-orge9ab60a">
+<p>
+通过模拟请求失败或变慢来测试系统的复原能力。
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org8528386" class="outline-2">
+<h2 id="org8528386">Envoy 怎样实现熔断</h2>
+<div class="outline-text-2" id="text-org8528386">
+<p>
+当调用的上游（Upstream）服务运行状态良好时，请求失败是非常偶然的，通过运用
+<code>Retries pattern</code> 来重试失败的请求，可以提高服务的容错性、健壮性。
+</p>
+
+<p>
+当调用的上游（Upstream）服务运行状态异常时，请求失败会大量出现，通过运用
+<code>Circuit Breaker pattern</code> 来避免发起有很大机率失败的请求，可以释放系统压力、避免“雪崩效应”。
+</p>
+
+<p>
+熔断的核心是一个状态机
+</p>
+
+
+<div class="figure">
+<p><img src="https://docs.microsoft.com/en-us/azure/architecture/patterns/_images/circuit-breaker-diagram.png" alt="circuit-breaker-diagram.png" />
+</p>
+</div>
+
+<p>
+包含以下状态：
+</p>
+
+<dl class="org-dl">
+<dt>Closed</dt><dd><p>
+熔断器关闭状态
+</p>
+
+<p>
+一段时间内，调用失败次数积累到了阈值（或一定比例）则打开熔断器
+</p></dd>
+
+<dt>Open</dt><dd><p>
+熔断器打开状态
+</p>
+
+<p>
+此时对上游（Upstream）的调用都内部直接返回错误，不会真的发起调用，同时开启一个定时器，时长通常为平均故障处理时间（ <code>MTTR</code> ），定时器触发后进入半熔断状态
+</p></dd>
+
+<dt>Half-Open</dt><dd><p>
+半熔断状态
+</p>
+
+<p>
+允许定量的服务请求通过，调用成功次数积累到了阈值（或一定比例）则关闭熔断器，否则回到熔断器打开状态。
+</p></dd>
+</dl>
+
+<p>
+Envoy 的 <a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/circuit_breaking#arch-overview-circuit-break">Circuit Breaking</a> 跟熔断完全是两码事，Envoy 主要是通过 <a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/outlier">Outlier
+Detection</a> 来实现熔断的。
+</p>
+
+<p>
+一方面，通过合理的配置 Envy 的 <a href="https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v1/route_config/route#config-http-conn-man-route-table-route-timeout">Timeouts</a> 、<a href="https://www.envoyproxy.io/docs/envoy/v1.7.0/intro/arch_overview/http_routing#retry-semantics">Retries</a> 、<a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/circuit_breaking#arch-overview-circuit-break">Circuit Breaking</a>、<a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/other_features/global_rate_limiting#arch-overview-rate-limit">Rate
+Limiting</a> 来尽量保障上游（Upstream）服务的稳定运行，另一方面，一旦通过 <a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/health_checking#arch-overview-health-checking">Health
+Checking</a> <a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/outlier">Outlier Detection</a> 检测到上游（Upstream）服务主机（Host）异常，就会进入熔断状态。
+</p>
+
+<p>
+上游（Upstream）服务主机（Host）进入熔断状态后，一段时间内 Envoy 不会往它调度请求，可以减少它对整体服务质量的影响，手动或自动修复故障后重新加入到集群（Cluster）中来，继续提供服务。
+</p>
+</div>
+</div>
+
+<div id="outline-container-org00aff16" class="outline-2">
+<h2 id="org00aff16">Envoy 配置要点</h2>
+<div class="outline-text-2" id="text-org00aff16">
+<ul class="org-ul">
+<li><p>
+<a href="https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v1/route_config/route#config-http-conn-man-route-table-route-timeout">Timeouts</a>
+</p>
+
+<p>
+调用链越深，其超时值必须越小。
+</p>
+
+<p>
+其值应该处于统计出的 99.x 分位值与调用方最大容忍时间之间。
+</p>
+
+<p>
+接口响应延迟差异太大的情况下，应该按接口路由分别设置超时值。
+</p></li>
+</ul>
+
+
+<ul class="org-ul">
+<li><p>
+<a href="https://www.envoyproxy.io/docs/envoy/v1.7.0/intro/arch_overview/http_routing#retry-semantics">Retries</a>
+</p>
+
+<p>
+在 Timeouts（超时）时间内可能会发生多次 Retries （重试）。
+</p>
+
+<p>
+<code>冥等性</code> 的接口才应该进行 <a href="https://www.envoyproxy.io/docs/envoy/v1.7.0/intro/arch_overview/http_routing#retry-semantics">Retries</a> 。
+</p>
+
+<p>
+不应该重试熔断的请求，即要从出可重试错误码中排除熔断错误码。
+</p>
+
+<p>
+通过 <a href="https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v1/cluster_manager/cluster_circuit_breakers#config-cluster-manager-cluster-circuit-breakers-max-retries">Circuit breakers 的 max_retries</a> 来限制到该集群（Cluster）的最大并发重试数。
+</p></li>
+
+<li><p>
+<a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/circuit_breaking#arch-overview-circuit-break">Circuit Breaking</a>
+</p>
+
+<p>
+它不是我们常识中的熔断。
+</p>
+
+<p>
+它限制当前 Envoy 往 Cluster 发起的最大并发连接、请求、重试数。
+</p>
+
+<p>
+设置超过物理上限的值是没有意义的，相当于禁用了 <a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/circuit_breaking#arch-overview-circuit-break">Circuit Breaking</a> 。
+</p>
+
+<p>
+最好是根据统计出的高峰期往 Cluster 发起的并发连接、请求数进行设置。
+</p></li>
+
+<li><p>
+<a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/other_features/global_rate_limiting#arch-overview-rate-limit">Rate Limiting</a>
+</p>
+
+<p>
+一般根据请求发起方（Downstream）的特征模式来设定限速值，如：IP、HTTP 头。
+</p>
+
+<p>
+对于需要限速的请求会同步发起一次到限速服务的 Grpc 调用。
+</p>
+
+<p>
+停掉限速服务即可关闭限速功能，可以做为一种服务降级手段。
+</p></li>
+
+<li><p>
+<a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/health_checking#arch-overview-health-checking">Health Checking</a>
+</p>
+
+<p>
+它是主动健康检查（Active health checking），可以和 <a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/outlier">被动健康检查</a> 同时启用。
+</p>
+
+<p>
+一般跟服务发现（<a href="https://www.envoyproxy.io/docs/envoy/v1.7.0/intro/arch_overview/service_discovery#arch-overview-service-discovery">Service Discovery</a>）一起用。
+</p>
+
+<p>
+可用于实现服务（Service）主机（Host）的优雅退出（Gracefully Shutdown）。
+</p>
+
+<p>
+<a href="https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v1/cluster_manager/cluster_hc#config-cluster-manager-cluster-hc-interval">健康检测间隔</a> 应该适当设置大一些，以免发起的健康检查请求过多。
+</p></li>
+
+<li><p>
+<a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/outlier">Outlier Detection</a>
+</p>
+
+<p>
+实现被动健康检查（Passive health checking），可以和 <a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/health_checking#arch-overview-health-checking">主动健康检查</a> 同时启用。
+</p>
+
+<p>
+它才是真正的熔断。
+</p>
+
+<p>
+<a href="https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v1/cluster_manager/cluster_outlier_detection#config-cluster-manager-cluster-outlier-detection-consecutive-5xx">默认 5 个连续的 5XX 错误就会触发熔断</a>，应该根据服务的请求量来确实合适的值。
+</p>
+
+<p>
+<a href="https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v1/cluster_manager/cluster_outlier_detection#config-cluster-manager-cluster-outlier-detection-max-ejection-percent">默认最多驱逐 <code>10%</code> 的主机，至少 <code>1</code> 台主机</a> 。
+</p>
+
+<p>
+<a href="https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v1/cluster_manager/cluster_outlier_detection#config-cluster-manager-cluster-outlier-detection-base-ejection-time-ms">驱逐时间默认为 30 秒</a>，最好设置为服务的平均故障处理时间（ <code>MTTR</code> ）。
+</p></li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-orgf0ffb65" class="outline-2">
+<h2 id="orgf0ffb65">参考</h2>
+<div class="outline-text-2" id="text-orgf0ffb65">
+<ul class="org-ul">
+<li><a href="https://www.envoyproxy.io/docs/envoy/latest/faq/load_balancing/transient_failures.html?highlight=retry">How do I handle transient failures? — envoy 1.13.0-dev-6d816a documentation</a></li>
+</ul>
+
+
+<ul class="org-ul">
+<li><a href="https://blog.christianposta.com/microservices/comparing-envoy-and-istio-circuit-breaking-with-netflix-hystrix/">Comparing Envoy and Istio Circuit Breaking With Netflix OSS Hystrix – Software Blog</a></li>
+</ul>
+
+
+<ul class="org-ul">
+<li><a href="https://developers.redhat.com/blog/2017/05/16/it-takes-more-than-a-circuit-breaker-to-create-a-resilient-application/">It takes more than a Circuit Breaker to create a resilient application - Red Hat Developer</a></li>
+</ul>
+
+
+<ul class="org-ul">
+<li><a href="https://dzone.com/articles/istio-circuit-breaker-with-outlier-detection">Istio Circuit Breaker With Outlier Detection - DZone Microservices</a></li>
+</ul>
+
+
+<ul class="org-ul">
+<li><a href="https://dzone.com/articles/resilient-microservices-with-istio-circuit-breaker?fromrel=true">Resilient Microservices With Istio Circuit Breaker - DZone Microservices</a></li>
+</ul>
+
+
+<ul class="org-ul">
+<li><a href="https://blog.christianposta.com/microservices/02-microservices-patterns-with-envoy-proxy-part-ii-timeouts-and-retries/">Microservices Patterns With Envoy Proxy, Part II: Timeouts and Retries – Software Blog</a></li>
+</ul>
+
+
+<ul class="org-ul">
+<li><a href="https://www.envoyproxy.io/learn/health-check.html">Envoy Proxy - Healthy Hosts in Envoy</a></li>
+</ul>
+
+
+<ul class="org-ul">
+<li><a href="https://blog.csdn.net/guwei9111986/article/details/51649240">谈谈我对服务熔断、服务降级的理解_微服务,服务熔断,netflix_guwei9111986的博客-CSDN博客</a></li>
+</ul>
+</div>
+</div>
+
+        </div>
+        <br />
+        <footer class="article-footer">
+          <span class="muted">
+            <i class="icon-time icon-white"></i> <time datetime="2019-12-25T15:46:00+0800">2019年12月25日 15时</time>
+          </span>
+          <a class="tag" href="/tag/envoy/0.html"><i class="icon-tag icon-white"></i> envoy</a>
+        </footer>
+      </div>
+
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+  /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+  var disqus_shortname = 'kankananblog';
+
+  /* * * DON'T EDIT BELOW THIS LINE * * */
+  (function() {
+  var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+  dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+  (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+      <div class="push-footer"></div>
+    </div>
+
+    <div id="footer">
+  	  <div class="copyright" style="text-align: center;">
+  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
+  	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
+  	  </div>
+    </div>
+  </body>
+</html>
