@@ -20181,9 +20181,9 @@ Prometheus 时序数据模型参见 [[https://prometheus.io/docs/concepts/data_m
 
    - [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/other_features/global_rate_limiting#arch-overview-rate-limit][Rate Limiting]] :: 限制下游（Downstream）的请求速率
 
-   - [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/health_checking#arch-overview-health-checking][Health Checking]] :: 主动检查上游集群（Upstream Cluster）的康健度
+   - [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/health_checking#arch-overview-health-checking][Health Checking]] :: 主动检查上游集群（Upstream Cluster）的健康度
 
-   - [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/outlier][Outlier Detection]] :: 被动检查上游集群（Upstream Cluster）的康健度
+   - [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/outlier][Outlier Detection]] :: 被动检查上游集群（Upstream Cluster）的健康度
 
    - [[https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/fault_filter][Fault Injection]] :: 通过注入故障来测试服务的稳定性
 
@@ -20192,11 +20192,11 @@ Prometheus 时序数据模型参见 [[https://prometheus.io/docs/concepts/data_m
 
 *** [[https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v1/route_config/route#config-http-conn-man-route-table-route-timeout][Timeouts]] 、[[https://www.envoyproxy.io/docs/envoy/v1.7.0/intro/arch_overview/http_routing#retry-semantics][Retries]]
 
-    最基本的保障服务稳定性的特性，主要是为了保护 Envoy 自身，避免跟着被拖垮。
+    保障服务稳定性的基础特性，主要是为了保护 Envoy 自身，避免跟着被拖垮。
 
 *** [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/circuit_breaking#arch-overview-circuit-break][Circuit Breaking]]
 
-    静态地为上游服务的处理能力设定上限，丢弃超过上游服务的处理能力的请求。
+    静态地为上游服务的处理能力设定上限，丢弃超过上游服务处理能力的请求。
 
 *** [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/health_checking#arch-overview-health-checking][Health Checking]] 、[[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/outlier][Outlier Detection]]
 
@@ -20208,11 +20208,11 @@ Prometheus 时序数据模型参见 [[https://prometheus.io/docs/concepts/data_m
 
 ** Envoy 怎样实现熔断
 
-   当调用的上游（Upstream）服务运行状态良好时，请求失败是非常偶然的，通过运用
+   当调用的上游（Upstream）服务运行状态良好时，请求失败是非常罕见的，通过运用
    ~Retries pattern~ 来重试失败的请求，可以提高服务的容错性、健壮性。
 
    当调用的上游（Upstream）服务运行状态异常时，请求失败会大量出现，通过运用
-   ~Circuit Breaker pattern~ 来避免发起有很大机率失败的请求，可以释放系统压力、
+   ~Circuit breaker pattern~ 来避免发起有很大机率会失败的请求，可以释放系统压力、
    避免“雪崩效应”。
 
    熔断的核心是一个状态机
@@ -20227,9 +20227,9 @@ Prometheus 时序数据模型参见 [[https://prometheus.io/docs/concepts/data_m
 
    - Open :: 熔断器打开状态
 
-             此时对上游（Upstream）的调用都内部直接返回错误，不会真的发起调用，
-             同时开启一个定时器，时长通常为平均故障处理时间（ ~MTTR~ ），定时器
-             触发后进入半熔断状态
+             此时对上游（Upstream）的调用直接返回错误，不会真的发起调用，同时开
+             启一个定时器，时长通常为平均故障处理时间（ ~MTTR~ ），定时器触发后
+             进入半熔断状态
 
    - Half-Open :: 半熔断状态
 
@@ -20237,12 +20237,12 @@ Prometheus 时序数据模型参见 [[https://prometheus.io/docs/concepts/data_m
                   则关闭熔断器，否则回到熔断器打开状态。
 
    Envoy 的 [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/circuit_breaking#arch-overview-circuit-break][Circuit Breaking]] 跟熔断完全是两码事，Envoy 主要是通过 [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/outlier][Outlier
-   Detection]] 来实现熔断的。
+   Detection]] 来实现熔断。
 
-   一方面，通过合理的配置 Envy 的 [[https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v1/route_config/route#config-http-conn-man-route-table-route-timeout][Timeouts]] 、[[https://www.envoyproxy.io/docs/envoy/v1.7.0/intro/arch_overview/http_routing#retry-semantics][Retries]] 、[[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/circuit_breaking#arch-overview-circuit-break][Circuit Breaking]]、[[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/other_features/global_rate_limiting#arch-overview-rate-limit][Rate
-   Limiting]] 来尽量保障上游（Upstream）服务的稳定运行，另一方面，一旦通过 [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/health_checking#arch-overview-health-checking][Health
-   Checking]] [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/outlier][Outlier Detection]] 检测到上游（Upstream）服务主机（Host）异常，就会进
-   入熔断状态。
+   一方面，通过对 Envoy 的 [[https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v1/route_config/route#config-http-conn-man-route-table-route-timeout][Timeouts]] 、[[https://www.envoyproxy.io/docs/envoy/v1.7.0/intro/arch_overview/http_routing#retry-semantics][Retries]] 、[[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/circuit_breaking#arch-overview-circuit-break][Circuit Breaking]]、[[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/other_features/global_rate_limiting#arch-overview-rate-limit][Rate
+   Limiting]] 合理配置来尽量保障上游（Upstream）服务的稳定运行；另一方面，一旦通
+   过 [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/health_checking#arch-overview-health-checking][Health Checking]]、[[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/outlier][Outlier Detection]] 检测到上游（Upstream）服务主机（Host）
+   异常，就会进入熔断状态。
 
    上游（Upstream）服务主机（Host）进入熔断状态后，一段时间内 Envoy 不会往它调度
    请求，可以减少它对整体服务质量的影响，手动或自动修复故障后重新加入到集群
@@ -20258,14 +20258,13 @@ Prometheus 时序数据模型参见 [[https://prometheus.io/docs/concepts/data_m
 
   接口响应延迟差异太大的情况下，应该按接口路由分别设置超时值。
 
-
 - [[https://www.envoyproxy.io/docs/envoy/v1.7.0/intro/arch_overview/http_routing#retry-semantics][Retries]]
 
   在 Timeouts（超时）时间内可能会发生多次 Retries （重试）。
 
   =冥等性= 的接口才应该进行 [[https://www.envoyproxy.io/docs/envoy/v1.7.0/intro/arch_overview/http_routing#retry-semantics][Retries]] 。
 
-  不应该重试熔断的请求，即要从出可重试错误码中排除熔断错误码。
+  不应该重试熔断的请求，即从可重试错误码中排除熔断错误码。
 
   通过 [[https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v1/cluster_manager/cluster_circuit_breakers#config-cluster-manager-cluster-circuit-breakers-max-retries][Circuit breakers 的 max_retries]] 来限制到该集群（Cluster）的最大并发重试数。
 
@@ -20308,6 +20307,47 @@ Prometheus 时序数据模型参见 [[https://prometheus.io/docs/concepts/data_m
   [[https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v1/cluster_manager/cluster_outlier_detection#config-cluster-manager-cluster-outlier-detection-max-ejection-percent][默认最多驱逐 ~10%~ 的主机，至少 ~1~ 台主机]] 。
 
   [[https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v1/cluster_manager/cluster_outlier_detection#config-cluster-manager-cluster-outlier-detection-base-ejection-time-ms][驱逐时间默认为 30 秒]]，最好设置为服务的平均故障处理时间（ ~MTTR~ ）。
+
+** 从熔断到降级
+
+   熔断和降级是非常容易混淆的概念，它们往往同时出现，在一定程序度可以认为熔断是
+   一种自适应式的降级。
+
+*** 熔断、降级的场景
+
+   #+begin_quote
+   去饭店聚餐
+
+   A 到了，服务员给倒了热茶，喝了一口，烫，放下，过一会喝，还是烫，放下，继续等冷了再喝。
+
+   B 到了，服务员给倒了热茶，烫，放下，服务员过来给换了温水，喝一口，还行。
+
+   C 到了，服务员给倒了温水，喝一口，还行。
+   #+end_quote
+
+   A 遇到的是熔断，B 遇到熔断后触发的降级，C 遇到的是提前安排的降级。
+
+*** 熔断、降级的特点
+
+- 熔断和降级都意味着整体服务可用，但部分功能不可用，降低了用户体验
+
+- 熔断是避免最坏结果出现的极端手段，简单粗暴
+
+- 降级是避免最坏结果出现的预防机制，弃车保帅
+
+- 熔断一般是由于检测到某个上游服务异常而自动触发的局部行为
+
+- 降级一般是由于预判到整个系统可能崩溃而提前安排的全局行为
+
+*** 降级的实施步骤
+
+- 根据功能依赖及重要程度确定优先级 :: 分为多级，循序渐进式降级
+
+- 确定降级配置下发机制以及触发机制 :: 运维平台下发渠道、根据错误码自动触发降级
+
+- 确定降级的处理方式 :: 返回默认值、调用替代服务、返回缓存值等
+
+- 在可降级功能的调用入口埋点 :: 按下发的配置决定是否真的调用目标服务
 
 ** 参考
 
