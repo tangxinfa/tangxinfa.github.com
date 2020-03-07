@@ -18707,8 +18707,18 @@ clang 编译器较之 gcc 在进行代码分析方面提供了良好的支持，
   移地址为 =0x62= 对应的源代码行 =app.c= 第 =21= 行 =printf("[%d] This is
   func_b\n", id)= ，找到了错误的代码行。
 
+** docker 容器内的 core 文件
+
+   docker 环境下，容器使用的是宿主机的 linux 内核，core 文件的生成位置无论是在宿
+   主机中还是在容器中都是由宿主机的 ~/proc/sys/kernel/core_pattern~ 配置决定，为
+   了顺利生成 core 文件，宿主机以及容器都要创建好 core 文件目录。
+
+   通常来说宿主机与容器中程序及库的位置、环境变量及版本会有比较大的差异，core 文
+   件跟它们是密切相关的，因此宿主机生成的 core 文件应该在宿主机中使用 gdb 进行分
+   析，而容器生成的 core 文件也应该在在容器中使用 gdb 进行分析。
+
 ** 总结
-   
+
    三种方案都可以获得同样的结果。
 
    使用 =gdb= 从 core 文件获取崩溃调用栈的方案依赖 core 文件。但如果要实现接管操
@@ -18723,7 +18733,7 @@ clang 编译器较之 gcc 在进行代码分析方面提供了良好的支持，
    使用 Map 文件需要使用前面两种方案一样的方法来获取崩溃的调用栈，只是定位源代码
    行时不依赖可执行程序。需要进行的手工查找、计算，暂时没有找到简化操作的工具。
    需要预先保管好 =.cod= 以及 =.map= 文件。
-   
+
 ** 参考
 
   - [[https://stackoverflow.com/questions/7556045/how-to-map-function-address-to-function-in-so-files][c - How to map function address to function in *.so files - Stack Overflow]]
@@ -18731,7 +18741,7 @@ clang 编译器较之 gcc 在进行代码分析方面提供了良好的支持，
   - [[http://blog.cuicc.com/blog/2012/09/17/core-dump-and-backtrace/][Core dump与backtrace｜YYGCui's blog]]
 
   - [[https://fedoraproject.org/wiki/StackTraces#Obtaining_a_stack_trace_from_a_core_dump][StackTraces - FedoraProject]]
-   
+
   - [[https://www.quora.com/Does-addr2line-work-in-Linux][Does addr2line work in Linux? - Quora]]
 
   - [[http://awhite2008.blog.sohu.com/155610926.html][使用libSegFault.so拦截段错误信号-泛舟-搜狐博客]]
@@ -20239,9 +20249,9 @@ Prometheus 时序数据模型参见 [[https://prometheus.io/docs/concepts/data_m
    Envoy 的 [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/circuit_breaking#arch-overview-circuit-break][Circuit Breaking]] 跟熔断完全是两码事，Envoy 主要是通过 [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/outlier][Outlier
    Detection]] 来实现熔断。
 
-   一方面，通过对 Envoy 的 [[https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v1/route_config/route#config-http-conn-man-route-table-route-timeout][Timeouts]] 、[[https://www.envoyproxy.io/docs/envoy/v1.7.0/intro/arch_overview/http_routing#retry-semantics][Retries]] 、[[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/circuit_breaking#arch-overview-circuit-break][Circuit Breaking]]、[[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/other_features/global_rate_limiting#arch-overview-rate-limit][Rate
-   Limiting]] 合理配置来尽量保障上游（Upstream）服务的稳定运行；另一方面，一旦通
-   过 [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/health_checking#arch-overview-health-checking][Health Checking]]、[[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/outlier][Outlier Detection]] 检测到上游（Upstream）服务主机（Host）
+   一方面，通过对 Envoy 的 [[https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v1/route_config/route#config-http-conn-man-route-table-route-timeout][Timeouts]] 、[[https://www.envoyproxy.io/docs/envoy/v1.7.0/intro/arch_overview/http_routing#retry-semantics][Retries]] 、[[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/circuit_breaking#arch-overview-circuit-break][Circuit Breaking]]、[[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/other_features/global_rate_limiting#arch-overview-rate-limit][Rate Limiting]] 
+   合理配置来尽量保障上游（Upstream）服务的稳定运行；另一方面，一旦通过
+   [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/health_checking#arch-overview-health-checking][Health Checking]]、[[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/outlier][Outlier Detection]] 检测到上游（Upstream）服务主机（Host）
    异常，就会进入熔断状态。
 
    上游（Upstream）服务主机（Host）进入熔断状态后，一段时间内 Envoy 不会往它调度
@@ -20258,6 +20268,11 @@ Prometheus 时序数据模型参见 [[https://prometheus.io/docs/concepts/data_m
 
   接口响应延迟差异太大的情况下，应该按接口路由分别设置超时值。
 
+  如：
+  #+BEGIN_SRC json
+    "timeout_ms": 100
+  #+END_SRC
+
 - [[https://www.envoyproxy.io/docs/envoy/v1.7.0/intro/arch_overview/http_routing#retry-semantics][Retries]]
 
   在 Timeouts（超时）时间内可能会发生多次 Retries （重试）。
@@ -20268,6 +20283,14 @@ Prometheus 时序数据模型参见 [[https://prometheus.io/docs/concepts/data_m
 
   通过 [[https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v1/cluster_manager/cluster_circuit_breakers#config-cluster-manager-cluster-circuit-breakers-max-retries][Circuit breakers 的 max_retries]] 来限制到该集群（Cluster）的最大并发重试数。
 
+  如：
+  #+BEGIN_SRC json
+    {
+      "retry_on": "gateway-error,connect-failure,refused-stream",
+      "num_retries": 1
+    }
+  #+END_SRC
+
 - [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/circuit_breaking#arch-overview-circuit-break][Circuit Breaking]]
 
   它不是我们常识中的熔断。
@@ -20277,6 +20300,24 @@ Prometheus 时序数据模型参见 [[https://prometheus.io/docs/concepts/data_m
   设置超过物理上限的值是没有意义的，相当于禁用了 [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/circuit_breaking#arch-overview-circuit-break][Circuit Breaking]] 。
 
   最好是根据统计出的高峰期往 Cluster 发起的并发连接、请求数进行设置。
+
+  如：
+  #+BEGIN_SRC json
+            "circuit_breakers": {
+              "default": {
+                "max_connections": 10000,
+                "max_pending_requests": 10000,
+                "max_requests": 10000,
+                "max_retries": 3
+              },
+              "high": {
+                "max_connections": 10000,
+                "max_pending_requests": 10000,
+                "max_requests": 10000,
+                "max_retries": 3
+              }
+            }
+  #+END_SRC
 
 - [[https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/other_features/global_rate_limiting#arch-overview-rate-limit][Rate Limiting]]
 
@@ -20308,9 +20349,23 @@ Prometheus 时序数据模型参见 [[https://prometheus.io/docs/concepts/data_m
 
   [[https://www.envoyproxy.io/docs/envoy/v1.7.0/api-v1/cluster_manager/cluster_outlier_detection#config-cluster-manager-cluster-outlier-detection-base-ejection-time-ms][驱逐时间默认为 30 秒]]，最好设置为服务的平均故障处理时间（ ~MTTR~ ）。
 
+  如：
+  #+BEGIN_SRC json
+    {
+      "consecutive_5xx": 5,
+      "consecutive_gateway_failure": 5,
+      "interval_ms": 5000,
+      "base_ejection_time_ms": 30000,
+      "max_ejection_percent": 100,
+      "enforcing_consecutive_5xx": 10,
+      "enforcing_consecutive_gateway_failure": 10,
+      "enforcing_success_rate": 0
+    }
+  #+END_SRC
+
 ** 从熔断到降级
 
-   熔断和降级是非常容易混淆的概念，它们往往同时出现，在一定程序度可以认为熔断是
+   熔断和降级是非常容易混淆的概念，它们往往同时出现，在一定程度上可以认为熔断是
    一种自适应式的降级。
 
 *** 熔断、降级的场景
@@ -20374,6 +20429,8 @@ Prometheus 时序数据模型参见 [[https://prometheus.io/docs/concepts/data_m
 
    - [[https://blog.csdn.net/guwei9111986/article/details/51649240][谈谈我对服务熔断、服务降级的理解_微服务,服务熔断,netflix_guwei9111986的博客-CSDN博客]]
 
+
+   - [[https://developer.ibm.com/code/2017/08/17/make-microservices-resilient-fault-tolerant-using-istio/][Make your microservices resilient and fault-tolerant using Istio - IBM Code]]
 
 * TODO envoy 熔断与限流                                               :envoy:
   [2019-11-21 Thu]

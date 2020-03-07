@@ -42,9 +42,9 @@
 统计了一下 <code>10</code> 万个fd都耗光了，其中 <code>9</code> 万多个为 <code>CLOSE_WAIT</code> 状态，此时服务器已经无法响应请求。
 </p>
 
-<div id="outline-container-org7f30bc1" class="outline-2">
-<h2 id="org7f30bc1">CLOSE_WAIT 状态介绍</h2>
-<div class="outline-text-2" id="text-org7f30bc1">
+<div id="outline-container-org9168479" class="outline-2">
+<h2 id="org9168479">CLOSE_WAIT 状态介绍</h2>
+<div class="outline-text-2" id="text-org9168479">
 <p>
 先看一副TCP连接关闭的状态图（ <a href="http://intronetworks.cs.luc.edu/current/html/tcp.html#index-29">来源</a> ）：
 </p>
@@ -81,9 +81,9 @@
 </div>
 </div>
 
-<div id="outline-container-org3ecf32b" class="outline-2">
-<h2 id="org3ecf32b">内存及CPU占用彪升问题</h2>
-<div class="outline-text-2" id="text-org3ecf32b">
+<div id="outline-container-org728cc95" class="outline-2">
+<h2 id="org728cc95">内存及CPU占用彪升问题</h2>
+<div class="outline-text-2" id="text-org728cc95">
 <p>
 伴随着 CLOSE_WAIT 出现的状况是 node.js 进程内存及CPU占用超高，单node.js进程内存占用达到 1.5G，CPU占用 90% 以上，此时应该会导致 node.js 响应慢，来不及关闭连上来的socket。
 </p>
@@ -98,9 +98,9 @@
 </div>
 </div>
 
-<div id="outline-container-org2286701" class="outline-2">
-<h2 id="org2286701">一次午夜故障元凶浮出水面</h2>
-<div class="outline-text-2" id="text-org2286701">
+<div id="outline-container-org1093fe8" class="outline-2">
+<h2 id="org1093fe8">一次午夜故障元凶浮出水面</h2>
+<div class="outline-text-2" id="text-org1093fe8">
 <p>
 在晚上两点的时候服务出现问题，同样的现象，特别留意了一下redis的统计，请求速度很低，只有1200，平时都是5000。偶然在进程列表中发现了 redis-rdb-bgsave 的身影，不断地执行ps看进程列表，发现 redis-rdb-bgsave 进程不断地出现，查看redis的持久化配置如下：
 </p>
@@ -124,7 +124,7 @@ config set save "900 1"
 </p>
 
 <pre class="example">
-     跑redis的机器至少要预留和redis占用内存同样大小的空闲内存空间，redis RDB持久化进行fork时最坏会占用双倍内存，内存不足就会动用交换分区，系统性能急剧下降。
+跑redis的机器至少要预留和redis占用内存同样大小的空闲内存空间，redis RDB持久化进行fork时最坏会占用双倍内存，内存不足就会动用交换分区，系统性能急剧下降。
 </pre>
 
 <p>
@@ -133,9 +133,9 @@ config set save "900 1"
 </div>
 </div>
 
-<div id="outline-container-org810653f" class="outline-2">
-<h2 id="org810653f">更多疑问</h2>
-<div class="outline-text-2" id="text-org810653f">
+<div id="outline-container-org28831bb" class="outline-2">
+<h2 id="org28831bb">更多疑问</h2>
+<div class="outline-text-2" id="text-org28831bb">
 <ul class="org-ul">
 <li>我们的node.js进程为什么常常会占用很多内存？</li>
 
