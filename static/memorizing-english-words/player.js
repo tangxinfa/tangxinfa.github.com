@@ -102,7 +102,7 @@ function player_init() {
     }
   }
   player_dictionary_change();
-  $("#main").on("tap", function() {
+  $("#content").on("tap", function() {
     player_fullscreen_toggle();
   });
 }
