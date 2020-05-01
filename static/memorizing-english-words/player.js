@@ -18,35 +18,43 @@ function next_word() {
 }
 
 function player_start(name) {
+  player_dictionary = dictionaries[name];
+  if (typeof player_dictionary === "object" ) {
+    if (player_timer) {
+      clearInterval(player_timer);
+    }
+    player_timer = setInterval(next_word, player_interval);
+    return true;
+  }
+  return false;
+}
+
+function player_prepare(name) {
   let dictionary = dictionaries[name];
   if (typeof dictionary === "string") {
     $.getScript(dictionary, function() {
-      player_dictionary = dictionaries[name];
-      if (player_timer) {
-        clearInterval(player_timer);
-      }
-      player_timer = setInterval(next_word, player_interval);
+      player_start(name);
     });
+  } else {
+    player_start(name);
   }
 }
 
-function player_dictionary_click() {
-  player_start($("input[name='dictionary']:checked").val());
+function player_dictionary_change() {
+  player_prepare($("#dictionary").val());
 }
 
 function player_init() {
+  $("#dictionary").change(player_dictionary_change);
   for (let name in dictionaries) {
     if (dictionaries.hasOwnProperty(name)) {
-      var dictionary = $(
-        '<input type="radio" name="dictionary" value="' +
-          name +
-          '" onClick="player_dictionary_click();">' +
-          name +
-          "</input>"
-      );
-      $("#preference").append(dictionary);
+      var option = $("<option></option>")
+        .val(name)
+        .html(name);
+      $("#dictionary").append(option);
     }
   }
+  player_dictionary_change();
 }
 
 $(document).ready(player_init);
