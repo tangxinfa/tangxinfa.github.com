@@ -95,12 +95,13 @@ function player_init() {
   $("#dictionary").change(player_dictionary_change);
   for (let name in dictionaries) {
     if (dictionaries.hasOwnProperty(name)) {
-      var option = $("<option></option>")
+      let option = $("<option></option>")
         .val(name)
         .html(name);
       $("#dictionary").append(option);
     }
   }
+  $("#dictionary").prop("selectedIndex", 0).selectmenu("refresh");
   player_dictionary_change();
   $("#content").on("tap", function() {
     player_fullscreen_toggle();
