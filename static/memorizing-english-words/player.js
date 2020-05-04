@@ -29,19 +29,21 @@ function player_start(name) {
   return false;
 }
 
-function player_prepare(name) {
+function player_prepare() {
+  let name = $("#dictionary").val();
   let dictionary = dictionaries[name];
   if (typeof dictionary === "string") {
-    $.getScript(dictionary, function() {
+    $.ajax({
+      dataType: "script",
+      cache: true,
+      url: dictionary
+    }).done(function() {
+      let name = $("#dictionary").val();
       player_start(name);
     });
   } else {
     player_start(name);
   }
-}
-
-function player_dictionary_change() {
-  player_prepare($("#dictionary").val());
 }
 
 function player_fullscreening() {
@@ -92,7 +94,7 @@ function player_fullscreen_toggle() {
 }
 
 function player_init() {
-  $("#dictionary").change(player_dictionary_change);
+  $("#dictionary").change(player_prepare);
   for (let name in dictionaries) {
     if (dictionaries.hasOwnProperty(name)) {
       let option = $("<option></option>")
@@ -101,8 +103,10 @@ function player_init() {
       $("#dictionary").append(option);
     }
   }
-  $("#dictionary").prop("selectedIndex", 0).selectmenu("refresh");
-  player_dictionary_change();
+  $("#dictionary")
+    .prop("selectedIndex", 0)
+    .selectmenu("refresh");
+  player_prepare();
   $("#content").on("tap", function() {
     player_fullscreen_toggle();
   });
