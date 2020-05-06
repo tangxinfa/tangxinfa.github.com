@@ -20,6 +20,9 @@ function next_word() {
 function player_start(name) {
   player_dictionary = dictionaries[name];
   if (typeof player_dictionary === "object") {
+    $("#dictionary")
+      .val(name)
+      .selectmenu("refresh");
     if (player_timer) {
       clearInterval(player_timer);
     }
@@ -29,8 +32,7 @@ function player_start(name) {
   return false;
 }
 
-function player_prepare() {
-  let name = $("#dictionary").val();
+function player_prepare(name) {
   let dictionary = dictionaries[name];
   if (typeof dictionary === "string") {
     $.ajax({
@@ -38,7 +40,6 @@ function player_prepare() {
       cache: true,
       url: dictionary
     }).done(function() {
-      let name = $("#dictionary").val();
       player_start(name);
     });
   } else {
@@ -93,8 +94,28 @@ function player_fullscreen_toggle() {
   }
 }
 
+function player_dispatch() {
+  let match = window.location.hash.match(/^#?(.*)$/)[1];
+  if (match) {
+    let paths = match.split("/");
+    let name = "";
+    if (typeof paths[0] !== "undefined") {
+      name = paths[0];
+    }
+    if (name) {
+      player_prepare(name);
+    }
+  }
+}
+
+function player_dictionary_change() {
+  let name = $("#dictionary").val();
+  window.location.hash = "#" + name;
+  player_dispatch();
+}
+
 function player_init() {
-  $("#dictionary").change(player_prepare);
+  $("#dictionary").change(player_dictionary_change);
   for (let name in dictionaries) {
     if (dictionaries.hasOwnProperty(name)) {
       let option = $("<option></option>")
@@ -103,13 +124,12 @@ function player_init() {
       $("#dictionary").append(option);
     }
   }
-  $("#dictionary")
-    .prop("selectedIndex", 0)
-    .selectmenu("refresh");
-  player_prepare();
   $("#content").on("tap", function() {
     player_fullscreen_toggle();
   });
+
+  $(window).on("hashchange", player_dispatch);
+  player_dispatch();
 }
 
 $(document).ready(player_init);
