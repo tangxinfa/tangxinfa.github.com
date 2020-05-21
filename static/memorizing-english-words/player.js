@@ -1,15 +1,22 @@
 "use strict";
 
 var player_interval = 3000;
-var player_timer;
-var player_dictionary;
+var player_timer = null;
+var player_dictionary = null;
+var player_next_index = null;
 
-function next_word() {
+function player_next_word() {
   if ($("#answer").is(":hidden")) {
     $("#answer").show();
   } else {
-    let word =
-      player_dictionary[parseInt(Math.random() * player_dictionary.length, 10)];
+    if (typeof player_next_index != "number") {
+      player_next_index = parseInt(
+        Math.random() * player_dictionary.length,
+        10
+      );
+    }
+    player_next_index = (player_next_index + 1) % player_dictionary.length;
+    let word = player_dictionary[player_next_index];
     $("#question").text(word[0]);
     $("#answer")
       .text(word[1])
@@ -19,6 +26,7 @@ function next_word() {
 
 function player_start(name) {
   player_dictionary = dictionaries[name];
+  player_next_index = null;
   if (typeof player_dictionary === "object") {
     $("#dictionary")
       .val(name)
@@ -26,7 +34,7 @@ function player_start(name) {
     if (player_timer) {
       clearInterval(player_timer);
     }
-    player_timer = setInterval(next_word, player_interval);
+    player_timer = setInterval(player_next_word, player_interval);
     return true;
   }
   return false;
