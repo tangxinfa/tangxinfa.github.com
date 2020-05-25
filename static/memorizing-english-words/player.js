@@ -19,13 +19,15 @@ function player_next_word() {
       .text(word[1])
       .hide();
     player_position =
-      (player_position % (player_range[1] - player_range[0] + 1)) + 1;
+      player_range[0] +
+      (player_position % (player_range[1] - player_range[0] + 1));
     if (player_position === player_point) {
       player_position = null;
     }
   } else {
     $("#question").text("");
-    $("#answer").html("<p>End of range</p>");
+    $("#answer").text("");
+    $("#message").text("The end");
   }
 }
 
@@ -40,13 +42,14 @@ function player_start() {
     }
     player_range = [parseInt(paths[1], 10), parseInt(paths[2], 10)];
     player_point =
-      parseInt(Math.random() * player_range[1] - player_range[0] + 1, 10) + 1;
+      player_range[0] +
+      parseInt(Math.random() * (player_range[1] - player_range[0] + 1), 10);
     player_position = player_point;
     $("#dictionary")
       .val(paths[0])
       .selectmenu("refresh");
     $("#range").html("");
-    let all = player_range[0] + "-" + player_range[1];
+    let all = "1-" + player_dictionary.length;
     $("#range").append(
       $("<option></option>")
         .val(all)
@@ -69,11 +72,12 @@ function player_start() {
       $("#range").append(option);
     }
     $("#range")
-      .val(all)
+      .val(player_range[0] + "-" + player_range[1])
       .selectmenu("refresh");
     if (player_timer) {
       clearInterval(player_timer);
     }
+    $("#message").html("");
     player_timer = setInterval(player_next_word, player_interval);
     return true;
   }
@@ -190,6 +194,11 @@ function player_init() {
   $("#dictionary").change(player_dictionary_change);
   $("#range").change(player_range_change);
 
+  $("#dictionary").append(
+    $("<option></option>")
+      .val("")
+      .html("")
+  );
   for (let name in dictionaries) {
     if (dictionaries.hasOwnProperty(name)) {
       let option = $("<option></option>")
