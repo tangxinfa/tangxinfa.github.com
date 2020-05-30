@@ -314,7 +314,8 @@ function player_star_word() {
   player_star_draw();
 }
 
-function player_star_dictionary() {
+function player_star_dictionary(e) {
+  e.preventDefault();
   let paths = player_location_get();
   paths[1] = "";
   paths[2] = "";
