@@ -3,53 +3,121 @@
 var player_interval = 3000;
 var player_timer = null;
 var player_dictionary = null;
+var player_stars = {};
 
-// Index start from 1.
 var player_range = [];
-var player_point = null;
-var player_position = null;
+var player_begin = null;
+var player_progress = -2; // Player progress. -1 if end of range, -2 if no progress.
 
-function player_next_word() {
+function player_draw() {
   if ($("#answer").is(":hidden")) {
     $("#answer").show();
-  } else if (typeof player_position === "number") {
-    let word = player_dictionary[player_position - 1];
+    player_star_draw();
+    player_progress =
+      player_range[0] +
+      ((player_progress + 1) % (player_range[1] - player_range[0] + 1));
+    if (player_progress === player_begin) {
+      player_progress = -1;
+    }
+  } else if (player_progress !== -1) {
+    if (player_progress === -2) {
+      player_progress = player_begin;
+    }
+    let word = player_dictionary[player_progress];
     $("#question").text(word[0]);
     $("#answer")
       .text(word[1])
       .hide();
-    player_position =
-      player_range[0] +
-      (player_position % (player_range[1] - player_range[0] + 1));
-    if (player_position === player_point) {
-      player_position = null;
-    }
+    player_star_draw();
   } else {
     $("#question").text("");
     $("#answer").text("");
     $("#message").text("The end");
+    player_star_draw();
+  }
+}
+
+function player_redraw() {
+  if (player_timer) {
+    clearInterval(player_timer);
+  }
+  player_timer = setInterval(player_draw, player_interval);
+}
+
+function player_backward() {
+  if (player_timer) {
+    $("#question").text("");
+    $("#answer")
+      .text("")
+      .show();
+    $("#message").text("");
+    player_progress =
+      (player_progress === -1 ? player_begin : player_progress) - 1;
+    if (player_progress < 0) {
+      player_progress = player_range[1];
+    }
+    player_draw();
+    player_redraw();
+  }
+}
+
+function player_forward() {
+  if (player_timer) {
+    $("#question").text("");
+    $("#answer")
+      .text("")
+      .show();
+    $("#message").text("");
+    player_progress =
+      player_progress === -1 ? player_begin : player_progress + 1;
+    if (player_progress > player_range[1]) {
+      player_progress = player_range[0];
+    }
+    player_draw();
+    player_redraw();
   }
 }
 
 function player_start() {
-  if (typeof player_dictionary === "object") {
-    let paths = player_location_get();
-    player_dictionary = dictionaries[paths[0]];
-    if (paths[1] == "" || paths[2] == "") {
-      paths[1] = [1];
+  let paths = player_location_get();
+  let dictionary =
+    paths[3] === "star" ? player_stars[paths[0]] : dictionaries[paths[0]];
+  if (typeof dictionary === "object") {
+    player_dictionary = dictionary;
+
+    let paths_changed = false;
+    if (paths[1] == "" || paths[1] < 1) {
+      paths[1] = player_dictionary.length > 0 ? 1 : 0;
+      paths_changed = true;
+    } else if (paths[1] > player_dictionary.length) {
+      paths[1] = player_dictionary.length;
+      paths_changed = true;
+    }
+    if (paths[2] == "" || paths[2] > player_dictionary.length) {
       paths[2] = player_dictionary.length;
+      paths_changed = true;
+    }
+    if (paths[1] > paths[2]) {
+      paths[2] = paths[1];
+      paths_changed = true;
+    }
+    if (paths_changed) {
       player_location_set(paths);
     }
-    player_range = [parseInt(paths[1], 10), parseInt(paths[2], 10)];
-    player_point =
+
+    player_range = [parseInt(paths[1], 10) - 1, parseInt(paths[2], 10) - 1];
+    player_begin =
       player_range[0] +
       parseInt(Math.random() * (player_range[1] - player_range[0] + 1), 10);
-    player_position = player_point;
+    player_progress = player_dictionary.length > 0 ? -2 : -1;
     $("#dictionary")
       .val(paths[0])
       .selectmenu("refresh");
     $("#range").html("");
-    let all = "1-" + player_dictionary.length;
+    let all =
+      (player_dictionary.length > 0 ? "1" : "0") +
+      "-" +
+      player_dictionary.length;
     $("#range").append(
       $("<option></option>")
         .val(all)
@@ -66,37 +134,61 @@ function player_start() {
       if (end > player_dictionary.length) {
         end = player_dictionary.length;
       }
-      let option = $("<option></option>")
-        .val(start + "-" + end)
-        .html(start + "-" + end);
-      $("#range").append(option);
+      let item = start + "-" + end;
+      if (item !== all) {
+        let option = $("<option></option>")
+          .val(item)
+          .html(item);
+        $("#range").append(option);
+      }
     }
     $("#range")
-      .val(player_range[0] + "-" + player_range[1])
+      .val(player_range[0] + 1 + "-" + (player_range[1] + 1))
       .selectmenu("refresh");
-    if (player_timer) {
-      clearInterval(player_timer);
-    }
     $("#message").html("");
-    player_timer = setInterval(player_next_word, player_interval);
+    player_redraw();
     return true;
   }
   return false;
 }
 
+function player_star_get(name) {
+  let star = [];
+  for (let i = 0; i < window.localStorage.length; i++) {
+    let key = window.localStorage.key(i);
+    let prefix = name + ":";
+    let index = key.indexOf(prefix);
+    if (index === 0) {
+      let value = window.localStorage.getItem(key);
+      key = key.substring(index + prefix.length);
+      star.push([key, value]);
+    }
+  }
+  return star;
+}
+
 function player_prepare() {
+  player_star_draw();
   let paths = player_location_get();
-  let dictionary = dictionaries[paths[0]];
-  if (typeof dictionary === "string") {
-    $.ajax({
-      dataType: "script",
-      cache: true,
-      url: dictionary
-    }).done(function() {
-      player_start();
-    });
-  } else if (typeof dictionary === "object") {
+  if (paths[3] === "star") {
+    let dictionary = player_stars[paths[0]];
+    if (typeof dictionary === "undefined") {
+      player_stars[paths[0]] = player_star_get(paths[0]);
+    }
     player_start();
+  } else {
+    let dictionary = dictionaries[paths[0]];
+    if (typeof dictionary === "string") {
+      $.ajax({
+        dataType: "script",
+        cache: true,
+        url: dictionary
+      }).done(function() {
+        player_start();
+      });
+    } else if (typeof dictionary === "object") {
+      player_start();
+    }
   }
 }
 
@@ -151,9 +243,9 @@ function player_location_get() {
   let match = window.location.hash.match(/^#?(.*)$/)[1];
   let paths = [];
   if (match) {
-    paths = match.split(":").slice(0, 3);
+    paths = match.split(":").slice(0, 4);
   }
-  for (let i = 0; i < 3; ++i) {
+  for (let i = 0; i < 4; ++i) {
     if (typeof paths[i] === "undefined") {
       paths[i] = "";
     }
@@ -190,9 +282,85 @@ function player_range_change() {
   }
 }
 
+function player_refresh() {
+  if (player_timer) {
+    player_progress = -2;
+    $("#question").text("");
+    $("#answer")
+      .text("")
+      .show();
+    $("#message").text("");
+  } else {
+    window.location.reload();
+  }
+}
+
+function player_star_word() {
+  if (player_timer && player_progress >= 0) {
+    let word = [$("#question").text(), $("#answer").text()];
+    if (word[0] === "") {
+        return;
+    }
+    let paths = player_location_get();
+    let key = paths[0] + ":" + word[0];
+    let value = word[1];
+    if (typeof window.localStorage[key] === "undefined") {
+      window.localStorage[key] = value;
+    } else {
+      window.localStorage.removeItem(key);
+    }
+    delete player_stars[paths[0]];
+  }
+  player_star_draw();
+}
+
+function player_star_dictionary() {
+  let paths = player_location_get();
+  paths[1] = "";
+  paths[2] = "";
+  paths[3] = paths[3] === "star" ? "" : "star";
+  if (player_location_set(paths)) {
+    player_prepare();
+  }
+}
+
+function player_stared() {
+  let paths = player_location_get();
+  if (player_timer && player_progress >= 0) {
+    let word = [$("#question").text(), $("#answer").text()];
+    let key = paths[0] + ":" + word[0];
+    return typeof window.localStorage[key] !== "undefined";
+  }
+  return paths[3] === "star";
+}
+
+function player_star_draw() {
+  if (player_stared()) {
+    $("#star")
+      .removeClass("ui-alt-icon")
+      .addClass("ui-nodisc-icon")
+      .addClass("ui-btn-b");
+  } else {
+    $("#star")
+      .addClass("ui-alt-icon")
+      .removeClass("ui-nodisc-icon")
+      .removeClass("ui-btn-b");
+  }
+}
+
 function player_init() {
   $("#dictionary").change(player_dictionary_change);
   $("#range").change(player_range_change);
+  $("#refresh").on("click", player_refresh);
+  $("#star").on("click", player_star_word);
+  $("#content").on("tap", player_fullscreen_toggle);
+  $("#control").on("swipeleft", player_forward);
+  $("#control").on("swiperight", player_backward);
+  $("#star").on("taphold dbclick", player_star_dictionary);
+  $(window).on("hashchange", player_prepare);
+  if (typeof window.localStorage === "undefined") {
+    $("#star").hide();
+  }
 
   $("#dictionary").append(
     $("<option></option>")
@@ -208,11 +376,6 @@ function player_init() {
     }
   }
 
-  $("#content").on("tap", function() {
-    player_fullscreen_toggle();
-  });
-
-  $(window).on("hashchange", player_prepare);
   player_prepare();
 }
 
