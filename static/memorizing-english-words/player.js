@@ -299,7 +299,7 @@ function player_star_word() {
   if (player_timer && player_progress >= 0) {
     let word = [$("#question").text(), $("#answer").text()];
     if (word[0] === "") {
-        return;
+      return;
     }
     let paths = player_location_get();
     let key = paths[0] + ":" + word[0];
@@ -325,27 +325,36 @@ function player_star_dictionary(e) {
   }
 }
 
-function player_stared() {
+function player_word_stared() {
   let paths = player_location_get();
   if (player_timer && player_progress >= 0) {
     let word = [$("#question").text(), $("#answer").text()];
     let key = paths[0] + ":" + word[0];
     return typeof window.localStorage[key] !== "undefined";
   }
-  return paths[3] === "star";
+  return false;
 }
 
 function player_star_draw() {
-  if (player_stared()) {
+  let paths = player_location_get();
+  if (paths[3] === "star") {
     $("#star")
-      .removeClass("ui-alt-icon")
       .addClass("ui-nodisc-icon")
       .addClass("ui-btn-b");
+    if (player_word_stared()) {
+      $("#star").removeClass("ui-alt-icon");
+    } else {
+      $("#star").addClass("ui-alt-icon");
+    }
   } else {
     $("#star")
-      .addClass("ui-alt-icon")
       .removeClass("ui-nodisc-icon")
       .removeClass("ui-btn-b");
+    if (player_word_stared()) {
+      $("#star").addClass("ui-alt-icon");
+    } else {
+      $("#star").removeClass("ui-alt-icon");
+    }
   }
 }
 
