@@ -339,22 +339,15 @@ function player_star_draw() {
   let paths = player_location_get();
   if (paths[3] === "star") {
     $("#star")
-      .addClass("ui-nodisc-icon")
-      .addClass("ui-btn-b");
-    if (player_word_stared()) {
-      $("#star").removeClass("ui-alt-icon");
-    } else {
-      $("#star").addClass("ui-alt-icon");
-    }
+      .addClass("active");
   } else {
     $("#star")
-      .removeClass("ui-nodisc-icon")
-      .removeClass("ui-btn-b");
-    if (player_word_stared()) {
-      $("#star").addClass("ui-alt-icon");
-    } else {
-      $("#star").removeClass("ui-alt-icon");
-    }
+      .removeClass("active");
+  }
+  if (player_word_stared()) {
+    $("#star").addClass("ui-alt-icon");
+  } else {
+    $("#star").removeClass("ui-alt-icon");
   }
 }
 
