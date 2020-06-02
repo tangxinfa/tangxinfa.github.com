@@ -4,6 +4,7 @@ var player_interval = 3000;
 var player_timer = null;
 var player_dictionary = null;
 var player_stars = {};
+var player_paused = false;
 
 var player_range = [];
 var player_begin = null;
@@ -37,11 +38,17 @@ function player_draw() {
   }
 }
 
+function player_timer_draw() {
+  if (!player_paused) {
+    player_draw();
+  }
+}
+
 function player_redraw() {
   if (player_timer) {
     clearInterval(player_timer);
   }
-  player_timer = setInterval(player_draw, player_interval);
+  player_timer = setInterval(player_timer_draw, player_interval);
 }
 
 function player_backward() {
@@ -295,6 +302,15 @@ function player_refresh() {
   }
 }
 
+function player_pause() {
+  player_paused = !player_paused;
+  if (player_paused) {
+    $("#pause").addClass("active");
+  } else {
+    $("#pause").removeClass("active");
+  }
+}
+
 function player_star_word() {
   if (player_timer && player_progress >= 0) {
     let word = [$("#question").text(), $("#answer").text()];
@@ -338,11 +354,9 @@ function player_word_stared() {
 function player_star_draw() {
   let paths = player_location_get();
   if (paths[3] === "star") {
-    $("#star")
-      .addClass("active");
+    $("#star").addClass("active");
   } else {
-    $("#star")
-      .removeClass("active");
+    $("#star").removeClass("active");
   }
   if (player_word_stared()) {
     $("#star").addClass("ui-alt-icon");
@@ -352,13 +366,15 @@ function player_star_draw() {
 }
 
 function player_init() {
+  $.event.special.tap.emitTapOnTaphold = false;
   $("#dictionary").change(player_dictionary_change);
   $("#range").change(player_range_change);
   $("#refresh").on("click", player_refresh);
+  $("#pause").on("click", player_pause);
   $("#star").on("click", player_star_word);
   $("#content").on("tap", player_fullscreen_toggle);
-  $("#control").on("swipeleft", player_forward);
-  $("#control").on("swiperight", player_backward);
+  $("#content").on("swipeleft", player_forward);
+  $("#content").on("swiperight", player_backward);
   $("#star").on("taphold dbclick", player_star_dictionary);
   $(window).on("hashchange", player_prepare);
   if (typeof window.localStorage === "undefined") {
