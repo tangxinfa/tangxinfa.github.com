@@ -24,6 +24,7 @@ function player_draw() {
     if (player_progress === -2) {
       player_progress = player_begin;
     }
+    player_progress_draw();
     let word = player_dictionary[player_progress];
     $("#question").text(word[0]);
     $("#answer")
@@ -35,6 +36,7 @@ function player_draw() {
     $("#answer").text("");
     $("#message").text("The end");
     player_star_draw();
+    player_progress_draw();
   }
 }
 
@@ -93,14 +95,17 @@ function player_start() {
     player_dictionary = dictionary;
 
     let paths_changed = false;
-    if (paths[1] == "" || paths[1] < 1) {
+    if (paths[1] < 1) {
       paths[1] = player_dictionary.length > 0 ? 1 : 0;
       paths_changed = true;
     } else if (paths[1] > player_dictionary.length) {
       paths[1] = player_dictionary.length;
       paths_changed = true;
     }
-    if (paths[2] == "" || paths[2] > player_dictionary.length) {
+    if (paths[2] < 1) {
+      paths[2] = player_dictionary.length;
+      paths_changed = true;
+    } else if (paths[2] > player_dictionary.length) {
       paths[2] = player_dictionary.length;
       paths_changed = true;
     }
@@ -112,7 +117,7 @@ function player_start() {
       player_location_set(paths);
     }
 
-    player_range = [parseInt(paths[1], 10) - 1, parseInt(paths[2], 10) - 1];
+    player_range = [paths[1] - 1, paths[2] - 1];
     player_begin =
       player_range[0] +
       parseInt(Math.random() * (player_range[1] - player_range[0] + 1), 10);
@@ -176,6 +181,7 @@ function player_star_get(name) {
 
 function player_prepare() {
   player_star_draw();
+  player_progress_draw();
   let paths = player_location_get();
   if (paths[3] === "star") {
     let dictionary = player_stars[paths[0]];
@@ -252,11 +258,21 @@ function player_location_get() {
   if (match) {
     paths = match.split(":").slice(0, 4);
   }
+
   for (let i = 0; i < 4; ++i) {
     if (typeof paths[i] === "undefined") {
       paths[i] = "";
     }
   }
+  paths[1] = parseInt(paths[1], 10);
+  if (paths[1] < 0) {
+    paths[1] = 0;
+  }
+  paths[2] = parseInt(paths[2], 10);
+  if (paths[2] < 0) {
+    paths[2] = 0;
+  }
+
   return paths;
 }
 
@@ -297,6 +313,7 @@ function player_refresh() {
       .text("")
       .show();
     $("#message").text("");
+    player_progress_draw();
   } else {
     window.location.reload();
   }
@@ -333,8 +350,8 @@ function player_star_word() {
 function player_star_dictionary(e) {
   e.preventDefault();
   let paths = player_location_get();
-  paths[1] = "";
-  paths[2] = "";
+  paths[1] = 0;
+  paths[2] = 0;
   paths[3] = paths[3] === "star" ? "" : "star";
   if (player_location_set(paths)) {
     player_prepare();
@@ -363,6 +380,31 @@ function player_star_draw() {
   } else {
     $("#star").removeClass("ui-alt-icon");
   }
+}
+
+function player_progress_draw() {
+  let progress = 0;
+  if (player_progress == -1) {
+    progress = 100;
+  } else if (player_progress == -2) {
+    progress = 0;
+  } else if (player_progress >= player_begin) {
+    progress = +(
+      ((player_progress - player_begin + 1) /
+        (player_range[1] - player_range[0] + 1)) *
+      100
+    );
+  } else {
+    progress = +(
+      ((player_progress -
+        player_range[0] +
+        1 +
+        (player_range[1] - player_begin + 1)) /
+        (player_range[1] - player_range[0] + 1)) *
+      100
+    );
+  }
+  $("#progress").width(progress + "%");
 }
 
 function player_init() {
