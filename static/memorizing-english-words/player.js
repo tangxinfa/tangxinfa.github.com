@@ -14,9 +14,10 @@ function player_draw() {
   if ($("#answer").is(":hidden")) {
     $("#answer").show();
     player_star_draw();
-    player_progress =
-      player_range[0] +
-      ((player_progress + 1) % (player_range[1] - player_range[0] + 1));
+    player_progress += 1;
+    if (player_progress > player_range[1]) {
+      player_progress = player_range[0];
+    }
     if (player_progress === player_begin) {
       player_progress = -1;
     }
