@@ -401,8 +401,10 @@ function player_star_draw() {
   }
   if (player_word_stared()) {
     $("#star").addClass("ui-alt-icon");
+    $("#content").addClass("star");
   } else {
     $("#star").removeClass("ui-alt-icon");
+    $("#content").removeClass("star");
   }
 }
 
