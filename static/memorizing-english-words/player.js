@@ -434,6 +434,7 @@ function player_init() {
   $("#refresh").on("click", player_refresh);
   $("#pause").on("click", player_pause);
   $("#star").on("click", player_star_word);
+  $("#content").on("on-drag-down", player_star_word);
   $("#content").on("tap", player_fullscreen_toggle);
   $("#content").on("swipeleft", player_forward);
   $("#content").on("swiperight", player_backward);
