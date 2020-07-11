@@ -5,9 +5,9 @@ var player_timer = null;
 var player_dictionary = null;
 var player_stars = {};
 var player_paused = false;
-
 var player_range = [];
 var player_offset = 0; // Player offset, must in player_range. > player_range[1] if end of range, < player_range[0] if no progress.
+var player_touch_position = null;
 
 function player_draw() {
   if ($("#answer").is(":hidden")) {
@@ -427,6 +427,26 @@ function player_progress_draw() {
   $("#progress").width(progress + "%");
 }
 
+function player_touch_start(e) {
+  player_touch_position = e.touches[0].pageY;
+}
+
+function player_touch_move(e) {
+  if (typeof player_touch_position != "boolean") {
+    let height = e.touches[0].pageY - player_touch_position.begin;
+    if (height > 55) {
+      player_touch_position = true;
+    }
+  }
+}
+
+function player_touch_end(e) {
+  if (player_touch_position === true) {
+    player_star_word();
+  }
+  player_touch_position = null;
+}
+
 function player_init() {
   $.event.special.tap.emitTapOnTaphold = false;
   $("#dictionary").change(player_dictionary_change);
@@ -434,10 +454,12 @@ function player_init() {
   $("#refresh").on("click", player_refresh);
   $("#pause").on("click", player_pause);
   $("#star").on("click", player_star_word);
-  $("#content").on("on-drag-down", player_star_word);
   $("#content").on("tap", player_fullscreen_toggle);
   $("#content").on("swipeleft", player_forward);
   $("#content").on("swiperight", player_backward);
+  $("#content").on("touchstart", player_touch_start);
+  $("#content").on("touchmove", player_touch_move);
+  $("#content").on("touchend", player_touch_end);
   $("#star").on("taphold dbclick", player_star_dictionary);
   $(window).on("hashchange", player_prepare);
   if (typeof window.localStorage === "undefined") {
