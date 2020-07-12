@@ -343,27 +343,70 @@ function player_pause() {
   }
 }
 
-function player_star_word() {
+function player_current_word() {
   if (
     player_timer &&
     player_offset >= player_range[0] &&
     player_offset <= player_range[1]
   ) {
-    let word = [$("#question").text(), $("#answer").text()];
-    if (word[0] === "") {
-      return;
-    }
-    let paths = player_location_get();
-    let key = paths[0] + ":" + word[0];
-    let value = word[1];
-    if (typeof window.localStorage[key] === "undefined") {
-      window.localStorage[key] = value;
-    } else {
-      window.localStorage.removeItem(key);
-    }
-    delete player_stars[paths[0]];
+    return [$("#question").text(), $("#answer").text()];
   }
+
+  return ["", ""];
+}
+
+function player_star_toggle() {
+  let word = player_current_word();
+  if (word[0] === "") {
+    return;
+  }
+  let paths = player_location_get();
+  let key = paths[0] + ":" + word[0];
+  let value = word[1];
+  if (typeof window.localStorage[key] === "undefined") {
+    window.localStorage[key] = value;
+  } else {
+    window.localStorage.removeItem(key);
+  }
+  delete player_stars[paths[0]];
   player_star_draw();
+}
+
+function player_star_on() {
+  let word = player_current_word();
+  if (word[0] === "") {
+    return;
+  }
+  let paths = player_location_get();
+  let key = paths[0] + ":" + word[0];
+  let value = word[1];
+  if (typeof window.localStorage[key] === "undefined") {
+    window.localStorage[key] = value;
+  }
+  delete player_stars[paths[0]];
+  player_star_draw();
+}
+
+function player_star_off() {
+  let word = player_current_word();
+  if (word[0] === "") {
+    return;
+  }
+  let paths = player_location_get();
+  let key = paths[0] + ":" + word[0];
+  window.localStorage.removeItem(key);
+  delete player_stars[paths[0]];
+  player_star_draw();
+}
+
+function player_star_active() {
+  let word = player_current_word();
+  if (word[0] === "") {
+    return false;
+  }
+  let paths = player_location_get();
+  let key = paths[0] + ":" + word[0];
+  return typeof window.localStorage[key] !== "undefined";
 }
 
 function player_star_dictionary(e) {
@@ -378,20 +421,6 @@ function player_star_dictionary(e) {
   }
 }
 
-function player_word_stared() {
-  let paths = player_location_get();
-  if (
-    player_timer &&
-    player_offset >= player_range[0] &&
-    player_offset <= player_range[1]
-  ) {
-    let word = [$("#question").text(), $("#answer").text()];
-    let key = paths[0] + ":" + word[0];
-    return typeof window.localStorage[key] !== "undefined";
-  }
-  return false;
-}
-
 function player_star_draw() {
   let paths = player_location_get();
   if (paths[3] === "star") {
@@ -399,7 +428,7 @@ function player_star_draw() {
   } else {
     $("#star").removeClass("active");
   }
-  if (player_word_stared()) {
+  if (player_star_active()) {
     $("#star").addClass("ui-alt-icon");
     $("#content").addClass("star");
   } else {
@@ -428,23 +457,16 @@ function player_progress_draw() {
 }
 
 function player_touch_start(e) {
-  player_touch_position = e.touches[0].pageY;
-}
-
-function player_touch_move(e) {
-  if (typeof player_touch_position != "boolean") {
-    let height = e.touches[0].pageY - player_touch_position.begin;
-    if (height > 55) {
-      player_touch_position = true;
-    }
-  }
+  player_touch_position = e.originalEvent.touches[0].pageY;
 }
 
 function player_touch_end(e) {
-  if (player_touch_position === true) {
-    player_star_word();
+  let height = e.originalEvent.changedTouches[0].pageY - player_touch_position;
+  if (height > 55) {
+    player_star_on();
+  } else if (height < -55) {
+    player_star_off();
   }
-  player_touch_position = null;
 }
 
 function player_init() {
@@ -453,12 +475,11 @@ function player_init() {
   $("#range").change(player_range_change);
   $("#refresh").on("click", player_refresh);
   $("#pause").on("click", player_pause);
-  $("#star").on("click", player_star_word);
+  $("#star").on("click", player_star_toggle);
   $("#content").on("tap", player_fullscreen_toggle);
   $("#content").on("swipeleft", player_forward);
   $("#content").on("swiperight", player_backward);
   $("#content").on("touchstart", player_touch_start);
-  $("#content").on("touchmove", player_touch_move);
   $("#content").on("touchend", player_touch_end);
   $("#star").on("taphold dbclick", player_star_dictionary);
   $(window).on("hashchange", player_prepare);
