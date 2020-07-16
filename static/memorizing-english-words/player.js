@@ -7,7 +7,7 @@ var player_stars = {};
 var player_paused = false;
 var player_range = [];
 var player_offset = 0; // Player offset, must in player_range. > player_range[1] if end of range, < player_range[0] if no progress.
-var player_touch_position = null;
+var player_touch_position = { x: null, y: null };
 
 function player_draw() {
   if ($("#answer").is(":hidden")) {
@@ -35,7 +35,7 @@ function player_draw() {
 }
 
 function player_timer_draw() {
-  if (!player_paused) {
+  if (!player_paused && player_touch_position.x === null) {
     player_draw();
   }
 }
@@ -457,16 +457,25 @@ function player_progress_draw() {
 }
 
 function player_touch_start(e) {
-  player_touch_position = e.originalEvent.touches[0].pageY;
+  player_touch_position = {
+    x: e.originalEvent.touches[0].pageX,
+    y: e.originalEvent.touches[0].pageY
+  };
 }
 
 function player_touch_end(e) {
-  let height = e.originalEvent.changedTouches[0].pageY - player_touch_position;
-  if (height > 55) {
-    player_star_on();
-  } else if (height < -55) {
-    player_star_off();
+  let height =
+    e.originalEvent.changedTouches[0].pageY - player_touch_position.y;
+  let width = e.originalEvent.changedTouches[0].pageX - player_touch_position.x;
+  let distance = 55;
+  if (width <= distance / 2) {
+    if (height > distance) {
+      player_star_on();
+    } else if (height < -distance) {
+      player_star_off();
+    }
   }
+  player_touch_position = { x: null, y: null };
 }
 
 function player_init() {
