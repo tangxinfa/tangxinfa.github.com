@@ -316,21 +316,6 @@ function player_range_change() {
   }
 }
 
-function player_refresh() {
-  if (player_timer) {
-    player_offset = player_range[0];
-    $("#question").text("");
-    $("#answer")
-      .text("")
-      .show();
-    $("#message").text("");
-    player_progress_draw();
-    player_progress_save();
-  } else {
-    window.location.reload();
-  }
-}
-
 function player_pause_toggle() {
   player_paused = !player_paused;
   if (player_paused) {
@@ -456,6 +441,26 @@ function player_progress_draw() {
   $("#progress").width(progress + "%");
 }
 
+function player_progress_on_click(e) {
+  if (!player_timer) {
+    return;
+  }
+  let percent =
+    (e.pageX - $("#progress-bar").position().left) / $("#progress-bar").width();
+  player_offset = parseInt(
+    player_range[0] + (player_range[1] - player_range[0]) * percent,
+    10
+  );
+  $("#question").text("");
+  $("#answer")
+    .text("")
+    .show();
+  $("#message").text("");
+  player_draw();
+  player_redraw();
+  player_progress_save();
+}
+
 function player_touch_start(e) {
   player_touch_position = {
     x: e.originalEvent.touches[0].pageX,
@@ -499,10 +504,10 @@ function player_init() {
   $(window).on("resize orientationchange", player_resize);
   $("#dictionary").change(player_dictionary_change);
   $("#range").change(player_range_change);
-  $("#refresh").on("click", player_refresh);
   $("#pause").on("click", player_pause_toggle);
   $("#star").on("click", player_star_toggle);
   $("#fullscreen").on("click", player_fullscreen_toggle);
+  $("#progress-box").on("click", player_progress_on_click);
   $("#content").on("tap", player_pause_toggle);
   $("#content").on("swipeleft", player_forward);
   $("#content").on("swiperight", player_backward);
@@ -514,11 +519,13 @@ function player_init() {
     $("#star").hide();
   }
 
-  $("#dictionary").append(
-    $("<option></option>")
-      .val("")
-      .html("请选择词典")
-  ).selectmenu("refresh");
+  $("#dictionary")
+    .append(
+      $("<option></option>")
+        .val("")
+        .html("请选择词典")
+    )
+    .selectmenu("refresh");
   for (let name in dictionaries) {
     if (dictionaries.hasOwnProperty(name)) {
       let option = $("<option></option>")
