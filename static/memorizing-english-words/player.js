@@ -331,7 +331,7 @@ function player_refresh() {
   }
 }
 
-function player_pause() {
+function player_pause_toggle() {
   player_paused = !player_paused;
   if (player_paused) {
     $("#pause").addClass("active");
@@ -476,16 +476,34 @@ function player_touch_end(e) {
     }
   }
   player_touch_position = { x: null, y: null };
+  player_redraw();
+}
+
+function player_resize() {
+  var screen = $.mobile.getScreenHeight();
+  var header = $(".ui-header").hasClass("ui-header-fixed")
+    ? $(".ui-header").outerHeight() - 1
+    : $(".ui-header").outerHeight();
+  var footer = $(".ui-footer").hasClass("ui-footer-fixed")
+    ? $(".ui-footer").outerHeight() - 1
+    : $(".ui-footer").outerHeight();
+  var contentCurrent =
+    $(".ui-content").outerHeight() - $(".ui-content").height();
+  var content = screen - header - footer - contentCurrent;
+  $(".ui-content").height(content);
 }
 
 function player_init() {
   $.event.special.tap.emitTapOnTaphold = false;
+  player_resize();
+  $(window).on("resize orientationchange", player_resize);
   $("#dictionary").change(player_dictionary_change);
   $("#range").change(player_range_change);
   $("#refresh").on("click", player_refresh);
-  $("#pause").on("click", player_pause);
+  $("#pause").on("click", player_pause_toggle);
   $("#star").on("click", player_star_toggle);
-  $("#content").on("tap", player_fullscreen_toggle);
+  $("#fullscreen").on("click", player_fullscreen_toggle);
+  $("#content").on("tap", player_pause_toggle);
   $("#content").on("swipeleft", player_forward);
   $("#content").on("swiperight", player_backward);
   $("#content").on("touchstart", player_touch_start);
@@ -499,8 +517,8 @@ function player_init() {
   $("#dictionary").append(
     $("<option></option>")
       .val("")
-      .html("")
-  );
+      .html("请选择词典")
+  ).selectmenu("refresh");
   for (let name in dictionaries) {
     if (dictionaries.hasOwnProperty(name)) {
       let option = $("<option></option>")
