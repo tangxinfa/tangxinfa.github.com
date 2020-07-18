@@ -47,20 +47,24 @@ function player_redraw() {
   player_timer = setInterval(player_timer_draw, player_interval);
 }
 
+function player_progress_change() {
+  $("#question").text("");
+  $("#answer")
+    .text("")
+    .show();
+  $("#message").text("");
+  player_draw();
+  player_redraw();
+  player_progress_save();
+}
+
 function player_backward() {
   if (player_timer) {
-    $("#question").text("");
-    $("#answer")
-      .text("")
-      .show();
-    $("#message").text("");
     player_offset -= 1;
     if (player_offset < player_range[0]) {
       player_offset = player_range[1];
     }
-    player_draw();
-    player_redraw();
-    player_progress_save();
+    player_progress_change();
   }
 }
 
@@ -72,14 +76,7 @@ function player_forward() {
     if (player_offset > player_range[1]) {
       player_offset = player_range[0];
     }
-    $("#question").text("");
-    $("#answer")
-      .text("")
-      .show();
-    $("#message").text("");
-    player_draw();
-    player_redraw();
-    player_progress_save();
+    player_progress_change();
   }
 }
 
@@ -441,7 +438,7 @@ function player_progress_draw() {
   $("#progress").width(progress + "%");
 }
 
-function player_progress_on_click(e) {
+function player_progress_box_on_click(e) {
   if (!player_timer) {
     return;
   }
@@ -451,14 +448,22 @@ function player_progress_on_click(e) {
     player_range[0] + (player_range[1] - player_range[0]) * percent,
     10
   );
-  $("#question").text("");
-  $("#answer")
-    .text("")
-    .show();
-  $("#message").text("");
-  player_draw();
-  player_redraw();
-  player_progress_save();
+  player_progress_change();
+}
+
+function player_progress_container_on_click(e) {
+  if (!player_timer) {
+    return;
+  }
+  if (e.pageX <= $("#progress-box").offset().left) {
+    player_offset = player_range[0];
+  } else if (
+    e.pageX >=
+    $("#progress-box").offset().left + $("#progress-box").width()
+  ) {
+    player_offset = player_range[1];
+  }
+  player_progress_change();
 }
 
 function player_touch_start(e) {
@@ -507,7 +512,8 @@ function player_init() {
   $("#pause").on("click", player_pause_toggle);
   $("#star").on("click", player_star_toggle);
   $("#fullscreen").on("click", player_fullscreen_toggle);
-  $("#progress-box").on("click", player_progress_on_click);
+  $("#progress-box").on("click", player_progress_box_on_click);
+  $("#progress-container").on("click", player_progress_container_on_click);
   $("#content").on("tap", player_pause_toggle);
   $("#content").on("swipeleft", player_forward);
   $("#content").on("swiperight", player_backward);
