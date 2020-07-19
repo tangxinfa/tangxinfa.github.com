@@ -317,24 +317,18 @@ function player_pause_toggle() {
   player_paused = !player_paused;
   if (player_paused) {
     $("#pause").addClass("active");
+    $("body").addClass("pause");
     if (player_timer) {
       player_progress_save();
     }
   } else {
     $("#pause").removeClass("active");
+    $("body").removeClass("pause");
   }
 }
 
 function player_current_word() {
-  if (
-    player_timer &&
-    player_offset >= player_range[0] &&
-    player_offset <= player_range[1]
-  ) {
-    return [$("#question").text(), $("#answer").text()];
-  }
-
-  return ["", ""];
+  return [$("#question").text(), $("#answer").text()];
 }
 
 function player_star_toggle() {
