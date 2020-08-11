@@ -2,24 +2,331 @@
 
 var player_interval = 3000;
 var player_timer = null;
-var player_dictionary = null;
-var player_stars = {};
 var player_paused = false;
-var player_range = [];
-var player_offset = 0; // Player offset, must in player_range. > player_range[1] if end of range, < player_range[0] if no progress.
 var player_touch_position = { x: null, y: null };
+var word_list = null;
+
+/**
+ * Construct a dictionary.
+ *
+ * @param name Dictionary name.
+ * @param words Dictionary words.
+ *
+ * @return a dictionary.
+ */
+function Dictionary(name, words) {
+  this.name = name;
+  this.words = words;
+}
+
+/// Get dictionary name.
+Dictionary.prototype.Name = function() {
+  return this.name;
+};
+
+/// Get dictionary word at offset.
+Dictionary.prototype.Word = function(offset) {
+  let word = this.words[offset];
+  if (word) {
+    return word;
+  }
+  return ["", ""];
+};
+
+/// Get dictionary size.
+Dictionary.prototype.Size = function() {
+  return this.words.length;
+};
+
+/**
+ * Construct a word list on dictionary at [first, last].
+ *
+ * @param dictionary Dictionary.
+ * @param first First word index.
+ * @param last Last word index.
+ * @param offset Offset word index.
+ *               Must in range[first, last], > last if end of range,
+ *               < first if no progress.
+ *
+ * @return a word list.
+ */
+function WordList(dictionary, first, last, offset) {
+  this.dictionary = dictionary;
+  first = parseInt(first, 10);
+  if (isNaN(first) || first < 0) {
+    first = 0;
+  } else if (first >= this.dictionary.Size()) {
+    first = this.dictionary.Size() - 1;
+  }
+  this.first = first;
+  last = parseInt(last, 10);
+  if (isNaN(last) || last < 0 || last >= this.dictionary.Size()) {
+    last = this.dictionary.Size() - 1;
+  }
+  if (first > last) {
+    last = first;
+  }
+  this.last = last;
+  offset = parseInt(offset, 10);
+  if (isNaN(offset) || offset < first || offset > last) {
+    offset = first;
+  }
+  this.offset = offset;
+}
+
+/// Get dictionary name.
+WordList.prototype.DictionaryName = function() {
+  return this.dictionary.Name();
+};
+
+/// Get first index.
+WordList.prototype.First = function() {
+  return this.first;
+};
+
+/// Get last index.
+WordList.prototype.Last = function() {
+  return this.last;
+};
+
+/// Get offset index.
+WordList.prototype.Offset = function() {
+  return this.offset;
+};
+
+/// Get word at offset.
+WordList.prototype.Word = function(offset) {
+  if (offset < this.first || offset > this.last) {
+    return ["", ""];
+  }
+  return this.dictionary.Word(offset);
+};
+
+/// Forward offset index.
+WordList.prototype.Forward = function() {
+  if (!this.Ending()) {
+    this.offset += 1;
+  }
+};
+
+/// Backward offset index.
+WordList.prototype.Backward = function() {
+  if (!this.Begining()) {
+    this.offset -= 1;
+  }
+};
+
+/// Offset is before first index.
+WordList.prototype.Begining = function() {
+  return this.offset < this.first;
+};
+
+/// Offset is after last index.
+WordList.prototype.Ending = function() {
+  return this.offset > this.last;
+};
+
+/// Get progress in range[0, 100].
+WordList.prototype.Progress = function() {
+  if (this.offset > this.last) {
+    return 100;
+  } else if (this.offset < this.first) {
+    return 0;
+  } else {
+    return +(
+      ((this.offset - this.first + 1) / (this.last - this.first + 1)) *
+      100
+    );
+  }
+};
+
+/// Move to progress in range[0, 100].
+WordList.prototype.Move = function(percent) {
+  this.offset = parseInt(this.first + (this.last - this.first) * percent, 10);
+  if (this.offset > this.last) {
+    this.offset = this.last;
+  } else if (this.offset < this.first) {
+    this.offset = this.first;
+  }
+};
+
+WordList.prototype.Dictionary = function() {
+  return this.dictionary;
+};
+
+WordList.prototype.IndexOf = function(name) {
+  for (let i = this.first; i <= this.last; ++i) {
+    if (this.Word(i)[0] == name) {
+      return i;
+    }
+  }
+  return -1;
+};
+
+WordList.prototype.IsNewWord = function(word_name) {
+  let store = window.localStorage;
+  return typeof store[this.DictionaryName() + ":" + word_name] !== "undefined";
+};
+
+WordList.prototype.AddNewWord = function(word_name, word_mean) {
+  if (word_name == "" || word_mean == "" || this.IsNewWord(word_name)) {
+    return false;
+  }
+  let store = window.localStorage;
+  store[this.DictionaryName() + ":" + word_name] = word_mean;
+  return true;
+};
+
+WordList.prototype.DelNewWord = function(word_name) {
+  if (word_name == "" || !this.IsNewWord(word_name)) {
+    return false;
+  }
+  let store = window.localStorage;
+  store.removeItem(this.DictionaryName() + ":" + word_name);
+  return true;
+};
+
+/**
+ * Construct a new word list based on a word list.
+ *
+ * @param word_list Word list.
+ *
+ * @return a new word list.
+ */
+function NewWordList(word_list) {
+  this.word_list = word_list;
+  this.index_list = [];
+  this.load();
+  this.index = 0;
+}
+
+/// Load words of new word list.
+NewWordList.prototype.load = function() {
+  let store = window.localStorage;
+  for (let i = 0; i < store.length; i++) {
+    let key = store.key(i);
+    let prefix = this.word_list.DictionaryName() + ":";
+    let index = key.indexOf(prefix);
+    if (index === 0) {
+      let name = key.substring(index + prefix.length);
+      index = this.word_list.IndexOf(name);
+      if (index >= this.word_list.First() && index <= this.word_list.Last()) {
+        this.index_list.push(index);
+      }
+    }
+  }
+};
+
+/// Get dict name of new word list.
+NewWordList.prototype.DictionaryName = function() {
+  return this.word_list.DictionaryName();
+};
+
+NewWordList.prototype.IsNewWord = function(word_name) {
+  return this.word_list.IsNewWord(word_name);
+};
+
+NewWordList.prototype.AddNewWord = function(word_name, word_mean) {
+  if (this.word_list.AddNewWord(word_name, word_mean)) {
+    let index = this.word_list.IndexOf(word_name);
+    if (index >= 0) {
+      this.index_list.push(index);
+    }
+    return true;
+  }
+  return false;
+};
+
+NewWordList.prototype.DelNewWord = function(word_name) {
+  if (this.word_list.DelNewWord(word_name)) {
+    for (let i = 0; i < this.index_list.length; i++) {
+      if (this.word_list.Word(this.index_list[i])[0] == word_name) {
+        this.index_list.splice(i, 1);
+        break;
+      }
+    }
+    return true;
+  }
+  return false;
+};
+
+NewWordList.prototype.IndexOf = function(name) {
+  for (let i = 0; i <= this.index_list.length; ++i) {
+    if (this.word_list.Word(this.index_list[i])[0] == name) {
+      return i;
+    }
+  }
+  return -1;
+};
+
+NewWordList.prototype.Forward = function() {
+  if (!this.Ending()) {
+    this.index += 1;
+  }
+};
+
+NewWordList.prototype.Backward = function() {
+  if (!this.Begining()) {
+    this.index -= 1;
+  }
+};
+
+NewWordList.prototype.Begining = function() {
+  return this.index < 0;
+};
+
+NewWordList.prototype.Ending = function() {
+  return this.index >= this.index_list.length;
+};
+
+NewWordList.prototype.Offset = function() {
+  if (this.index < 0) {
+    return this.word_list.first - 1;
+  } else if (this.index >= this.index_list.length) {
+    return this.word_list.last + 1;
+  } else {
+    return this.index_list[this.index];
+  }
+};
+
+NewWordList.prototype.Word = function(offset) {
+  let index = this.index_list.indexOf(offset);
+  if (index < 0) {
+    return ["", ""];
+  }
+  return this.word_list.Word(offset);
+};
+
+NewWordList.prototype.Move = function(percent) {
+  this.index = parseInt(this.index_list.length * percent, 10);
+};
+
+NewWordList.prototype.First = function() {
+  return this.word_list.First();
+};
+
+NewWordList.prototype.Last = function() {
+  return this.word_list.Last();
+};
+
+NewWordList.prototype.Progress = function() {
+  if (this.index >= this.index_list.length) {
+    return 100;
+  } else if (this.index <= 0) {
+    return 0;
+  } else {
+    return +((this.index / this.index_list.length) * 100);
+  }
+};
 
 function player_draw() {
   if ($("#answer").is(":hidden")) {
     $("#answer").show();
     player_star_draw();
-    player_offset += 1;
-  } else if (
-    player_range[0] != player_range[1] &&
-    player_offset <= player_range[1]
-  ) {
+    word_list.Forward();
+  } else if (!word_list.Ending()) {
     player_progress_draw();
-    let word = player_dictionary[player_offset];
+    let word = word_list.Word(word_list.Offset());
     $("#question").text(word[0]);
     $("#answer")
       .text(word[1])
@@ -60,9 +367,9 @@ function player_progress_change() {
 
 function player_backward() {
   if (player_timer) {
-    player_offset -= 1;
-    if (player_offset < player_range[0]) {
-      player_offset = player_range[1];
+    word_list.Backward();
+    if (word_list.Begining()) {
+      word_list.Move(0);
     }
     player_progress_change();
   }
@@ -71,10 +378,10 @@ function player_backward() {
 function player_forward() {
   if (player_timer) {
     if ($("#answer").is(":hidden")) {
-      player_offset += 1;
+      word_list.Forward();
     }
-    if (player_offset > player_range[1]) {
-      player_offset = player_range[0];
+    if (word_list.Ending()) {
+      word_list.Move(0);
     }
     player_progress_change();
   }
@@ -82,63 +389,39 @@ function player_forward() {
 
 function player_start() {
   let paths = player_location_get();
-  let dictionary =
-    paths[3] === "star" ? player_stars[paths[0]] : dictionaries[paths[0]];
-  if (typeof dictionary === "object") {
-    player_dictionary = dictionary;
-
-    let paths_changed = false;
-    if (paths[1] < 1) {
-      paths[1] = player_dictionary.length > 0 ? 1 : 0;
-      paths_changed = true;
-    } else if (paths[1] > player_dictionary.length) {
-      paths[1] = player_dictionary.length;
-      paths_changed = true;
+  let name = paths[0];
+  let words = dictionaries[name];
+  if (typeof words === "object") {
+    let dictionary = new Dictionary(name, words);
+    word_list = new WordList(
+      dictionary,
+      parseInt(paths[1], 10) - 1,
+      parseInt(paths[2], 10) - 1,
+      parseInt(paths[4], 10) - 1
+    );
+    if (paths[3] === "star") {
+      word_list = new NewWordList(word_list);
     }
-    if (paths[2] < 1) {
-      paths[2] = player_dictionary.length;
-      paths_changed = true;
-    } else if (paths[2] > player_dictionary.length) {
-      paths[2] = player_dictionary.length;
-      paths_changed = true;
-    }
-    if (paths[1] > paths[2]) {
-      paths[2] = paths[1];
-      paths_changed = true;
-    }
-    if (paths[4] < paths[1] || paths[4] > paths[2]) {
-      paths[4] = paths[1];
-      paths_changed = true;
-    }
-    if (paths_changed) {
-      player_location_set(paths);
-    }
-
-    player_range = [paths[1] - 1, paths[2] - 1];
-    player_offset = paths[4] - 1;
+    paths[1] = word_list.First() + 1;
+    paths[2] = word_list.Last() + 1;
+    paths[4] = word_list.Offset() + 1;
+    player_location_set(paths);
     $("#dictionary")
       .val(paths[0])
       .selectmenu("refresh");
     $("#range").html("");
-    let all =
-      (player_dictionary.length > 0 ? "1" : "0") +
-      "-" +
-      player_dictionary.length;
+    let all = (dictionary.Size() > 0 ? "1" : "0") + "-" + dictionary.Size();
     $("#range").append(
       $("<option></option>")
         .val(all)
         .html(all)
     );
-    const words = 100;
-    for (
-      let i = 0, n = Math.ceil(player_dictionary.length / words);
-      i < n;
-      ++i
-    ) {
-      let start = i * words + 1;
-      let end = start + words - 1;
-      if (end > player_dictionary.length) {
-        end = player_dictionary.length;
+    const page_size = 100;
+    for (let i = 0, n = Math.ceil(dictionary.Size() / page_size); i < n; ++i) {
+      let start = i * page_size + 1;
+      let end = start + page_size - 1;
+      if (end > dictionary.Size()) {
+        end = dictionary.Size();
       }
       let item = start + "-" + end;
       if (item !== all) {
@@ -149,7 +432,7 @@ function player_start() {
       }
     }
     $("#range")
-      .val(player_range[0] + 1 + "-" + (player_range[1] + 1))
+      .val(word_list.First() + 1 + "-" + (word_list.Last() + 1))
       .selectmenu("refresh");
     $("#message").html("");
     player_redraw();
@@ -158,44 +441,21 @@ function player_start() {
   return false;
 }
 
-function player_star_get(name) {
-  let star = [];
-  for (let i = 0; i < window.localStorage.length; i++) {
-    let key = window.localStorage.key(i);
-    let prefix = name + ":";
-    let index = key.indexOf(prefix);
-    if (index === 0) {
-      let value = window.localStorage.getItem(key);
-      key = key.substring(index + prefix.length);
-      star.push([key, value]);
-    }
-  }
-  return star;
-}
-
 function player_prepare() {
   player_star_draw();
   player_progress_draw();
   let paths = player_location_get();
-  if (paths[3] === "star") {
-    let dictionary = player_stars[paths[0]];
-    if (typeof dictionary === "undefined") {
-      player_stars[paths[0]] = player_star_get(paths[0]);
-    }
-    player_start();
-  } else {
-    let dictionary = dictionaries[paths[0]];
-    if (typeof dictionary === "string") {
-      $.ajax({
-        dataType: "script",
-        cache: true,
-        url: dictionary
-      }).done(function() {
-        player_start();
-      });
-    } else if (typeof dictionary === "object") {
+  let dictionary = dictionaries[paths[0]];
+  if (typeof dictionary === "string") {
+    $.ajax({
+      dataType: "script",
+      cache: true,
+      url: dictionary
+    }).done(function() {
       player_start();
-    }
+    });
+  } else if (typeof dictionary === "object") {
+    player_start();
   }
 }
 
@@ -284,7 +544,7 @@ function player_location_set(paths) {
 
 function player_progress_save() {
   let paths = player_location_get();
-  paths[4] = player_offset + 1;
+  paths[4] = word_list.Offset() + 1;
   player_location_set(paths);
 }
 
@@ -336,15 +596,11 @@ function player_star_toggle() {
   if (word[0] === "") {
     return;
   }
-  let paths = player_location_get();
-  let key = paths[0] + ":" + word[0];
-  let value = word[1];
-  if (typeof window.localStorage[key] === "undefined") {
-    window.localStorage[key] = value;
-  } else {
-    window.localStorage.removeItem(key);
+
+  if (!word_list.DelNewWord(word[0])) {
+    word_list.AddNewWord(word[0], word[1]);
   }
-  delete player_stars[paths[0]];
+
   player_star_draw();
 }
 
@@ -353,13 +609,7 @@ function player_star_on() {
   if (word[0] === "") {
     return;
   }
-  let paths = player_location_get();
-  let key = paths[0] + ":" + word[0];
-  let value = word[1];
-  if (typeof window.localStorage[key] === "undefined") {
-    window.localStorage[key] = value;
-  }
-  delete player_stars[paths[0]];
+  word_list.AddNewWord(word[0], word[1]);
   player_star_draw();
 }
 
@@ -368,10 +618,7 @@ function player_star_off() {
   if (word[0] === "") {
     return;
   }
-  let paths = player_location_get();
-  let key = paths[0] + ":" + word[0];
-  window.localStorage.removeItem(key);
-  delete player_stars[paths[0]];
+  word_list.DelNewWord(word[0]);
   player_star_draw();
 }
 
@@ -380,16 +627,12 @@ function player_star_active() {
   if (word[0] === "") {
     return false;
   }
-  let paths = player_location_get();
-  let key = paths[0] + ":" + word[0];
-  return typeof window.localStorage[key] !== "undefined";
+  return word_list.IsNewWord(word[0]);
 }
 
 function player_star_dictionary(e) {
   e.preventDefault();
   let paths = player_location_get();
-  paths[1] = 0;
-  paths[2] = 0;
   paths[3] = paths[3] === "star" ? "" : "star";
   paths[4] = 0;
   if (player_location_set(paths)) {
@@ -415,20 +658,10 @@ function player_star_draw() {
 
 function player_progress_draw() {
   let progress = 0;
-  if (player_offset > player_range[1]) {
-    progress = 100;
-  } else if (
-    player_offset < player_range[0] ||
-    (player_offset === player_range[0] && $("#answer").is(":hidden"))
-  ) {
-    progress = 0;
-  } else {
-    progress = +(
-      ((player_offset - player_range[0] + 1) /
-        (player_range[1] - player_range[0] + 1)) *
-      100
-    );
+  if (word_list) {
+    progress = word_list.Progress();
   }
+  // TODO progress is 0 if word_list offset is first and answer is hidden.
   $("#progress").width(progress + "%");
 }
 
@@ -438,10 +671,7 @@ function player_progress_box_on_click(e) {
   }
   let percent =
     (e.pageX - $("#progress-bar").position().left) / $("#progress-bar").width();
-  player_offset = parseInt(
-    player_range[0] + (player_range[1] - player_range[0]) * percent,
-    10
-  );
+  word_list.Move(percent);
   player_progress_change();
 }
 
@@ -450,12 +680,12 @@ function player_progress_container_on_click(e) {
     return;
   }
   if (e.pageX <= $("#progress-box").offset().left) {
-    player_offset = player_range[0];
+    word_list.Move(0);
   } else if (
     e.pageX >=
     $("#progress-box").offset().left + $("#progress-box").width()
   ) {
-    player_offset = player_range[1];
+    word_list.Move(100);
   }
   player_progress_change();
 }
