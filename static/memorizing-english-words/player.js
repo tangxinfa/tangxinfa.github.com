@@ -190,14 +190,18 @@ WordList.prototype.DelNewWord = function(word_name) {
  * Construct a new word list based on a word list.
  *
  * @param word_list Word list.
+ * @param Offset word index.
  *
  * @return a new word list.
  */
-function NewWordList(word_list) {
+function NewWordList(word_list, offset) {
   this.word_list = word_list;
   this.index_list = [];
   this.load();
-  this.index = 0;
+  this.index = this.index_list.indexOf(offset);
+  if (this.index == -1) {
+    this.index = 0;
+  }
 }
 
 /// Load words of new word list.
@@ -354,12 +358,16 @@ function player_redraw() {
   player_timer = setInterval(player_timer_draw, player_interval);
 }
 
-function player_progress_change() {
+function player_clear() {
   $("#question").text("");
   $("#answer")
     .text("")
     .show();
   $("#message").text("");
+}
+
+function player_progress_change() {
+  player_clear();
   player_draw();
   player_redraw();
   player_progress_save();
@@ -400,7 +408,7 @@ function player_start() {
       parseInt(paths[4], 10) - 1
     );
     if (paths[3] === "star") {
-      word_list = new NewWordList(word_list);
+      word_list = new NewWordList(word_list, parseInt(paths[4], 10) - 1);
     }
     paths[1] = word_list.First() + 1;
     paths[2] = word_list.Last() + 1;
@@ -552,6 +560,7 @@ function player_dictionary_change() {
   let paths = player_location_get();
   let name = $("#dictionary").val();
   if (player_location_set([name, "", "", paths[3], ""])) {
+    player_clear();
     player_prepare();
   }
 }
@@ -569,6 +578,7 @@ function player_range_change() {
   paths[2] = range[1];
   paths[4] = range[0];
   if (player_location_set(paths)) {
+    player_clear();
     player_prepare();
   }
 }
@@ -636,6 +646,7 @@ function player_star_dictionary(e) {
   paths[3] = paths[3] === "star" ? "" : "star";
   paths[4] = 0;
   if (player_location_set(paths)) {
+    player_clear();
     player_prepare();
   }
 }
@@ -661,7 +672,6 @@ function player_progress_draw() {
   if (word_list) {
     progress = word_list.Progress();
   }
-  // TODO progress is 0 if word_list offset is first and answer is hidden.
   $("#progress").width(progress + "%");
 }
 
