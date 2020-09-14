@@ -64,9 +64,9 @@ bridge
 简单起见， node.js 服务器端使用 <a href="https://github.com/mcollina/mosca">mosca</a>， 客户端使用 <a href="https://github.com/mqttjs/MQTT.js">MQTT.js</a> ，由于 <a href="https://github.com/mcollina/mosca">mosca</a> 不支持 bridge，本文不涉及 bridge 特性。
 </p>
 
-<div id="outline-container-org386f076" class="outline-2">
-<h2 id="org386f076">客户端与服务器通信</h2>
-<div class="outline-text-2" id="text-org386f076">
+<div id="outline-container-org783b515" class="outline-2">
+<h2 id="org783b515">客户端与服务器通信</h2>
+<div class="outline-text-2" id="text-org783b515">
 <ul class="org-ul">
 <li><p>
 客户端通过服务器给自已发个消息
@@ -79,24 +79,24 @@ bridge
 <pre class="src src-js"><span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">mosca</span> = require(<span style="color: #4E9A06;">'mosca'</span>);
 
 <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">settings</span> = {
-<span style="background-color: #E6E6E6;"> </span>   port: 1883
+    port: 1883
 };
 
 <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">server</span> = <span style="color: #A52A2A; font-weight: bold;">new</span> <span style="color: #2F8B58; font-weight: bold;">mosca.Server</span>(settings);
 server.on(<span style="color: #4E9A06;">'ready'</span>, <span style="color: #A52A2A; font-weight: bold;">function</span> () {
-<span style="background-color: #E6E6E6;"> </span>   console.log(<span style="color: #4E9A06;">'mosca server running'</span>);
+    console.log(<span style="color: #4E9A06;">'mosca server running'</span>);
 }).on(<span style="color: #4E9A06;">'clientConnected'</span>, <span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">client</span>) {
-<span style="background-color: #E6E6E6;"> </span>   console.log(<span style="color: #4E9A06;">'client('</span> + client.id + <span style="color: #4E9A06;">') connected'</span>);
+    console.log(<span style="color: #4E9A06;">'client('</span> + client.id + <span style="color: #4E9A06;">') connected'</span>);
 }).on(<span style="color: #4E9A06;">'published'</span>, <span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">packet</span>, <span style="color: #0084C8; font-weight: bold;">client</span>) {
-<span style="background-color: #E6E6E6;"> </span>   console.log(<span style="color: #4E9A06;">'client('</span> + (client ? client.id : <span style="color: #4E9A06;">'internal'</span>) + <span style="color: #4E9A06;">') published top</span><span style="color: #4E9A06; text-decoration: underline;">ic('</span><span style="text-decoration: underline;"> + packet.topic + </span><span style="color: #4E9A06; text-decoration: underline;">'): '</span><span style="text-decoration: underline;"> + packet.payload);</span>
+    console.log(<span style="color: #4E9A06;">'client('</span> + (client ? client.id : <span style="color: #4E9A06;">'internal'</span>) + <span style="color: #4E9A06;">') published top</span><span style="color: #4E9A06; text-decoration: underline;">ic('</span><span style="text-decoration: underline;"> + packet.topic + </span><span style="color: #4E9A06; text-decoration: underline;">'): '</span><span style="text-decoration: underline;"> + packet.payload);</span>
 }).on(<span style="color: #4E9A06;">'subscribed'</span>, <span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">topic</span>, <span style="color: #0084C8; font-weight: bold;">client</span>) {
-<span style="background-color: #E6E6E6;"> </span>   console.log(<span style="color: #4E9A06;">'client('</span> + client.id + <span style="color: #4E9A06;">') subscribed topic('</span> + topic + <span style="color: #4E9A06;">')'</span>);
+    console.log(<span style="color: #4E9A06;">'client('</span> + client.id + <span style="color: #4E9A06;">') subscribed topic('</span> + topic + <span style="color: #4E9A06;">')'</span>);
 }).on(<span style="color: #4E9A06;">'unsubscribed'</span>, <span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">topic</span>, <span style="color: #0084C8; font-weight: bold;">client</span>) {
-<span style="background-color: #E6E6E6;"> </span>   console.log(<span style="color: #4E9A06;">'client('</span> + client.id + <span style="color: #4E9A06;">') unsubscribed topic('</span> + topic + <span style="color: #4E9A06;">')'</span>);
+    console.log(<span style="color: #4E9A06;">'client('</span> + client.id + <span style="color: #4E9A06;">') unsubscribed topic('</span> + topic + <span style="color: #4E9A06;">')'</span>);
 }).on(<span style="color: #4E9A06;">'clientDisconnecting'</span>, <span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">client</span>) {
-<span style="background-color: #E6E6E6;"> </span>   console.log(<span style="color: #4E9A06;">'client('</span> + client.id + <span style="color: #4E9A06;">') disconnecting'</span>);
+    console.log(<span style="color: #4E9A06;">'client('</span> + client.id + <span style="color: #4E9A06;">') disconnecting'</span>);
 }).on(<span style="color: #4E9A06;">'clientDisconnected'</span>, <span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">client</span>) {
-<span style="background-color: #E6E6E6;"> </span>   console.log(<span style="color: #4E9A06;">'client('</span> + client.id + <span style="color: #4E9A06;">') disconnected'</span>);
+    console.log(<span style="color: #4E9A06;">'client('</span> + client.id + <span style="color: #4E9A06;">') disconnected'</span>);
 });
 </pre>
 </div>
@@ -110,11 +110,11 @@ server.on(<span style="color: #4E9A06;">'ready'</span>, <span style="color: #A52
 
 <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">client</span> = mqtt.connect(<span style="color: #4E9A06;">'mqtt://127.0.0.1:1883'</span>);
 client.on(<span style="color: #4E9A06;">'connect'</span>, <span style="color: #A52A2A; font-weight: bold;">function</span> () {
-<span style="background-color: #E6E6E6;"> </span>   client.subscribe(<span style="color: #4E9A06;">'presence'</span>);
-<span style="background-color: #E6E6E6;"> </span>   client.publish(<span style="color: #4E9A06;">'presence'</span>, <span style="color: #4E9A06;">'a message from myself'</span>);
+    client.subscribe(<span style="color: #4E9A06;">'presence'</span>);
+    client.publish(<span style="color: #4E9A06;">'presence'</span>, <span style="color: #4E9A06;">'a message from myself'</span>);
 }).on(<span style="color: #4E9A06;">'message'</span>, <span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">topic</span>, <span style="color: #0084C8; font-weight: bold;">message</span>) {
-<span style="background-color: #E6E6E6;"> </span>   console.log(topic + <span style="color: #4E9A06;">': '</span> + message.toString());
-<span style="background-color: #E6E6E6;"> </span>   client.end();
+    console.log(topic + <span style="color: #4E9A06;">': '</span> + message.toString());
+    client.end();
 });
 </pre>
 </div>
@@ -148,9 +148,9 @@ $
 </div>
 </div>
 
-<div id="outline-container-org71a561e" class="outline-2">
-<h2 id="org71a561e">客户端与客户端通信</h2>
-<div class="outline-text-2" id="text-org71a561e">
+<div id="outline-container-org079bc5e" class="outline-2">
+<h2 id="org079bc5e">客户端与客户端通信</h2>
+<div class="outline-text-2" id="text-org079bc5e">
 <ul class="org-ul">
 <li><p>
 客户端发送消息给另一个客户端
@@ -168,10 +168,10 @@ $
 
 <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">client</span> = mqtt.connect(<span style="color: #4E9A06;">'mqtt://127.0.0.1:1883'</span>);
 client.on(<span style="color: #4E9A06;">'connect'</span>, <span style="color: #A52A2A; font-weight: bold;">function</span> () {
-<span style="background-color: #E6E6E6;"> </span>   client.publish(<span style="color: #4E9A06;">'sub'</span>, <span style="color: #4E9A06;">'message from pub'</span>);
+    client.publish(<span style="color: #4E9A06;">'sub'</span>, <span style="color: #4E9A06;">'message from pub'</span>);
 }).on(<span style="color: #4E9A06;">'message'</span>, <span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">topic</span>, <span style="color: #0084C8; font-weight: bold;">message</span>) {
-<span style="background-color: #E6E6E6;"> </span>   console.log(topic + <span style="color: #4E9A06;">': '</span> + message.toString());
-<span style="background-color: #E6E6E6;"> </span>   client.end();
+    console.log(topic + <span style="color: #4E9A06;">': '</span> + message.toString());
+    client.end();
 });
 </pre>
 </div>
@@ -184,10 +184,10 @@ client.on(<span style="color: #4E9A06;">'connect'</span>, <span style="color: #A
 
 <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">client</span> = mqtt.connect(<span style="color: #4E9A06;">'mqtt://127.0.0.1:1883'</span>);
 client.on(<span style="color: #4E9A06;">'connect'</span>, <span style="color: #A52A2A; font-weight: bold;">function</span> () {
-<span style="background-color: #E6E6E6;"> </span>   client.publish(<span style="color: #4E9A06;">'sub'</span>, <span style="color: #4E9A06;">'message from pub'</span>);
+    client.publish(<span style="color: #4E9A06;">'sub'</span>, <span style="color: #4E9A06;">'message from pub'</span>);
 }).on(<span style="color: #4E9A06;">'message'</span>, <span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">topic</span>, <span style="color: #0084C8; font-weight: bold;">message</span>) {
-<span style="background-color: #E6E6E6;"> </span>   console.log(topic + <span style="color: #4E9A06;">': '</span> + message.toString());
-<span style="background-color: #E6E6E6;"> </span>   client.end();
+    console.log(topic + <span style="color: #4E9A06;">': '</span> + message.toString());
+    client.end();
 });
 </pre>
 </div>
@@ -230,9 +230,9 @@ $ node client_pub.js
 </div>
 </div>
 
-<div id="outline-container-orgdbae918" class="outline-2">
-<h2 id="orgdbae918">客户端与客户端离线通信</h2>
-<div class="outline-text-2" id="text-orgdbae918">
+<div id="outline-container-orgec02597" class="outline-2">
+<h2 id="orgec02597">客户端与客户端离线通信</h2>
+<div class="outline-text-2" id="text-orgec02597">
 <p>
 离线通信需要同时满足以下条件
 </p>
@@ -269,10 +269,10 @@ $ node client_pub.js
 
 <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">client</span> = mqtt.connect(<span style="color: #4E9A06;">'mqtt://127.0.0.1:1883'</span>, {clientId: <span style="color: #4E9A06;">'sub'</span>, clean: <span style="color: #F5666D;">fals</span><span style="color: #F5666D; text-decoration: underline;">e</span><span style="text-decoration: underline;">});</span>
 client.on(<span style="color: #4E9A06;">'connect'</span>, <span style="color: #A52A2A; font-weight: bold;">function</span> () {
-<span style="background-color: #E6E6E6;"> </span>   client.subscribe(<span style="color: #4E9A06;">'sub'</span>);
+    client.subscribe(<span style="color: #4E9A06;">'sub'</span>);
 }).on(<span style="color: #4E9A06;">'message'</span>, <span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">topic</span>, <span style="color: #0084C8; font-weight: bold;">message</span>) {
-<span style="background-color: #E6E6E6;"> </span>   console.log(topic + <span style="color: #4E9A06;">': '</span> + message.toString());
-<span style="background-color: #E6E6E6;"> </span>   client.end();
+    console.log(topic + <span style="color: #4E9A06;">': '</span> + message.toString());
+    client.end();
 });
 </pre>
 </div>
@@ -285,10 +285,10 @@ client.on(<span style="color: #4E9A06;">'connect'</span>, <span style="color: #A
 
 <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">client</span> = mqtt.connect(<span style="color: #4E9A06;">'mqtt://127.0.0.1:1883'</span>, {clientId: <span style="color: #4E9A06;">'pub'</span>});
 client.on(<span style="color: #4E9A06;">'connect'</span>, <span style="color: #A52A2A; font-weight: bold;">function</span> () {
-<span style="background-color: #E6E6E6;"> </span>   client.publish(<span style="color: #4E9A06;">'sub'</span>, <span style="color: #4E9A06;">'message from pub'</span>, {qos: 1, retain: <span style="color: #F5666D;">true</span>});
+    client.publish(<span style="color: #4E9A06;">'sub'</span>, <span style="color: #4E9A06;">'message from pub'</span>, {qos: 1, retain: <span style="color: #F5666D;">true</span>});
 }).on(<span style="color: #4E9A06;">'message'</span>, <span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">topic</span>, <span style="color: #0084C8; font-weight: bold;">message</span>) {
-<span style="background-color: #E6E6E6;"> </span>   console.log(topic + <span style="color: #4E9A06;">': '</span> + message.toString());
-<span style="background-color: #E6E6E6;"> </span>   client.end();
+    console.log(topic + <span style="color: #4E9A06;">': '</span> + message.toString());
+    client.end();
 });
 </pre>
 </div>
@@ -343,9 +343,9 @@ $
 </div>
 </div>
 
-<div id="outline-container-org47772c9" class="outline-2">
-<h2 id="org47772c9">参考</h2>
-<div class="outline-text-2" id="text-org47772c9">
+<div id="outline-container-org41a227e" class="outline-2">
+<h2 id="org41a227e">参考</h2>
+<div class="outline-text-2" id="text-org41a227e">
 <p>
 <a href="http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html">MQTT Version 3.1.1</a>
 </p>

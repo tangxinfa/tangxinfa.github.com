@@ -31,16 +31,16 @@
       
         <div class="article-content">
           
-<div id="outline-container-orgd0697a8" class="outline-2">
-<h2 id="orgd0697a8">关于 stream 用法的一个经典例子</h2>
-<div class="outline-text-2" id="text-orgd0697a8">
+<div id="outline-container-orga0f48bb" class="outline-2">
+<h2 id="orga0f48bb">关于 stream 用法的一个经典例子</h2>
+<div class="outline-text-2" id="text-orga0f48bb">
 <div class="org-src-container">
 <pre class="src src-js"><span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">http</span> = require(<span style="color: #4E9A06;">'http'</span>);
 <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">fs</span> = require(<span style="color: #4E9A06;">'fs'</span>);
 
 <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">server</span> = http.createServer(<span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">req</span>, <span style="color: #0084C8; font-weight: bold;">res</span>) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">stream</span> = fs.createReadStream(__dirname + <span style="color: #4E9A06;">'/data.txt'</span>);
-<span style="background-color: #E6E6E6;"> </span>   stream.pipe(res);
+    <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">stream</span> = fs.createReadStream(__dirname + <span style="color: #4E9A06;">'/data.txt'</span>);
+    stream.pipe(res);
 });
 server.listen(8000);
 </pre>
@@ -48,9 +48,9 @@ server.listen(8000);
 </div>
 </div>
 
-<div id="outline-container-orga32f502" class="outline-2">
-<h2 id="orga32f502">经典例子的致命问题</h2>
-<div class="outline-text-2" id="text-orga32f502">
+<div id="outline-container-orgc72c80c" class="outline-2">
+<h2 id="orgc72c80c">经典例子的致命问题</h2>
+<div class="outline-text-2" id="text-orgc72c80c">
 <p>
 如果用户中断下载，文件不会关闭，导致文件句柄（fd）泄露，参见相关讨论：
 </p>
@@ -67,10 +67,10 @@ server.listen(8000);
 <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">fs</span> = require(<span style="color: #4E9A06;">'fs'</span>);
 
 <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">server</span> = http.createServer(<span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">req</span>, <span style="color: #0084C8; font-weight: bold;">res</span>) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">stream</span> = fs.createReadStream(__dirname + <span style="color: #4E9A06;">'/data.txt'</span>);
-<span style="background-color: #E6E6E6;"> </span>   stream.pipe(res).once(<span style="color: #4E9A06;">'close'</span>, <span style="color: #A52A2A; font-weight: bold;">function</span> () {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   stream.destroy();
-<span style="background-color: #E6E6E6;"> </span>   });
+    <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">stream</span> = fs.createReadStream(__dirname + <span style="color: #4E9A06;">'/data.txt'</span>);
+    stream.pipe(res).once(<span style="color: #4E9A06;">'close'</span>, <span style="color: #A52A2A; font-weight: bold;">function</span> () {
+        stream.destroy();
+    });
 });
 server.listen(8000);
 </pre>
@@ -81,9 +81,9 @@ stream.destroy（同 stream.close） 是一个未文档化的 API，来自 fs.Re
 </div>
 </div>
 
-<div id="outline-container-org5107baf" class="outline-2">
-<h2 id="org5107baf">关键 API 文档</h2>
-<div class="outline-text-2" id="text-org5107baf">
+<div id="outline-container-org739a94e" class="outline-2">
+<h2 id="org739a94e">关键 API 文档</h2>
+<div class="outline-text-2" id="text-org739a94e">
 <p>
 <a href="https://nodejs.org/api/stream.html#stream_readable_pipe_destination_options">stream.pipe</a> 文档
 </p>
@@ -175,9 +175,9 @@ If options is a string, then it specifies the encoding.
 </div>
 </div>
 
-<div id="outline-container-orgaa829e3" class="outline-2">
-<h2 id="orgaa829e3">stream.pipe 的工作原理</h2>
-<div class="outline-text-2" id="text-orgaa829e3">
+<div id="outline-container-orgea4ed7a" class="outline-2">
+<h2 id="orgea4ed7a">stream.pipe 的工作原理</h2>
+<div class="outline-text-2" id="text-orgea4ed7a">
 <p>
 stream.pipe 将可读流（Readable Stream）连接到可写流（Writable Stream），数据会从可读流传输到可写流，支持自动流量控制。
 </p>
@@ -228,9 +228,9 @@ stream.pipe 将可读流（Readable Stream）连接到可写流（Writable Strea
 </div>
 
 
-<div id="outline-container-org7f8432e" class="outline-2">
-<h2 id="org7f8432e">stream.pipe 的问题</h2>
-<div class="outline-text-2" id="text-org7f8432e">
+<div id="outline-container-org512abb6" class="outline-2">
+<h2 id="org512abb6">stream.pipe 的问题</h2>
+<div class="outline-text-2" id="text-org512abb6">
 <p>
 结合以上描述有以下疑问
 </p>

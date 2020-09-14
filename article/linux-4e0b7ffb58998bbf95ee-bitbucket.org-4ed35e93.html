@@ -34,9 +34,9 @@
 今天往 bitbucket.org push 时才发现 bitbucket 被 GFW 了。我的仓库为 Mercurial hg，hg 项目根目录下的 <code>.hg/hgrc</code> 配置文件中可指定 http_proxy，试了一下不支持 socks 代理（我的浏览器用它来翻墙），最终使用 tsocks 或 proxychains 实现翻墙访问 bitbucket.org 仓库。
 </p>
 
-<div id="outline-container-orgbb958cc" class="outline-2">
-<h2 id="orgbb958cc">使用 ssh 服务代理网络访问</h2>
-<div class="outline-text-2" id="text-orgbb958cc">
+<div id="outline-container-orgb1c215e" class="outline-2">
+<h2 id="orgb1c215e">使用 ssh 服务代理网络访问</h2>
+<div class="outline-text-2" id="text-orgb1c215e">
 <p>
 创建本地 socks 代理的脚本 <code>ssh_proxy.sh</code>
 </p>
@@ -45,15 +45,15 @@
 
 <span style="color: #0084C8; font-weight: bold;">n</span>=<span style="color: #ff00ff;">`ps waux | grep 'bash .*/ssh_proxy.sh' | grep -v grep | wc -l`</span>
 <span style="color: #A52A2A; font-weight: bold;">if</span> [ $<span style="color: #0084C8; font-weight: bold;">n</span> -lt 3 ]; <span style="color: #A52A2A; font-weight: bold;">then</span>
-<span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">while</span> [ true ]; <span style="color: #A52A2A; font-weight: bold;">do</span>
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #0084C8; font-weight: bold;">n</span>=<span style="color: #ff00ff;">`ps aux | grep 'ssh' | grep '7070' | grep -v grep | wc -l`</span>
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">if</span> [ $<span style="color: #0084C8; font-weight: bold;">n</span> -lt 1 ]; <span style="color: #A52A2A; font-weight: bold;">then</span>
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A020F0;">echo</span> <span style="color: #4E9A06;">"start ssh connecting"</span>
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   ssh -qTnNf -D 7070 user@host
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">fi</span>
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A020F0;">echo</span> <span style="color: #4E9A06;">"wait for next checking"</span>
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   sleep 30
-<span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">done</span>
+    <span style="color: #A52A2A; font-weight: bold;">while</span> [ true ]; <span style="color: #A52A2A; font-weight: bold;">do</span>
+        <span style="color: #0084C8; font-weight: bold;">n</span>=<span style="color: #ff00ff;">`ps aux | grep 'ssh' | grep '7070' | grep -v grep | wc -l`</span>
+        <span style="color: #A52A2A; font-weight: bold;">if</span> [ $<span style="color: #0084C8; font-weight: bold;">n</span> -lt 1 ]; <span style="color: #A52A2A; font-weight: bold;">then</span>
+            <span style="color: #A020F0;">echo</span> <span style="color: #4E9A06;">"start ssh connecting"</span>
+            ssh -qTnNf -D 7070 user@host
+        <span style="color: #A52A2A; font-weight: bold;">fi</span>
+        <span style="color: #A020F0;">echo</span> <span style="color: #4E9A06;">"wait for next checking"</span>
+        sleep 30
+    <span style="color: #A52A2A; font-weight: bold;">done</span>
 <span style="color: #A52A2A; font-weight: bold;">fi</span>
 <span style="color: #A020F0;">echo</span> <span style="color: #4E9A06;">"ssh_proxy.sh already running"</span>
 </pre>
@@ -78,21 +78,21 @@
 </div>
 </div>
 
-<div id="outline-container-orgf1b9ed3" class="outline-2">
-<h2 id="orgf1b9ed3">使用 shadowsocks 服务代理网络访问</h2>
-<div class="outline-text-2" id="text-orgf1b9ed3">
+<div id="outline-container-orgf4ba390" class="outline-2">
+<h2 id="orgf4ba390">使用 shadowsocks 服务代理网络访问</h2>
+<div class="outline-text-2" id="text-orgf4ba390">
 <p>
 vps 上安装并启动 shadowsocks 服务器（ss-server），配置文件 <code>/etc/shadowsocks.json</code> 内容如下
 </p>
 <div class="org-src-container">
 <pre class="src src-json">{
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">"server"</span>:<span style="color: #4E9A06;">"0.0.0.0"</span>,
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">"server_port"</span>:<span style="color: #F5666D;">8989</span>,
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">"password"</span>:<span style="color: #4E9A06;">"7FdiirqD"</span>,
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">"timeout"</span>:<span style="color: #F5666D;">600</span>,
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">"method"</span>:<span style="color: #4E9A06;">"aes-256-cfb"</span>,
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">"fast_open"</span>: <span style="color: #F5666D;">false</span>,
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">"workers"</span>: <span style="color: #F5666D;">1</span>
+  <span style="color: #A52A2A; font-weight: bold;">"server"</span>:<span style="color: #4E9A06;">"0.0.0.0"</span>,
+  <span style="color: #A52A2A; font-weight: bold;">"server_port"</span>:<span style="color: #F5666D;">8989</span>,
+  <span style="color: #A52A2A; font-weight: bold;">"password"</span>:<span style="color: #4E9A06;">"7FdiirqD"</span>,
+  <span style="color: #A52A2A; font-weight: bold;">"timeout"</span>:<span style="color: #F5666D;">600</span>,
+  <span style="color: #A52A2A; font-weight: bold;">"method"</span>:<span style="color: #4E9A06;">"aes-256-cfb"</span>,
+  <span style="color: #A52A2A; font-weight: bold;">"fast_open"</span>: <span style="color: #F5666D;">false</span>,
+  <span style="color: #A52A2A; font-weight: bold;">"workers"</span>: <span style="color: #F5666D;">1</span>
 }
 </pre>
 </div>
@@ -106,14 +106,14 @@ pc 上安装并启动 shadowsocks 客户端（ss-local），配置文件 <code>/
 </p>
 <div class="org-src-container">
 <pre class="src src-json">{
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">"server"</span>:<span style="color: #4E9A06;">"X.X.X.X"</span>,
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">"server_port"</span>:<span style="color: #F5666D;">8989</span>,
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">"local_port"</span>:<span style="color: #F5666D;">7070</span>,
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">"password"</span>:<span style="color: #4E9A06;">"7FdiirqD"</span>,
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">"timeout"</span>:<span style="color: #F5666D;">600</span>,
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">"method"</span>:<span style="color: #4E9A06;">"aes-256-cfb"</span>,
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">"fast_open"</span>: <span style="color: #F5666D;">false</span>,
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">"workers"</span>: <span style="color: #F5666D;">1</span>
+  <span style="color: #A52A2A; font-weight: bold;">"server"</span>:<span style="color: #4E9A06;">"X.X.X.X"</span>,
+  <span style="color: #A52A2A; font-weight: bold;">"server_port"</span>:<span style="color: #F5666D;">8989</span>,
+  <span style="color: #A52A2A; font-weight: bold;">"local_port"</span>:<span style="color: #F5666D;">7070</span>,
+  <span style="color: #A52A2A; font-weight: bold;">"password"</span>:<span style="color: #4E9A06;">"7FdiirqD"</span>,
+  <span style="color: #A52A2A; font-weight: bold;">"timeout"</span>:<span style="color: #F5666D;">600</span>,
+  <span style="color: #A52A2A; font-weight: bold;">"method"</span>:<span style="color: #4E9A06;">"aes-256-cfb"</span>,
+  <span style="color: #A52A2A; font-weight: bold;">"fast_open"</span>: <span style="color: #F5666D;">false</span>,
+  <span style="color: #A52A2A; font-weight: bold;">"workers"</span>: <span style="color: #F5666D;">1</span>
 }
 </pre>
 </div>
@@ -124,17 +124,17 @@ pc 上安装并启动 shadowsocks 客户端（ss-local），配置文件 <code>/
 </div>
 </div>
 
-<div id="outline-container-org5b8c682" class="outline-2">
-<h2 id="org5b8c682">透明代理</h2>
-<div class="outline-text-2" id="text-org5b8c682">
+<div id="outline-container-orge73516d" class="outline-2">
+<h2 id="orge73516d">透明代理</h2>
+<div class="outline-text-2" id="text-orge73516d">
 <p>
 firefox 可以配置为通过 socks 代理联网，但绝大多数应用是不支持的，而透明代理（Transparent Proxy）可以使这些应用也使用代理联网。
 </p>
 </div>
 
-<div id="outline-container-orgba2f435" class="outline-3">
-<h3 id="orgba2f435">ss-redir</h3>
-<div class="outline-text-3" id="text-orgba2f435">
+<div id="outline-container-orgbfd69a6" class="outline-3">
+<h3 id="orgbfd69a6">ss-redir</h3>
+<div class="outline-text-3" id="text-orgbfd69a6">
 <p>
 shadowsocks 自带的本地透明代理客户端，可以使整个系统都使用代理访问网络。
 </p>
@@ -145,9 +145,9 @@ shadowsocks 自带的本地透明代理客户端，可以使整个系统都使�
 </div>
 </div>
 
-<div id="outline-container-org34009fd" class="outline-3">
-<h3 id="org34009fd">tsocks</h3>
-<div class="outline-text-3" id="text-org34009fd">
+<div id="outline-container-org6224e24" class="outline-3">
+<h3 id="org6224e24">tsocks</h3>
+<div class="outline-text-3" id="text-org6224e24">
 <ul class="org-ul">
 <li><p>
 安装
@@ -199,9 +199,9 @@ tsocks 看起来很通用，应该也可以让 git 等进行 socks 代理访问�
 </div>
 </div>
 
-<div id="outline-container-orgd9ce5c8" class="outline-3">
-<h3 id="orgd9ce5c8">proxychains</h3>
-<div class="outline-text-3" id="text-orgd9ce5c8">
+<div id="outline-container-orgef88841" class="outline-3">
+<h3 id="orgef88841">proxychains</h3>
+<div class="outline-text-3" id="text-orgef88841">
 <p>
 tsocks 不支持代理访问 https
 </p>
@@ -238,9 +238,9 @@ proxychains 的安装配置请参考：<a href="https://sites.google.com/a/pickd
 </p>
 </div>
 
-<div id="outline-container-org82b3fe6" class="outline-4">
-<h4 id="org82b3fe6">将 socks 代理转换为 http 代理</h4>
-<div class="outline-text-4" id="text-org82b3fe6">
+<div id="outline-container-orgf7cd1f6" class="outline-4">
+<h4 id="orgf7cd1f6">将 socks 代理转换为 http 代理</h4>
+<div class="outline-text-4" id="text-orgf7cd1f6">
 <p>
 go get 不支持 proxychains（应该是 go 是静态链接的原因），可以使用 <code>privoxy</code>
 将 socks 代理转换为 http 代理。

@@ -31,18 +31,18 @@
       
         <div class="article-content">
           
-<div id="outline-container-orgf62e52c" class="outline-2">
-<h2 id="orgf62e52c">跨机房 redis 访问性能堪忧</h2>
-<div class="outline-text-2" id="text-orgf62e52c">
+<div id="outline-container-org3ecd050" class="outline-2">
+<h2 id="org3ecd050">跨机房 redis 访问性能堪忧</h2>
+<div class="outline-text-2" id="text-org3ecd050">
 <p>
 线上服务运行结果显示跨机房相对不跨机房，一个 redis 长连接上的 QPS 会低一个数量级： <code>50</code> vs <code>640</code> 。这是因为 Redis 的请求-响应是串行的，网络时延会对 QPS 造成巨大的响应。因此，一定要尽量连接距离更近的 Redis 实例。
 </p>
 </div>
 </div>
 
-<div id="outline-container-orgcf5bce4" class="outline-2">
-<h2 id="orgcf5bce4"><a href="https://github.com/luin/ioredis/">ioredis</a> 支持按角色（Role）进行连接</h2>
-<div class="outline-text-2" id="text-orgcf5bce4">
+<div id="outline-container-org3a17908" class="outline-2">
+<h2 id="org3a17908"><a href="https://github.com/luin/ioredis/">ioredis</a> 支持按角色（Role）进行连接</h2>
+<div class="outline-text-2" id="text-org3a17908">
 <p>
 引用自 <a href="https://github.com/luin/ioredis/">ioredis</a>
 </p>
@@ -66,41 +66,41 @@ It's possible to connect to a slave instead of a master by specifying the option
 </div>
 </div>
 
-<div id="outline-container-orgd54da7b" class="outline-2">
-<h2 id="orgd54da7b"><a href="https://github.com/luin/ioredis/">ioredis</a> 会随机选择一个 Slave</h2>
-<div class="outline-text-2" id="text-orgd54da7b">
+<div id="outline-container-org0efc01b" class="outline-2">
+<h2 id="org0efc01b"><a href="https://github.com/luin/ioredis/">ioredis</a> 会随机选择一个 Slave</h2>
+<div class="outline-text-2" id="text-org0efc01b">
 <p>
 引用自 ioredis/lib/connectors/sentinel_connector.js
 </p>
 <div class="org-src-container">
 <pre class="src src-js">SentinelConnector.<span style="color: #F5666D;">prototype</span>.resolveSlave = <span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">client</span>, <span style="color: #0084C8; font-weight: bold;">callback</span>) {
-<span style="background-color: #E6E6E6;"> </span> client.sentinel(<span style="color: #4E9A06;">'slaves'</span>, <span style="color: #F5666D;">this</span>.options.name, <span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">err</span>, <span style="color: #0084C8; font-weight: bold;">result</span>) {
-<span style="background-color: #E6E6E6;"> </span>   client.disconnect();
-<span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">if</span> (err) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">return</span> callback(err);
-<span style="background-color: #E6E6E6;"> </span>   }
-<span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">selectedSlave</span>;
-<span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">if</span> (Array.isArray(result)) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">availableSlaves</span> = [];
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">for</span> (<span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">i</span> = 0; i &lt; result.length; ++i) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">slave</span> = utils.packObject(result[i]);
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">if</span> (slave.flags &amp;&amp; !slave.flags.match(<span style="color: #4E9A06;">/(disconnected|s_down|o_down)/</span>)) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span> availableSlaves.push(slave);
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   }
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span> }
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span> selectedSlave = _.sample(availableSlaves);
-<span style="background-color: #E6E6E6;"> </span>   }
-<span style="background-color: #E6E6E6;"> </span>   callback(<span style="color: #F5666D;">null</span>, selectedSlave ? { host: selectedSlave.ip, port: selectedSlave<span style="text-decoration: underline;">.port } : </span><span style="color: #F5666D; text-decoration: underline;">null</span><span style="text-decoration: underline;">);</span>
-<span style="background-color: #E6E6E6;"> </span> });
+  client.sentinel(<span style="color: #4E9A06;">'slaves'</span>, <span style="color: #F5666D;">this</span>.options.name, <span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">err</span>, <span style="color: #0084C8; font-weight: bold;">result</span>) {
+    client.disconnect();
+    <span style="color: #A52A2A; font-weight: bold;">if</span> (err) {
+      <span style="color: #A52A2A; font-weight: bold;">return</span> callback(err);
+    }
+    <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">selectedSlave</span>;
+    <span style="color: #A52A2A; font-weight: bold;">if</span> (Array.isArray(result)) {
+      <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">availableSlaves</span> = [];
+      <span style="color: #A52A2A; font-weight: bold;">for</span> (<span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">i</span> = 0; i &lt; result.length; ++i) {
+        <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">slave</span> = utils.packObject(result[i]);
+        <span style="color: #A52A2A; font-weight: bold;">if</span> (slave.flags &amp;&amp; !slave.flags.match(<span style="color: #4E9A06;">/(disconnected|s_down|o_down)/</span>)) {
+          availableSlaves.push(slave);
+        }
+      }
+      selectedSlave = _.sample(availableSlaves);
+    }
+    callback(<span style="color: #F5666D;">null</span>, selectedSlave ? { host: selectedSlave.ip, port: selectedSlave<span style="text-decoration: underline;">.port } : </span><span style="color: #F5666D; text-decoration: underline;">null</span><span style="text-decoration: underline;">);</span>
+  });
 };
 </pre>
 </div>
 </div>
 </div>
 
-<div id="outline-container-orgf6345ab" class="outline-2">
-<h2 id="orgf6345ab">判断本地还是异地的算法</h2>
-<div class="outline-text-2" id="text-orgf6345ab">
+<div id="outline-container-org7a2a34d" class="outline-2">
+<h2 id="org7a2a34d">判断本地还是异地的算法</h2>
+<div class="outline-text-2" id="text-org7a2a34d">
 <p>
 按 IP 地址进行推断，前 N 段一样则认为是本地。
 </p>
@@ -111,9 +111,9 @@ It's possible to connect to a slave instead of a master by specifying the option
 </div>
 </div>
 
-<div id="outline-container-orgb74be2d" class="outline-2">
-<h2 id="orgb74be2d">redis 至少要求 2.8.12</h2>
-<div class="outline-text-2" id="text-orgb74be2d">
+<div id="outline-container-org7c31b71" class="outline-2">
+<h2 id="org7c31b71">redis 至少要求 2.8.12</h2>
+<div class="outline-text-2" id="text-org7c31b71">
 <p>
 redis 2.8.12 实现了一个特性：当 failover （redis 角色变化）后，断开所有 client 的连接。
 </p>
@@ -132,9 +132,9 @@ redis 2.8.12 实现了一个特性：当 failover （redis 角色变化）后，
 </div>
 </div>
 
-<div id="outline-container-org8e696f7" class="outline-2">
-<h2 id="org8e696f7">在 &lt;2.4.0 的 ioredis 上实现优先选择本地 Slave</h2>
-<div class="outline-text-2" id="text-org8e696f7">
+<div id="outline-container-org83ef29d" class="outline-2">
+<h2 id="org83ef29d">在 &lt;2.4.0 的 ioredis 上实现优先选择本地 Slave</h2>
+<div class="outline-text-2" id="text-org83ef29d">
 <p>
 相关讨论
 </p>
@@ -176,84 +176,84 @@ preferredSlaves 选项已经在 2.4.0 版实现，下面的代码在旧版本 io
 
 <div class="org-src-container">
 <pre class="src src-js"><span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">Redis</span>     = require(<span style="color: #4E9A06;">'ioredis'</span>),
-<span style="background-color: #E6E6E6;"> </span>   utils     = require(<span style="color: #4E9A06;">'ioredis/lib/utils'</span>),
-<span style="background-color: #E6E6E6;"> </span>   _         = require(<span style="color: #4E9A06;">'lodash'</span>),
-<span style="background-color: #E6E6E6;"> </span>   net       = require(<span style="color: #4E9A06;">'net'</span>),
-<span style="background-color: #E6E6E6;"> </span>   assert    = require(<span style="color: #4E9A06;">'assert'</span>);
+    utils     = require(<span style="color: #4E9A06;">'ioredis/lib/utils'</span>),
+    _         = require(<span style="color: #4E9A06;">'lodash'</span>),
+    net       = require(<span style="color: #4E9A06;">'net'</span>),
+    assert    = require(<span style="color: #4E9A06;">'assert'</span>);
 
 
 <span style="color: #4E9A06;">/**</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">* A SentinelConnector.prototype.resolveSlave replacement, prefer local slave.</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">*</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">* @param client redis client.</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">* @param callback function (err, slave) called when done.</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">*                 slave with a extra boolean field "local_node" to indicate sla</span><span style="color: #4E9A06; text-decoration: underline;">ve is in local network.</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">*</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">*/</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">* A SentinelConnector.prototype.resolveSlave replacement, prefer local slave.</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">*</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">* </span><span style="color: #6a5acd; font-style: italic;">@param</span><span style="color: #4E9A06;"> </span><span style="color: #0084C8; font-weight: bold;">client</span><span style="color: #4E9A06;"> redis client.</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">* </span><span style="color: #6a5acd; font-style: italic;">@param</span><span style="color: #4E9A06;"> </span><span style="color: #0084C8; font-weight: bold;">callback</span><span style="color: #4E9A06;"> function (err, slave) called when done.</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">*                 slave with a extra boolean field "local_node" to indicate sla</span><span style="color: #4E9A06; text-decoration: underline;">ve is in local network.</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">*</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">*/</span>
 <span style="color: #A52A2A; font-weight: bold;">function</span> <span style="color: #00578E; font-weight: bold;">resolveSlavePreferLocal</span> (<span style="color: #0084C8; font-weight: bold;">client</span>, <span style="color: #0084C8; font-weight: bold;">callback</span>) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">self</span> = <span style="color: #F5666D;">this</span>;
-<span style="background-color: #E6E6E6;"> </span>   client.sentinel(<span style="color: #4E9A06;">'slaves'</span>, <span style="color: #F5666D;">this</span>.options.name, <span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">err</span>, <span style="color: #0084C8; font-weight: bold;">result</span>) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">if</span> (err) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   client.disconnect();
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">return</span> callback(err);
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   }
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">localIP</span> = client.stream.localAddress;
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   client.disconnect();
+    <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">self</span> = <span style="color: #F5666D;">this</span>;
+    client.sentinel(<span style="color: #4E9A06;">'slaves'</span>, <span style="color: #F5666D;">this</span>.options.name, <span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">err</span>, <span style="color: #0084C8; font-weight: bold;">result</span>) {
+        <span style="color: #A52A2A; font-weight: bold;">if</span> (err) {
+            client.disconnect();
+            <span style="color: #A52A2A; font-weight: bold;">return</span> callback(err);
+        }
+        <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">localIP</span> = client.stream.localAddress;
+        client.disconnect();
 
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">localIPSegments</span> = <span style="color: #A52A2A; font-weight: bold;">new</span> <span style="color: #2F8B58; font-weight: bold;">Array</span>(4);
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">if</span> (net.isIPv4(localIP)) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   localIPSegments = localIP.split(<span style="color: #4E9A06;">'.'</span>);
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   }
+        <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">localIPSegments</span> = <span style="color: #A52A2A; font-weight: bold;">new</span> <span style="color: #2F8B58; font-weight: bold;">Array</span>(4);
+        <span style="color: #A52A2A; font-weight: bold;">if</span> (net.isIPv4(localIP)) {
+            localIPSegments = localIP.split(<span style="color: #4E9A06;">'.'</span>);
+        }
 
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">selectedSlave</span>;
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">local_node</span> = <span style="color: #F5666D;">false</span>;
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">if</span> (Array.isArray(result)) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">localSlaves</span> = [];
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">remoteSlaves</span> = [];
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">for</span> (<span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">i</span> = 0; i &lt; result.length; ++i) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">slave</span> = utils.packObject(result[i]);
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">if</span> (slave.flags &amp;&amp; !slave.flags.match(<span style="color: #4E9A06;">/(disconnected|s_down|o_do</span><span style="color: #4E9A06; text-decoration: underline;">wn)/</span><span style="text-decoration: underline;">)) {</span>
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">if</span> (net.isIPv4(slave.ip)) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">slaveIpSegments</span> = slave.ip.split(<span style="color: #4E9A06;">'.'</span>);
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">if</span> (localIPSegments[0] === slaveIpSegments[0] &amp;&amp;
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   localIPSegments[1] === slaveIpSegments[1] &amp;&amp;
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   localIPSegments[2] === slaveIpSegments[2]) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   localSlaves.push(slave);
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">continue</span>;
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   }
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   }
+        <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">selectedSlave</span>;
+        <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">local_node</span> = <span style="color: #F5666D;">false</span>;
+        <span style="color: #A52A2A; font-weight: bold;">if</span> (Array.isArray(result)) {
+            <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">localSlaves</span> = [];
+            <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">remoteSlaves</span> = [];
+            <span style="color: #A52A2A; font-weight: bold;">for</span> (<span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">i</span> = 0; i &lt; result.length; ++i) {
+                <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">slave</span> = utils.packObject(result[i]);
+                <span style="color: #A52A2A; font-weight: bold;">if</span> (slave.flags &amp;&amp; !slave.flags.match(<span style="color: #4E9A06;">/(disconnected|s_down|o_do</span><span style="color: #4E9A06; text-decoration: underline;">wn)/</span><span style="text-decoration: underline;">)) {</span>
+                    <span style="color: #A52A2A; font-weight: bold;">if</span> (net.isIPv4(slave.ip)) {
+                        <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">slaveIpSegments</span> = slave.ip.split(<span style="color: #4E9A06;">'.'</span>);
+                        <span style="color: #A52A2A; font-weight: bold;">if</span> (localIPSegments[0] === slaveIpSegments[0] &amp;&amp;
+                            localIPSegments[1] === slaveIpSegments[1] &amp;&amp;
+                            localIPSegments[2] === slaveIpSegments[2]) {
+                            localSlaves.push(slave);
+                            <span style="color: #A52A2A; font-weight: bold;">continue</span>;
+                        }
+                    }
 
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   remoteSlaves.push(slave);
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   }
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   }
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   selectedSlave = _.sample(localSlaves.length ? localSlaves : remoteSl<span style="text-decoration: underline;">aves);</span>
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   local_node = Boolean(localSlaves.length);
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   }
+                    remoteSlaves.push(slave);
+                }
+            }
+            selectedSlave = _.sample(localSlaves.length ? localSlaves : remoteSl<span style="text-decoration: underline;">aves);</span>
+            local_node = Boolean(localSlaves.length);
+        }
 
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   console.warn(<span style="color: #4E9A06;">'redis('</span> + JSON.stringify({name: self.options.name, db: sel<span style="text-decoration: underline;">f.options.db, sentinels: self.options.sentinels}) + </span><span style="color: #4E9A06; text-decoration: underline;">') resolve slave to'</span><span style="text-decoration: underline;"> + (local_node ? </span><span style="color: #4E9A06; text-decoration: underline;">' local'</span><span style="text-decoration: underline;"> : </span><span style="color: #4E9A06; text-decoration: underline;">''</span><span style="text-decoration: underline;">) + </span><span style="color: #4E9A06; text-decoration: underline;">': '</span><span style="text-decoration: underline;"> + selectedSlave.ip + </span><span style="color: #4E9A06; text-decoration: underline;">':'</span><span style="text-decoration: underline;"> + selectedSlave.port);</span>
+        console.warn(<span style="color: #4E9A06;">'redis('</span> + JSON.stringify({name: self.options.name, db: sel<span style="text-decoration: underline;">f.options.db, sentinels: self.options.sentinels}) + </span><span style="color: #4E9A06; text-decoration: underline;">') resolve slave to'</span><span style="text-decoration: underline;"> + (local_node ? </span><span style="color: #4E9A06; text-decoration: underline;">' local'</span><span style="text-decoration: underline;"> : </span><span style="color: #4E9A06; text-decoration: underline;">''</span><span style="text-decoration: underline;">) + </span><span style="color: #4E9A06; text-decoration: underline;">': '</span><span style="text-decoration: underline;"> + selectedSlave.ip + </span><span style="color: #4E9A06; text-decoration: underline;">':'</span><span style="text-decoration: underline;"> + selectedSlave.port);</span>
 
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   callback(<span style="color: #F5666D;">null</span>, selectedSlave ? { host: selectedSlave.ip, port: selectedS<span style="text-decoration: underline;">lave.port, local_node: local_node } : </span><span style="color: #F5666D; text-decoration: underline;">null</span><span style="text-decoration: underline;">);</span>
-<span style="background-color: #E6E6E6;"> </span>   });
+        callback(<span style="color: #F5666D;">null</span>, selectedSlave ? { host: selectedSlave.ip, port: selectedS<span style="text-decoration: underline;">lave.port, local_node: local_node } : </span><span style="color: #F5666D; text-decoration: underline;">null</span><span style="text-decoration: underline;">);</span>
+    });
 };
 
 <span style="color: #4E9A06;">/**</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">* Prefer connect to local slave.</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">*</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">* @param client redis client.</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">*</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">* @return is this change successful.</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">*/</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">* Prefer connect to local slave.</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">*</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">* </span><span style="color: #6a5acd; font-style: italic;">@param</span><span style="color: #4E9A06;"> </span><span style="color: #0084C8; font-weight: bold;">client</span><span style="color: #4E9A06;"> redis client.</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">*</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">* </span><span style="color: #6a5acd; font-style: italic;">@return</span><span style="color: #4E9A06;"> is this change successful.</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">*/</span>
 <span style="color: #A52A2A; font-weight: bold;">function</span> <span style="color: #00578E; font-weight: bold;">preferLocalSlave</span>(<span style="color: #0084C8; font-weight: bold;">client</span>) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">if</span> (client.options.role === <span style="color: #4E9A06;">'slave'</span> &amp;&amp; client.connector.resolveSlave) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">if</span> (client.options.lazyConnect &amp;&amp; client.status == <span style="color: #4E9A06;">'wait'</span>) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   client.connector.resolveSlave = resolveSlavePreferLocal;
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">return</span> <span style="color: #F5666D;">true</span>;
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   }
+    <span style="color: #A52A2A; font-weight: bold;">if</span> (client.options.role === <span style="color: #4E9A06;">'slave'</span> &amp;&amp; client.connector.resolveSlave) {
+        <span style="color: #A52A2A; font-weight: bold;">if</span> (client.options.lazyConnect &amp;&amp; client.status == <span style="color: #4E9A06;">'wait'</span>) {
+            client.connector.resolveSlave = resolveSlavePreferLocal;
+            <span style="color: #A52A2A; font-weight: bold;">return</span> <span style="color: #F5666D;">true</span>;
+        }
 
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   console.warn(<span style="color: #4E9A06;">'redis client('</span> + JSON.stringify({name: client.options.name<span style="text-decoration: underline;">, db: client.options.db, sentinels: client.options.sentinels}) + </span><span style="color: #4E9A06; text-decoration: underline;">') status unexpected'</span><span style="text-decoration: underline;">);</span>
-<span style="background-color: #E6E6E6;"> </span>   }
+        console.warn(<span style="color: #4E9A06;">'redis client('</span> + JSON.stringify({name: client.options.name<span style="text-decoration: underline;">, db: client.options.db, sentinels: client.options.sentinels}) + </span><span style="color: #4E9A06; text-decoration: underline;">') status unexpected'</span><span style="text-decoration: underline;">);</span>
+    }
 
-<span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">return</span> <span style="color: #F5666D;">false</span>;
+    <span style="color: #A52A2A; font-weight: bold;">return</span> <span style="color: #F5666D;">false</span>;
 }
 </pre>
 </div>
@@ -266,7 +266,7 @@ preferredSlaves 选项已经在 2.4.0 版实现，下面的代码在旧版本 io
 <pre class="src src-js"><span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">options</span> = {name: <span style="color: #4E9A06;">"data"</span>, sentinels: sentinels, db: 0, role: <span style="color: #4E9A06;">"slave"</span>, lazyCon<span style="text-decoration: underline;">nect: </span><span style="color: #F5666D; text-decoration: underline;">true</span><span style="text-decoration: underline;">}</span>
 <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">client</span> = <span style="color: #A52A2A; font-weight: bold;">new</span> <span style="color: #2F8B58; font-weight: bold;">Redis</span>(options);
 <span style="color: #A52A2A; font-weight: bold;">if</span> (preferLocalSlave(client)) {
-<span style="background-color: #E6E6E6;"> </span>   console.warn(<span style="color: #4E9A06;">"prefer local slave on redis sentinel("</span> + JSON.stringify(option<span style="text-decoration: underline;">s) + </span><span style="color: #4E9A06; text-decoration: underline;">")"</span><span style="text-decoration: underline;">);</span>
+    console.warn(<span style="color: #4E9A06;">"prefer local slave on redis sentinel("</span> + JSON.stringify(option<span style="text-decoration: underline;">s) + </span><span style="color: #4E9A06; text-decoration: underline;">")"</span><span style="text-decoration: underline;">);</span>
 }
 </pre>
 </div>
@@ -277,9 +277,9 @@ preferredSlaves 选项已经在 2.4.0 版实现，下面的代码在旧版本 io
 </div>
 </div>
 
-<div id="outline-container-org6d4161f" class="outline-2">
-<h2 id="org6d4161f">在 &lt;2.4.0 的 ioredis 上实现优先选择本地结点</h2>
-<div class="outline-text-2" id="text-org6d4161f">
+<div id="outline-container-orgabdf9ea" class="outline-2">
+<h2 id="orgabdf9ea">在 &lt;2.4.0 的 ioredis 上实现优先选择本地结点</h2>
+<div class="outline-text-2" id="text-orgabdf9ea">
 <p>
 假设 redis 是以 1 Master + 1 Slave 方式进行跨机房部署，那么我们希望实现优先连接本地结点（忽略其角色），连接成功后该连接可能是 Master 也可能是 Slave，我们把它当 Slave 用准没错。
 </p>
@@ -313,127 +313,127 @@ preferredSlaves 选项已经在 2.4.0 版实现，下面的代码依赖之前的
 
 <div class="org-src-container">
 <pre class="src src-js"><span style="color: #4E9A06;">/**</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">* A SentinelConnector.prototype.resolveMaster replacement, indicate the resolve</span><span style="color: #4E9A06; text-decoration: underline;">d node is local node.</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">*</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">* @param client redis client.</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">* @param callback function (err, master) called when done.</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">*                 master with a extra boolean field "local_node" to indicate ma</span><span style="color: #4E9A06; text-decoration: underline;">ster is in local network.</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">*</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">*/</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">* A SentinelConnector.prototype.resolveMaster replacement, indicate the resolve</span><span style="color: #4E9A06; text-decoration: underline;">d node is local node.</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">*</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">* </span><span style="color: #6a5acd; font-style: italic;">@param</span><span style="color: #4E9A06;"> </span><span style="color: #0084C8; font-weight: bold;">client</span><span style="color: #4E9A06;"> redis client.</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">* </span><span style="color: #6a5acd; font-style: italic;">@param</span><span style="color: #4E9A06;"> </span><span style="color: #0084C8; font-weight: bold;">callback</span><span style="color: #4E9A06;"> function (err, master) called when done.</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">*                 master with a extra boolean field "local_node" to indicate ma</span><span style="color: #4E9A06; text-decoration: underline;">ster is in local network.</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">*</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">*/</span>
 <span style="color: #A52A2A; font-weight: bold;">function</span> <span style="color: #00578E; font-weight: bold;">resolveMasterPreferLocal</span> (<span style="color: #0084C8; font-weight: bold;">client</span>, <span style="color: #0084C8; font-weight: bold;">callback</span>) {
-<span style="background-color: #E6E6E6;"> </span>   client.sentinel(<span style="color: #4E9A06;">'get-master-addr-by-name'</span>, <span style="color: #F5666D;">this</span>.options.name, <span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">err</span>,<span style="text-decoration: underline;"> </span><span style="color: #0084C8; font-weight: bold; text-decoration: underline;">result</span><span style="text-decoration: underline;">) {</span>
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">if</span> (err) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   client.disconnect();
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">return</span> callback(err);
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   }
+    client.sentinel(<span style="color: #4E9A06;">'get-master-addr-by-name'</span>, <span style="color: #F5666D;">this</span>.options.name, <span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">err</span>,<span style="text-decoration: underline;"> </span><span style="color: #0084C8; font-weight: bold; text-decoration: underline;">result</span><span style="text-decoration: underline;">) {</span>
+        <span style="color: #A52A2A; font-weight: bold;">if</span> (err) {
+            client.disconnect();
+            <span style="color: #A52A2A; font-weight: bold;">return</span> callback(err);
+        }
 
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">localIP</span> = client.stream.localAddress;
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   client.disconnect();
+        <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">localIP</span> = client.stream.localAddress;
+        client.disconnect();
 
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">localIPSegments</span> = <span style="color: #A52A2A; font-weight: bold;">new</span> <span style="color: #2F8B58; font-weight: bold;">Array</span>(4);
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">if</span> (net.isIPv4(localIP)) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   localIPSegments = localIP.split(<span style="color: #4E9A06;">'.'</span>);
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   }
+        <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">localIPSegments</span> = <span style="color: #A52A2A; font-weight: bold;">new</span> <span style="color: #2F8B58; font-weight: bold;">Array</span>(4);
+        <span style="color: #A52A2A; font-weight: bold;">if</span> (net.isIPv4(localIP)) {
+            localIPSegments = localIP.split(<span style="color: #4E9A06;">'.'</span>);
+        }
 
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">local_node</span> = <span style="color: #F5666D;">false</span>;
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">if</span> (Array.isArray(result)) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">ip</span> = result[0];
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">if</span> (net.isIPv4(ip)) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">ipSegments</span> = ip.split(<span style="color: #4E9A06;">'.'</span>);
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">if</span> (localIPSegments[0] === ipSegments[0] &amp;&amp;
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   localIPSegments[1] === ipSegments[1] &amp;&amp;
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   localIPSegments[2] === ipSegments[2]) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   local_node = <span style="color: #F5666D;">true</span>;
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   }
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   }
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   }
+        <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">local_node</span> = <span style="color: #F5666D;">false</span>;
+        <span style="color: #A52A2A; font-weight: bold;">if</span> (Array.isArray(result)) {
+            <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">ip</span> = result[0];
+            <span style="color: #A52A2A; font-weight: bold;">if</span> (net.isIPv4(ip)) {
+                <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">ipSegments</span> = ip.split(<span style="color: #4E9A06;">'.'</span>);
+                <span style="color: #A52A2A; font-weight: bold;">if</span> (localIPSegments[0] === ipSegments[0] &amp;&amp;
+                    localIPSegments[1] === ipSegments[1] &amp;&amp;
+                    localIPSegments[2] === ipSegments[2]) {
+                    local_node = <span style="color: #F5666D;">true</span>;
+                }
+            }
+        }
 
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   callback(<span style="color: #F5666D;">null</span>, Array.isArray(result) ? { host: result[0], port: result[1<span style="text-decoration: underline;">], local_node: local_node } : </span><span style="color: #F5666D; text-decoration: underline;">null</span><span style="text-decoration: underline;">);</span>
-<span style="background-color: #E6E6E6;"> </span>   });
+        callback(<span style="color: #F5666D;">null</span>, Array.isArray(result) ? { host: result[0], port: result[1<span style="text-decoration: underline;">], local_node: local_node } : </span><span style="color: #F5666D; text-decoration: underline;">null</span><span style="text-decoration: underline;">);</span>
+    });
 };
 
 <span style="color: #4E9A06;">/**</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">* A SentinelConnector.prototype.resolve replacement, prefer resolve to local no</span><span style="color: #4E9A06; text-decoration: underline;">de.</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">*</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">* @param endpoint sentinel endpoint to connect.</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">* @param callback function (err, node) called when done.</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">*                 node with a extra boolean field "local_node" to indicate node</span><span style="color: #4E9A06; text-decoration: underline;"> is in local network.</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">*</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">*/</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">* A SentinelConnector.prototype.resolve replacement, prefer resolve to local no</span><span style="color: #4E9A06; text-decoration: underline;">de.</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">*</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">* </span><span style="color: #6a5acd; font-style: italic;">@param</span><span style="color: #4E9A06;"> </span><span style="color: #0084C8; font-weight: bold;">endpoint</span><span style="color: #4E9A06;"> sentinel endpoint to connect.</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">* </span><span style="color: #6a5acd; font-style: italic;">@param</span><span style="color: #4E9A06;"> </span><span style="color: #0084C8; font-weight: bold;">callback</span><span style="color: #4E9A06;"> function (err, node) called when done.</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">*                 node with a extra boolean field "local_node" to indicate node</span><span style="color: #4E9A06; text-decoration: underline;"> is in local network.</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">*</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">*/</span>
 <span style="color: #A52A2A; font-weight: bold;">function</span> <span style="color: #00578E; font-weight: bold;">resolvePreferLocal</span>(<span style="color: #0084C8; font-weight: bold;">endpoint</span>, <span style="color: #0084C8; font-weight: bold;">callback</span>) {
-<span style="background-color: #E6E6E6;"> </span>   assert(<span style="color: #F5666D;">this</span>.options.role === <span style="color: #4E9A06;">'slave'</span>);
+    assert(<span style="color: #F5666D;">this</span>.options.role === <span style="color: #4E9A06;">'slave'</span>);
 
-<span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">client</span> = <span style="color: #A52A2A; font-weight: bold;">new</span> <span style="color: #2F8B58; font-weight: bold;">Redis</span>({
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   port: endpoint.port,
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   host: endpoint.host,
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   retryStrategy: <span style="color: #F5666D;">null</span>,
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   enableReadyCheck: <span style="color: #F5666D;">false</span>,
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   connectTimeout: <span style="color: #F5666D;">this</span>.options.connectTimeout
-<span style="background-color: #E6E6E6;"> </span>   });
+    <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">client</span> = <span style="color: #A52A2A; font-weight: bold;">new</span> <span style="color: #2F8B58; font-weight: bold;">Redis</span>({
+        port: endpoint.port,
+        host: endpoint.host,
+        retryStrategy: <span style="color: #F5666D;">null</span>,
+        enableReadyCheck: <span style="color: #F5666D;">false</span>,
+        connectTimeout: <span style="color: #F5666D;">this</span>.options.connectTimeout
+    });
 
-<span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">self</span> = <span style="color: #F5666D;">this</span>;
-<span style="background-color: #E6E6E6;"> </span>   <span style="color: #F5666D;">this</span>.resolveSlave(client, <span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">slave_err</span>, <span style="color: #0084C8; font-weight: bold;">slave</span>) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">if</span> (slave_err || !slave ||!slave.local_node) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">if</span> (slave_err) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   console.error(<span style="color: #4E9A06;">'redis('</span> + JSON.stringify({name: self.options.name<span style="text-decoration: underline;">, db: self.options.db, sentinels: self.options.sentinels}) + </span><span style="color: #4E9A06; text-decoration: underline;">') resolve slave error('</span><span style="text-decoration: underline;"> + slave_err.toString() + </span><span style="color: #4E9A06; text-decoration: underline;">')'</span><span style="text-decoration: underline;">);</span>
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   }
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   client = <span style="color: #A52A2A; font-weight: bold;">new</span> <span style="color: #2F8B58; font-weight: bold;">Redis</span>({
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   port: endpoint.port,
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   host: endpoint.host,
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   retryStrategy: <span style="color: #F5666D;">null</span>,
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   enableReadyCheck: <span style="color: #F5666D;">false</span>,
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   connectTimeout: self.options.connectTimeout
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   });
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">return</span> self.resolveMaster(client, <span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">master_err</span>, <span style="color: #0084C8; font-weight: bold;">master</span>) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">if</span> (master_err) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   console.error(<span style="color: #4E9A06;">'redis('</span> + JSON.stringify({name: self.options.<span style="text-decoration: underline;">name, db: self.options.db, sentinels: self.options.sentinels}) + </span><span style="color: #4E9A06; text-decoration: underline;">') resolve master error('</span><span style="text-decoration: underline;"> + master_err.toString() + </span><span style="color: #4E9A06; text-decoration: underline;">')'</span><span style="text-decoration: underline;">);</span>
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   }
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">if</span> (!master_err &amp;&amp; master &amp;&amp; master.local_node) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   console.warn(<span style="color: #4E9A06;">'redis('</span> + JSON.stringify({name: self.options.n<span style="text-decoration: underline;">ame, db: self.options.db, sentinels: self.options.sentinels}) + </span><span style="color: #4E9A06; text-decoration: underline;">') resolve slave to local master: '</span><span style="text-decoration: underline;"> + master.host + </span><span style="color: #4E9A06; text-decoration: underline;">':'</span><span style="text-decoration: underline;"> + master.port);</span>
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">return</span> callback(<span style="color: #F5666D;">null</span>, master);
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   } <span style="color: #A52A2A; font-weight: bold;">else</span> <span style="color: #A52A2A; font-weight: bold;">if</span> (slave || master) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">return</span> callback(<span style="color: #F5666D;">null</span>, slave || master);
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   }
+    <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">self</span> = <span style="color: #F5666D;">this</span>;
+    <span style="color: #F5666D;">this</span>.resolveSlave(client, <span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">slave_err</span>, <span style="color: #0084C8; font-weight: bold;">slave</span>) {
+        <span style="color: #A52A2A; font-weight: bold;">if</span> (slave_err || !slave ||!slave.local_node) {
+            <span style="color: #A52A2A; font-weight: bold;">if</span> (slave_err) {
+                console.error(<span style="color: #4E9A06;">'redis('</span> + JSON.stringify({name: self.options.name<span style="text-decoration: underline;">, db: self.options.db, sentinels: self.options.sentinels}) + </span><span style="color: #4E9A06; text-decoration: underline;">') resolve slave error('</span><span style="text-decoration: underline;"> + slave_err.toString() + </span><span style="color: #4E9A06; text-decoration: underline;">')'</span><span style="text-decoration: underline;">);</span>
+            }
+            client = <span style="color: #A52A2A; font-weight: bold;">new</span> <span style="color: #2F8B58; font-weight: bold;">Redis</span>({
+                port: endpoint.port,
+                host: endpoint.host,
+                retryStrategy: <span style="color: #F5666D;">null</span>,
+                enableReadyCheck: <span style="color: #F5666D;">false</span>,
+                connectTimeout: self.options.connectTimeout
+            });
+            <span style="color: #A52A2A; font-weight: bold;">return</span> self.resolveMaster(client, <span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">master_err</span>, <span style="color: #0084C8; font-weight: bold;">master</span>) {
+                <span style="color: #A52A2A; font-weight: bold;">if</span> (master_err) {
+                    console.error(<span style="color: #4E9A06;">'redis('</span> + JSON.stringify({name: self.options.<span style="text-decoration: underline;">name, db: self.options.db, sentinels: self.options.sentinels}) + </span><span style="color: #4E9A06; text-decoration: underline;">') resolve master error('</span><span style="text-decoration: underline;"> + master_err.toString() + </span><span style="color: #4E9A06; text-decoration: underline;">')'</span><span style="text-decoration: underline;">);</span>
+                }
+                <span style="color: #A52A2A; font-weight: bold;">if</span> (!master_err &amp;&amp; master &amp;&amp; master.local_node) {
+                    console.warn(<span style="color: #4E9A06;">'redis('</span> + JSON.stringify({name: self.options.n<span style="text-decoration: underline;">ame, db: self.options.db, sentinels: self.options.sentinels}) + </span><span style="color: #4E9A06; text-decoration: underline;">') resolve slave to local master: '</span><span style="text-decoration: underline;"> + master.host + </span><span style="color: #4E9A06; text-decoration: underline;">':'</span><span style="text-decoration: underline;"> + master.port);</span>
+                    <span style="color: #A52A2A; font-weight: bold;">return</span> callback(<span style="color: #F5666D;">null</span>, master);
+                } <span style="color: #A52A2A; font-weight: bold;">else</span> <span style="color: #A52A2A; font-weight: bold;">if</span> (slave || master) {
+                    <span style="color: #A52A2A; font-weight: bold;">return</span> callback(<span style="color: #F5666D;">null</span>, slave || master);
+                }
 
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">return</span> callback(slave_err || master_err, <span style="color: #F5666D;">null</span>);
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   });
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   } <span style="color: #A52A2A; font-weight: bold;">else</span> {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">return</span> callback(<span style="color: #F5666D;">null</span>, slave);
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   }
-<span style="background-color: #E6E6E6;"> </span>   });
+                <span style="color: #A52A2A; font-weight: bold;">return</span> callback(slave_err || master_err, <span style="color: #F5666D;">null</span>);
+            });
+        } <span style="color: #A52A2A; font-weight: bold;">else</span> {
+            <span style="color: #A52A2A; font-weight: bold;">return</span> callback(<span style="color: #F5666D;">null</span>, slave);
+        }
+    });
 }
 
 <span style="color: #4E9A06;">/**</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">* A SentinelConnector.prototype.check replacement, enable connect local master </span><span style="color: #4E9A06; text-decoration: underline;">when connect to slave.</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">*/</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">* A SentinelConnector.prototype.check replacement, enable connect local master </span><span style="color: #4E9A06; text-decoration: underline;">when connect to slave.</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">*/</span>
 <span style="color: #A52A2A; font-weight: bold;">function</span> <span style="color: #00578E; font-weight: bold;">checkPreferLocal</span>(<span style="color: #0084C8; font-weight: bold;">info</span>) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">return</span> <span style="color: #F5666D;">true</span>;
+    <span style="color: #A52A2A; font-weight: bold;">return</span> <span style="color: #F5666D;">true</span>;
 }
 
 <span style="color: #4E9A06;">/**</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">* Prefer connect to local redis node, slave first.</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">*</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">* @param client redis client.</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">*</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">* @return is this change successful.</span>
-<span style="color: #4E9A06; background-color: #E6E6E6;"> </span><span style="color: #4E9A06;">*/</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">* Prefer connect to local redis node, slave first.</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">*</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">* </span><span style="color: #6a5acd; font-style: italic;">@param</span><span style="color: #4E9A06;"> </span><span style="color: #0084C8; font-weight: bold;">client</span><span style="color: #4E9A06;"> redis client.</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">*</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">* </span><span style="color: #6a5acd; font-style: italic;">@return</span><span style="color: #4E9A06;"> is this change successful.</span>
+<span style="color: #4E9A06;"> </span><span style="color: #4E9A06;">*/</span>
 <span style="color: #A52A2A; font-weight: bold;">function</span> <span style="color: #00578E; font-weight: bold;">preferLocal</span>(<span style="color: #0084C8; font-weight: bold;">client</span>) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">if</span> (client.options.role === <span style="color: #4E9A06;">'slave'</span> &amp;&amp; client.connector.resolveSlave) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">if</span> (client.options.lazyConnect &amp;&amp; client.status == <span style="color: #4E9A06;">'wait'</span>) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">if</span> (client.connector.resolveSlave != resolveSlavePreferLocal) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   preferLocalSlave(client);
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   }
+    <span style="color: #A52A2A; font-weight: bold;">if</span> (client.options.role === <span style="color: #4E9A06;">'slave'</span> &amp;&amp; client.connector.resolveSlave) {
+        <span style="color: #A52A2A; font-weight: bold;">if</span> (client.options.lazyConnect &amp;&amp; client.status == <span style="color: #4E9A06;">'wait'</span>) {
+            <span style="color: #A52A2A; font-weight: bold;">if</span> (client.connector.resolveSlave != resolveSlavePreferLocal) {
+                preferLocalSlave(client);
+            }
 
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   client.connector.resolveMaster = resolveMasterPreferLocal;
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   client.connector.resolve = resolvePreferLocal;
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   client.connector.check = checkPreferLocal;
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">return</span> <span style="color: #F5666D;">true</span>;
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   }
+            client.connector.resolveMaster = resolveMasterPreferLocal;
+            client.connector.resolve = resolvePreferLocal;
+            client.connector.check = checkPreferLocal;
+            <span style="color: #A52A2A; font-weight: bold;">return</span> <span style="color: #F5666D;">true</span>;
+        }
 
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   console.warn(<span style="color: #4E9A06;">'redis client('</span> + JSON.stringify({name: client.options.name<span style="text-decoration: underline;">, db: client.options.db, sentinels: client.options.sentinels}) + </span><span style="color: #4E9A06; text-decoration: underline;">') status unexpected'</span><span style="text-decoration: underline;">);</span>
-<span style="background-color: #E6E6E6;"> </span>   }
+        console.warn(<span style="color: #4E9A06;">'redis client('</span> + JSON.stringify({name: client.options.name<span style="text-decoration: underline;">, db: client.options.db, sentinels: client.options.sentinels}) + </span><span style="color: #4E9A06; text-decoration: underline;">') status unexpected'</span><span style="text-decoration: underline;">);</span>
+    }
 
-<span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">return</span> <span style="color: #F5666D;">false</span>;
+    <span style="color: #A52A2A; font-weight: bold;">return</span> <span style="color: #F5666D;">false</span>;
 }
 </pre>
 </div>
@@ -446,16 +446,16 @@ preferredSlaves 选项已经在 2.4.0 版实现，下面的代码依赖之前的
 <pre class="src src-js"><span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">options</span> = {name: <span style="color: #4E9A06;">"data"</span>, sentinels: sentinels, db: 0, role: <span style="color: #4E9A06;">"slave"</span>, lazyCon<span style="text-decoration: underline;">nect: </span><span style="color: #F5666D; text-decoration: underline;">true</span><span style="text-decoration: underline;">}</span>
 <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">client</span> = <span style="color: #A52A2A; font-weight: bold;">new</span> <span style="color: #2F8B58; font-weight: bold;">Redis</span>(options);
 <span style="color: #A52A2A; font-weight: bold;">if</span> (preferLocal(client)) {
-<span style="background-color: #E6E6E6;"> </span>   console.warn(<span style="color: #4E9A06;">"prefer local on redis sentinel("</span> + JSON.stringify(options) + <span style="color: #4E9A06;">"</span><span style="color: #4E9A06; text-decoration: underline;">)"</span><span style="text-decoration: underline;">);</span>
+    console.warn(<span style="color: #4E9A06;">"prefer local on redis sentinel("</span> + JSON.stringify(options) + <span style="color: #4E9A06;">"</span><span style="color: #4E9A06; text-decoration: underline;">)"</span><span style="text-decoration: underline;">);</span>
 }
 </pre>
 </div>
 </div>
 </div>
 
-<div id="outline-container-org41c5ba3" class="outline-2">
-<h2 id="org41c5ba3">在 2.4.x 的 ioredis 上实现优先选择本地结点（使用 preferredSlaves）</h2>
-<div class="outline-text-2" id="text-org41c5ba3">
+<div id="outline-container-orgf30b4d3" class="outline-2">
+<h2 id="orgf30b4d3">在 2.4.x 的 ioredis 上实现优先选择本地结点（使用 preferredSlaves）</h2>
+<div class="outline-text-2" id="text-orgf30b4d3">
 <p>
 具体实现以及用法请参考 gist <a href="https://gist.github.com/tangxinfa/3361a11acf2270e8388b43bfcb25ce0e">Connect redis with Minimum Distance First(MDF) algorithm</a> ，使用 preferredSlaves 选项实现，要求 ioredis 版本至少为 2.4.0 。在 ioredis 上做了一层封装，使用 ioredis 的方式需要改变，没有侵入 ioredis 的代码。
 </p>
@@ -485,9 +485,9 @@ preferredSlaves 选项已经在 2.4.0 版实现，下面的代码依赖之前的
 </div>
 </div>
 
-<div id="outline-container-orgb5d6eff" class="outline-2">
-<h2 id="orgb5d6eff">在 2.4.x 的 ioredis 上实现优先选择本地结点（不使用 preferredSlaves）</h2>
-<div class="outline-text-2" id="text-orgb5d6eff">
+<div id="outline-container-org3a09c9f" class="outline-2">
+<h2 id="org3a09c9f">在 2.4.x 的 ioredis 上实现优先选择本地结点（不使用 preferredSlaves）</h2>
+<div class="outline-text-2" id="text-org3a09c9f">
 <p>
 具体实现以及用法请参考 github 仓库 <a href="https://github.com/tangxinfa/ioredis_sentinel_connector">https://github.com/tangxinfa/ioredis_sentinel_connector</a> ，要求 ioredis 版本为 2.4.x。
 </p>

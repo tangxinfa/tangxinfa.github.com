@@ -190,7 +190,7 @@ WordList.prototype.DelNewWord = function(word_name) {
  * Construct a new word list based on a word list.
  *
  * @param word_list Word list.
- * @param Offset word index.
+ * @param Offset Word index.
  *
  * @return a new word list.
  */

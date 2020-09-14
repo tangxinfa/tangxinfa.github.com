@@ -4,7 +4,7 @@
         <title>debug - 看看俺 – KanKanAn.com</title>
         <link>http://blog.kankanan.com/tag/debug.xml</link>
         <description>记我所思，忆我所为。</description>
-        <lastBuildDate>Sat, 07 Mar 2020 06:34:59 GMT</lastBuildDate>
+        <lastBuildDate>Mon, 14 Sep 2020 09:18:25 GMT</lastBuildDate>
         <docs>http://blogs.law.harvard.edu/tech/rss</docs>
         <generator>Feed for Node.js</generator>
         <image>
@@ -20,9 +20,9 @@
             <guid>/article/linux-4e0b8c038bd5526553bb8c038bd54fe1606f76847a0b5e8f5d296e83.html</guid>
             <pubDate>Tue, 14 Nov 2017 10:18:00 GMT</pubDate>
             <content:encoded><![CDATA[
-<div id="outline-container-org4e6af46" class="outline-2">
-<h2 id="org4e6af46">为什么要剥去调试信息</h2>
-<div class="outline-text-2" id="text-org4e6af46">
+<div id="outline-container-orgcc2a6a9" class="outline-2">
+<h2 id="orgcc2a6a9">为什么要剥去调试信息</h2>
+<div class="outline-text-2" id="text-orgcc2a6a9">
 <ul class="org-ul">
 <li><p>
 减少程序文件尺寸
@@ -43,18 +43,18 @@
 </div>
 </div>
 
-<div id="outline-container-org38e90dd" class="outline-2">
-<h2 id="org38e90dd">如何添加调试信息</h2>
-<div class="outline-text-2" id="text-org38e90dd">
+<div id="outline-container-orgc9259b8" class="outline-2">
+<h2 id="orgc9259b8">如何添加调试信息</h2>
+<div class="outline-text-2" id="text-orgc9259b8">
 <p>
 <code>gcc</code> 编译程序时指定 <code>-g</code> 选项。
 </p>
 </div>
 </div>
 
-<div id="outline-container-org4204015" class="outline-2">
-<h2 id="org4204015">如何剥去调试信息</h2>
-<div class="outline-text-2" id="text-org4204015">
+<div id="outline-container-org6fbe938" class="outline-2">
+<h2 id="org6fbe938">如何剥去调试信息</h2>
+<div class="outline-text-2" id="text-org6fbe938">
 <div class="org-src-container">
 <pre class="src src-sh">strip /path/to/app
 </pre>
@@ -62,9 +62,9 @@
 </div>
 </div>
 
-<div id="outline-container-org803ae1a" class="outline-2">
-<h2 id="org803ae1a">从程序崩溃后产生的 core 文件定位源代码行</h2>
-<div class="outline-text-2" id="text-org803ae1a">
+<div id="outline-container-org26732e6" class="outline-2">
+<h2 id="org26732e6">从程序崩溃后产生的 core 文件定位源代码行</h2>
+<div class="outline-text-2" id="text-org26732e6">
 <ul class="org-ul">
 <li><p>
 示例程序
@@ -82,57 +82,57 @@
 <span style="color: #A020F0;">#include</span> <span style="color: #4E9A06;">&lt;stdint.h&gt;</span>
 
 <span style="color: #2F8B58; font-weight: bold;">void</span> <span style="color: #00578E; font-weight: bold;">bug</span>(<span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #0084C8; font-weight: bold;">id</span>) {
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #204A87;">/* </span><span style="color: #204A87;">illegal pointer, si_code = 128 (send by kernel)</span><span style="color: #204A87;"> */</span>
-<span style="background-color: #E6E6E6;"> </span> printf(<span style="color: #4E9A06;">"[%d] This is bug\n"</span>, id);
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #2F8B58; font-weight: bold;">int</span> *<span style="color: #0084C8; font-weight: bold;">p</span> = (<span style="color: #2F8B58; font-weight: bold;">int</span> *)-1;
-<span style="background-color: #E6E6E6;"> </span> printf(<span style="color: #4E9A06;">"%d\n"</span>, *p);
+  <span style="color: #204A87;">/* </span><span style="color: #204A87;">illegal pointer, si_code = 128 (send by kernel)</span><span style="color: #204A87;"> */</span>
+  printf(<span style="color: #4E9A06;">"[%d] This is bug\n"</span>, id);
+  <span style="color: #2F8B58; font-weight: bold;">int</span> *<span style="color: #0084C8; font-weight: bold;">p</span> = (<span style="color: #2F8B58; font-weight: bold;">int</span> *)-1;
+  printf(<span style="color: #4E9A06;">"%d\n"</span>, *p);
 }
 
 <span style="color: #2F8B58; font-weight: bold;">void</span> <span style="color: #00578E; font-weight: bold;">extra_func</span>() {
-<span style="background-color: #E6E6E6;"> </span> printf(<span style="color: #4E9A06;">""</span>);
+  printf(<span style="color: #4E9A06;">""</span>);
 }
 
 <span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #00578E; font-weight: bold;">func_b</span>(<span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #0084C8; font-weight: bold;">id</span>)
 {
-<span style="background-color: #E6E6E6;"> </span> printf(<span style="color: #4E9A06;">"[%d] This is func_b\n"</span>, id);
-<span style="background-color: #E6E6E6;"> </span> sleep(rand()%5);
-<span style="background-color: #E6E6E6;"> </span> extra_func();
-<span style="background-color: #E6E6E6;"> </span> bug(id);
-<span style="background-color: #E6E6E6;"> </span> extra_func();
+  printf(<span style="color: #4E9A06;">"[%d] This is func_b\n"</span>, id);
+  sleep(rand()%5);
+  extra_func();
+  bug(id);
+  extra_func();
 }
 
 <span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #00578E; font-weight: bold;">func_a</span>(<span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #0084C8; font-weight: bold;">id</span>)
 {
-<span style="background-color: #E6E6E6;"> </span> printf(<span style="color: #4E9A06;">"[%d] This is func_a\n"</span>, id);
-<span style="background-color: #E6E6E6;"> </span> sleep(rand()%5);
-<span style="background-color: #E6E6E6;"> </span> extra_func();
-<span style="background-color: #E6E6E6;"> </span> func_b(id);
-<span style="background-color: #E6E6E6;"> </span> extra_func();
+  printf(<span style="color: #4E9A06;">"[%d] This is func_a\n"</span>, id);
+  sleep(rand()%5);
+  extra_func();
+  func_b(id);
+  extra_func();
 }
 
 <span style="color: #2F8B58; font-weight: bold;">void</span>* <span style="color: #00578E; font-weight: bold;">func</span>(<span style="color: #2F8B58; font-weight: bold;">void</span>* <span style="color: #0084C8; font-weight: bold;">param</span>) {
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #0084C8; font-weight: bold;">id</span> = (<span style="color: #2F8B58; font-weight: bold;">int</span>)param;
-<span style="background-color: #E6E6E6;"> </span> sleep(1);
-<span style="background-color: #E6E6E6;"> </span> extra_func();
-<span style="background-color: #E6E6E6;"> </span> func_a(id);
-<span style="background-color: #E6E6E6;"> </span> extra_func();
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">return</span> <span style="color: #F5666D;">NULL</span>;
+  <span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #0084C8; font-weight: bold;">id</span> = (<span style="color: #2F8B58; font-weight: bold;">int</span>)param;
+  sleep(1);
+  extra_func();
+  func_a(id);
+  extra_func();
+  <span style="color: #A52A2A; font-weight: bold;">return</span> <span style="color: #F5666D;">NULL</span>;
 }
 
 <span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #00578E; font-weight: bold;">main</span>(<span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #0084C8; font-weight: bold;">argc</span>, <span style="color: #2F8B58; font-weight: bold;">char</span> *<span style="color: #0084C8; font-weight: bold;">argv</span>[])
 {
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #0084C8; font-weight: bold;">i</span>;
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">for</span>(i = 0; i &lt; 10; ++i) {
-<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #2F8B58; font-weight: bold;">pthread_t</span> <span style="color: #0084C8; font-weight: bold;">pid</span>;
-<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">if</span> (0 != pthread_create(&amp;pid, <span style="color: #F5666D;">NULL</span>, func, (<span style="color: #2F8B58; font-weight: bold;">void</span>*)i)) {
-<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> fprintf(stderr, <span style="color: #4E9A06;">"create thread %d failed (%d).\n"</span>, errno);
-<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> exit(1);
-<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> }
-<span style="background-color: #E6E6E6;"> </span> }
+  <span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #0084C8; font-weight: bold;">i</span>;
+  <span style="color: #A52A2A; font-weight: bold;">for</span>(i = 0; i &lt; 10; ++i) {
+    <span style="color: #2F8B58; font-weight: bold;">pthread_t</span> <span style="color: #0084C8; font-weight: bold;">pid</span>;
+    <span style="color: #A52A2A; font-weight: bold;">if</span> (0 != pthread_create(&amp;pid, <span style="color: #F5666D;">NULL</span>, func, (<span style="color: #2F8B58; font-weight: bold;">void</span>*)i)) {
+      fprintf(stderr, <span style="color: #4E9A06;">"create thread %d failed (%d).\n"</span>, errno);
+      exit(1);
+    }
+  }
 
-<span style="background-color: #E6E6E6;"> </span> sleep(100);
+  sleep(100);
 
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">return</span> 0;
+  <span style="color: #A52A2A; font-weight: bold;">return</span> 0;
 }
 </pre>
 </div>
@@ -403,9 +403,9 @@ core 文件。
 </div>
 </div>
 
-<div id="outline-container-org7603e49" class="outline-2">
-<h2 id="org7603e49">从程序崩溃后输出的调用栈定位崩溃对应的代码行</h2>
-<div class="outline-text-2" id="text-org7603e49">
+<div id="outline-container-orgb913b90" class="outline-2">
+<h2 id="orgb913b90">从程序崩溃后输出的调用栈定位崩溃对应的代码行</h2>
+<div class="outline-text-2" id="text-orgb913b90">
 <blockquote>
 <p>
 libSegFault     The segmentation fault signal handler, used by catchsegv 
@@ -565,9 +565,9 @@ $ grep -E '^Backtrace:$' -A 10 app.log | grep -E '^\./app' | sed -r ':a;s/.\/app
 </div>
 </div>
 
-<div id="outline-container-org7734db8" class="outline-2">
-<h2 id="org7734db8">使用 MAP 文件</h2>
-<div class="outline-text-2" id="text-org7734db8">
+<div id="outline-container-org64d886d" class="outline-2">
+<h2 id="org64d886d">使用 MAP 文件</h2>
+<div class="outline-text-2" id="text-org64d886d">
 <p>
 一开始有调研过使用 Map 文件，试验失败，看了一下 Map 文件的内容，其中记载了函数的地址，但没有详细的代码行地址，理论上是实现不了从崩溃地址获取源代码行地址的目标的，所以开始研究其它方案。
 </p>
@@ -751,9 +751,9 @@ ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0 [vsyscall]
 </div>
 </div>
 
-<div id="outline-container-org74e5568" class="outline-2">
-<h2 id="org74e5568">docker 容器内的 core 文件</h2>
-<div class="outline-text-2" id="text-org74e5568">
+<div id="outline-container-orgfe9f291" class="outline-2">
+<h2 id="orgfe9f291">docker 容器内的 core 文件</h2>
+<div class="outline-text-2" id="text-orgfe9f291">
 <p>
 docker 环境下，容器使用的是宿主机的 linux 内核，core 文件的生成位置无论是在宿主机中还是在容器中都是由宿主机的 <code>/proc/sys/kernel/core_pattern</code> 配置决定，为了顺利生成 core 文件，宿主机以及容器都要创建好 core 文件目录。
 </p>
@@ -764,9 +764,9 @@ docker 环境下，容器使用的是宿主机的 linux 内核，core 文件的�
 </div>
 </div>
 
-<div id="outline-container-org99310f2" class="outline-2">
-<h2 id="org99310f2">总结</h2>
-<div class="outline-text-2" id="text-org99310f2">
+<div id="outline-container-orgc7d180c" class="outline-2">
+<h2 id="orgc7d180c">总结</h2>
+<div class="outline-text-2" id="text-orgc7d180c">
 <p>
 三种方案都可以获得同样的结果。
 </p>
@@ -785,9 +785,9 @@ docker 环境下，容器使用的是宿主机的 linux 内核，core 文件的�
 </div>
 </div>
 
-<div id="outline-container-orgf71ff78" class="outline-2">
-<h2 id="orgf71ff78">参考</h2>
-<div class="outline-text-2" id="text-orgf71ff78">
+<div id="outline-container-org2c35684" class="outline-2">
+<h2 id="org2c35684">参考</h2>
+<div class="outline-text-2" id="text-org2c35684">
 <ul class="org-ul">
 <li><a href="https://stackoverflow.com/questions/7556045/how-to-map-function-address-to-function-in-so-files">c - How to map function address to function in *.so files - Stack Overflow</a></li>
 

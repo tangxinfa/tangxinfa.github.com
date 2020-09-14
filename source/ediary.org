@@ -20639,3 +20639,226 @@ Prometheus 时序数据模型参见 [[https://prometheus.io/docs/concepts/data_m
        --action_env CXX=/usr/bin/c++-5 \
        --verbose_failures //source/exe:envoy-static
    #+END_SRC
+
+* TODO c/c++ 程序库的交叉编译                                                 :linux:
+  [2020-05-13 Wed]
+
+  ~linux~ 下的 ~c/c++~ 开源程序最常用的构建工具是 ~autotools~ 和 ~cmake~ ，这些
+  工具本身对交叉编译具备良好的支持。
+
+  交叉编译时应该尽量避免对程序原始文件进行改动，无论是手工改动，还是通过补丁文件
+  或脚本的自动改动，都会导致对原始文件的强耦合，一旦需要移植项目的新版本，很可能
+  会需要进行再次适配移植，这也导致了嵌入式领域技术的落后。
+
+* DONE golang gRPC 负载均衡方案                                     :grpc:go:
+  CLOSED: [2020-09-14 Mon 16:57]
+  [2020-09-04 Fri]
+
+** 服务器端负载均衡选项： ~MaxConnectionAge~
+
+默认情况下，gRPC 客户端与服务器间存在一条 HTTP/2 长连接，当服务器端添加了新结点
+时，客户端是无感知的，新上线的结点将不会有请求进来。~MaxConnectionAge~ 指定长连
+接的存活时间，当客户端检测到 gRPC 长连接断开时，会解析服务器域名，重新建立连接，
+从而为负载均衡提供了基础。
+
+#+begin_src go
+  import "google.golang.org/grpc"
+  import "google.golang.org/grpc/keepalive"
+  server = grpc.NewServer(
+      grpc.KeepaliveParams(keepalive.ServerParameters{MaxConnectionAge: 2 * time.Minute}),
+  )
+#+end_src
+
+** 客户端负载均衡器： ~Pick First~
+
+适用于终端用户与服务间通信，由于存在大量终端用户，服务器端的负载均衡不成问题。
+
+#+begin_src dot :file ../static/grpc_lb_pick_first.png :exports results
+  digraph grpc_lb_pick_first {
+      label = "[1*1] gRPC load balancer: PickFirst";
+      subgraph cluster_greeter_server {
+          label = "greeter_server";
+          greeter_server1,greeter_server2,greeter_serverN [shape="house" style="filled" fillcolor="wheat3"];
+      }
+      client -> dialer [color="#1f78b4" fontcolor="#1f78b4"];
+      dialer -> greeter_server1 [color="#1f78b4" fontcolor="#1f78b4"];
+      dialer [shape="component" label="grpc.Dial(\"greeter_server\")"]
+  }
+#+end_src
+
+#+RESULTS:
+[[file:../static/grpc_lb_pick_first.png]]
+
+~Pick First~ 是 golang gRPC 默认的负载均衡器，采用 "一服务一连接" 模型，客户端与
+服务间只有一条长连接。
+
+它从服务器域名解析出 IP 列表后，依次尝试建立一条长连接，直到成功为止，当长连接断
+开时，重复以上过程。
+
+客户端通过 ~服务器域名~ 建立 gRPC 连接来启用 ~Pick First~ 负载均衡器。
+
+#+begin_src go
+  import "google.golang.org/grpc"
+  import pb "google.golang.org/grpc/examples/helloworld/helloworld"
+  conn, err := grpc.Dial(
+      "greeter_server",
+      grpc.WithInsecure(),
+  )
+  c := pb.NewGreeterClient(conn)
+#+end_src
+
+** 客户端负载均衡器： ~Round Robin~
+
+适用于内部服务间通信，在 K8S 中配合 [[https://kubernetes.io/docs/concepts/services-networking/service/#headless-services][Headless Services]] 非常容易部署。
+
+#+begin_src dot :file ../static/grpc_lb_round_robin.png :exports results
+  digraph grpc_lb_round_robin {
+      label = "[1*N] gRPC load balancer: RoundRobin";
+      subgraph cluster_greeter_server {
+          label = "greeter_server";
+          greeter_server1,greeter_server2,greeter_serverN [shape="house" style="filled" fillcolor="wheat3"];
+      }
+      client -> dialer [color="#1f78b4" fontcolor="#1f78b4"];
+      dialer -> greeter_server1 [color="#1f78b4" fontcolor="#1f78b4"];
+      dialer -> greeter_server2 [color="#1f78b4" fontcolor="#1f78b4"];
+      dialer -> greeter_serverN [color="#1f78b4" fontcolor="#1f78b4"];
+      dialer [shape="component" label="grpc.Dial(\"dns:///greeter_server\")"]
+  }
+#+end_src
+
+#+RESULTS:
+[[file:../static/grpc_lb_round_robin.png]]
+
+~Round Robin~ 是 golang gRPC 内置支持的负载均衡器，采用 "一服务器 IP 一连接" 模
+型，客户端与服务器的每一个 IP 间都有一条长连接。
+
+它从服务器域名解析出 IP 列表后，对每一个 IP 确保存在一条长连接，当有长连接断开时，
+重复以上过程。
+
+客户端通过 "dns:///服务器域名" 建立 gRPC 连接并指定 "roundrobin" 启用 ~Round Robin~ 负载均衡器。
+
+#+begin_src go
+  import "google.golang.org/grpc"
+  import "google.golang.org/grpc/balancer/roundrobin"
+  import pb "google.golang.org/grpc/examples/helloworld/helloworld"
+  conn, err := grpc.Dial(
+      "dns:///greeter_server",
+      grpc.WithInsecure(),
+      grpc.WithBalancerName(roundrobin.Name),
+  )
+  c := pb.NewGreeterClient(conn)
+#+end_src
+
+** 客户端负载均衡器： ~Pool~
+
+适用于外部服务间通信，在 K8S 中以 SLB 方式暴露的服务对外表现为一个 IP，此时采用
+连接池可以确保负载均衡。
+
+#+begin_src dot :file ../static/grpc_lb_pool.png :exports results
+  digraph grpc_lb_pool {
+      label = "[1*NM] gRPC load balancer: Pool";
+      subgraph cluster_greeter_server {
+          label = "greeter_server";
+          greeter_server1,greeter_server2,greeter_serverN [shape="house" style="filled" fillcolor="wheat3"];
+      }
+      client -> dialer [color="#1f78b4" fontcolor="#1f78b4"];
+      dialer -> greeter_server1 [color="#1f78b4" fontcolor="#1f78b4"];
+      dialer -> greeter_server1 [color="#1f78b4" fontcolor="#1f78b4"];
+      dialer -> greeter_server1 [color="#1f78b4" fontcolor="#1f78b4"];
+      dialer -> greeter_server2 [color="#1f78b4" fontcolor="#1f78b4"];
+      dialer -> greeter_server2 [color="#1f78b4" fontcolor="#1f78b4"];
+      dialer -> greeter_server2 [color="#1f78b4" fontcolor="#1f78b4"];
+      dialer -> greeter_serverN [color="#1f78b4" fontcolor="#1f78b4"];
+      dialer -> greeter_serverN [color="#1f78b4" fontcolor="#1f78b4"];
+      dialer -> greeter_serverN [color="#1f78b4" fontcolor="#1f78b4"];
+      dialer [shape="component" label="NewConnPool(\"dns:///greeter_server\")"]
+  }
+#+end_src
+
+#+RESULTS:
+[[file:../static/grpc_lb_pool.png]]
+
+最新的 go-grpc 库（v1.28+）提供了 ~ClientConnInterface~ 接口，通过该接口可以很方
+便地实现 gRPC 连接池，参考 [[https://github.com/googleapis/google-api-go-client/blob/master/transport/grpc/dial.go][googleapis]] 。
+
+采用 "一服务器 IP N 连接" 模型，客户端与服务器的每一个 IP 间都有 N 条长连接，各
+连接间的负载均衡采用 ~Round Robin~ 算法。
+
+它从服务器域名解析出 IP 列表后，对每一个 IP 确保存在 N 条长连接，当有长连接断开
+时，重复以上过程。
+
+~conn_pool.go~
+#+BEGIN_SRC go
+  package main
+
+  import (
+      "sync/atomic"
+
+      "golang.org/x/net/context"
+      "google.golang.org/grpc"
+      "google.golang.org/grpc/balancer/roundrobin"
+  )
+
+  type ConnPool struct {
+      conns []*grpc.ClientConn
+      idx   uint32
+  }
+
+  func (p *ConnPool) Num() int {
+      return len(p.conns)
+  }
+
+  func (p *ConnPool) Conn() *grpc.ClientConn {
+      i := atomic.AddUint32(&p.idx, 1)
+      return p.conns[i%uint32(len(p.conns))]
+  }
+
+  func (p *ConnPool) Close() error {
+      var firstError error
+      for _, conn := range p.conns {
+          if err := conn.Close(); err != nil {
+              if firstError != nil {
+                  firstError = err
+              }
+          }
+      }
+      return firstError
+  }
+
+  func (p *ConnPool) Invoke(ctx context.Context, method string, args interface{}, reply interface{}, opts ...grpc.CallOption) error {
+      return p.Conn().Invoke(ctx, method, args, reply, opts...)
+  }
+
+  func (p *ConnPool) NewStream(ctx context.Context, desc *grpc.StreamDesc, method string, opts ...grpc.CallOption) (grpc.ClientStream, error) {
+      return p.Conn().NewStream(ctx, desc, method, opts...)
+  }
+
+  func NewConnPool(ctx context.Context, address string, poolSize int) (*ConnPool, error) {
+      pool := &ConnPool{}
+      for i := 0; i < poolSize; i++ {
+          conn, err := grpc.Dial(
+              address,
+              grpc.WithInsecure(),
+              grpc.WithBalancerName(roundrobin.Name),
+          )
+          if err != nil {
+              defer pool.Close() // NOTE: error from Close is ignored.
+              return nil, err
+          }
+          pool.conns = append(pool.conns, conn)
+      }
+      return pool, nil
+  }
+#+END_SRC
+
+使用连接池
+#+begin_src go
+  import "golang.org/x/net/context"
+  import pb "google.golang.org/grpc/examples/helloworld/helloworld"
+  conn, err := NewConnPool(
+      context.Background(),
+      "dns:///greeter_server",
+      10,
+  )
+  c := pb.NewGreeterClient(conn)
+#+end_src

@@ -38,9 +38,9 @@ Q: <code>snprintf</code> 返回的是实际写入到缓冲区的字符数吗？
 A: 错。当缓冲区空间不足时会返回比缓存区空间大的值。
 </p>
 
-<div id="outline-container-orgc78986f" class="outline-2">
-<h2 id="orgc78986f">man 3 snprintf</h2>
-<div class="outline-text-2" id="text-orgc78986f">
+<div id="outline-container-org9ae413d" class="outline-2">
+<h2 id="org9ae413d">man 3 snprintf</h2>
+<div class="outline-text-2" id="text-org9ae413d">
 <p>
 摘录关键部分
 </p>
@@ -109,9 +109,9 @@ If an output error is encountered, a negative value is returned.
 </div>
 </div>
 
-<div id="outline-container-orgb95412c" class="outline-2">
-<h2 id="orgb95412c">了解 snprintf</h2>
-<div class="outline-text-2" id="text-orgb95412c">
+<div id="outline-container-org1045234" class="outline-2">
+<h2 id="org1045234">了解 snprintf</h2>
+<div class="outline-text-2" id="text-org1045234">
 <p>
 sprintf 输出到缓冲区，提供的缓存区空间不足时，引发臭名昭著的 <code>缓存区溢出</code> 漏洞，snprintf 通过指定缓存区空间大小解决了这个问题。
 </p>
@@ -125,16 +125,16 @@ snprintf 常用于字符串格式化（如：拼接 SQL 或 shell 命令），�
 </p>
 <div class="org-src-container">
 <pre class="src src-c"><span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #2F8B58; font-weight: bold;">char</span>* <span style="color: #0084C8; font-weight: bold;">fields</span>[] = {
-<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #4E9A06;">"name"</span>,
-<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #4E9A06;">"age"</span>,
-<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #4E9A06;">"city"</span>
+    <span style="color: #4E9A06;">"name"</span>,
+    <span style="color: #4E9A06;">"age"</span>,
+    <span style="color: #4E9A06;">"city"</span>
 };
 
 <span style="color: #2F8B58; font-weight: bold;">char</span> <span style="color: #0084C8; font-weight: bold;">sql</span>[10] = <span style="color: #4E9A06;">"select "</span>;
 <span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #0084C8; font-weight: bold;">pos</span> = 0;
 
 <span style="color: #A52A2A; font-weight: bold;">for</span>(<span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #0084C8; font-weight: bold;">i</span> = 0; i &lt; <span style="color: #A52A2A; font-weight: bold;">sizeof</span>(fields)/<span style="color: #A52A2A; font-weight: bold;">sizeof</span>(fields[0]); ++i) {
-<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> pos += snprintf(sql + pos, <span style="color: #A52A2A; font-weight: bold;">sizeof</span>(sql) - pos, <span style="color: #4E9A06;">"%s%s"</span>, (i ? <span style="color: #4E9A06;">", "</span> : <span style="color: #4E9A06;">""</span>), field<span style="text-decoration: underline;">s[i]);</span>
+    pos += snprintf(sql + pos, <span style="color: #A52A2A; font-weight: bold;">sizeof</span>(sql) - pos, <span style="color: #4E9A06;">"%s%s"</span>, (i ? <span style="color: #4E9A06;">", "</span> : <span style="color: #4E9A06;">""</span>), field<span style="text-decoration: underline;">s[i]);</span>
 }
 
 <span style="color: #00578E; font-weight: bold;">snprintf</span>(sql + pos, <span style="color: #A52A2A; font-weight: bold;">sizeof</span>(<span style="color: #2F8B58; font-weight: bold;">sql</span>) - pos, <span style="color: #4E9A06;">" from users"</span>);
@@ -155,24 +155,24 @@ snprintf 常用于字符串格式化（如：拼接 SQL 或 shell 命令），�
 </div>
 </div>
 
-<div id="outline-container-org1bdeb72" class="outline-2">
-<h2 id="org1bdeb72">使用 snprintf 的正确姿势</h2>
-<div class="outline-text-2" id="text-org1bdeb72">
+<div id="outline-container-orgee1a6c0" class="outline-2">
+<h2 id="orgee1a6c0">使用 snprintf 的正确姿势</h2>
+<div class="outline-text-2" id="text-orgee1a6c0">
 <div class="org-src-container">
 <pre class="src src-c"><span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #0084C8; font-weight: bold;">pos</span> = 0;
 <span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #0084C8; font-weight: bold;">n</span> = snprintf(buffer + pos, <span style="color: #A52A2A; font-weight: bold;">sizeof</span>(buffer) - pos, <span style="color: #4E9A06;">"%s"</span>, <span style="color: #4E9A06;">"hello"</span>);
 <span style="color: #A52A2A; font-weight: bold;">if</span> (n &gt;= <span style="color: #A52A2A; font-weight: bold;">sizeof</span>(buffer) - pos) {
-<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #204A87;">// </span><span style="color: #204A87;">a return value of size or more means that the output was truncated</span>
-<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> fprintf(stderr, <span style="color: #4E9A06;">"error: buffer size not enough\n"</span>);
-<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">return</span>;
+    <span style="color: #204A87;">// </span><span style="color: #204A87;">a return value of size or more means that the output was truncated</span>
+    fprintf(stderr, <span style="color: #4E9A06;">"error: buffer size not enough\n"</span>);
+    <span style="color: #A52A2A; font-weight: bold;">return</span>;
 }
 pos += n;
 
 n = snprintf(buffer + pos, <span style="color: #A52A2A; font-weight: bold;">sizeof</span>(buffer) - pos, <span style="color: #4E9A06;">"%s"</span>, <span style="color: #4E9A06;">" snprintf"</span>);
 <span style="color: #A52A2A; font-weight: bold;">if</span> (n &gt;= <span style="color: #A52A2A; font-weight: bold;">sizeof</span>(buffer) - pos) {
-<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #204A87;">// </span><span style="color: #204A87;">a return value of size or more means that the output was truncated</span>
-<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> fprintf(stderr, <span style="color: #4E9A06;">"error: buffer size not enough\n"</span>);
-<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">return</span>;
+    <span style="color: #204A87;">// </span><span style="color: #204A87;">a return value of size or more means that the output was truncated</span>
+    fprintf(stderr, <span style="color: #4E9A06;">"error: buffer size not enough\n"</span>);
+    <span style="color: #A52A2A; font-weight: bold;">return</span>;
 }
 pos += n;
 </pre>

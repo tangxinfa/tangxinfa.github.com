@@ -35,9 +35,9 @@
   然而在 PHP 中使用 <a href="https://github.com/protocolbuffers/protobuf/">Protocol Buffers</a> 却是一场灾难。
 </p>
 
-<div id="outline-container-orga0f3ab5" class="outline-2">
-<h2 id="orga0f3ab5"><a href="https://github.com/protocolbuffers/protobuf/">Protocol Buffers</a> 初始化是很慢的</h2>
-<div class="outline-text-2" id="text-orga0f3ab5">
+<div id="outline-container-orga6a092a" class="outline-2">
+<h2 id="orga6a092a"><a href="https://github.com/protocolbuffers/protobuf/">Protocol Buffers</a> 初始化是很慢的</h2>
+<div class="outline-text-2" id="text-orga6a092a">
 <p>
 通过 <code>protoc</code> 编译出来的骨架代码本质上只是将 <code>proto</code> 文件编译成方便解析的中间文件格式，建立 PHP 层对应的类型系统，大部分工作在运行时。
 </p>
@@ -71,18 +71,18 @@ PHP 实现的 <code>10</code> 倍以上。
 </div>
 </div>
 
-<div id="outline-container-org2b2346e" class="outline-2">
-<h2 id="org2b2346e"><a href="https://github.com/protocolbuffers/protobuf/">Protocol Buffers</a> 的 C 扩展不稳定</h2>
-<div class="outline-text-2" id="text-org2b2346e">
+<div id="outline-container-org361d5e6" class="outline-2">
+<h2 id="org361d5e6"><a href="https://github.com/protocolbuffers/protobuf/">Protocol Buffers</a> 的 C 扩展不稳定</h2>
+<div class="outline-text-2" id="text-org361d5e6">
 <p>
 线上系统跑久了 php-fpm 进程的内存和 CPU 占用会升高，估计是有 C 扩展有内存泄露。
 </p>
 </div>
 </div>
 
-<div id="outline-container-org493d528" class="outline-2">
-<h2 id="org493d528"><a href="https://github.com/protocolbuffers/protobuf/">Protocol Buffers</a> 性能问题对 PHP 应用的影响是巨大的</h2>
-<div class="outline-text-2" id="text-org493d528">
+<div id="outline-container-orgd0a0dca" class="outline-2">
+<h2 id="orgd0a0dca"><a href="https://github.com/protocolbuffers/protobuf/">Protocol Buffers</a> 性能问题对 PHP 应用的影响是巨大的</h2>
+<div class="outline-text-2" id="text-orgd0a0dca">
 <p>
 其它语言(如：Go、C++)程序是常驻内存运行的，初始化 Protocol Buffers 的开销只付出一次，所以往往意识不到这个问题。
 </p>
@@ -93,9 +93,9 @@ PHP 采用 <code>FastCGI</code> 模型，每次请求都要承担 Protocol Buffe
 </div>
 </div>
 
-<div id="outline-container-orge711db3" class="outline-2">
-<h2 id="orge711db3">PHP 实现与 C 扩展的性能对比</h2>
-<div class="outline-text-2" id="text-orge711db3">
+<div id="outline-container-org71d7074" class="outline-2">
+<h2 id="org71d7074">PHP 实现与 C 扩展的性能对比</h2>
+<div class="outline-text-2" id="text-org71d7074">
 <ul class="org-ul">
 <li><p>
 Protocol Buffers C 扩展的安装 
@@ -137,9 +137,9 @@ Protocol Buffers C 扩展的启用与禁用
 
 <div class="org-src-container">
 <pre class="src src-json">{
-<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">"require"</span>: {
-<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">"google/protobuf"</span>: <span style="color: #4E9A06;">"3.7.0"</span>
-<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> }
+    <span style="color: #A52A2A; font-weight: bold;">"require"</span>: {
+        <span style="color: #A52A2A; font-weight: bold;">"google/protobuf"</span>: <span style="color: #4E9A06;">"3.7.0"</span>
+    }
 }
 </pre>
 </div>
@@ -198,9 +198,9 @@ $<span style="color: #0084C8; font-weight: bold;">runTime</span> = ($<span style
 
 $<span style="color: #0084C8; font-weight: bold;">class</span> = <span style="color: #A52A2A; font-weight: bold;">new</span> <span style="color: #2F8B58; font-weight: bold;">ReflectionClass</span>(<span style="color: #4E9A06;">'Google\Protobuf\Internal\DescriptorPool'</span>);
 <span style="color: #A52A2A; font-weight: bold;">if</span> ($<span style="color: #0084C8; font-weight: bold;">class</span>-&gt;getFileName()) {
-<span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">echo</span> <span style="color: #4E9A06;">"protobuf-php </span><span style="color: #0084C8; font-weight: bold;">$runTime</span><span style="color: #4E9A06;">\n"</span>;
+    <span style="color: #A52A2A; font-weight: bold;">echo</span> <span style="color: #4E9A06;">"protobuf-php </span><span style="color: #0084C8; font-weight: bold;">$runTime</span><span style="color: #4E9A06;">\n"</span>;
 } <span style="color: #A52A2A; font-weight: bold;">else</span> {
-<span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">echo</span> <span style="color: #4E9A06;">"protobuf-c   </span><span style="color: #0084C8; font-weight: bold;">$runTime</span><span style="color: #4E9A06;">\n"</span>;
+    <span style="color: #A52A2A; font-weight: bold;">echo</span> <span style="color: #4E9A06;">"protobuf-c   </span><span style="color: #0084C8; font-weight: bold;">$runTime</span><span style="color: #4E9A06;">\n"</span>;
 }
 </pre>
 </div>
@@ -215,22 +215,22 @@ $<span style="color: #0084C8; font-weight: bold;">class</span> = <span style="co
 <span style="color: #00578E; font-weight: bold;">install</span>: vendor
 
 <span style="color: #00578E; font-weight: bold;">vendor</span>: composer.json
-<span style="background-color: #E6E6E6;"> </span>   composer install
+    composer install
 
 <span style="color: #00578E; font-weight: bold;">generate</span>: generated/GPBMetadata
 
 <span style="color: #00578E; font-weight: bold;">generated/GPBMetadata</span>: addressbook.proto
-<span style="background-color: #E6E6E6;"> </span>   -mkdir generated
-<span style="background-color: #E6E6E6;"> </span>   protoc --php_out=generated addressbook.proto
+    -mkdir generated
+    protoc --php_out=generated addressbook.proto
 
 <span style="color: #00578E; font-weight: bold;">benchmark</span>:
-<span style="background-color: #E6E6E6;"> </span>   php index.php | tee -a ./benchmark.log
+    php index.php | tee -a ./benchmark.log
 
 <span style="color: #00578E; font-weight: bold;">addressbook.proto</span>:
-<span style="background-color: #E6E6E6;"> </span>   <span style="color: #00578E; font-weight: bold;">wget https</span>://raw.githubusercontent.com/protocolbuffers/protobuf/master/examp<span style="text-decoration: underline;">les/addressbook.proto -O ${</span><span style="color: #0084C8; font-weight: bold; text-decoration: underline;">CURDIR</span><span style="text-decoration: underline;">}/addressbook.proto</span>
+    <span style="color: #00578E; font-weight: bold;">wget https</span>://raw.githubusercontent.com/protocolbuffers/protobuf/master/examp<span style="text-decoration: underline;">les/addressbook.proto -O ${</span><span style="color: #0084C8; font-weight: bold; text-decoration: underline;">CURDIR</span><span style="text-decoration: underline;">}/addressbook.proto</span>
 
 <span style="color: #00578E; font-weight: bold;">clean</span>:
-<span style="background-color: #E6E6E6;"> </span>   -rm -rf ${<span style="color: #0084C8; font-weight: bold;">CURDIR</span>}/vendor ${<span style="color: #0084C8; font-weight: bold;">CURDIR</span>}/generated
+    -rm -rf ${<span style="color: #0084C8; font-weight: bold;">CURDIR</span>}/vendor ${<span style="color: #0084C8; font-weight: bold;">CURDIR</span>}/generated
 </pre>
 </div></li>
 

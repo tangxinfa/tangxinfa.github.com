@@ -31,9 +31,9 @@
       
         <div class="article-content">
           
-<div id="outline-container-orgdba67aa" class="outline-2">
-<h2 id="orgdba67aa">Protobuf 和 Json 存在显著的差异</h2>
-<div class="outline-text-2" id="text-orgdba67aa">
+<div id="outline-container-orgfe93947" class="outline-2">
+<h2 id="orgfe93947">Protobuf 和 Json 存在显著的差异</h2>
+<div class="outline-text-2" id="text-orgfe93947">
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
 
 
@@ -283,26 +283,26 @@
 </div>
 </div>
 
-<div id="outline-container-org7256b52" class="outline-2">
-<h2 id="org7256b52">Protobuf 与 Json 的静态转换</h2>
-<div class="outline-text-2" id="text-org7256b52">
+<div id="outline-container-orga0b5f49" class="outline-2">
+<h2 id="orga0b5f49">Protobuf 与 Json 的静态转换</h2>
+<div class="outline-text-2" id="text-orga0b5f49">
 <p>
 使用 protoc 生成 proto 文件的编解码代码，再手工进行 Protobuf 与 Json 格式转换是很容易的，但是这需要在 proto 文件更新时重新生成代码，并重新编译、部署程序。
 </p>
 </div>
 </div>
 
-<div id="outline-container-org08b92ce" class="outline-2">
-<h2 id="org08b92ce">Protobuf 与 Json 的动态转换</h2>
-<div class="outline-text-2" id="text-org08b92ce">
+<div id="outline-container-orgd32e1a0" class="outline-2">
+<h2 id="orgd32e1a0">Protobuf 与 Json 的动态转换</h2>
+<div class="outline-text-2" id="text-orgd32e1a0">
 <p>
 如果程序能够解析 proto 文件，并根据 proto 定义完成 Protobuf 与 Json 的转换会很有用处。
 </p>
 </div>
 
-<div id="outline-container-org12051d9" class="outline-3">
-<h3 id="org12051d9">example.proto</h3>
-<div class="outline-text-3" id="text-org12051d9">
+<div id="outline-container-org5547d1e" class="outline-3">
+<h3 id="org5547d1e">example.proto</h3>
+<div class="outline-text-3" id="text-org5547d1e">
 <p>
 以下为接下来要使用的 <code>example.proto</code> 文件内容
 </p>
@@ -321,9 +321,9 @@
 </div>
 </div>
 
-<div id="outline-container-org71e2717" class="outline-3">
-<h3 id="org71e2717">Node.js</h3>
-<div class="outline-text-3" id="text-org71e2717">
+<div id="outline-container-orge677123" class="outline-3">
+<h3 id="orge677123">Node.js</h3>
+<div class="outline-text-3" id="text-orge677123">
 <p>
 在查找 Node.js 下 Protobuf 使用相关资料的过程中，发现 Node.js 可以直接载入 proto 文件，然后直接获取 Protobuf 编解码对象进行 Protobuf 的编解码，如下所示：
 </p>
@@ -334,9 +334,9 @@
 <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">server</span> = dgram.createSocket(<span style="color: #4E9A06;">'udp4'</span>);
 
 <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">builder</span> = ProtoBuf.loadProtoFile(<span style="color: #4E9A06;">"./cover.helloworld.proto"</span>),
-<span style="background-color: #E6E6E6;"> </span>   Cover = builder.build(<span style="color: #4E9A06;">"cover"</span>),
-<span style="background-color: #E6E6E6;"> </span>   HelloCoverReq = Cover.helloworld.helloCoverReq;
-<span style="background-color: #E6E6E6;"> </span>   HelloCoverRsp = Cover.helloworld.helloCoverRsp;
+    Cover = builder.build(<span style="color: #4E9A06;">"cover"</span>),
+    HelloCoverReq = Cover.helloworld.helloCoverReq;
+    HelloCoverRsp = Cover.helloworld.helloCoverRsp;
 </pre>
 </div>
 <p>
@@ -359,20 +359,20 @@
 <span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #0084C8; font-weight: bold;">assert</span> = require(<span style="color: #4E9A06;">'assert'</span>);
 
 ProtoBuf.load(<span style="color: #4E9A06;">"./example.proto"</span>).then((root) =&gt; {
-<span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #0084C8; font-weight: bold;">Hello</span> = root.lookup(<span style="color: #4E9A06;">'example.Hello'</span>);
-<span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #0084C8; font-weight: bold;">source</span> = {
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   name: <span style="color: #4E9A06;">"world"</span>,
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   times: 100
-<span style="background-color: #E6E6E6;"> </span>   };
-<span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #0084C8; font-weight: bold;">hello</span> = Hello.create(source);
-<span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #0084C8; font-weight: bold;">buffer</span> = Hello.encode(hello).finish();
-<span style="background-color: #E6E6E6;"> </span>   <span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #0084C8; font-weight: bold;">destination</span> = Hello.decode(buffer);
-<span style="background-color: #E6E6E6;"> </span>   assert(JSON.stringify(source) == JSON.stringify(destination));
+    <span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #0084C8; font-weight: bold;">Hello</span> = root.lookup(<span style="color: #4E9A06;">'example.Hello'</span>);
+    <span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #0084C8; font-weight: bold;">source</span> = {
+        name: <span style="color: #4E9A06;">"world"</span>,
+        times: 100
+    };
+    <span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #0084C8; font-weight: bold;">hello</span> = Hello.create(source);
+    <span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #0084C8; font-weight: bold;">buffer</span> = Hello.encode(hello).finish();
+    <span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #0084C8; font-weight: bold;">destination</span> = Hello.decode(buffer);
+    assert(JSON.stringify(source) == JSON.stringify(destination));
 
-<span style="background-color: #E6E6E6;"> </span>   console.log({
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   source: JSON.stringify(source),
-<span style="background-color: #E6E6E6;"> </span>   <span style="background-color: #E6E6E6;"> </span>   destination: JSON.stringify(destination)
-<span style="background-color: #E6E6E6;"> </span>   });
+    console.log({
+        source: JSON.stringify(source),
+        destination: JSON.stringify(destination)
+    });
 });
 </pre>
 </div>
@@ -388,9 +388,9 @@ $ node /home/tangxinfa/Examples/learn_node/protobuf_json.js
 </div>
 </div>
 
-<div id="outline-container-orgf3583b9" class="outline-3">
-<h3 id="orgf3583b9">C++</h3>
-<div class="outline-text-3" id="text-orgf3583b9">
+<div id="outline-container-orga6ce5e0" class="outline-3">
+<h3 id="orga6ce5e0">C++</h3>
+<div class="outline-text-3" id="text-orga6ce5e0">
 <p>
 C++ 是静态类型的语言，肯定不如 Node.js 那么方便，主要用到 Protobuf 的反射（Reflection）机制，具体实现见：
 </p>
@@ -433,68 +433,68 @@ protobuf_json.cpp
 
 <span style="color: #A52A2A; font-weight: bold;">class</span> <span style="color: #2F8B58; font-weight: bold;">ErrorCollector</span>: <span style="color: #A52A2A; font-weight: bold;">public</span> <span style="color: #F5666D;">google</span>::<span style="color: #F5666D;">protobuf</span>::<span style="color: #F5666D;">compiler</span>::<span style="color: #2F8B58; font-weight: bold;">MultiFileErrorCollector</span><span style="text-decoration: underline;"> {</span>
 <span style="color: #A52A2A; font-weight: bold;">public</span>:
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #00578E; font-weight: bold;">ErrorCollector</span>()
-<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> :warnings_(0), errors_(0)
-<span style="background-color: #E6E6E6;"> </span> {}
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">virtual</span> ~<span style="color: #00578E; font-weight: bold;">ErrorCollector</span>() {}
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">virtual</span> <span style="color: #2F8B58; font-weight: bold;">void</span> <span style="color: #00578E; font-weight: bold;">AddError</span>(<span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #2F8B58; font-weight: bold;">string</span>&amp; <span style="color: #0084C8; font-weight: bold;">filename</span>, <span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #0084C8; font-weight: bold;">line</span>, <span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #0084C8; font-weight: bold;">column</span>,
-<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #2F8B58; font-weight: bold;">string</span>&amp; <span style="color: #0084C8; font-weight: bold;">message</span>) {
-<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> ++errors_;
-<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #F5666D;">std</span>::cerr &lt;&lt; filename &lt;&lt; <span style="color: #4E9A06;">":"</span> &lt;&lt; line &lt;&lt; <span style="color: #4E9A06;">":"</span> &lt;&lt; column &lt;&lt; <span style="color: #4E9A06;">": "</span> &lt;&lt; message &lt;&lt; <span style="color: #F5666D; text-decoration: underline;">std</span><span style="text-decoration: underline;">::endl;</span>
-<span style="background-color: #E6E6E6;"> </span> }
+  <span style="color: #00578E; font-weight: bold;">ErrorCollector</span>()
+    :warnings_(0), errors_(0)
+  {}
+  <span style="color: #A52A2A; font-weight: bold;">virtual</span> ~<span style="color: #00578E; font-weight: bold;">ErrorCollector</span>() {}
+  <span style="color: #A52A2A; font-weight: bold;">virtual</span> <span style="color: #2F8B58; font-weight: bold;">void</span> <span style="color: #00578E; font-weight: bold;">AddError</span>(<span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #2F8B58; font-weight: bold;">string</span>&amp; <span style="color: #0084C8; font-weight: bold;">filename</span>, <span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #0084C8; font-weight: bold;">line</span>, <span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #0084C8; font-weight: bold;">column</span>,
+                        <span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #2F8B58; font-weight: bold;">string</span>&amp; <span style="color: #0084C8; font-weight: bold;">message</span>) {
+    ++errors_;
+    <span style="color: #F5666D;">std</span>::cerr &lt;&lt; filename &lt;&lt; <span style="color: #4E9A06;">":"</span> &lt;&lt; line &lt;&lt; <span style="color: #4E9A06;">":"</span> &lt;&lt; column &lt;&lt; <span style="color: #4E9A06;">": "</span> &lt;&lt; message &lt;&lt; <span style="color: #F5666D; text-decoration: underline;">std</span><span style="text-decoration: underline;">::endl;</span>
+  }
 
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">virtual</span> <span style="color: #2F8B58; font-weight: bold;">void</span> <span style="color: #00578E; font-weight: bold;">AddWarning</span>(<span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #2F8B58; font-weight: bold;">string</span>&amp; <span style="color: #0084C8; font-weight: bold;">filename</span>, <span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #0084C8; font-weight: bold;">line</span>, <span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #0084C8; font-weight: bold;">column</span>,
-<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #2F8B58; font-weight: bold;">string</span>&amp; <span style="color: #0084C8; font-weight: bold;">message</span>) {
-<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> ++warnings_;
-<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #F5666D;">std</span>::cerr &lt;&lt; filename &lt;&lt; <span style="color: #4E9A06;">":"</span> &lt;&lt; line &lt;&lt; <span style="color: #4E9A06;">":"</span> &lt;&lt; column &lt;&lt; <span style="color: #4E9A06;">": "</span> &lt;&lt; message &lt;&lt; <span style="color: #F5666D; text-decoration: underline;">std</span><span style="text-decoration: underline;">::endl;</span>
-<span style="background-color: #E6E6E6;"> </span> }
+  <span style="color: #A52A2A; font-weight: bold;">virtual</span> <span style="color: #2F8B58; font-weight: bold;">void</span> <span style="color: #00578E; font-weight: bold;">AddWarning</span>(<span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #2F8B58; font-weight: bold;">string</span>&amp; <span style="color: #0084C8; font-weight: bold;">filename</span>, <span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #0084C8; font-weight: bold;">line</span>, <span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #0084C8; font-weight: bold;">column</span>,
+                          <span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #2F8B58; font-weight: bold;">string</span>&amp; <span style="color: #0084C8; font-weight: bold;">message</span>) {
+    ++warnings_;
+    <span style="color: #F5666D;">std</span>::cerr &lt;&lt; filename &lt;&lt; <span style="color: #4E9A06;">":"</span> &lt;&lt; line &lt;&lt; <span style="color: #4E9A06;">":"</span> &lt;&lt; column &lt;&lt; <span style="color: #4E9A06;">": "</span> &lt;&lt; message &lt;&lt; <span style="color: #F5666D; text-decoration: underline;">std</span><span style="text-decoration: underline;">::endl;</span>
+  }
 
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #2F8B58; font-weight: bold;">uint</span> <span style="color: #00578E; font-weight: bold;">errors</span>() <span style="color: #A52A2A; font-weight: bold;">const</span> { <span style="color: #A52A2A; font-weight: bold;">return</span> errors_; }
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #2F8B58; font-weight: bold;">uint</span> <span style="color: #00578E; font-weight: bold;">warnings</span>() <span style="color: #A52A2A; font-weight: bold;">const</span> { <span style="color: #A52A2A; font-weight: bold;">return</span> warnings_; }
+  <span style="color: #2F8B58; font-weight: bold;">uint</span> <span style="color: #00578E; font-weight: bold;">errors</span>() <span style="color: #A52A2A; font-weight: bold;">const</span> { <span style="color: #A52A2A; font-weight: bold;">return</span> errors_; }
+  <span style="color: #2F8B58; font-weight: bold;">uint</span> <span style="color: #00578E; font-weight: bold;">warnings</span>() <span style="color: #A52A2A; font-weight: bold;">const</span> { <span style="color: #A52A2A; font-weight: bold;">return</span> warnings_; }
 
 <span style="color: #A52A2A; font-weight: bold;">private</span>:
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #2F8B58; font-weight: bold;">uint</span> <span style="color: #0084C8; font-weight: bold;">errors_</span>;
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #2F8B58; font-weight: bold;">uint</span> <span style="color: #0084C8; font-weight: bold;">warnings_</span>;
+  <span style="color: #2F8B58; font-weight: bold;">uint</span> <span style="color: #0084C8; font-weight: bold;">errors_</span>;
+  <span style="color: #2F8B58; font-weight: bold;">uint</span> <span style="color: #0084C8; font-weight: bold;">warnings_</span>;
 };
 
 
 <span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #00578E; font-weight: bold;">main</span>(<span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #0084C8; font-weight: bold;">argc</span>, <span style="color: #2F8B58; font-weight: bold;">char</span> *<span style="color: #0084C8; font-weight: bold;">argv</span>[]) {
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #204A87;">// </span><span style="color: #204A87;">parse proto file with protobuf compiler module,</span>
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #204A87;">// </span><span style="color: #204A87;">also can generate self-described protobuf message with protoc,</span>
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #204A87;">// </span><span style="color: #204A87;">then we can get file descriptor without protobuf compiler,</span>
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #204A87;">// </span><span style="color: #204A87;">see https://developers.google.com/protocol-buffers/docs/techniques#self-des</span><span style="color: #204A87; text-decoration: underline;">cription</span>
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #F5666D;">google</span>::<span style="color: #F5666D;">protobuf</span>::<span style="color: #F5666D;">compiler</span>::<span style="color: #2F8B58; font-weight: bold;">DiskSourceTree</span> <span style="color: #0084C8; font-weight: bold;">sourceTree</span>;
-<span style="background-color: #E6E6E6;"> </span> sourceTree.MapPath(<span style="color: #4E9A06;">""</span>, <span style="color: #4E9A06;">"."</span>);
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #2F8B58; font-weight: bold;">ErrorCollector</span> <span style="color: #0084C8; font-weight: bold;">collector</span>;
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #F5666D;">google</span>::<span style="color: #F5666D;">protobuf</span>::<span style="color: #F5666D;">compiler</span>::<span style="color: #2F8B58; font-weight: bold;">Importer</span> <span style="color: #0084C8; font-weight: bold;">importer</span>(&amp;sourceTree, &amp;collector);
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #2F8B58; font-weight: bold;">char</span>* <span style="color: #0084C8; font-weight: bold;">proto_file</span> = <span style="color: #4E9A06;">"example.proto"</span>;
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #F5666D;">google</span>::<span style="color: #F5666D;">protobuf</span>::<span style="color: #2F8B58; font-weight: bold;">FileDescriptor</span>* <span style="color: #0084C8; font-weight: bold;">fileDescriptor</span> = importer.Import(proto<span style="text-decoration: underline;">_file);</span>
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">if</span> (fileDescriptor == <span style="color: #F5666D;">NULL</span>) {
-<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #F5666D;">std</span>::cerr &lt;&lt; <span style="color: #4E9A06;">"proto file "</span> &lt;&lt; proto_file &lt;&lt; <span style="color: #4E9A06;">" import failed"</span> &lt;&lt; <span style="color: #F5666D;">std</span>::endl;
-<span style="background-color: #E6E6E6;"> </span> <span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">return</span> EXIT_FAILURE;
-<span style="background-color: #E6E6E6;"> </span> }
+  <span style="color: #204A87;">// </span><span style="color: #204A87;">parse proto file with protobuf compiler module,</span>
+  <span style="color: #204A87;">// </span><span style="color: #204A87;">also can generate self-described protobuf message with protoc,</span>
+  <span style="color: #204A87;">// </span><span style="color: #204A87;">then we can get file descriptor without protobuf compiler,</span>
+  <span style="color: #204A87;">// </span><span style="color: #204A87;">see https://developers.google.com/protocol-buffers/docs/techniques#self-des</span><span style="color: #204A87; text-decoration: underline;">cription</span>
+  <span style="color: #F5666D;">google</span>::<span style="color: #F5666D;">protobuf</span>::<span style="color: #F5666D;">compiler</span>::<span style="color: #2F8B58; font-weight: bold;">DiskSourceTree</span> <span style="color: #0084C8; font-weight: bold;">sourceTree</span>;
+  sourceTree.MapPath(<span style="color: #4E9A06;">""</span>, <span style="color: #4E9A06;">"."</span>);
+  <span style="color: #2F8B58; font-weight: bold;">ErrorCollector</span> <span style="color: #0084C8; font-weight: bold;">collector</span>;
+  <span style="color: #F5666D;">google</span>::<span style="color: #F5666D;">protobuf</span>::<span style="color: #F5666D;">compiler</span>::<span style="color: #2F8B58; font-weight: bold;">Importer</span> <span style="color: #0084C8; font-weight: bold;">importer</span>(&amp;sourceTree, &amp;collector);
+  <span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #2F8B58; font-weight: bold;">char</span>* <span style="color: #0084C8; font-weight: bold;">proto_file</span> = <span style="color: #4E9A06;">"example.proto"</span>;
+  <span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #F5666D;">google</span>::<span style="color: #F5666D;">protobuf</span>::<span style="color: #2F8B58; font-weight: bold;">FileDescriptor</span>* <span style="color: #0084C8; font-weight: bold;">fileDescriptor</span> = importer.Import(proto<span style="text-decoration: underline;">_file);</span>
+  <span style="color: #A52A2A; font-weight: bold;">if</span> (fileDescriptor == <span style="color: #F5666D;">NULL</span>) {
+    <span style="color: #F5666D;">std</span>::cerr &lt;&lt; <span style="color: #4E9A06;">"proto file "</span> &lt;&lt; proto_file &lt;&lt; <span style="color: #4E9A06;">" import failed"</span> &lt;&lt; <span style="color: #F5666D;">std</span>::endl;
+    <span style="color: #A52A2A; font-weight: bold;">return</span> EXIT_FAILURE;
+  }
 
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #F5666D;">google</span>::<span style="color: #F5666D;">protobuf</span>::<span style="color: #2F8B58; font-weight: bold;">Descriptor</span>* <span style="color: #0084C8; font-weight: bold;">descriptor</span> = fileDescriptor-&gt;FindMessageTy<span style="text-decoration: underline;">peByName(</span><span style="color: #4E9A06; text-decoration: underline;">"Hello"</span><span style="text-decoration: underline;">);</span>
-<span style="background-color: #E6E6E6;"> </span> assert(descriptor);
+  <span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #F5666D;">google</span>::<span style="color: #F5666D;">protobuf</span>::<span style="color: #2F8B58; font-weight: bold;">Descriptor</span>* <span style="color: #0084C8; font-weight: bold;">descriptor</span> = fileDescriptor-&gt;FindMessageTy<span style="text-decoration: underline;">peByName(</span><span style="color: #4E9A06; text-decoration: underline;">"Hello"</span><span style="text-decoration: underline;">);</span>
+  assert(descriptor);
 
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #F5666D;">google</span>::<span style="color: #F5666D;">protobuf</span>::<span style="color: #2F8B58; font-weight: bold;">DynamicMessageFactory</span> <span style="color: #0084C8; font-weight: bold;">factory</span>;
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #F5666D;">google</span>::<span style="color: #F5666D;">protobuf</span>::<span style="color: #2F8B58; font-weight: bold;">Message</span>* <span style="color: #0084C8; font-weight: bold;">prototype</span> = factory.GetPrototype(descriptor);
-<span style="background-color: #E6E6E6;"> </span> assert(prototype);
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #F5666D;">google</span>::<span style="color: #F5666D;">protobuf</span>::<span style="color: #2F8B58; font-weight: bold;">Message</span>* <span style="color: #0084C8; font-weight: bold;">message</span> = prototype-&gt;New();
-<span style="background-color: #E6E6E6;"> </span> assert(message);
+  <span style="color: #F5666D;">google</span>::<span style="color: #F5666D;">protobuf</span>::<span style="color: #2F8B58; font-weight: bold;">DynamicMessageFactory</span> <span style="color: #0084C8; font-weight: bold;">factory</span>;
+  <span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #F5666D;">google</span>::<span style="color: #F5666D;">protobuf</span>::<span style="color: #2F8B58; font-weight: bold;">Message</span>* <span style="color: #0084C8; font-weight: bold;">prototype</span> = factory.GetPrototype(descriptor);
+  assert(prototype);
+  <span style="color: #F5666D;">google</span>::<span style="color: #F5666D;">protobuf</span>::<span style="color: #2F8B58; font-weight: bold;">Message</span>* <span style="color: #0084C8; font-weight: bold;">message</span> = prototype-&gt;New();
+  assert(message);
 
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #2F8B58; font-weight: bold;">string</span> <span style="color: #0084C8; font-weight: bold;">source</span> = <span style="color: #4E9A06;">"{\"name\":\"world\",\"times\":100}"</span>;
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #2F8B58; font-weight: bold;">bool</span> <span style="color: #0084C8; font-weight: bold;">ok</span> = <span style="color: #F5666D;">Pb2Json</span>::Json2Message(<span style="color: #F5666D;">nlohmann</span>::<span style="color: #F5666D;">json</span>::parse(source), *message);
-<span style="background-color: #E6E6E6;"> </span> assert(ok);
+  <span style="color: #2F8B58; font-weight: bold;">string</span> <span style="color: #0084C8; font-weight: bold;">source</span> = <span style="color: #4E9A06;">"{\"name\":\"world\",\"times\":100}"</span>;
+  <span style="color: #2F8B58; font-weight: bold;">bool</span> <span style="color: #0084C8; font-weight: bold;">ok</span> = <span style="color: #F5666D;">Pb2Json</span>::Json2Message(<span style="color: #F5666D;">nlohmann</span>::<span style="color: #F5666D;">json</span>::parse(source), *message);
+  assert(ok);
 
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #F5666D;">nlohmann</span>::<span style="color: #2F8B58; font-weight: bold;">json</span> <span style="color: #0084C8; font-weight: bold;">destinationJson</span>;
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #F5666D;">Pb2Json</span>::Message2Json(*message, destinationJson);
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #2F8B58; font-weight: bold;">string</span> <span style="color: #0084C8; font-weight: bold;">destination</span> = destinationJson.dump();
+  <span style="color: #F5666D;">nlohmann</span>::<span style="color: #2F8B58; font-weight: bold;">json</span> <span style="color: #0084C8; font-weight: bold;">destinationJson</span>;
+  <span style="color: #F5666D;">Pb2Json</span>::Message2Json(*message, destinationJson);
+  <span style="color: #2F8B58; font-weight: bold;">string</span> <span style="color: #0084C8; font-weight: bold;">destination</span> = destinationJson.dump();
 
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #F5666D;">std</span>::cout &lt;&lt; <span style="color: #4E9A06;">"source: "</span> &lt;&lt; source &lt;&lt; <span style="color: #4E9A06;">"\tdestination: "</span> &lt;&lt; destination &lt;&lt; <span style="color: #F5666D;">std</span>::<span style="text-decoration: underline;">endl;</span>
-<span style="background-color: #E6E6E6;"> </span> assert(source == destination);
+  <span style="color: #F5666D;">std</span>::cout &lt;&lt; <span style="color: #4E9A06;">"source: "</span> &lt;&lt; source &lt;&lt; <span style="color: #4E9A06;">"\tdestination: "</span> &lt;&lt; destination &lt;&lt; <span style="color: #F5666D;">std</span>::<span style="text-decoration: underline;">endl;</span>
+  assert(source == destination);
 
-<span style="background-color: #E6E6E6;"> </span> <span style="color: #A52A2A; font-weight: bold;">return</span> EXIT_SUCCESS;
+  <span style="color: #A52A2A; font-weight: bold;">return</span> EXIT_SUCCESS;
 }
 </pre>
 </div>
