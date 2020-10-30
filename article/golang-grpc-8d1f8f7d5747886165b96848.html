@@ -2,7 +2,7 @@
 <html lang="zh-cn">
   <head>
     <meta charset="utf-8"/>
-    <title>golang gRPC 负载均衡方案 | 看看俺 – KanKanAn.com</title>
+    <title>golang gRPC 负载均衡方案 | tangxinfa&#x27;s blog</title>
     <link rel="shortcut icon" href="/static/favicon.ico" />
     <link rel="stylesheet" type="text/css" href="/style/ediary.css"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -11,7 +11,7 @@
   <body>
     <div class="navbar navbar-fixed-top" id="header">
       <div class="navbar-inner">
-        <a class="brand" href="/" style="line-height:100%;">看看俺 – KanKanAn.com</a>
+        <a class="brand" href="/" style="line-height:100%;">tangxinfa&#x27;s blog</a>
         <ul class="navbar-links">
           <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
           
@@ -31,11 +31,11 @@
       
         <div class="article-content">
           
-<div id="outline-container-orgaa09594" class="outline-2">
-<h2 id="orgaa09594">服务器端负载均衡选项： <code>MaxConnectionAge</code></h2>
-<div class="outline-text-2" id="text-orgaa09594">
+<div id="outline-container-org205254e" class="outline-2">
+<h2 id="org205254e">服务器端负载均衡选项： <code>MaxConnectionAge</code></h2>
+<div class="outline-text-2" id="text-org205254e">
 <p>
-默认情况下，gRPC 客户端与服务器间存在一条 HTTP/2 长连接，当服务器端添加了新结点时，客户端是无感知的，新上线的结点将不会有请求进来。~MaxConnectionAge~ 指定长连接的存活时间，当客户端检测到 gRPC 长连接断开时，会解析服务器域名，重新建立连接，从而为负载均衡提供了基础。
+默认情况下，gRPC 客户端与服务器间存在一条 HTTP/2 长连接，当服务器端添加了新结点时，客户端是无感知的，新上线的结点将不会有请求进来。 <code>MaxConnectionAge</code> 指定长连接的存活时间，当客户端检测到 gRPC 长连接断开时，会解析服务器域名，重新建立连接，从而为负载均衡提供了基础。
 </p>
 
 <div class="org-src-container">
@@ -49,9 +49,9 @@ server = grpc.<span style="color: #00578E; font-weight: bold;">NewServer</span>(
 </div>
 </div>
 
-<div id="outline-container-org2da554a" class="outline-2">
-<h2 id="org2da554a">客户端负载均衡器： <code>Pick First</code></h2>
-<div class="outline-text-2" id="text-org2da554a">
+<div id="outline-container-org932f51d" class="outline-2">
+<h2 id="org932f51d">客户端负载均衡器： <code>Pick First</code></h2>
+<div class="outline-text-2" id="text-org932f51d">
 <p>
 适用于终端用户与服务间通信，由于存在大量终端用户，服务器端的负载均衡不成问题。
 </p>
@@ -87,9 +87,9 @@ server = grpc.<span style="color: #00578E; font-weight: bold;">NewServer</span>(
 </div>
 </div>
 
-<div id="outline-container-org46cc9c9" class="outline-2">
-<h2 id="org46cc9c9">客户端负载均衡器： <code>Round Robin</code></h2>
-<div class="outline-text-2" id="text-org46cc9c9">
+<div id="outline-container-org828c337" class="outline-2">
+<h2 id="org828c337">客户端负载均衡器： <code>Round Robin</code></h2>
+<div class="outline-text-2" id="text-org828c337">
 <p>
 适用于内部服务间通信，在 K8S 中配合 <a href="https://kubernetes.io/docs/concepts/services-networking/service/#headless-services">Headless Services</a> 非常容易部署。
 </p>
@@ -127,9 +127,9 @@ server = grpc.<span style="color: #00578E; font-weight: bold;">NewServer</span>(
 </div>
 </div>
 
-<div id="outline-container-org18fb6a7" class="outline-2">
-<h2 id="org18fb6a7">客户端负载均衡器： <code>Pool</code></h2>
-<div class="outline-text-2" id="text-org18fb6a7">
+<div id="outline-container-orga4ea548" class="outline-2">
+<h2 id="orga4ea548">客户端负载均衡器： <code>Pool</code></h2>
+<div class="outline-text-2" id="text-orga4ea548">
 <p>
 适用于外部服务间通信，在 K8S 中以 SLB 方式暴露的服务对外表现为一个 IP，此时采用连接池可以确保负载均衡。
 </p>
@@ -209,7 +209,7 @@ server = grpc.<span style="color: #00578E; font-weight: bold;">NewServer</span>(
             grpc.<span style="color: #00578E; font-weight: bold;">WithBalancerName</span>(roundrobin.Name),
         )
         <span style="color: #A52A2A; font-weight: bold;">if</span> err != <span style="color: #F5666D;">nil</span> {
-            <span style="color: #A52A2A; font-weight: bold;">defer</span> pool.<span style="color: #00578E; font-weight: bold;">Close</span>() <span style="color: #204A87;">// </span><span style="color: #204A87;">NOTE: error from Close is ignored.</span>
+            <span style="color: #A52A2A; font-weight: bold;">defer</span> pool.<span style="color: #00578E; font-weight: bold;">Close</span>() <span style="color: #204A87;">// </span><span style="color: #d0bf8f;">NOTE</span><span style="color: #204A87;">: error from Close is ignored.</span>
             <span style="color: #A52A2A; font-weight: bold;">return</span> <span style="color: #F5666D;">nil</span>, err
         }
         pool.conns = <span style="color: #A020F0;">append</span>(pool.conns, conn)
@@ -266,7 +266,7 @@ server = grpc.<span style="color: #00578E; font-weight: bold;">NewServer</span>(
 
     <div id="footer">
   	  <div class="copyright" style="text-align: center;">
-  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
+  	    版权所有 © 2011-2020 tangxinfa
   	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
   	  </div>
     </div>

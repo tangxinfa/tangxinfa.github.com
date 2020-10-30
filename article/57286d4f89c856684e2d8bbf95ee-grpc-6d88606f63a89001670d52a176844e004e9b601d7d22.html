@@ -2,7 +2,7 @@
 <html lang="zh-cn">
   <head>
     <meta charset="utf-8"/>
-    <title>在浏览器中访问 gRPC 消息推送服务的一些思索 | 看看俺 – KanKanAn.com</title>
+    <title>在浏览器中访问 gRPC 消息推送服务的一些思索 | tangxinfa&#x27;s blog</title>
     <link rel="shortcut icon" href="/static/favicon.ico" />
     <link rel="stylesheet" type="text/css" href="/style/ediary.css"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -11,7 +11,7 @@
   <body>
     <div class="navbar navbar-fixed-top" id="header">
       <div class="navbar-inner">
-        <a class="brand" href="/" style="line-height:100%;">看看俺 – KanKanAn.com</a>
+        <a class="brand" href="/" style="line-height:100%;">tangxinfa&#x27;s blog</a>
         <ul class="navbar-links">
           <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
           
@@ -51,9 +51,9 @@ HTTP/2 在 2015 年底开始被广泛支持（参考 <a href="https://zh.wikiped
 下面是方案调研时接触的一些相关开源项目，供参考。
 </p>
 
-<div id="outline-container-org3a0f505" class="outline-2">
-<h2 id="org3a0f505"><a href="https://github.com/grpc-ecosystem/grpc-gateway">grpc-gateway</a></h2>
-<div class="outline-text-2" id="text-org3a0f505">
+<div id="outline-container-org4dbaff8" class="outline-2">
+<h2 id="org4dbaff8"><a href="https://github.com/grpc-ecosystem/grpc-gateway">grpc-gateway</a></h2>
+<div class="outline-text-2" id="text-org4dbaff8">
 <blockquote>
 <p>
 grpc-gateway is a plugin of protoc. It reads gRPC service definition, and generates a reverse-proxy server which translates a RESTful JSON API into gRPC. This server is generated according to custom options in your gRPC definition.
@@ -76,9 +76,9 @@ grpc-gateway 为 Grpc 服务生成 HTTP/1.1 JSON RESTful 反向代理服务，�
 </div>
 </div>
 
-<div id="outline-container-orgd5c04bc" class="outline-2">
-<h2 id="orgd5c04bc"><a href="https://github.com/tmc/grpc-websocket-proxy">grpc-websocket-proxy</a></h2>
-<div class="outline-text-2" id="text-orgd5c04bc">
+<div id="outline-container-org5b1207f" class="outline-2">
+<h2 id="org5b1207f"><a href="https://github.com/tmc/grpc-websocket-proxy">grpc-websocket-proxy</a></h2>
+<div class="outline-text-2" id="text-org5b1207f">
 <blockquote>
 <p>
 A proxy to transparently upgrade grpc-gateway streaming endpoints to use websockets
@@ -111,9 +111,9 @@ WebSocket &lt;-&gt; HTTP/1.1 &lt;-&gt; gRPC
 </div>
 </div>
 
-<div id="outline-container-org3446778" class="outline-2">
-<h2 id="org3446778"><a href="https://socket.io/">socket.io</a></h2>
-<div class="outline-text-2" id="text-org3446778">
+<div id="outline-container-orgfc230d3" class="outline-2">
+<h2 id="orgfc230d3"><a href="https://socket.io/">socket.io</a></h2>
+<div class="outline-text-2" id="text-orgfc230d3">
 <blockquote>
 <p>
 Socket.IO enables real-time bidirectional event-based communication.
@@ -144,9 +144,9 @@ go 的 socket.io 实现没有官方支持，很不完善，<a href="https://gith
 </div>
 </div>
 
-<div id="outline-container-org37ba9d8" class="outline-2">
-<h2 id="org37ba9d8"><a href="https://lyft.github.io/envoy/">envoy</a></h2>
-<div class="outline-text-2" id="text-org37ba9d8">
+<div id="outline-container-org7074006" class="outline-2">
+<h2 id="org7074006"><a href="https://lyft.github.io/envoy/">envoy</a></h2>
+<div class="outline-text-2" id="text-org7074006">
 <p>
 <a href="https://lyft.github.io/envoy/">envoy</a> 有一些插件完成了部分功能：
 </p>
@@ -180,7 +180,7 @@ go 的 socket.io 实现没有官方支持，很不完善，<a href="https://gith
 </p>
 
 <p>
-详见 <a href="http://blog.kankanan.com/article/envoy-7684-json_transcoder_filter-4ecb7ecd.html">Envoy 的 json_transcoder_filter 介绍</a>
+详见 <a href="http://tangxinfa.github.io/article/envoy-7684-json_transcoder_filter-4ecb7ecd.html">Envoy 的 json_transcoder_filter 介绍</a>
 </p>
 
 <p>
@@ -226,9 +226,9 @@ Envoy 中编写插件支持 WebSocket 到 gRPC 的协议转换（支持 <code>Bi
 </div>
 
 
-<div id="outline-container-org62497d0" class="outline-2">
-<h2 id="org62497d0">nginx</h2>
-<div class="outline-text-2" id="text-org62497d0">
+<div id="outline-container-org10a1535" class="outline-2">
+<h2 id="org10a1535">nginx</h2>
+<div class="outline-text-2" id="text-org10a1535">
 <p>
 与 envoy 的 <a href="https://envoyproxy.github.io/envoy/intro/arch_overview/websocket.html?highlight=websocket">WebSocket support</a> 相似，支持接入 WebSocket，会建立一条到 Upstream 的 TCP 连接，Upstream 服务需要是一个完整的 WebSocket 服务器，相当于是一个 WebSocket 的透明代理，由于客户端发起的 WebSocket 连接与到 Upstream 的连接（通过 proxy_pass 指令）是 <code>1:1</code> 的关系，连接数倍增，参考 <a href="https://www.nginx.com/blog/http2-module-nginx/#QandAnginx">https://www.nginx.com/blog/http2-module-nginx/#QandAnginx</a> 。
 </p>
@@ -282,7 +282,7 @@ Fast, horizontally scalable, multiprocess pub/sub queuing server and proxy for H
 
     <div id="footer">
   	  <div class="copyright" style="text-align: center;">
-  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
+  	    版权所有 © 2011-2020 tangxinfa
   	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
   	  </div>
     </div>

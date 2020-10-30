@@ -2,7 +2,7 @@
 <html lang="zh-cn">
   <head>
     <meta charset="utf-8"/>
-    <title>tls连接内存占用 | 看看俺 – KanKanAn.com</title>
+    <title>tls连接内存占用 | tangxinfa&#x27;s blog</title>
     <link rel="shortcut icon" href="/static/favicon.ico" />
     <link rel="stylesheet" type="text/css" href="/style/ediary.css"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -11,7 +11,7 @@
   <body>
     <div class="navbar navbar-fixed-top" id="header">
       <div class="navbar-inner">
-        <a class="brand" href="/" style="line-height:100%;">看看俺 – KanKanAn.com</a>
+        <a class="brand" href="/" style="line-height:100%;">tangxinfa&#x27;s blog</a>
         <ul class="navbar-links">
           <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
           
@@ -34,9 +34,9 @@
 我们有一个 <code>node.js</code> 服务，有大量 <code>tls</code> 长连接，跑了一段时间后发现内存消耗比较大，每个 <code>node.js</code> 实例维持 <code>3000</code> 个连接需要消耗 <code>1G</code> 略多的内存，但是也不能确定有内存泄露，毕竟内存没有再往上涨导致服务中断，所以觉得有必要测试一下 <code>tls</code> 连接的内存消耗情况。
 </p>
 
-<div id="outline-container-org4d1b4a7" class="outline-2">
-<h2 id="org4d1b4a7">tls服务器</h2>
-<div class="outline-text-2" id="text-org4d1b4a7">
+<div id="outline-container-org2685c74" class="outline-2">
+<h2 id="org2685c74">tls服务器</h2>
+<div class="outline-text-2" id="text-org2685c74">
 <div class="org-src-container">
 <pre class="src src-js"><span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">tls</span>         = require(<span style="color: #4E9A06;">'tls'</span>),
     fs          = require(<span style="color: #4E9A06;">'fs'</span>);
@@ -53,14 +53,14 @@
 <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">port</span> = 1234;
 <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">tlsServer</span> = tls.createServer(options, <span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">socket</span>) {
     socket.on(<span style="color: #4E9A06;">"close"</span>, <span style="color: #A52A2A; font-weight: bold;">function</span> () {
-        console.warn(<span style="color: #4E9A06;">'tls client('</span> + socket.remoteAddress + <span style="color: #4E9A06;">':'</span> + socket.remoteP<span style="text-decoration: underline;">ort +</span><span style="color: #4E9A06; text-decoration: underline;">') closed'</span><span style="text-decoration: underline;">);</span>
+        console.warn(<span style="color: #4E9A06;">'tls client('</span> + socket.remoteAddress + <span style="color: #4E9A06;">':'</span> + socket.remotePort +<span style="color: #4E9A06;">') closed'</span>);
     });
 }).listen(port, <span style="color: #4E9A06;">"0.0.0.0"</span>, <span style="color: #A52A2A; font-weight: bold;">function</span>(){
     console.log(<span style="color: #4E9A06;">'tls server listening on port('</span> + port + <span style="color: #4E9A06;">')'</span>);
 });
 tlsServer.maxConnections = 10000;
 tlsServer.on(<span style="color: #4E9A06;">'clientError'</span>, <span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">exception</span>, <span style="color: #0084C8; font-weight: bold;">socket</span>) {
-    console.warn(<span style="color: #4E9A06;">'tls client('</span> + socket.remoteAddress + <span style="color: #4E9A06;">':'</span> + socket.remotePort <span style="text-decoration: underline;">+</span><span style="color: #4E9A06; text-decoration: underline;">') error('</span><span style="text-decoration: underline;"> + exception + </span><span style="color: #4E9A06; text-decoration: underline;">')'</span><span style="text-decoration: underline;">);</span>
+    console.warn(<span style="color: #4E9A06;">'tls client('</span> + socket.remoteAddress + <span style="color: #4E9A06;">':'</span> + socket.remotePort +<span style="color: #4E9A06;">') error('</span> + exception + <span style="color: #4E9A06;">')'</span>);
     socket.destroy();
 });
 
@@ -69,13 +69,13 @@ tlsServer.on(<span style="color: #4E9A06;">'clientError'</span>, <span style="co
     <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">format</span> = <span style="color: #A52A2A; font-weight: bold;">function</span>(<span style="color: #0084C8; font-weight: bold;">bytes</span>) {
         <span style="color: #A52A2A; font-weight: bold;">return</span> (bytes/1024/1024).toFixed(2)+<span style="color: #4E9A06;">'MB'</span>;
     };
-    console.log(<span style="color: #4E9A06;">'Process: heapTotal '</span>+format(mem.heapTotal) + <span style="color: #4E9A06;">' heapUsed '</span> + for<span style="text-decoration: underline;">mat(mem.heapUsed) + </span><span style="color: #4E9A06; text-decoration: underline;">' rss '</span><span style="text-decoration: underline;"> + format(mem.rss));</span>
+    console.log(<span style="color: #4E9A06;">'Process: heapTotal '</span>+format(mem.heapTotal) + <span style="color: #4E9A06;">' heapUsed '</span> + format(mem.heapUsed) + <span style="color: #4E9A06;">' rss '</span> + format(mem.rss));
 }
 
 setInterval(<span style="color: #A52A2A; font-weight: bold;">function</span> () {
     tlsServer.getConnections(<span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">err</span>, <span style="color: #0084C8; font-weight: bold;">tlsCount</span>) {
         <span style="color: #A52A2A; font-weight: bold;">if</span> (err) {
-            console.error(<span style="color: #4E9A06;">"get tls connections count error("</span> + err.toString() + <span style="color: #4E9A06; text-decoration: underline;">")"</span><span style="text-decoration: underline;">);</span>
+            console.error(<span style="color: #4E9A06;">"get tls connections count error("</span> + err.toString() + <span style="color: #4E9A06;">")"</span>);
         }
 
         console.warn(<span style="color: #4E9A06;">"server: tls connections("</span> + tlsCount + <span style="color: #4E9A06;">")"</span>);
@@ -88,9 +88,9 @@ setInterval(<span style="color: #A52A2A; font-weight: bold;">function</span> () 
 </div>
 </div>
 
-<div id="outline-container-orgbd15908" class="outline-2">
-<h2 id="orgbd15908">tls客户端</h2>
-<div class="outline-text-2" id="text-orgbd15908">
+<div id="outline-container-orgc51199d" class="outline-2">
+<h2 id="orgc51199d">tls客户端</h2>
+<div class="outline-text-2" id="text-orgc51199d">
 <div class="org-src-container">
 <pre class="src src-js"><span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">tls</span> = require(<span style="color: #4E9A06;">'tls'</span>);
 
@@ -113,7 +113,7 @@ setInterval(<span style="color: #A52A2A; font-weight: bold;">function</span> () 
     <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">format</span> = <span style="color: #A52A2A; font-weight: bold;">function</span>(<span style="color: #0084C8; font-weight: bold;">bytes</span>) {
         <span style="color: #A52A2A; font-weight: bold;">return</span> (bytes/1024/1024).toFixed(2)+<span style="color: #4E9A06;">'MB'</span>;
     };
-    console.log(<span style="color: #4E9A06;">'Process: heapTotal '</span>+format(mem.heapTotal) + <span style="color: #4E9A06;">' heapUsed '</span> + for<span style="text-decoration: underline;">mat(mem.heapUsed) + </span><span style="color: #4E9A06; text-decoration: underline;">' rss '</span><span style="text-decoration: underline;"> + format(mem.rss));</span>
+    console.log(<span style="color: #4E9A06;">'Process: heapTotal '</span>+format(mem.heapTotal) + <span style="color: #4E9A06;">' heapUsed '</span> + format(mem.heapUsed) + <span style="color: #4E9A06;">' rss '</span> + format(mem.rss));
 }
 
 <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">round</span> = 0;
@@ -134,9 +134,9 @@ setInterval(<span style="color: #A52A2A; font-weight: bold;">function</span> () 
 </div>
 </div>
 
-<div id="outline-container-org52471f6" class="outline-2">
-<h2 id="org52471f6">tls服务器日志</h2>
-<div class="outline-text-2" id="text-org52471f6">
+<div id="outline-container-org03c7ad5" class="outline-2">
+<h2 id="org03c7ad5">tls服务器日志</h2>
+<div class="outline-text-2" id="text-org03c7ad5">
 <p>
 连接从 <code>0</code> 到 <code>1000</code> 内存增长
 </p>
@@ -248,9 +248,9 @@ Process: heapTotal 33.74MB heapUsed 19.24MB rss 59.38MB
 </div>
 </div>
 
-<div id="outline-container-org440127e" class="outline-2">
-<h2 id="org440127e">不同版本的node.js结果会有差异</h2>
-<div class="outline-text-2" id="text-org440127e">
+<div id="outline-container-orgc6f62d5" class="outline-2">
+<h2 id="orgc6f62d5">不同版本的node.js结果会有差异</h2>
+<div class="outline-text-2" id="text-orgc6f62d5">
 <p>
 为了完全模拟真实环境，针对每一个接收的 <code>tls</code> 连接，除了 <code>close</code> ，还监听了 <code>data</code> 、 <code>error</code> 、 <code>timeout</code> 事件：
 </p>
@@ -260,10 +260,10 @@ Process: heapTotal 33.74MB heapUsed 19.24MB rss 59.38MB
 
 });
 socket.on(<span style="color: #4E9A06;">"error"</span>, <span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">err</span>) {
-    console.warn(<span style="color: #4E9A06;">'tls client('</span> + socket.remoteAddress + <span style="color: #4E9A06;">':'</span> + socket.remotePort <span style="text-decoration: underline;">+</span><span style="color: #4E9A06; text-decoration: underline;">') error('</span><span style="text-decoration: underline;"> + err.toString() + </span><span style="color: #4E9A06; text-decoration: underline;">')'</span><span style="text-decoration: underline;">);</span>
+    console.warn(<span style="color: #4E9A06;">'tls client('</span> + socket.remoteAddress + <span style="color: #4E9A06;">':'</span> + socket.remotePort +<span style="color: #4E9A06;">') error('</span> + err.toString() + <span style="color: #4E9A06;">')'</span>);
 });
 socket.on(<span style="color: #4E9A06;">"close"</span>, <span style="color: #A52A2A; font-weight: bold;">function</span> () {
-    console.warn(<span style="color: #4E9A06;">'tls client('</span> + socket.remoteAddress + <span style="color: #4E9A06;">':'</span> + socket.remotePort <span style="text-decoration: underline;">+</span><span style="color: #4E9A06; text-decoration: underline;">') closed'</span><span style="text-decoration: underline;">);</span>
+    console.warn(<span style="color: #4E9A06;">'tls client('</span> + socket.remoteAddress + <span style="color: #4E9A06;">':'</span> + socket.remotePort +<span style="color: #4E9A06;">') closed'</span>);
 });
 socket.on(<span style="color: #4E9A06;">"timeout"</span>, <span style="color: #A52A2A; font-weight: bold;">function</span> () {
     socket.destroy();
@@ -281,9 +281,9 @@ socket.on(<span style="color: #4E9A06;">"timeout"</span>, <span style="color: #A
 </div>
 </div>
 
-<div id="outline-container-org905438f" class="outline-2">
-<h2 id="org905438f">最后附上 node.js 各个版本的测试结果</h2>
-<div class="outline-text-2" id="text-org905438f">
+<div id="outline-container-org464ab6f" class="outline-2">
+<h2 id="org464ab6f">最后附上 node.js 各个版本的测试结果</h2>
+<div class="outline-text-2" id="text-org464ab6f">
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
 <caption class="t-above"><span class="table-number">Table 1:</span> 10000 tls connections</caption>
 
@@ -366,7 +366,7 @@ socket.on(<span style="color: #4E9A06;">"timeout"</span>, <span style="color: #A
 </p>
 
 <div class="org-src-container">
-<pre class="src src-sh">sudo bash -c <span style="color: #4E9A06;">"(ulimit -n 10240; for (( i = 0; i &lt; 100; i++)); do echo round \$i;</span><span style="color: #4E9A06; text-decoration: underline;"> node ./test_tls_client.js; done;)"</span>
+<pre class="src src-sh">sudo bash -c <span style="color: #4E9A06;">"(ulimit -n 10240; for (( i = 0; i &lt; 100; i++)); do echo round \$i; node ./test_tls_client.js; done;)"</span>
 </pre>
 </div>
 
@@ -405,7 +405,7 @@ socket.on(<span style="color: #4E9A06;">"timeout"</span>, <span style="color: #A
 
     <div id="footer">
   	  <div class="copyright" style="text-align: center;">
-  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
+  	    版权所有 © 2011-2020 tangxinfa
   	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
   	  </div>
     </div>

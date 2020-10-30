@@ -2,7 +2,7 @@
 <html lang="zh-cn">
   <head>
     <meta charset="utf-8"/>
-    <title>后台服务监护工具：forever与pm2 | 看看俺 – KanKanAn.com</title>
+    <title>后台服务监护工具：forever与pm2 | tangxinfa&#x27;s blog</title>
     <link rel="shortcut icon" href="/static/favicon.ico" />
     <link rel="stylesheet" type="text/css" href="/style/ediary.css"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -11,7 +11,7 @@
   <body>
     <div class="navbar navbar-fixed-top" id="header">
       <div class="navbar-inner">
-        <a class="brand" href="/" style="line-height:100%;">看看俺 – KanKanAn.com</a>
+        <a class="brand" href="/" style="line-height:100%;">tangxinfa&#x27;s blog</a>
         <ul class="navbar-links">
           <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
           
@@ -116,9 +116,9 @@ node.js下最常用的后台服务监护工具有：<a href="https://github.com/
 我在3个项目中使用 <a href="https://github.com/nodejitsu/forever">forever</a> ，多次重启出错后，决定转向 <a href="https://github.com/Unitech/pm2">pm2</a> ，目前我已经在两个较小的项目中成功使用 <a href="https://github.com/Unitech/pm2">pm2</a> 。
 </p>
 
-<div id="outline-container-orgeeb8af8" class="outline-2">
-<h2 id="orgeeb8af8"><a href="https://github.com/nodejitsu/forever">forever</a></h2>
-<div class="outline-text-2" id="text-orgeeb8af8">
+<div id="outline-container-org9d60f1d" class="outline-2">
+<h2 id="org9d60f1d"><a href="https://github.com/nodejitsu/forever">forever</a></h2>
+<div class="outline-text-2" id="text-org9d60f1d">
 <ul class="org-ul">
 <li><p>
 安装
@@ -140,7 +140,7 @@ node.js下最常用的后台服务监护工具有：<a href="https://github.com/
 <div class="org-src-container">
 <pre class="src src-sh"><span style="color: #204A87;">#</span><span style="color: #204A87;">!/bin/</span><span style="color: #A52A2A; font-weight: bold;">bash</span>
 
-<span style="color: #A020F0;">export</span> <span style="color: #0084C8; font-weight: bold;">PATH</span>=$<span style="color: #0084C8; font-weight: bold;">PATH</span>:<span style="color: #ff00ff;">`pwd`</span>/node/bin:<span style="color: #ff00ff;">`pwd`</span>/../node/bin:<span style="color: #ff00ff;">`pwd`</span>/node_modules/forever/bi<span style="text-decoration: underline;">n:/usr/local/node/bin</span>
+<span style="color: #A020F0;">export</span> <span style="color: #0084C8; font-weight: bold;">PATH</span>=$<span style="color: #0084C8; font-weight: bold;">PATH</span>:<span style="color: #ff00ff;">`pwd`</span>/node/bin:<span style="color: #ff00ff;">`pwd`</span>/../node/bin:<span style="color: #ff00ff;">`pwd`</span>/node_modules/forever/bin:/usr/local/node/bin
 <span style="color: #A020F0;">export</span> <span style="color: #0084C8; font-weight: bold;">NODE_ENV</span>=${<span style="color: #0084C8; font-weight: bold;">NODE_ENV</span>:-production}
 <span style="color: #A020F0;">export</span> <span style="color: #0084C8; font-weight: bold;">NODE_CONFIG_DIR</span>=<span style="color: #ff00ff;">`pwd`</span>/config
 
@@ -150,7 +150,7 @@ node.js下最常用的后台服务监护工具有：<a href="https://github.com/
 <span style="color: #0084C8; font-weight: bold;">running</span>=<span style="color: #ff00ff;">`forever list | grep "$SCRIPT" | grep -v grep | wc -l`</span>
 
 <span style="color: #A52A2A; font-weight: bold;">if</span> [ $<span style="color: #0084C8; font-weight: bold;">running</span> -lt 1 ]; <span style="color: #A52A2A; font-weight: bold;">then</span>
-    forever start --spinSleepTime=10000 --killSignal=SIGINT --pidFile=<span style="color: #ff00ff;">`pwd`</span>/run.<span style="text-decoration: underline;">pid -l $</span><span style="color: #0084C8; font-weight: bold; text-decoration: underline;">LOGFILE</span><span style="text-decoration: underline;"> -a -w --watchDirectory=</span><span style="color: #ff00ff; text-decoration: underline;">`pwd`</span><span style="text-decoration: underline;">/src --watchIgnore=</span><span style="color: #4E9A06; text-decoration: underline;">".svn/*"</span><span style="text-decoration: underline;"> </span><span style="color: #4E9A06; text-decoration: underline;">"$SCRIPT"</span>
+    forever start --spinSleepTime=10000 --killSignal=SIGINT --pidFile=<span style="color: #ff00ff;">`pwd`</span>/run.pid -l $<span style="color: #0084C8; font-weight: bold;">LOGFILE</span> -a -w --watchDirectory=<span style="color: #ff00ff;">`pwd`</span>/src --watchIgnore=<span style="color: #4E9A06;">".svn/*"</span> <span style="color: #4E9A06;">"$SCRIPT"</span>
     <span style="color: #A020F0;">echo</span> -e <span style="color: #4E9A06;">"\nRunning."</span>
 <span style="color: #A52A2A; font-weight: bold;">else</span>
     <span style="color: #A020F0;">echo</span> -e <span style="color: #4E9A06;">"\nAlready running."</span>
@@ -167,7 +167,7 @@ forever list | grep <span style="color: #4E9A06;">"$SCRIPT"</span>
 <div class="org-src-container">
 <pre class="src src-sh"><span style="color: #204A87;">#</span><span style="color: #204A87;">!/bin/</span><span style="color: #A52A2A; font-weight: bold;">bash</span>
 
-<span style="color: #A020F0;">export</span> <span style="color: #0084C8; font-weight: bold;">PATH</span>=$<span style="color: #0084C8; font-weight: bold;">PATH</span>:<span style="color: #ff00ff;">`pwd`</span>/node/bin:<span style="color: #ff00ff;">`pwd`</span>/../node/bin:<span style="color: #ff00ff;">`pwd`</span>/node_modules/forever/bi<span style="text-decoration: underline;">n:/usr/local/node/bin</span>
+<span style="color: #A020F0;">export</span> <span style="color: #0084C8; font-weight: bold;">PATH</span>=$<span style="color: #0084C8; font-weight: bold;">PATH</span>:<span style="color: #ff00ff;">`pwd`</span>/node/bin:<span style="color: #ff00ff;">`pwd`</span>/../node/bin:<span style="color: #ff00ff;">`pwd`</span>/node_modules/forever/bin:/usr/local/node/bin
 
 <span style="color: #0084C8; font-weight: bold;">SCRIPT</span>=<span style="color: #ff00ff;">`pwd`</span>/src/index.js
 
@@ -182,7 +182,7 @@ forever stop <span style="color: #4E9A06;">"$SCRIPT"</span>
 <div class="org-src-container">
 <pre class="src src-sh"><span style="color: #204A87;">#</span><span style="color: #204A87;">!/bin/</span><span style="color: #A52A2A; font-weight: bold;">bash</span>
 
-<span style="color: #A020F0;">export</span> <span style="color: #0084C8; font-weight: bold;">PATH</span>=$<span style="color: #0084C8; font-weight: bold;">PATH</span>:<span style="color: #ff00ff;">`pwd`</span>/node/bin:<span style="color: #ff00ff;">`pwd`</span>/../node/bin:<span style="color: #ff00ff;">`pwd`</span>/node_modules/forever/bi<span style="text-decoration: underline;">n:/usr/local/node/bin</span>
+<span style="color: #A020F0;">export</span> <span style="color: #0084C8; font-weight: bold;">PATH</span>=$<span style="color: #0084C8; font-weight: bold;">PATH</span>:<span style="color: #ff00ff;">`pwd`</span>/node/bin:<span style="color: #ff00ff;">`pwd`</span>/../node/bin:<span style="color: #ff00ff;">`pwd`</span>/node_modules/forever/bin:/usr/local/node/bin
 
 <span style="color: #0084C8; font-weight: bold;">SCRIPT</span>=<span style="color: #ff00ff;">`pwd`</span>/src/index.js
 
@@ -295,9 +295,9 @@ forever未对启动的程序进行唯一性标识，导致程序可能意外启�
 </div>
 </div>
 
-<div id="outline-container-org71fbf53" class="outline-2">
-<h2 id="org71fbf53"><a href="https://github.com/Unitech/pm2">pm2</a></h2>
-<div class="outline-text-2" id="text-org71fbf53">
+<div id="outline-container-orgffeb570" class="outline-2">
+<h2 id="orgffeb570"><a href="https://github.com/Unitech/pm2">pm2</a></h2>
+<div class="outline-text-2" id="text-orgffeb570">
 <ul class="org-ul">
 <li><p>
 安装
@@ -321,7 +321,7 @@ forever未对启动的程序进行唯一性标识，导致程序可能意外启�
 <code>.bashrc</code>
 </p>
 <div class="org-src-container">
-<pre class="src src-sh"><span style="color: #A020F0;">export</span> <span style="color: #0084C8; font-weight: bold;">PATH</span>=<span style="color: #ff00ff;">`pwd`</span>/node/bin:<span style="color: #ff00ff;">`pwd`</span>/../node/bin:<span style="color: #ff00ff;">`pwd`</span>/node_modules/pm2/bin:/usr/loc<span style="text-decoration: underline;">al/node/bin:$</span><span style="color: #0084C8; font-weight: bold; text-decoration: underline;">PATH</span>
+<pre class="src src-sh"><span style="color: #A020F0;">export</span> <span style="color: #0084C8; font-weight: bold;">PATH</span>=<span style="color: #ff00ff;">`pwd`</span>/node/bin:<span style="color: #ff00ff;">`pwd`</span>/../node/bin:<span style="color: #ff00ff;">`pwd`</span>/node_modules/pm2/bin:/usr/local/node/bin:$<span style="color: #0084C8; font-weight: bold;">PATH</span>
 <span style="color: #A020F0;">export</span> <span style="color: #0084C8; font-weight: bold;">NODE_ENV</span>=${<span style="color: #0084C8; font-weight: bold;">NODE_ENV</span>:-production}
 <span style="color: #A020F0;">export</span> <span style="color: #0084C8; font-weight: bold;">NODE_CONFIG_DIR</span>=<span style="color: #ff00ff;">`pwd`</span>/config
 <span style="color: #A020F0;">export</span> <span style="color: #0084C8; font-weight: bold;">APP_NAME</span>=<span style="color: #4E9A06;">"upload-fiddle"</span>
@@ -337,7 +337,7 @@ forever未对启动的程序进行唯一性标识，导致程序可能意外启�
 <pre class="src src-sh"><span style="color: #204A87;">#</span><span style="color: #204A87;">!/bin/</span><span style="color: #A52A2A; font-weight: bold;">bash</span>
 
 <span style="color: #A020F0;">source</span> .bashrc
-pm2 --node-args=<span style="color: #4E9A06;">"--harmony"</span> -n <span style="color: #4E9A06;">"$APP_NAME"</span> start <span style="color: #4E9A06;">"$APP_SCRIPT"</span> -i 0 --watch <span style="color: #4E9A06;">"`pw</span><span style="color: #4E9A06; text-decoration: underline;">d`/src/*.js"</span>
+pm2 --node-args=<span style="color: #4E9A06;">"--harmony"</span> -n <span style="color: #4E9A06;">"$APP_NAME"</span> start <span style="color: #4E9A06;">"$APP_SCRIPT"</span> -i 0 --watch <span style="color: #4E9A06;">"`pwd`/src/*.js"</span>
 </pre>
 </div>
 
@@ -431,9 +431,9 @@ pm2对启动的程序进行了唯一性标识，但是它将启动的信息保�
 </div>
 </div>
 
-<div id="outline-container-org37569b6" class="outline-2">
-<h2 id="org37569b6">程序写日志相关</h2>
-<div class="outline-text-2" id="text-org37569b6">
+<div id="outline-container-org90e68b4" class="outline-2">
+<h2 id="org90e68b4">程序写日志相关</h2>
+<div class="outline-text-2" id="text-org90e68b4">
 <p>
 用c/c++写日志的时候我一般都会使用日志库，如：<a href="http://logging.apache.org/log4cxx/index.html">log4cxx</a> 、<a href="https://github.com/HardySimpson/zlog">zlog</a> ，这些日志库容易使用而且很稳定，支持将日志写到文件或控制台，支持按大小、日期分割日志文件，支持限定日志文件数、占用空间。
 </p>
@@ -444,9 +444,9 @@ pm2对启动的程序进行了唯一性标识，但是它将启动的信息保�
 </div>
 </div>
 
-<div id="outline-container-orged722fa" class="outline-2">
-<h2 id="orged722fa">参考</h2>
-<div class="outline-text-2" id="text-orged722fa">
+<div id="outline-container-org22198f0" class="outline-2">
+<h2 id="org22198f0">参考</h2>
+<div class="outline-text-2" id="text-org22198f0">
 <ul class="org-ul">
 <li>《<a href="http://se77en.cc/2013/06/27/goodbye-node-forever-hello-pm2-translation/">告别node-forever,拥抱PM2</a>》</li>
 </ul>
@@ -483,7 +483,7 @@ pm2对启动的程序进行了唯一性标识，但是它将启动的信息保�
 
     <div id="footer">
   	  <div class="copyright" style="text-align: center;">
-  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
+  	    版权所有 © 2011-2020 tangxinfa
   	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
   	  </div>
     </div>

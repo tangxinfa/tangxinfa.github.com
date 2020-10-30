@@ -1,10 +1,10 @@
 module.exports = {
     site: {
-        title: '看看俺 – KanKanAn.com',
+        title: "tangxinfa's blog",
         description: '记我所思，忆我所为。',
-        link: 'http://blog.kankanan.com',
-        image: 'http://blog.kankanan.com/static/favicon.ico',
-        copyright: '版权所有 © 2011-2018 看看俺 – KanKanAn.com',
+        link: 'http://tangxinfa.github.io',
+        image: 'http://tangxinfa.github.io/static/favicon.ico',
+        copyright: '版权所有 © 2011-2020 tangxinfa',
         lang: 'zh-cn',
         home: '/category/tech/0.html',
         tags: {

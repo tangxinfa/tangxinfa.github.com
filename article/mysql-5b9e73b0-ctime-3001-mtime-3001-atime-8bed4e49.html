@@ -2,7 +2,7 @@
 <html lang="zh-cn">
   <head>
     <meta charset="utf-8"/>
-    <title>mysql 实现 ctime、mtime、atime 语义 | 看看俺 – KanKanAn.com</title>
+    <title>mysql 实现 ctime、mtime、atime 语义 | tangxinfa&#x27;s blog</title>
     <link rel="shortcut icon" href="/static/favicon.ico" />
     <link rel="stylesheet" type="text/css" href="/style/ediary.css"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -11,7 +11,7 @@
   <body>
     <div class="navbar navbar-fixed-top" id="header">
       <div class="navbar-inner">
-        <a class="brand" href="/" style="line-height:100%;">看看俺 – KanKanAn.com</a>
+        <a class="brand" href="/" style="line-height:100%;">tangxinfa&#x27;s blog</a>
         <ul class="navbar-links">
           <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
           
@@ -53,9 +53,9 @@
 下面考虑使用 mysql 实现。
 </p>
 
-<div id="outline-container-org47de3f3" class="outline-2">
-<h2 id="org47de3f3">不要使用 REPLACE</h2>
-<div class="outline-text-2" id="text-org47de3f3">
+<div id="outline-container-orga9580a5" class="outline-2">
+<h2 id="orga9580a5">不要使用 REPLACE</h2>
+<div class="outline-text-2" id="text-orga9580a5">
 <p>
 <a href="http://dev.mysql.com/doc/refman/5.7/en/replace.html">MySQL :: MySQL 5.7 Reference Manual :: 14.2.8 REPLACE Syntax</a>
 </p>
@@ -74,9 +74,9 @@ REPLACE works exactly like INSERT, except that if an old row in the table has th
 </p>
 </div>
 
-<div id="outline-container-org23326e1" class="outline-3">
-<h3 id="org23326e1">自行实现创建或修改语义</h3>
-<div class="outline-text-3" id="text-org23326e1">
+<div id="outline-container-org07d7b55" class="outline-3">
+<h3 id="org07d7b55">自行实现创建或修改语义</h3>
+<div class="outline-text-3" id="text-org07d7b55">
 <p>
 更新（UPDATE）记录，如果 <code>affectedRows</code> 为 0，再尝试插入（INSERT）记录。
 </p>
@@ -88,9 +88,9 @@ REPLACE works exactly like INSERT, except that if an old row in the table has th
 </div>
 </div>
 
-<div id="outline-container-org550abee" class="outline-2">
-<h2 id="org550abee">不要使用 ON UPDATE CURRENT_TIMESTAMP</h2>
-<div class="outline-text-2" id="text-org550abee">
+<div id="outline-container-orgdd85054" class="outline-2">
+<h2 id="orgdd85054">不要使用 ON UPDATE CURRENT_TIMESTAMP</h2>
+<div class="outline-text-2" id="text-orgdd85054">
 <p>
 这里的 <code>UPDATE</code> 是指更新语句（UPDATE、INSERT、REPLACE）是否改动了记录内容，新值与旧值不一样表示记录内容变化，会更新字段值为当前时间，否则，不会更新字段值为当前时间。
 </p>
@@ -105,13 +105,13 @@ REPLACE works exactly like INSERT, except that if an old row in the table has th
 </div>
 </div>
 
-<div id="outline-container-org864d3a4" class="outline-2">
-<h2 id="org864d3a4">创建时间（ctime）</h2>
-<div class="outline-text-2" id="text-org864d3a4">
+<div id="outline-container-orgb57fea5" class="outline-2">
+<h2 id="orgb57fea5">创建时间（ctime）</h2>
+<div class="outline-text-2" id="text-orgb57fea5">
 </div>
-<div id="outline-container-org9ebe36b" class="outline-3">
-<h3 id="org9ebe36b">字段定义</h3>
-<div class="outline-text-3" id="text-org9ebe36b">
+<div id="outline-container-org4a9cc6f" class="outline-3">
+<h3 id="org4a9cc6f">字段定义</h3>
+<div class="outline-text-3" id="text-org4a9cc6f">
 <pre class="example">
 ctime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 </pre>
@@ -123,22 +123,22 @@ ctime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 </div>
 </div>
 
-<div id="outline-container-org878031e" class="outline-2">
-<h2 id="org878031e">字段值更新</h2>
-<div class="outline-text-2" id="text-org878031e">
+<div id="outline-container-org691da60" class="outline-2">
+<h2 id="org691da60">字段值更新</h2>
+<div class="outline-text-2" id="text-org691da60">
 <p>
 INSERT（或 UPDATE） 语句创建（或更新）记录，不指定 <code>ctime</code> 字段。
 </p>
 </div>
 </div>
 
-<div id="outline-container-org34a51ce" class="outline-2">
-<h2 id="org34a51ce">更新时间（mtime）</h2>
-<div class="outline-text-2" id="text-org34a51ce">
+<div id="outline-container-orga48e510" class="outline-2">
+<h2 id="orga48e510">更新时间（mtime）</h2>
+<div class="outline-text-2" id="text-orga48e510">
 </div>
-<div id="outline-container-orgdffbf51" class="outline-3">
-<h3 id="orgdffbf51">字段定义</h3>
-<div class="outline-text-3" id="text-orgdffbf51">
+<div id="outline-container-org537b8da" class="outline-3">
+<h3 id="org537b8da">字段定义</h3>
+<div class="outline-text-3" id="text-org537b8da">
 <pre class="example">
 mtime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 </pre>
@@ -150,9 +150,9 @@ mtime TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 </div>
 </div>
 
-<div id="outline-container-orge6b4ea3" class="outline-2">
-<h2 id="orge6b4ea3">字段值更新</h2>
-<div class="outline-text-2" id="text-orge6b4ea3">
+<div id="outline-container-orga8dadce" class="outline-2">
+<h2 id="orga8dadce">字段值更新</h2>
+<div class="outline-text-2" id="text-orga8dadce">
 <p>
 INSERT 语句创建记录，不指定 <code>mtime</code> 字段，或指定字段值为 CURRENT_TIMESTAMP。
 </p>
@@ -163,13 +163,13 @@ UPDATE 语句更新记录，指定 <code>mtime</code> 字段值为 CURRENT_TIMES
 </div>
 </div>
 
-<div id="outline-container-org3103671" class="outline-2">
-<h2 id="org3103671">访问时间（atime）</h2>
-<div class="outline-text-2" id="text-org3103671">
+<div id="outline-container-orga4560b2" class="outline-2">
+<h2 id="orga4560b2">访问时间（atime）</h2>
+<div class="outline-text-2" id="text-orga4560b2">
 </div>
-<div id="outline-container-org077ec2c" class="outline-3">
-<h3 id="org077ec2c">字段定义</h3>
-<div class="outline-text-3" id="text-org077ec2c">
+<div id="outline-container-org75d005e" class="outline-3">
+<h3 id="org75d005e">字段定义</h3>
+<div class="outline-text-3" id="text-org75d005e">
 <pre class="example">
 atime TIMESTAMP NOT NULL DEFAULT "0000-00-00 00:00:00"
 </pre>
@@ -181,9 +181,9 @@ atime TIMESTAMP NOT NULL DEFAULT "0000-00-00 00:00:00"
 </div>
 </div>
 
-<div id="outline-container-org4c5c292" class="outline-2">
-<h2 id="org4c5c292">字段值更新</h2>
-<div class="outline-text-2" id="text-org4c5c292">
+<div id="outline-container-org6b05dcb" class="outline-2">
+<h2 id="org6b05dcb">字段值更新</h2>
+<div class="outline-text-2" id="text-org6b05dcb">
 <p>
 UPDATE 语句更新记录，指定 <code>atime</code> 字段值为 CURRENT_TIMESTAMP。</p>
 </div>
@@ -218,7 +218,7 @@ UPDATE 语句更新记录，指定 <code>atime</code> 字段值为 CURRENT_TIMES
 
     <div id="footer">
   	  <div class="copyright" style="text-align: center;">
-  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
+  	    版权所有 © 2011-2020 tangxinfa
   	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
   	  </div>
     </div>

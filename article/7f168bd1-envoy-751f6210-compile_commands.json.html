@@ -2,7 +2,7 @@
 <html lang="zh-cn">
   <head>
     <meta charset="utf-8"/>
-    <title>编译 envoy 生成 compile_commands.json | 看看俺 – KanKanAn.com</title>
+    <title>编译 envoy 生成 compile_commands.json | tangxinfa&#x27;s blog</title>
     <link rel="shortcut icon" href="/static/favicon.ico" />
     <link rel="stylesheet" type="text/css" href="/style/ediary.css"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -11,7 +11,7 @@
   <body>
     <div class="navbar navbar-fixed-top" id="header">
       <div class="navbar-inner">
-        <a class="brand" href="/" style="line-height:100%;">看看俺 – KanKanAn.com</a>
+        <a class="brand" href="/" style="line-height:100%;">tangxinfa&#x27;s blog</a>
         <ul class="navbar-links">
           <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
           
@@ -31,7 +31,7 @@
       
         <div class="article-content">
           <p>
-前面的文章 <a href="http://blog.kankanan.com/article/5b8c7f8e7684-c-987976ee4ee378015b9a4e498df38f6c.html">完美的 c++ 项目代码定义跳转</a> 介绍了对使用 <a href="https://bazel.build/">Bazel</a> 进行构建的项目生成
+前面的文章 <a href="http://tangxinfa.github.io/article/5b8c7f8e7684-c-987976ee4ee378015b9a4e498df38f6c.html">完美的 c++ 项目代码定义跳转</a> 介绍了对使用 <a href="https://bazel.build/">Bazel</a> 进行构建的项目生成
 <code>compile_commands.json</code> 。<a href="https://github.com/envoyproxy/envoy/">envoy</a> 是使用 <a href="https://bazel.build/">Bazel</a> 进行构建的大型 c++ 开源项目，使用
 <a href="https://github.com/Andersbakken/rtags">rtags</a> 的代码跳转功能可以方便地调试、阅读 <a href="https://github.com/envoyproxy/envoy/">envoy</a> 源代码。
 </p>
@@ -40,9 +40,9 @@
 最新的 <a href="https://github.com/envoyproxy/envoy/">envoy</a> 已包含创建 <code>compile_commands.json</code> 相关脚本，但是缺乏相关使用文档，这里我们选择为 <code>envoy 1.7.0</code> 手工创建 <code>compile_commands.json</code> 。
 </p>
 
-<div id="outline-container-org489e733" class="outline-2">
-<h2 id="org489e733">下载 envoy 1.7.0 源代码</h2>
-<div class="outline-text-2" id="text-org489e733">
+<div id="outline-container-orgd98b89b" class="outline-2">
+<h2 id="orgd98b89b">下载 envoy 1.7.0 源代码</h2>
+<div class="outline-text-2" id="text-orgd98b89b">
 <div class="org-src-container">
 <pre class="src src-sh">git clone https://github.com/envoyproxy/envoy.git -b v1.7.0
 </pre>
@@ -50,16 +50,16 @@
 </div>
 </div>
 
-<div id="outline-container-org08ee0e6" class="outline-2">
-<h2 id="org08ee0e6">安装 Bazel</h2>
-<div class="outline-text-2" id="text-org08ee0e6">
+<div id="outline-container-orgc0cce02" class="outline-2">
+<h2 id="orgc0cce02">安装 Bazel</h2>
+<div class="outline-text-2" id="text-orgc0cce02">
 <p>
 参考 <a href="https://github.com/envoyproxy/envoy/blob/master/bazel/README.md">envoy/README.md</a> 安装 <a href="https://github.com/bazelbuild/bazelisk">Bazelisk</a> 以支持使用任意 <a href="https://bazel.build/">Bazel</a> 版本
 </p>
 
 <div class="org-src-container">
 <pre class="src src-sh">sudo mkdir -p /opt/local/bin
-sudo wget -O /opt/local/bin/bazel https://github.com/bazelbuild/bazelisk/release<span style="text-decoration: underline;">s/download/v0.0.8/bazelisk-linux-amd64</span>
+sudo wget -O /opt/local/bin/bazel https://github.com/bazelbuild/bazelisk/releases/download/v0.0.8/bazelisk-linux-amd64
 sudo chmod +x /opt/local/bin/bazel
 <span style="color: #A020F0;">export</span> <span style="color: #0084C8; font-weight: bold;">PATH</span>=/opt/local/bin/:$<span style="color: #0084C8; font-weight: bold;">PATH</span>
 </pre>
@@ -67,24 +67,24 @@ sudo chmod +x /opt/local/bin/bazel
 </div>
 </div>
 
-<div id="outline-container-orgdf19d8f" class="outline-2">
-<h2 id="orgdf19d8f">下载 Bazel_and_CompileCommands</h2>
-<div class="outline-text-2" id="text-orgdf19d8f">
+<div id="outline-container-org442f8e8" class="outline-2">
+<h2 id="org442f8e8">下载 Bazel_and_CompileCommands</h2>
+<div class="outline-text-2" id="text-org442f8e8">
 <p>
 使用 <a href="https://github.com/vincent-picaud/Bazel_and_CompileCommands">vincent-picaud/Bazel_and_CompileCommands</a> 的 fork 版本，以支持传入构建参数
 </p>
 
 <div class="org-src-container">
 <pre class="src src-sh"><span style="color: #A020F0;">cd</span> ~/Opensource/
-git clone git@github.com:tangxinfa/Bazel_and_CompileCommands.git -b fix-build-ar<span style="text-decoration: underline;">guments</span>
+git clone git@github.com:tangxinfa/Bazel_and_CompileCommands.git -b fix-build-arguments
 </pre>
 </div>
 </div>
 </div>
 
-<div id="outline-container-orgb58b9fa" class="outline-2">
-<h2 id="orgb58b9fa">指定 Bazel 版本</h2>
-<div class="outline-text-2" id="text-orgb58b9fa">
+<div id="outline-container-org0c55c67" class="outline-2">
+<h2 id="org0c55c67">指定 Bazel 版本</h2>
+<div class="outline-text-2" id="text-org0c55c67">
 <p>
 Envoy 最新版本通过 <code>.bazelversion</code> 文件指明使用的 Bazel 版本，envoy v1.7.0 需要手工设置。运行命令 <code>ci/run_envoy_docker.sh "bazel version"</code> 得知 envoy
 v1.7.0 需要 bazel 0.13.0。
@@ -97,9 +97,9 @@ v1.7.0 需要 bazel 0.13.0。
 </div>
 </div>
 
-<div id="outline-container-org5fe08bc" class="outline-2">
-<h2 id="org5fe08bc">指定 Python 版本</h2>
-<div class="outline-text-2" id="text-org5fe08bc">
+<div id="outline-container-org13d68f6" class="outline-2">
+<h2 id="org13d68f6">指定 Python 版本</h2>
+<div class="outline-text-2" id="text-org13d68f6">
 <p>
 Archlinux 默认的 Python 版本为 python3，需要使用 python2
 </p>
@@ -111,9 +111,9 @@ Archlinux 默认的 Python 版本为 python3，需要使用 python2
 </div>
 </div>
 
-<div id="outline-container-org5a1cfca" class="outline-2">
-<h2 id="org5a1cfca">安装 gcc5</h2>
-<div class="outline-text-2" id="text-org5a1cfca">
+<div id="outline-container-org1cb9105" class="outline-2">
+<h2 id="org1cb9105">安装 gcc5</h2>
+<div class="outline-text-2" id="text-org1cb9105">
 <p>
 Envoy v1.7.0 使用最新版本的 gcc 进行编译会有大量的编译错误，改用 gcc5
 </p>
@@ -125,9 +125,9 @@ Envoy v1.7.0 使用最新版本的 gcc 进行编译会有大量的编译错误�
 </div>
 </div>
 
-<div id="outline-container-orgb6e780c" class="outline-2">
-<h2 id="orgb6e780c">修复 tclap 项目地址错误</h2>
-<div class="outline-text-2" id="text-orgb6e780c">
+<div id="outline-container-orgf21a84d" class="outline-2">
+<h2 id="orgf21a84d">修复 tclap 项目地址错误</h2>
+<div class="outline-text-2" id="text-orgf21a84d">
 <p>
 tclap 项目已从 <a href="http://github.com/eile/tclap">http://github.com/eile/tclap</a> 迁到 <a href="https://github.com/mirror/tclap">https://github.com/mirror/tclap</a>
 </p>
@@ -138,9 +138,9 @@ tclap 项目已从 <a href="http://github.com/eile/tclap">http://github.com/eile
 </div>
 </div>
 
-<div id="outline-container-orgc5c3b68" class="outline-2">
-<h2 id="orgc5c3b68">修复 gettid 重复定义的错误</h2>
-<div class="outline-text-2" id="text-orgc5c3b68">
+<div id="outline-container-org19c24cb" class="outline-2">
+<h2 id="org19c24cb">修复 gettid 重复定义的错误</h2>
+<div class="outline-text-2" id="text-org19c24cb">
 <p>
 编译过程中有几处 <code>gettid</code> 定义错误，如
 </p>
@@ -166,9 +166,9 @@ external/com_github_grpc_grpc/src/core/lib/iomgr/ev_epollex_linux.cc:989:24: err
 </div>
 </div>
 
-<div id="outline-container-orgfc4bf1d" class="outline-2">
-<h2 id="orgfc4bf1d">编译 Envoy 生成 compile_commands.json</h2>
-<div class="outline-text-2" id="text-orgfc4bf1d">
+<div id="outline-container-org9e3bbdc" class="outline-2">
+<h2 id="org9e3bbdc">编译 Envoy 生成 compile_commands.json</h2>
+<div class="outline-text-2" id="text-org9e3bbdc">
 <div class="org-src-container">
 <pre class="src src-sh">~/Opensource/Bazel_and_CompileCommands/setup_compile_commands.sh
 ~/Opensource/Bazel_and_CompileCommands/create_compile_commands.sh <span style="color: #4E9A06;">\</span>
@@ -210,7 +210,7 @@ external/com_github_grpc_grpc/src/core/lib/iomgr/ev_epollex_linux.cc:989:24: err
 
     <div id="footer">
   	  <div class="copyright" style="text-align: center;">
-  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
+  	    版权所有 © 2011-2020 tangxinfa
   	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
   	  </div>
     </div>

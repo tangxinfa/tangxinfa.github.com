@@ -2,7 +2,7 @@
 <html lang="zh-cn">
   <head>
     <meta charset="utf-8"/>
-    <title>安全使用libcurl的正确姿势 | 看看俺 – KanKanAn.com</title>
+    <title>安全使用libcurl的正确姿势 | tangxinfa&#x27;s blog</title>
     <link rel="shortcut icon" href="/static/favicon.ico" />
     <link rel="stylesheet" type="text/css" href="/style/ediary.css"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -11,7 +11,7 @@
   <body>
     <div class="navbar navbar-fixed-top" id="header">
       <div class="navbar-inner">
-        <a class="brand" href="/" style="line-height:100%;">看看俺 – KanKanAn.com</a>
+        <a class="brand" href="/" style="line-height:100%;">tangxinfa&#x27;s blog</a>
         <ul class="navbar-links">
           <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
           
@@ -42,7 +42,7 @@
 <span class="linenr"> 5: </span>
 <span class="linenr"> 6: </span><span style="color: #A020F0;">#define</span> <span style="color: #0084C8; font-weight: bold;">RESPONSE_BODY_SIZE</span> 128
 <span class="linenr"> 7: </span>
-<span class="linenr"> 8: </span><span style="color: #A52A2A; font-weight: bold;">static</span> <span style="color: #2F8B58; font-weight: bold;">size_t</span> <span style="color: #00578E; font-weight: bold;">write_function</span>(<span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #2F8B58; font-weight: bold;">void</span> *<span style="color: #0084C8; font-weight: bold;">buffer</span>, <span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #2F8B58; font-weight: bold;">size_t</span> <span style="color: #0084C8; font-weight: bold;">size</span>, <span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #2F8B58; font-weight: bold;">size_t</span><span style="text-decoration: underline;"> </span><span style="color: #0084C8; font-weight: bold; text-decoration: underline;">nmemb</span><span style="text-decoration: underline;">, </span><span style="color: #2F8B58; font-weight: bold; text-decoration: underline;">void</span><span style="text-decoration: underline;"> *</span><span style="color: #0084C8; font-weight: bold; text-decoration: underline;">user_p</span><span style="text-decoration: underline;">)</span>
+<span class="linenr"> 8: </span><span style="color: #A52A2A; font-weight: bold;">static</span> <span style="color: #2F8B58; font-weight: bold;">size_t</span> <span style="color: #00578E; font-weight: bold;">write_function</span>(<span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #2F8B58; font-weight: bold;">void</span> *<span style="color: #0084C8; font-weight: bold;">buffer</span>, <span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #2F8B58; font-weight: bold;">size_t</span> <span style="color: #0084C8; font-weight: bold;">size</span>, <span style="color: #A52A2A; font-weight: bold;">const</span> <span style="color: #2F8B58; font-weight: bold;">size_t</span> <span style="color: #0084C8; font-weight: bold;">nmemb</span>, <span style="color: #2F8B58; font-weight: bold;">void</span> *<span style="color: #0084C8; font-weight: bold;">user_p</span>)
 <span class="linenr"> 9: </span>{
 <span class="linenr">10: </span>    <span style="color: #2F8B58; font-weight: bold;">char</span>* <span style="color: #0084C8; font-weight: bold;">response_body</span> = (<span style="color: #2F8B58; font-weight: bold;">char</span>*)user_p;
 <span class="linenr">11: </span>    <span style="color: #2F8B58; font-weight: bold;">uint32_t</span> <span style="color: #0084C8; font-weight: bold;">response_body_len</span> = strlen(response_body);
@@ -78,10 +78,10 @@
 <span class="linenr">41: </span>        curl_easy_setopt(curl, CURLOPT_WRITEDATA, response_body);
 <span class="linenr">42: </span>        res = curl_easy_perform(curl);
 <span class="linenr">43: </span>        <span style="color: #A52A2A; font-weight: bold;">if</span> (res == CURLE_OK) {
-<span id="coderef-curl_response_code" class="coderef-off"><span class="linenr">44: </span>            res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &amp;response_code<span style="text-decoration: underline;">);</span></span>
+<span id="coderef-curl_response_code" class="coderef-off"><span class="linenr">44: </span>            res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &amp;response_code);</span>
 <span class="linenr">45: </span>        }
 <span class="linenr">46: </span>        <span style="color: #A52A2A; font-weight: bold;">if</span>(res != CURLE_OK) {
-<span class="linenr">47: </span>            fprintf(stderr, <span style="color: #4E9A06;">"request to %s error(%d): %s"</span>, url, res, curl_easy_s<span style="text-decoration: underline;">trerror(res));</span>
+<span class="linenr">47: </span>            fprintf(stderr, <span style="color: #4E9A06;">"request to %s error(%d): %s"</span>, url, res, curl_easy_strerror(res));
 <span class="linenr">48: </span>        }
 <span class="linenr">49: </span>        curl_easy_cleanup(curl);
 <span class="linenr">50: </span>    }
@@ -92,7 +92,7 @@
 <span class="linenr">55: </span>        <span style="color: #A52A2A; font-weight: bold;">return</span> 0;
 <span class="linenr">56: </span>    }
 <span class="linenr">57: </span>
-<span class="linenr">58: </span>    fprintf(stderr, <span style="color: #4E9A06;">"request to %s response failed(%ld): %s\n"</span>, url, response_co<span style="text-decoration: underline;">de, response_body);</span>
+<span class="linenr">58: </span>    fprintf(stderr, <span style="color: #4E9A06;">"request to %s response failed(%ld): %s\n"</span>, url, response_code, response_body);
 <span class="linenr">59: </span>    <span style="color: #A52A2A; font-weight: bold;">return</span> 1;
 <span class="linenr">60: </span>}
 </pre>
@@ -177,7 +177,7 @@ cc1: all warnings being treated as errors
 
     <div id="footer">
   	  <div class="copyright" style="text-align: center;">
-  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
+  	    版权所有 © 2011-2020 tangxinfa
   	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
   	  </div>
     </div>

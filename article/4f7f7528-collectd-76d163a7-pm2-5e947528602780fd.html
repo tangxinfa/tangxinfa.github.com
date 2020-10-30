@@ -2,7 +2,7 @@
 <html lang="zh-cn">
   <head>
     <meta charset="utf-8"/>
-    <title>使用 collectd 监控 pm2 应用性能 | 看看俺 – KanKanAn.com</title>
+    <title>使用 collectd 监控 pm2 应用性能 | tangxinfa&#x27;s blog</title>
     <link rel="shortcut icon" href="/static/favicon.ico" />
     <link rel="stylesheet" type="text/css" href="/style/ediary.css"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -11,7 +11,7 @@
   <body>
     <div class="navbar navbar-fixed-top" id="header">
       <div class="navbar-inner">
-        <a class="brand" href="/" style="line-height:100%;">看看俺 – KanKanAn.com</a>
+        <a class="brand" href="/" style="line-height:100%;">tangxinfa&#x27;s blog</a>
         <ul class="navbar-links">
           <li><a href="/index.xml"><i class="icon-rss icon-white"></i> 订阅</a></li>
           
@@ -40,9 +40,9 @@ PM2 is a production process manager for Node.js applications with a built-in loa
 </p>
 </blockquote>
 
-<div id="outline-container-org87f54b0" class="outline-2">
-<h2 id="org87f54b0">关键性能指标</h2>
-<div class="outline-text-2" id="text-org87f54b0">
+<div id="outline-container-org0267c10" class="outline-2">
+<h2 id="org0267c10">关键性能指标</h2>
+<div class="outline-text-2" id="text-org0267c10">
 <p>
 通过 <a href="https://github.com/Unitech/pm2">pm2</a> 可以获取到 node.js 应用的几个关键性能指标：
 </p>
@@ -127,9 +127,9 @@ node.js（javascript）是一门动态语言，很少运行到的代码分支里
 </div>
 </div>
 
-<div id="outline-container-orga5b1b89" class="outline-2">
-<h2 id="orga5b1b89">收集性能指标</h2>
-<div class="outline-text-2" id="text-orga5b1b89">
+<div id="outline-container-org01fc961" class="outline-2">
+<h2 id="org01fc961">收集性能指标</h2>
+<div class="outline-text-2" id="text-org01fc961">
 <p>
 通过 pm2 收集 node.js 应用性能指标的脚本 <code>/usr/local/bin/collectd-pm2.js</code>
 </p>
@@ -157,13 +157,13 @@ node.js（javascript）是一门动态语言，很少运行到的代码分支里
         list.forEach(<span style="color: #A52A2A; font-weight: bold;">function</span> (<span style="color: #0084C8; font-weight: bold;">item</span>) {
             <span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">name</span> = <span style="color: #4E9A06;">''</span>;
             <span style="color: #A52A2A; font-weight: bold;">for</span>(<span style="color: #A52A2A; font-weight: bold;">var</span> <span style="color: #0084C8; font-weight: bold;">i</span> = 0, <span style="color: #0084C8; font-weight: bold;">n</span> = item.name.length; i &lt; n; ++i) {
-                name += item.name[i].match(<span style="color: #4E9A06;">/^[0-9a-zA-Z]+$/</span>) ? item.name[i] : <span style="color: #4E9A06;">'_</span><span style="color: #4E9A06; text-decoration: underline;">'</span><span style="text-decoration: underline;">;</span>
+                name += item.name[i].match(<span style="color: #4E9A06;">/^[0-9a-zA-Z]+$/</span>) ? item.name[i] : <span style="color: #4E9A06;">'_'</span>;
             }
-            process.stdout.write(<span style="color: #4E9A06;">"PUTVAL \""</span> + hostname + <span style="color: #4E9A06;">"/"</span> + name + <span style="color: #4E9A06;">"-loop_de</span><span style="color: #4E9A06; text-decoration: underline;">lay"</span><span style="text-decoration: underline;"> + </span><span style="color: #4E9A06; text-decoration: underline;">"/delay-"</span><span style="text-decoration: underline;"> + item.pm_id + </span><span style="color: #4E9A06; text-decoration: underline;">"\" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #4E9A06; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #4E9A06; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.pm2_env.axm_monitor[</span><span style="color: #4E9A06; text-decoration: underline;">"Loop delay"</span><span style="text-decoration: underline;">].value.replace(</span><span style="color: #4E9A06; text-decoration: underline;">'ms'</span><span style="text-decoration: underline;">, </span><span style="color: #4E9A06; text-decoration: underline;">''</span><span style="text-decoration: underline;">) + </span><span style="color: #4E9A06; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
-            process.stdout.write(<span style="color: #4E9A06;">"PUTVAL \""</span> + hostname + <span style="color: #4E9A06;">"/"</span> + name + <span style="color: #4E9A06;">"-memory_</span><span style="color: #4E9A06; text-decoration: underline;">used"</span><span style="text-decoration: underline;"> + </span><span style="color: #4E9A06; text-decoration: underline;">"/gauge-"</span><span style="text-decoration: underline;"> + item.pm_id + </span><span style="color: #4E9A06; text-decoration: underline;">"\" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #4E9A06; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #4E9A06; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.monit.memory + </span><span style="color: #4E9A06; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
-            process.stdout.write(<span style="color: #4E9A06;">"PUTVAL \""</span> + hostname + <span style="color: #4E9A06;">"/"</span> + name + <span style="color: #4E9A06;">"-cpu_use</span><span style="color: #4E9A06; text-decoration: underline;">d"</span><span style="text-decoration: underline;"> + </span><span style="color: #4E9A06; text-decoration: underline;">"/gauge-"</span><span style="text-decoration: underline;"> + item.pm_id + </span><span style="color: #4E9A06; text-decoration: underline;">"\" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #4E9A06; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #4E9A06; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.monit.cpu + </span><span style="color: #4E9A06; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
-            process.stdout.write(<span style="color: #4E9A06;">"PUTVAL \""</span> + hostname + <span style="color: #4E9A06;">"/"</span> + name + <span style="color: #4E9A06;">"-restart</span><span style="color: #4E9A06; text-decoration: underline;">_time"</span><span style="text-decoration: underline;"> + </span><span style="color: #4E9A06; text-decoration: underline;">"/gauge-"</span><span style="text-decoration: underline;"> + item.pm_id + </span><span style="color: #4E9A06; text-decoration: underline;">"\" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #4E9A06; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #4E9A06; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.pm2_env.restart_time + </span><span style="color: #4E9A06; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
-            process.stdout.write(<span style="color: #4E9A06;">"PUTVAL \""</span> + hostname + <span style="color: #4E9A06;">"/"</span> + name + <span style="color: #4E9A06;">"-unstabl</span><span style="color: #4E9A06; text-decoration: underline;">e_restarts"</span><span style="text-decoration: underline;"> + </span><span style="color: #4E9A06; text-decoration: underline;">"/gauge-"</span><span style="text-decoration: underline;"> + item.pm_id + </span><span style="color: #4E9A06; text-decoration: underline;">"\" interval="</span><span style="text-decoration: underline;"> + interval + </span><span style="color: #4E9A06; text-decoration: underline;">" "</span><span style="text-decoration: underline;"> + timestamp + </span><span style="color: #4E9A06; text-decoration: underline;">":"</span><span style="text-decoration: underline;"> + item.pm2_env.unstable_restarts + </span><span style="color: #4E9A06; text-decoration: underline;">"\n"</span><span style="text-decoration: underline;">);</span>
+            process.stdout.write(<span style="color: #4E9A06;">"PUTVAL \""</span> + hostname + <span style="color: #4E9A06;">"/"</span> + name + <span style="color: #4E9A06;">"-loop_delay"</span> + <span style="color: #4E9A06;">"/delay-"</span> + item.pm_id + <span style="color: #4E9A06;">"\" interval="</span> + interval + <span style="color: #4E9A06;">" "</span> + timestamp + <span style="color: #4E9A06;">":"</span> + item.pm2_env.axm_monitor[<span style="color: #4E9A06;">"Loop delay"</span>].value.replace(<span style="color: #4E9A06;">'ms'</span>, <span style="color: #4E9A06;">''</span>) + <span style="color: #4E9A06;">"\n"</span>);
+            process.stdout.write(<span style="color: #4E9A06;">"PUTVAL \""</span> + hostname + <span style="color: #4E9A06;">"/"</span> + name + <span style="color: #4E9A06;">"-memory_used"</span> + <span style="color: #4E9A06;">"/gauge-"</span> + item.pm_id + <span style="color: #4E9A06;">"\" interval="</span> + interval + <span style="color: #4E9A06;">" "</span> + timestamp + <span style="color: #4E9A06;">":"</span> + item.monit.memory + <span style="color: #4E9A06;">"\n"</span>);
+            process.stdout.write(<span style="color: #4E9A06;">"PUTVAL \""</span> + hostname + <span style="color: #4E9A06;">"/"</span> + name + <span style="color: #4E9A06;">"-cpu_used"</span> + <span style="color: #4E9A06;">"/gauge-"</span> + item.pm_id + <span style="color: #4E9A06;">"\" interval="</span> + interval + <span style="color: #4E9A06;">" "</span> + timestamp + <span style="color: #4E9A06;">":"</span> + item.monit.cpu + <span style="color: #4E9A06;">"\n"</span>);
+            process.stdout.write(<span style="color: #4E9A06;">"PUTVAL \""</span> + hostname + <span style="color: #4E9A06;">"/"</span> + name + <span style="color: #4E9A06;">"-restart_time"</span> + <span style="color: #4E9A06;">"/gauge-"</span> + item.pm_id + <span style="color: #4E9A06;">"\" interval="</span> + interval + <span style="color: #4E9A06;">" "</span> + timestamp + <span style="color: #4E9A06;">":"</span> + item.pm2_env.restart_time + <span style="color: #4E9A06;">"\n"</span>);
+            process.stdout.write(<span style="color: #4E9A06;">"PUTVAL \""</span> + hostname + <span style="color: #4E9A06;">"/"</span> + name + <span style="color: #4E9A06;">"-unstable_restarts"</span> + <span style="color: #4E9A06;">"/gauge-"</span> + item.pm_id + <span style="color: #4E9A06;">"\" interval="</span> + interval + <span style="color: #4E9A06;">" "</span> + timestamp + <span style="color: #4E9A06;">":"</span> + item.pm2_env.unstable_restarts + <span style="color: #4E9A06;">"\n"</span>);
         });
 
         setTimeout(collect, interval*1000);
@@ -195,11 +195,11 @@ pm2 是使用 root 帐号运行的，collectd exec 插件不允许以 root 权�
 <span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #00578E; font-weight: bold;">main</span>(<span style="color: #2F8B58; font-weight: bold;">int</span> <span style="color: #0084C8; font-weight: bold;">argc</span>, <span style="color: #2F8B58; font-weight: bold;">char</span>* <span style="color: #0084C8; font-weight: bold;">argv</span>[]) {
     <span style="color: #A52A2A; font-weight: bold;">if</span> (setuid(0) == -1 || setgid(0) == -1) {
         perror(<span style="color: #4E9A06;">"setuid or setgid to root user error"</span>);
-        fprintf(stderr, <span style="color: #4E9A06;">"\npermit setuid and setgid to root user: \n\tchown root</span><span style="color: #4E9A06; text-decoration: underline;">:root %s\n\tchmod 4755 %s\n"</span><span style="text-decoration: underline;">, argv[0], argv[0]);</span>
+        fprintf(stderr, <span style="color: #4E9A06;">"\npermit setuid and setgid to root user: \n\tchown root:root %s\n\tchmod 4755 %s\n"</span>, argv[0], argv[0]);
         <span style="color: #A52A2A; font-weight: bold;">return</span> EXIT_FAILURE;
     }
 
-    <span style="color: #A52A2A; font-weight: bold;">return</span> system(<span style="color: #4E9A06;">"/bin/bash -c 'export PM2_HOME=${PM2_HOME:-~root/.pm2}; node /</span><span style="color: #4E9A06; text-decoration: underline;">usr/local/bin/collectd-pm2.js'"</span><span style="text-decoration: underline;">);</span>
+    <span style="color: #A52A2A; font-weight: bold;">return</span> system(<span style="color: #4E9A06;">"/bin/bash -c 'export PM2_HOME=${PM2_HOME:-~root/.pm2}; node /usr/local/bin/collectd-pm2.js'"</span>);
 }
 </pre>
 </div>
@@ -274,7 +274,7 @@ LoadPlugin exec
 
     <div id="footer">
   	  <div class="copyright" style="text-align: center;">
-  	    版权所有 © 2011-2015 看看俺 – KanKanAn.com
+  	    版权所有 © 2011-2020 tangxinfa
   	    <p>Powered by <a href="https://github.com/tangxinfa/ediary">ediary</a>.</p>
   	  </div>
     </div>
