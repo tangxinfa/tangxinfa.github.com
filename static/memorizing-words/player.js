@@ -540,6 +540,9 @@ function player_location_get() {
   if (isNaN(paths[4]) || paths[4] < 0) {
     paths[4] = 0;
   }
+  if (paths[0].indexOf("%") == 0) {
+      paths[0] = decodeURIComponent(paths[0]);
+  }
 
   return paths;
 }
