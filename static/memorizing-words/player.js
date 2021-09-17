@@ -328,6 +328,7 @@ function player_draw() {
     $("#answer").show();
     player_star_draw();
     word_list.Forward();
+    $("#word").addClass("answered");
   } else if (!word_list.Ending()) {
     player_progress_draw();
     let word = word_list.Word(word_list.Offset());
@@ -335,11 +336,13 @@ function player_draw() {
     $("#answer")
       .text(word[1])
       .hide();
+    $("#word").removeClass("answered");
     player_star_draw();
   } else {
     $("#question").text("");
     $("#answer").text("");
     $("#message").text("The end");
+    $("#word").removeClass("answered");
     player_star_draw();
     player_progress_draw();
   }
@@ -407,6 +410,11 @@ function player_start() {
       parseInt(paths[2], 10) - 1,
       parseInt(paths[4], 10) - 1
     );
+    if(word_list.Word(0)[1] == "") {
+      $("#content").addClass("empty-answer");
+    } else {
+      $("#content").removeClass("empty-answer");
+    }
     if (paths[3] === "star") {
       word_list = new NewWordList(word_list, parseInt(paths[4], 10) - 1);
     }
